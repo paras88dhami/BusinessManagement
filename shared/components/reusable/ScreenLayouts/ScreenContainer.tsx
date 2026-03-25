@@ -17,20 +17,18 @@ export function ScreenContainer({
   padded = false,
 }: ScreenContainerProps) {
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <View style={styles.container}>
-        {header}
-        <View style={styles.divider} />
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.content, padded && styles.padded]}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-        {footer}
-      </View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      {header}
+      <View style={styles.divider} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, padded && styles.padded]}
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+      {footer}
+    </View>
   );
 }
 
