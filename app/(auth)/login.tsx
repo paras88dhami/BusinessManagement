@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import appDatabase from "@/app/database/database";
 import { hasActiveUserSession } from "@/feature/session/data/appSession.store";
 import { GetLoginScreenFactory } from "@/feature/auth/login/factory/getLoginScreen.factory";
+import { warmDatabaseFieldEncryptionKey } from "@/shared/utils/security/databaseFieldEncryption.service";
 
 export default function LoginRoute() {
   const router = useRouter();
@@ -15,6 +16,10 @@ export default function LoginRoute() {
 
   useEffect(() => {
     let isMounted = true;
+
+    void warmDatabaseFieldEncryptionKey().catch(() => {
+      // Non-fatal: regular auth operations will still surface encryption errors.
+    });
 
     const checkSession = async () => {
       try {

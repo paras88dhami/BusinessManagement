@@ -59,15 +59,12 @@ export const createLocalAuthCredentialDatasource = (
         throw new Error("Login id is required");
       }
 
-      const encryptedPasswordHash = await databaseFieldEncryptionService.encrypt(
-        payload.passwordHash,
-      );
-      const encryptedPasswordSalt = await databaseFieldEncryptionService.encrypt(
-        payload.passwordSalt,
-      );
-      const encryptedHint = await databaseFieldEncryptionService.encryptNullable(
-        payload.hint,
-      );
+      const [encryptedPasswordHash, encryptedPasswordSalt, encryptedHint] =
+        await Promise.all([
+          databaseFieldEncryptionService.encrypt(payload.passwordHash),
+          databaseFieldEncryptionService.encrypt(payload.passwordSalt),
+          databaseFieldEncryptionService.encryptNullable(payload.hint),
+        ]);
 
       const authCredentialsCollection = database.get<AuthCredentialModel>(
         AUTH_CREDENTIALS_TABLE,

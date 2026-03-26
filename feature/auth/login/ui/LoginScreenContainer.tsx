@@ -1,40 +1,64 @@
 import React from "react";
 import { Status } from "@/shared/types/status.types";
+import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
+import { useSignUpViewModel } from "@/feature/auth/signUp/viewModel/signUp.viewModel.impl";
 import { LoginWithEmailUseCase } from "../useCase/loginWithEmail.useCase";
 import { useLoginViewModel } from "../viewModel/login.viewModel.impl";
 import { LoginScreen } from "./LoginScreen";
 
 type LoginScreenContainerProps = {
   loginWithEmailUseCase: LoginWithEmailUseCase;
+  signUpWithEmailUseCase: SignUpWithEmailUseCase;
   onSuccess?: () => void;
   onForgotPasswordPress?: () => void;
-  onSignUpPress?: () => void;
 };
 
 export function LoginScreenContainer({
   loginWithEmailUseCase,
+  signUpWithEmailUseCase,
   onSuccess,
   onForgotPasswordPress,
-  onSignUpPress,
 }: LoginScreenContainerProps) {
-  const viewModel = useLoginViewModel(loginWithEmailUseCase, { onSuccess });
+  const loginViewModel = useLoginViewModel(loginWithEmailUseCase, { onSuccess });
+  const signUpViewModel = useSignUpViewModel(signUpWithEmailUseCase, {
+    onSuccess,
+  });
 
-  const submitError =
-    viewModel.state.status === Status.Failure ? viewModel.state.error : undefined;
+  const loginSubmitError =
+    loginViewModel.state.status === Status.Failure
+      ? loginViewModel.state.error
+      : undefined;
+
+  const signUpSubmitError =
+    signUpViewModel.state.status === Status.Failure
+      ? signUpViewModel.state.error
+      : undefined;
 
   return (
     <LoginScreen
-      onSubmit={viewModel.submit}
-      email={viewModel.email}
-      password={viewModel.password}
-      onEmailChange={viewModel.changeEmail}
-      onPasswordChange={viewModel.changePassword}
-      isPasswordVisible={viewModel.isPasswordVisible}
-      onTogglePasswordVisibility={viewModel.togglePasswordVisibility}
-      isSubmitting={viewModel.state.status === Status.Loading}
-      submitError={submitError}
+      onSubmit={loginViewModel.submit}
+      email={loginViewModel.email}
+      password={loginViewModel.password}
+      onEmailChange={loginViewModel.changeEmail}
+      onPasswordChange={loginViewModel.changePassword}
+      isPasswordVisible={loginViewModel.isPasswordVisible}
+      onTogglePasswordVisibility={loginViewModel.togglePasswordVisibility}
+      isSubmitting={loginViewModel.state.status === Status.Loading}
+      submitError={loginSubmitError}
       onForgotPasswordPress={onForgotPasswordPress}
-      onSignUpPress={onSignUpPress}
+      signUpFullName={signUpViewModel.fullName}
+      signUpEmail={signUpViewModel.email}
+      signUpPhoneNumber={signUpViewModel.phoneNumber}
+      signUpPassword={signUpViewModel.password}
+      onSignUpFullNameChange={signUpViewModel.changeFullName}
+      onSignUpEmailChange={signUpViewModel.changeEmail}
+      onSignUpPhoneNumberChange={signUpViewModel.changePhoneNumber}
+      onSignUpPasswordChange={signUpViewModel.changePassword}
+      isSignUpPasswordVisible={signUpViewModel.isPasswordVisible}
+      onToggleSignUpPasswordVisibility={signUpViewModel.togglePasswordVisibility}
+      isSigningUp={signUpViewModel.state.status === Status.Loading}
+      signUpError={signUpSubmitError}
+      onSubmitSignUp={signUpViewModel.submit}
     />
   );
 }

@@ -38,21 +38,21 @@ export const createLocalAuthUserDatasource = (
     payload: SaveAuthUserPayload,
   ): Promise<Result<AuthUserModel>> {
     try {
-      const encryptedFullName = await databaseFieldEncryptionService.encrypt(
-        payload.fullName,
-      );
-      const encryptedEmail = await databaseFieldEncryptionService.encryptNullable(
-        payload.email,
-      );
-      const encryptedPhone = await databaseFieldEncryptionService.encryptNullable(
-        payload.phone,
-      );
-      const encryptedAuthProvider =
-        await databaseFieldEncryptionService.encryptNullable(payload.authProvider);
-      const encryptedProfileImageUrl =
-        await databaseFieldEncryptionService.encryptNullable(payload.profileImageUrl);
-      const encryptedPreferredLanguage =
-        await databaseFieldEncryptionService.encryptNullable(payload.preferredLanguage);
+      const [
+        encryptedFullName,
+        encryptedEmail,
+        encryptedPhone,
+        encryptedAuthProvider,
+        encryptedProfileImageUrl,
+        encryptedPreferredLanguage,
+      ] = await Promise.all([
+        databaseFieldEncryptionService.encrypt(payload.fullName),
+        databaseFieldEncryptionService.encryptNullable(payload.email),
+        databaseFieldEncryptionService.encryptNullable(payload.phone),
+        databaseFieldEncryptionService.encryptNullable(payload.authProvider),
+        databaseFieldEncryptionService.encryptNullable(payload.profileImageUrl),
+        databaseFieldEncryptionService.encryptNullable(payload.preferredLanguage),
+      ]);
 
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 

@@ -122,6 +122,10 @@ const getEncryptionKey = async (): Promise<Uint8Array> => {
   return key;
 };
 
+export const warmDatabaseFieldEncryptionKey = async (): Promise<void> => {
+  await getEncryptionKey();
+};
+
 const buildEncryptedValue = (
   nonce: Uint8Array,
   ciphertext: Uint8Array,
@@ -185,3 +189,4 @@ export const createDatabaseFieldEncryptionService = (): DatabaseFieldEncryptionS
     },
   };
 };
+

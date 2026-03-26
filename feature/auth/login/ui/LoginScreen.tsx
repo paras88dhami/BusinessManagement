@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Building2, Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react-native";
+import { Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Dropdown,
@@ -11,14 +11,6 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 
 type AuthMode = "login" | "signup";
-
-type SignUpFormState = {
-  fullName: string;
-  phoneNumber: string;
-  businessName: string;
-  email: string;
-  password: string;
-};
 
 const LANGUAGE_OPTIONS: DropdownOption[] = [{ label: "English", value: "en" }];
 
@@ -33,7 +25,20 @@ interface LoginScreenProps {
   isSubmitting: boolean;
   submitError?: string;
   onForgotPasswordPress?: () => void;
-  onSignUpPress?: () => void;
+
+  signUpFullName: string;
+  signUpEmail: string;
+  signUpPhoneNumber: string;
+  signUpPassword: string;
+  onSignUpFullNameChange: (value: string) => void;
+  onSignUpEmailChange: (value: string) => void;
+  onSignUpPhoneNumberChange: (value: string) => void;
+  onSignUpPasswordChange: (value: string) => void;
+  isSignUpPasswordVisible: boolean;
+  onToggleSignUpPasswordVisibility: () => void;
+  isSigningUp: boolean;
+  signUpError?: string;
+  onSubmitSignUp: () => void | Promise<void>;
 }
 
 export function LoginScreen({
@@ -47,39 +52,35 @@ export function LoginScreen({
   isSubmitting,
   submitError,
   onForgotPasswordPress,
-  onSignUpPress,
+  signUpFullName,
+  signUpEmail,
+  signUpPhoneNumber,
+  signUpPassword,
+  onSignUpFullNameChange,
+  onSignUpEmailChange,
+  onSignUpPhoneNumberChange,
+  onSignUpPasswordChange,
+  isSignUpPasswordVisible,
+  onToggleSignUpPasswordVisibility,
+  isSigningUp,
+  signUpError,
+  onSubmitSignUp,
 }: LoginScreenProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [language, setLanguage] = useState("en");
-  const [isSignUpPasswordVisible, setIsSignUpPasswordVisible] = useState(false);
-  const [signUpForm, setSignUpForm] = useState<SignUpFormState>({
-    fullName: "",
-    phoneNumber: "",
-    businessName: "",
-    email: "",
-    password: "",
-  });
 
   const insets = useSafeAreaInsets();
   const isLoginMode = mode === "login";
   const primaryLabel = isLoginMode ? "Login" : "Create Account";
-  const isPrimaryBusy = isLoginMode && isSubmitting;
-  const isPrimaryDisabled = isLoginMode ? isSubmitting : !onSignUpPress;
+  const isPrimaryBusy = isLoginMode ? isSubmitting : isSigningUp;
+  const isPrimaryDisabled = isLoginMode ? isSubmitting : isSigningUp;
 
   const handlePrimaryAction = () => {
     if (isLoginMode) {
       return onSubmit();
     }
 
-    if (onSignUpPress) {
-      return onSignUpPress();
-    }
-
-    return undefined;
-  };
-
-  const handleSignUpFieldChange = (field: keyof SignUpFormState, value: string) => {
-    setSignUpForm((previousValue) => ({ ...previousValue, [field]: value }));
+    return onSubmitSignUp();
   };
 
   const footerPrompt = isLoginMode
@@ -160,45 +161,35 @@ export function LoginScreen({
                   placeholder="Full Name"
                   leftIcon={<User size={18} color={colors.mutedForeground} />}
                   autoCapitalize="words"
-                  value={signUpForm.fullName}
-                  onChangeText={(value) => handleSignUpFieldChange("fullName", value)}
+                  value={signUpFullName}
+                  onChangeText={onSignUpFullNameChange}
                 />
 
                 <TextField
                   placeholder="Phone Number"
                   leftIcon={<Phone size={18} color={colors.mutedForeground} />}
                   keyboardType="phone-pad"
-                  value={signUpForm.phoneNumber}
-                  onChangeText={(value) => handleSignUpFieldChange("phoneNumber", value)}
-                />
-
-                <TextField
-                  placeholder="Business Name"
-                  leftIcon={<Building2 size={18} color={colors.mutedForeground} />}
-                  autoCapitalize="words"
-                  value={signUpForm.businessName}
-                  onChangeText={(value) => handleSignUpFieldChange("businessName", value)}
+                  value={signUpPhoneNumber}
+                  onChangeText={onSignUpPhoneNumberChange}
                 />
 
                 <TextField
                   placeholder="Email Address"
                   leftIcon={<Mail size={18} color={colors.mutedForeground} />}
                   keyboardType="email-address"
-                  value={signUpForm.email}
-                  onChangeText={(value) => handleSignUpFieldChange("email", value)}
+                  value={signUpEmail}
+                  onChangeText={onSignUpEmailChange}
                 />
 
                 <TextField
                   placeholder="Password"
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
-                  value={signUpForm.password}
-                  onChangeText={(value) => handleSignUpFieldChange("password", value)}
+                  value={signUpPassword}
+                  onChangeText={onSignUpPasswordChange}
                   rightIcon={
                     <Pressable
-                      onPress={() =>
-                        setIsSignUpPasswordVisible((previousValue) => !previousValue)
-                      }
+                      onPress={onToggleSignUpPasswordVisibility}
                       accessibilityRole="button"
                       accessibilityLabel="Toggle sign up password visibility"
                     >
@@ -210,6 +201,8 @@ export function LoginScreen({
                     </Pressable>
                   }
                 />
+
+                {signUpError ? <Text style={styles.submitError}>{signUpError}</Text> : null}
               </View>
             ) : (
               <View style={styles.form}>
