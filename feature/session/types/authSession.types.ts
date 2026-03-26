@@ -53,6 +53,7 @@ export type AuthCredential = {
 
 export const AuthSessionErrorType = {
   DatabaseError: "DATABASE_ERROR",
+  ValidationError: "VALIDATION_ERROR",
   AuthUserNotFound: "AUTH_USER_NOT_FOUND",
   AuthCredentialNotFound: "AUTH_CREDENTIAL_NOT_FOUND",
   UnknownError: "UNKNOWN_ERROR",
@@ -67,6 +68,13 @@ export const AuthSessionDatabaseError: AuthSessionError = {
   type: AuthSessionErrorType.DatabaseError,
   message: "An error occurred while accessing the database.",
 };
+
+export const AuthSessionValidationError = (
+  message: string,
+): AuthSessionError => ({
+  type: AuthSessionErrorType.ValidationError,
+  message,
+});
 
 export const AuthUserNotFoundError: AuthSessionError = {
   type: AuthSessionErrorType.AuthUserNotFound,
