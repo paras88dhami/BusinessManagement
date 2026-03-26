@@ -1,8 +1,8 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Card } from '@/components/Card';
-import { colors } from '@/theme/colors';
-import { radius } from '@/theme/spacing';
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { Card } from "@/shared/components/reusable/Cards/Card";
+import { colors } from "@/shared/components/theme/colors";
+import { radius } from "@/shared/components/theme/spacing";
 
 interface SummaryCardProps {
   icon: React.ReactNode;
@@ -37,8 +37,8 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 14,
   },
   title: {

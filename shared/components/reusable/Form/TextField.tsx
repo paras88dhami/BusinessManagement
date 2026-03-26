@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
 import { colors } from "../../theme/colors";
 import { radius } from "../../theme/spacing";
 interface TextFieldProps {
@@ -7,6 +7,10 @@ interface TextFieldProps {
   rightIcon?: React.ReactNode;
   placeholder: string;
   secureTextEntry?: boolean;
+  value?: string;
+  onChangeText?: (value: string) => void;
+  keyboardType?: TextInputProps["keyboardType"];
+  autoCapitalize?: TextInputProps["autoCapitalize"];
 }
 
 export function TextField({
@@ -14,6 +18,10 @@ export function TextField({
   rightIcon,
   placeholder,
   secureTextEntry = false,
+  value,
+  onChangeText,
+  keyboardType,
+  autoCapitalize = "none",
 }: TextFieldProps) {
   return (
     <View style={styles.wrapper}>
@@ -23,6 +31,11 @@ export function TextField({
         placeholderTextColor={colors.mutedForeground}
         style={styles.input}
         secureTextEntry={secureTextEntry}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={false}
       />
       {rightIcon ? <View style={styles.side}>{rightIcon}</View> : null}
     </View>

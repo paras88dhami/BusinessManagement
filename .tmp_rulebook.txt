@@ -1,0 +1,440 @@
+       Dibtech App Architecture Review
+                and Coding Rulebook
+
+                           Based on the uploaded app, features, and shared code
+
+Purpose
+This document turns the current codebase into a clear standard: what each layer is allowed to
+do, what must be kept out of that layer, where types should live, how CRUD features should be
+structured, and which inconsistencies should be fixed first.
+
+                                                  Prepared for Kapil Dhami · March 20, 2026
+1. Executive summary
+
+The codebase already uses the right high-level shape in many places: app routes compose screen
+factories, factories assemble dependencies, view models drive screen state, use cases represent
+actions, repositories map domain operations, and data sources talk to WatermelonDB.
+
+The main problem is not the architecture itself. The problem is consistency. Naming, file
+responsibilities, CRUD conventions, and typing rules vary between features, which will make the
+project harder to maintain as it grows.
+
+Area                      Assessment           Decision
+Layer separation          Mostly good
+Naming consistency        Weak                 Keep the current architecture
+CRUD structure            Present but uneven
+Type placement            Mixed                Standardize immediately
+
+Factory responsibilities  Sometimes too large  Use one canonical template
+
+Repository boundaries     Generally good       Split feature/shared/data types
+                                               consistently
+Data source boundaries    Good in principle
+                                               Keep factories as composition
+                                               only
+
+                                               Keep mapping/orchestration
+                                               here
+
+                                               Only persistence code belongs
+                                               here
+
+  Recommended direction
+  Keep the architecture. Do not rewrite the app around a new pattern. Instead, enforce one strict
+  rulebook for all future features and refactor older slices toward the same standard.
+
+2. Architecture flow
+
+The canonical dependency flow for this project should be:
+
+    app route  factory  ui + viewModel  useCase  repository  dataSource  database / storage
+
+Responsibilities should only move downward. UI should never reach directly into repository or
+data source. Data source should never know about UI state. Use case should never import React.
+
+For this codebase, the route layer is responsible for navigation, route params, modal ownership,
+and passing the database or callbacks into a factory. The factory is responsible for wiring
+dependencies. The screen UI is responsible for rendering. The view model is responsible for screen
+behavior. The use case is responsible for business action. The repository is responsible for domain
+mapping and orchestration. The data source is responsible for persistence details.
+3. Layer-by-layer rules  What it is allowed to do         What it must not do
+
+ Layer                   Route params, navigation,        Business rules, validation, DB
+ app                     modal ownership, database        queries, domain mapping,
+ factory                 handoff, screen selection        reusable feature logic
+
+ ui                      Create data source, repository,  Run business logic, hold
+ viewModel               use case, and view model         feature state, query DB
+ useCase                 instances; connect callbacks     directly outside dependency
+ repository                                               creation
+ dataSource
+ types                   Render layout, use shared        Import repository/data
+ shared                  components, call view-model      source/database, perform
+                         functions, light display-only    domain mapping, own
+                         hooks                            business rules
+
+                         Screen state, effects, submit    Import Watermelon models,
+                         handlers, orchestration,         query DB directly, return JSX,
+                         derived UI state                 know route library details
+
+                         One business action,             Import React, manage screen
+                         validation, action-level rules,  state, know component
+                         call repository                  concerns
+
+                         Map models to domain,            Render UI, know navigation,
+                         combine multiple data            depend on component
+                         sources, normalize errors        libraries
+
+                         Watermelon queries,              Validation for user flows, UI
+                         create/update/delete/fetch raw   state, navigation, cross-screen
+                         records, storage-specific        logic
+                         operations
+
+                         Domain entities, input/output    Business logic, side effects,
+                         shapes, state types, errors,     storage access
+                         option types, DTOs
+
+                         Reusable components, hooks,      Feature-specific business rules
+                         utils, common types, common
+                         view-model helpers
+
+4. What belongs in each file
+
+4.1 app route files
+
+ Import the correct factory and the database instance.
+ Read route params and navigation objects.
+ Pass callbacks such as onSuccess, onRowPress, or router navigation.
+ Own page-level modals when the modal is route-specific, such as delete confirmation.
+
+Allowed example from the current codebase: product list routes using router navigation and
+delete-modal ownership in app/app/(dashboard)/products/productList.tsx.
+
+ Do not write validation here.
+ Do not call WatermelonDB collections here.
+ Do not map raw records here.
+ Do not build ad-hoc feature state here.
+
+4.2 factory files
+
+Factory files are dependency composition files. They should read like wiring, not logic.
+
+ Create the local data source(s).
+ Create the repository.
+ Create the use case(s).
+ Create the view model(s).
+ Return a screen container component.
+
+A factory may assemble more than one view model when a screen needs multiple concerns, such
+as list + search + delete.
+
+ No validation branches.
+ No database query logic.
+ No domain mapping.
+ No route parsing.
+
+Current codebase example: features/product/product/factory/getProduct.factory.tsx shows the right
+idea, but it is becoming too large. When a factory starts wiring too many side concerns, move
+reusable composition into smaller helper creators instead of moving logic into the factory.
+
+4.3 ui files
+
+UI files should be presentational-first. In this project, it is acceptable for the UI layer to use React
+Hook Form, Controller, useWatch, useMemo, and lightweight view-only calculations, because that
+is presentation logic rather than domain logic.
+
+ Render fields, lists, tables, loading states, empty states, and errors.
+ Read state from the view model.
+ Call view-model actions on press, submit, search, and selection.
+ Keep component-local props types in the same UI file if only that component uses them.
+ No repository imports.
+ No database imports.
+ No Watermelon model imports.
+ No data mapping from model to domain.
+ No duplicate validation rules that already exist in use cases, except UI-friendly required-field
+
+     feedback.
+Good examples: features/category/category/ui/getCategoryScreen.tsx and
+features/product/product/ui/Productscreen.tsx.
+
+Acceptable but must stay controlled: form wiring inside
+features/category/category/ui/addCategoryScreen.tsx and
+features/product/product/ui/AddProductScreen.tsx.
+
+4.4 view model files
+
+View models are the main behavior layer for a screen.
+
+ Own loading, success, and failure state.
+ Call use cases and convert results into UI state.
+ Expose callbacks for the UI.
+ Run load-on-mount effects and screen-level orchestration.
+ Derive screen-ready data when it is not business logic.
+ Do not import data source, database, or Watermelon models.
+ Do not create JSX.
+ Do not know about route param parsing libraries.
+ Do not duplicate repository mapping logic.
+
+Good examples: features/category/category/viewModel/getCategory.viewModel.impl.ts and
+features/product/product/viewModel/getProduct.viewModel.impl.ts.
+
+4.5 use case files
+
+Use case files represent one business action or one business query.
+
+ Validate action-level rules.
+ Prepare DTOs for repository calls.
+ Call the repository.
+ Return domain-level Result values.
+ Do not use React hooks.
+ Do not manage component state.
+ Do not know about UI libraries or test IDs.
+
+Good example: features/category/category/useCase/addCategory.useCase.impl.ts validates the name
+and image rule before calling the repository.
+
+4.6 repository files
+
+Repository files are the domain translation and orchestration layer.
+
+ Convert data-source output into domain entities.
+ Combine multiple data sources for one domain result.
+ Normalize errors into domain error types.
+ Hide storage details from the rest of the feature.
+ No JSX or UI state.
+ No navigation.
+ No route concern.
+ No direct dependency on screen components.
+
+Strong example: features/product/product/data/repositiory/product.repository.impl.ts combines
+product, product-category, and modifier-category data sources into one Product domain model.
+
+4.7 data source files
+
+Data source files are persistence-only.
+
+ Query WatermelonDB.
+ Create, update, delete, and fetch records.
+ Return raw models or persistence-level Result values.
+ Stay storage-specific.
+ No business validation.
+ No screen flow knowledge.
+ No domain aggregation across unrelated concerns unless it is unavoidable for storage reasons.
+
+Good example: features/category/category/data/dataSource/getlocalCategory.dataSource.ts.
+
+4.8 types files
+
+Types should be separated by scope.
+
+Type kind                  Where it should live         Rule
+Component-only Props       Inside the UI file
+Feature domain entity                                   Keep local if only one file
+Feature state type         feature/types                needs it
+Feature error/result type
+Request/DTO type           feature/types                Example: Product, Category,
+Data model                 feature/types                LoginInput
+Shared primitives          feature/types or repository
+                           mapper area                  Example: ProductListState,
+                           feature/data/dataSource      LoginState
+
+                           shared/types                 Keep with the feature
+
+                                                        Use feature/types when shared
+                                                        across layers
+
+                                                        Watermelon model/schema
+                                                        belong only to data layer
+
+                                                        Result, Status, pagination
+                                                        primitives
+
+Decision on types
+
+Do not push every tiny type into a separate file. Small component-only props can stay local.
+Feature-level types that are reused across UI, VM, use case, and repository must live in the
+feature types folder. Watermelon model types must stay in the data source layer.
+5. How many files should each CRUD feature have?
+
+Use this as the default template. Add more files only when a screen has a real extra concern such
+as lookup loading, filtering, or deletion confirmation.
+
+Operation  Required files                    Optional files
+List
+           1 route, 1 factory, 1 list UI, 1  search VM, pagination VM,
+           get-list use case, 1 list VM      delete VM, filter VM, columns
+                                             file
+
+Get by ID  1 use case, 1 VM                  detail screen UI if there is a
+                                             separate detail page
+
+Create     1 route, 1 factory, 1 form UI, 1 lookup VM, image picker
+           create use case, 1 create VM helper, validator helpers
+
+Update     1 route, 1 factory, 1 update use  reuse the create form UI
+           case, 1 update VM, 1 get-by-id    rather than making a second
+           use case, 1 get-by-id VM          form screen
+
+Delete     1 delete use case, 1 delete VM    shared modal in app or shared
+                                             component
+
+Important rule: one user action equals one use case. Do not create one giant CRUD use case that
+does everything. Separate list, getById, create, update, and delete.
+
+Important rule: one screen entry point equals one factory. A factory is created per screen or route,
+not per function call.
+
+Important rule: one reusable form UI can serve both Add and Update when the layout is the same.
+
+6. Canonical folder template
+
+    featureName/
+      data/
+       dataSource/
+         feature.datasource.ts
+         local.feature.datasource.impl.ts
+         feature.model.ts
+         feature.schema.ts
+       repository/
+         feature.repository.ts
+         feature.repository.impl.ts
+         mapper/
+      factory/
+       getFeatureScreen.factory.tsx
+       addFeatureScreen.factory.tsx
+       updateFeatureScreen.factory.tsx
+      types/
+       feature.types.ts
+ addFeature.types.ts # only if large enough to justify split
+ updateFeature.types.ts # only if large enough to justify split
+ui/
+ FeatureScreen.tsx
+ AddFeatureScreen.tsx
+ UpdateFeatureScreen.tsx
+ FeatureColumns.tsx
+ testIds.ts
+useCase/
+ getFeature.useCase.ts
+ getFeature.useCase.impl.ts
+ getFeatureById.useCase.ts
+ getFeatureById.useCase.impl.ts
+ addFeature.useCase.ts
+ addFeature.useCase.impl.ts
+ updateFeature.useCase.ts
+ updateFeature.useCase.impl.ts
+ deleteFeature.useCase.ts
+ deleteFeature.useCase.impl.ts
+viewModel/
+ getFeature.viewModel.ts
+ getFeature.viewModel.impl.ts
+ getFeatureById.viewModel.ts
+ getFeatureById.viewModel.impl.ts
+ addFeature.viewModel.ts
+ addFeature.viewModel.impl.ts
+ updateFeature.viewModel.ts
+ updateFeature.viewModel.impl.ts
+ deleteFeature.viewModel.ts
+ deleteFeature.viewModel.impl.ts
+tests/
+ ...
+
+7. Naming rules
+
+ Use one naming style everywhere. Recommended: PascalCase for components, camelCase for
+     hooks/functions/files except React component files.
+
+ Pick one test-ID file name format and keep it everywhere. Recommended: testIds.ts.
+ Pick one implementation suffix and keep it everywhere. Recommended: .impl.ts for non-React
+
+     implementations and .factory.tsx for screen factories.
+ Never keep typos in permanent file names.
+
+Current inconsistency found  Preferred standard
+
+repositiory                  repository
+
+facatory                     factory
+useCaseimpl                                           useCase.impl
+updateLedger.useCase..ts                              updateLedger.useCase.ts
+getledgerScreen.tsx                                   GetLedgerScreen.tsx or getLedgerScreen.tsx
+nonRegisterCostumer.tsx                               nonRegisterCustomer.tsx
+test.id.ts / TestIds.ts / testIds.ts                  testIds.ts
+
+8. Review findings from the current codebase
+
+Below are the main observations from the uploaded code.
+
+Finding                               Why it matters                  Example path
+
+Factories are used correctly as This is the right architecture        app/app/(dashboard)/
+                                                                      products/productList.tsx +
+entry-point composition               baseline                        features/product/product/facto
+                                                                      ry/getProduct.factory.tsx
+
+UI is mostly kept presentation-       Good separation from storage    features/category/category/ui/
+first                                                                 getCategoryScreen.tsx
+
+Repositories already combine Good place for aggregate                 features/product/product/
+                                                                      data/repositiory/
+multiple data sources well            mapping                         product.repository.impl.ts
+
+Naming is inconsistent across         Hurts discoverability and team  multiple files across
+slices
+                                      discipline                      account/category/gst/login/pro
+Type casting is used to force                                         duct/userManagement
+partial objects into model
+types                                 Weakens type safety             Category and Product
+                                                                      repository impl files
+
+Factories are getting too large Composition becomes hard to features/product/product/
+
+in complex screens                    maintain                        factory/getProduct.factory.tsx
+
+Potential persistence bug in          May store the PIN as userId     features/login/data/
+login data source                     instead of actual user id       dataSource/
+                                                                      localLogin.dataSource.ts
+
+The login data source currently calls saveValue('userId', pin). That appears to store the entered PIN
+instead of the matched user's real id. This should be corrected before treating the feature as
+production-ready.
+9. Code review checklist to use on every new feature
+
+1. Can the app route be read in under one minute and does it only handle navigation, params,
+     modal ownership, and factory creation?
+
+2. Does the factory only compose dependencies and avoid business logic?
+3. Does the UI import only view models, shared UI pieces, and feature types?
+4. Does the view model avoid database and data-source imports?
+5. Is there exactly one use case per business action?
+6. Does the repository own domain mapping and cross-data-source orchestration?
+7. Does the data source contain only persistence logic?
+8. Are feature-level types placed in the feature types folder and component-only props kept local?
+9. Are add and update sharing the same form UI when the layout is the same?
+10. Are naming, test IDs, and file suffixes consistent with the standard?
+11. Are error types normalized and user-facing errors created at the right layer?
+12. Are all async flows represented in state with Idle, Loading, Success, or Failure?
+
+10. Final rulebook
+
+  Non-negotiable rules
+
+  1) app routes never do business logic. 2) factories only wire dependencies. 3) UI never imports
+  repository/data source/database. 4) view models never import Watermelon models. 5) use cases
+  are one action each. 6) repositories own mapping and aggregation. 7) data sources are
+  persistence-only. 8) shared types stay in shared; feature types stay in the feature; local props
+  stay local.
+
+If you enforce only these eight rules, the architecture will stay understandable even as the app
+grows.
+
+11. Recommended cleanup order
+
+13. Rename inconsistent files and folders first.
+14. Fix the login persistence bug and any similar storage mistakes.
+15. Standardize all test-ID file names to one format.
+16. Remove unsafe casts where partial objects are forced into Watermelon model types.
+17. Refactor oversized factories by extracting helper creators, while keeping the factory as the only
+
+     route-level composition file.
+18. Apply the CRUD template uniformly to every future slice.
+

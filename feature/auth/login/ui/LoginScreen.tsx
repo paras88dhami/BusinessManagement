@@ -21,11 +21,24 @@ const languages = [
 ] as const;
 
 interface AuthScreenProps {
-  onSubmit?: () => void;
-
+  onSubmit?: () => void | Promise<void>;
+  email?: string;
+  password?: string;
+  onEmailChange?: (value: string) => void;
+  onPasswordChange?: (value: string) => void;
+  isSubmitting?: boolean;
+  submitError?: string;
 }
 
-export function LoginScreen({ onSubmit }: AuthScreenProps) {
+export function LoginScreen({
+  onSubmit,
+  email = "",
+  password = "",
+  onEmailChange,
+  onPasswordChange,
+  isSubmitting = false,
+  submitError,
+}: AuthScreenProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedLang, setSelectedLang] =
@@ -151,12 +164,17 @@ export function LoginScreen({ onSubmit }: AuthScreenProps) {
             <TextField
               placeholder="Email Address"
               leftIcon={<Mail size={22} color={colors.mutedForeground} />}
+              value={email}
+              onChangeText={onEmailChange}
+              keyboardType="email-address"
             />
 
             <TextField
               placeholder="Password"
               secureTextEntry={!showPassword}
               leftIcon={<Lock size={22} color={colors.mutedForeground} />}
+              value={password}
+              onChangeText={onPasswordChange}
               rightIcon={
                 <Pressable onPress={() => setShowPassword((prev) => !prev)}>
                   {showPassword ? (
@@ -174,9 +192,18 @@ export function LoginScreen({ onSubmit }: AuthScreenProps) {
               </Pressable>
             ) : null}
 
-            <Pressable style={styles.primaryButton} onPress={onSubmit}>
+            {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+
+            <Pressable
+              style={[
+                styles.primaryButton,
+                isSubmitting ? styles.primaryButtonDisabled : undefined,
+              ]}
+              onPress={onSubmit}
+              disabled={isSubmitting}
+            >
               <Text style={styles.primaryButtonText}>
-                {isLogin ? "Login" : "Create Account"}
+                {isSubmitting ? "Please wait..." : isLogin ? "Login" : "Create Account"}
               </Text>
             </Pressable>
           </View>
@@ -363,10 +390,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  primaryButtonDisabled: {
+    opacity: 0.7,
+  },
   primaryButtonText: {
     color: colors.primaryForeground,
     fontWeight: "800",
     fontSize: 22,
+  },
+  submitError: {
+    color: colors.destructive,
+    fontSize: 14,
+    fontWeight: "600",
   },
   socialRow: {
     flexDirection: "row",

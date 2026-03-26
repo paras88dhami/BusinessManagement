@@ -7,7 +7,11 @@ type CreateDatabaseParams = {
   migrations?: any;
 };
 
-export function createDatabase({ schema, models, migrations }: CreateDatabaseParams) {
+export function createDatabase({
+  schema,
+  models,
+  migrations,
+}: CreateDatabaseParams) {
   const adapter = new SQLiteAdapter({
     schema,
     migrations,
