@@ -1,8 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
+import { Building2, Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  Dropdown,
+  type DropdownOption,
+} from "@/shared/components/reusable/DropDown/Dropdown";
 import { TextField } from "@/shared/components/reusable/Form/TextField";
 import { colors } from "@/shared/components/theme/colors";
+import { radius, spacing } from "@/shared/components/theme/spacing";
+
+type AuthMode = "login" | "signup";
+
+type SignUpFormState = {
+  fullName: string;
+  phoneNumber: string;
+  businessName: string;
+  email: string;
+  password: string;
+};
+
+const LANGUAGE_OPTIONS: DropdownOption[] = [{ label: "English", value: "en" }];
 
 interface LoginScreenProps {
   onSubmit: () => void | Promise<void>;
@@ -31,131 +49,296 @@ export function LoginScreen({
   onForgotPasswordPress,
   onSignUpPress,
 }: LoginScreenProps) {
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [language, setLanguage] = useState("en");
+  const [isSignUpPasswordVisible, setIsSignUpPasswordVisible] = useState(false);
+  const [signUpForm, setSignUpForm] = useState<SignUpFormState>({
+    fullName: "",
+    phoneNumber: "",
+    businessName: "",
+    email: "",
+    password: "",
+  });
+
+  const insets = useSafeAreaInsets();
+  const isLoginMode = mode === "login";
+  const primaryLabel = isLoginMode ? "Login" : "Create Account";
+  const isPrimaryBusy = isLoginMode && isSubmitting;
+  const isPrimaryDisabled = isLoginMode ? isSubmitting : !onSignUpPress;
+
+  const handlePrimaryAction = () => {
+    if (isLoginMode) {
+      return onSubmit();
+    }
+
+    if (onSignUpPress) {
+      return onSignUpPress();
+    }
+
+    return undefined;
+  };
+
+  const handleSignUpFieldChange = (field: keyof SignUpFormState, value: string) => {
+    setSignUpForm((previousValue) => ({ ...previousValue, [field]: value }));
+  };
+
+  const footerPrompt = isLoginMode
+    ? "Don't have an account?"
+    : "Already have an account?";
+  const footerActionLabel = isLoginMode ? "Sign Up" : "Login";
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.logoBox}>
-          <Text style={styles.logoText}>eL</Text>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + spacing.xxl + spacing.sm }]}>
+          <View style={[styles.languageDropdownWrap, { top: insets.top + spacing.xs }]}>
+            <Dropdown
+              value={language}
+              options={LANGUAGE_OPTIONS}
+              onChange={setLanguage}
+              placeholder="English"
+            />
+          </View>
+
+          <View style={styles.logoBox}>
+            <Text style={styles.logoText}>eL</Text>
+          </View>
+
+          <Text style={styles.brand}>eLekha</Text>
+          <Text style={styles.brandSub}>Your Business & Finance Companion</Text>
         </View>
 
-        <Text style={styles.brand}>eLekha</Text>
-        <Text style={styles.brandSub}>Your Business and Finance Companion</Text>
-      </View>
+        <View style={styles.divider} />
 
-      <View style={styles.divider} />
-
-      <ScrollView
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.content}>
-          <Text style={styles.title}>Login</Text>
-
-          <View style={styles.form}>
-            <TextField
-              placeholder="Email Address"
-              leftIcon={<Mail size={20} color={colors.mutedForeground} />}
-              value={email}
-              onChangeText={onEmailChange}
-              keyboardType="email-address"
-            />
-
-            <TextField
-              placeholder="Password"
-              secureTextEntry={!isPasswordVisible}
-              leftIcon={<Lock size={20} color={colors.mutedForeground} />}
-              value={password}
-              onChangeText={onPasswordChange}
-              rightIcon={
-                <Pressable
-                  onPress={onTogglePasswordVisibility}
-                  accessibilityRole="button"
-                  accessibilityLabel="Toggle password visibility"
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.content}>
+            <View style={styles.tabContainer}>
+              <Pressable
+                onPress={() => setMode("login")}
+                style={[
+                  styles.tabButton,
+                  isLoginMode ? styles.tabButtonActive : undefined,
+                ]}
+                accessibilityRole="button"
+              >
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    isLoginMode ? styles.tabLabelActive : undefined,
+                  ]}
                 >
-                  {isPasswordVisible ? (
-                    <EyeOff size={20} color={colors.mutedForeground} />
-                  ) : (
-                    <Eye size={20} color={colors.mutedForeground} />
-                  )}
-                </Pressable>
-              }
-            />
-
-            {onForgotPasswordPress ? (
-              <Pressable style={styles.forgotWrapper} onPress={onForgotPasswordPress}>
-                <Text style={styles.forgot}>Forgot Password?</Text>
+                  Login
+                </Text>
               </Pressable>
-            ) : null}
 
-            {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+              <Pressable
+                onPress={() => setMode("signup")}
+                style={[
+                  styles.tabButton,
+                  !isLoginMode ? styles.tabButtonActive : undefined,
+                ]}
+                accessibilityRole="button"
+              >
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    !isLoginMode ? styles.tabLabelActive : undefined,
+                  ]}
+                >
+                  Sign Up
+                </Text>
+              </Pressable>
+            </View>
+
+            {!isLoginMode ? (
+              <View style={styles.form}>
+                <TextField
+                  placeholder="Full Name"
+                  leftIcon={<User size={18} color={colors.mutedForeground} />}
+                  autoCapitalize="words"
+                  value={signUpForm.fullName}
+                  onChangeText={(value) => handleSignUpFieldChange("fullName", value)}
+                />
+
+                <TextField
+                  placeholder="Phone Number"
+                  leftIcon={<Phone size={18} color={colors.mutedForeground} />}
+                  keyboardType="phone-pad"
+                  value={signUpForm.phoneNumber}
+                  onChangeText={(value) => handleSignUpFieldChange("phoneNumber", value)}
+                />
+
+                <TextField
+                  placeholder="Business Name"
+                  leftIcon={<Building2 size={18} color={colors.mutedForeground} />}
+                  autoCapitalize="words"
+                  value={signUpForm.businessName}
+                  onChangeText={(value) => handleSignUpFieldChange("businessName", value)}
+                />
+
+                <TextField
+                  placeholder="Email Address"
+                  leftIcon={<Mail size={18} color={colors.mutedForeground} />}
+                  keyboardType="email-address"
+                  value={signUpForm.email}
+                  onChangeText={(value) => handleSignUpFieldChange("email", value)}
+                />
+
+                <TextField
+                  placeholder="Password"
+                  leftIcon={<Lock size={18} color={colors.mutedForeground} />}
+                  secureTextEntry={!isSignUpPasswordVisible}
+                  value={signUpForm.password}
+                  onChangeText={(value) => handleSignUpFieldChange("password", value)}
+                  rightIcon={
+                    <Pressable
+                      onPress={() =>
+                        setIsSignUpPasswordVisible((previousValue) => !previousValue)
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel="Toggle sign up password visibility"
+                    >
+                      {isSignUpPasswordVisible ? (
+                        <EyeOff size={18} color={colors.mutedForeground} />
+                      ) : (
+                        <Eye size={18} color={colors.mutedForeground} />
+                      )}
+                    </Pressable>
+                  }
+                />
+              </View>
+            ) : (
+              <View style={styles.form}>
+                <TextField
+                  placeholder="Email Address"
+                  leftIcon={<Mail size={18} color={colors.mutedForeground} />}
+                  value={email}
+                  onChangeText={onEmailChange}
+                  keyboardType="email-address"
+                />
+
+                <TextField
+                  placeholder="Password"
+                  leftIcon={<Lock size={18} color={colors.mutedForeground} />}
+                  value={password}
+                  onChangeText={onPasswordChange}
+                  secureTextEntry={!isPasswordVisible}
+                  rightIcon={
+                    <Pressable
+                      onPress={onTogglePasswordVisibility}
+                      accessibilityRole="button"
+                      accessibilityLabel="Toggle password visibility"
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff size={18} color={colors.mutedForeground} />
+                      ) : (
+                        <Eye size={18} color={colors.mutedForeground} />
+                      )}
+                    </Pressable>
+                  }
+                />
+
+                {onForgotPasswordPress ? (
+                  <Pressable
+                    style={styles.forgotWrapper}
+                    onPress={onForgotPasswordPress}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.forgot}>Forgot Password?</Text>
+                  </Pressable>
+                ) : null}
+
+                {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+              </View>
+            )}
 
             <Pressable
               style={[
                 styles.primaryButton,
-                isSubmitting ? styles.primaryButtonDisabled : undefined,
+                isPrimaryDisabled ? styles.primaryButtonDisabled : undefined,
               ]}
-              onPress={onSubmit}
-              disabled={isSubmitting}
+              onPress={handlePrimaryAction}
+              disabled={isPrimaryDisabled}
               accessibilityRole="button"
-              accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+              accessibilityState={{ disabled: isPrimaryDisabled, busy: isPrimaryBusy }}
             >
               <Text style={styles.primaryButtonText}>
-                {isSubmitting ? "Please wait..." : "Login"}
+                {isPrimaryBusy ? "Please wait..." : primaryLabel}
               </Text>
             </Pressable>
-          </View>
 
-          {onSignUpPress ? (
-            <Text style={styles.footerText}>
-              Don&apos;t have an account?{" "}
-              <Text style={styles.footerLink} onPress={onSignUpPress}>
-                Sign Up
-              </Text>
-            </Text>
-          ) : null}
-        </View>
-      </ScrollView>
-    </View>
+            <View style={styles.separatorRow}>
+              <View style={styles.separatorLine} />
+              <Text style={styles.separatorLabel}>or continue with</Text>
+              <View style={styles.separatorLine} />
+            </View>
+
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>{footerPrompt} </Text>
+              <Pressable
+                onPress={() => setMode(isLoginMode ? "signup" : "login")}
+                accessibilityRole="button"
+              >
+                <Text style={styles.footerLink}>{footerActionLabel}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
+  languageDropdownWrap: {
+    position: "absolute",
+    right: spacing.md,
+    zIndex: 2,
+    minWidth: 120,
+  },
   header: {
     backgroundColor: colors.header,
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 42,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl + spacing.sm,
+    position: "relative",
   },
   logoBox: {
-    width: 86,
-    height: 86,
-    borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    width: 64,
+    height: 64,
+    borderRadius: radius.xl,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 18,
+    marginBottom: spacing.md,
   },
   logoText: {
     color: colors.headerForeground,
-    fontSize: 36,
-    fontWeight: "900",
-    lineHeight: 38,
+    fontSize: 24,
+    fontWeight: "700",
+    lineHeight: 28,
   },
   brand: {
     color: colors.headerForeground,
-    fontSize: 34,
-    fontWeight: "800",
-    lineHeight: 40,
+    fontSize: 24,
+    fontWeight: "700",
+    lineHeight: 28,
   },
   brandSub: {
-    color: "rgba(255,255,255,0.84)",
-    marginTop: 8,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 4,
     fontSize: 14,
     fontWeight: "500",
     textAlign: "center",
@@ -169,28 +352,46 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 34,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
   },
-  title: {
-    color: colors.foreground,
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 20,
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    padding: 4,
+    marginBottom: spacing.xl,
+  },
+  tabButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  tabLabel: {
+    color: colors.mutedForeground,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  tabLabelActive: {
+    color: colors.primaryForeground,
   },
   form: {
-    gap: 16,
+    gap: spacing.md,
   },
   forgotWrapper: {
     alignSelf: "flex-end",
-    marginTop: 2,
   },
   forgot: {
     color: colors.primary,
     textAlign: "right",
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "500",
   },
   submitError: {
     color: colors.destructive,
@@ -198,10 +399,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   primaryButton: {
-    marginTop: 8,
+    marginTop: spacing.md,
     backgroundColor: colors.primary,
-    borderRadius: 16,
-    minHeight: 54,
+    borderRadius: radius.lg,
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -210,18 +411,39 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: colors.primaryForeground,
-    fontWeight: "800",
-    fontSize: 16,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  separatorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  separatorLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   footerText: {
-    textAlign: "center",
     color: colors.mutedForeground,
-    fontSize: 14,
-    marginTop: 24,
+    fontSize: 12,
     fontWeight: "500",
   },
   footerLink: {
     color: colors.primary,
-    fontWeight: "800",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
