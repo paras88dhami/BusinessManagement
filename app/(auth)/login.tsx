@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import appDatabase from "@/app/database/database";
 import { hasActiveUserSession } from "@/feature/session/data/appSession.store";
-import { GetLoginScreenFactory } from "@/feature/auth/login/factory/getLoginScreen.factory";
+import { GetAuthEntryScreenFactory } from "@/feature/auth/entry/factory/getAuthEntryScreen.factory";
 import { warmDatabaseFieldEncryptionKey } from "@/shared/utils/security/databaseFieldEncryption.service";
 
 export default function LoginRoute() {
@@ -54,5 +54,5 @@ export default function LoginRoute() {
     return null;
   }
 
-  return <GetLoginScreenFactory database={appDatabase} onSuccess={handleOnSuccess} />;
+  return <GetAuthEntryScreenFactory database={appDatabase} onSuccess={handleOnSuccess} />;
 }

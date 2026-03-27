@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { Control } from "react-hook-form";
 import {
   Dropdown,
   type DropdownOption,
@@ -10,49 +9,41 @@ import {
 import { TextField } from "@/shared/components/reusable/Form/TextField";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { LoginInput } from "@/feature/auth/login/types/login.types";
 import { SignUpInput } from "@/feature/auth/signUp/types/signUp.types";
-import { LoginInput } from "../types/login.types";
+import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
 
 type AuthMode = "login" | "signup";
 
 const LANGUAGE_OPTIONS: DropdownOption[] = [{ label: "English", value: "en" }];
 
-interface LoginScreenProps {
-  onSubmit: () => void | Promise<void>;
-  loginControl: Control<LoginInput>;
-  clearLoginSubmitError: () => void;
-  isPasswordVisible: boolean;
-  onTogglePasswordVisibility: () => void;
-  isSubmitting: boolean;
-  submitError?: string;
-  onForgotPasswordPress?: () => void;
+type AuthEntryScreenProps = {
+  viewModel: AuthEntryViewModel;
+};
 
-  signUpControl: Control<SignUpInput>;
-  clearSignUpSubmitError: () => void;
-  isSignUpPasswordVisible: boolean;
-  onToggleSignUpPasswordVisibility: () => void;
-  isSigningUp: boolean;
-  signUpError?: string;
-  onSubmitSignUp: () => void | Promise<void>;
-}
+function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
+  const { login, signUp, onForgotPasswordPress } = viewModel;
 
-function LoginScreenComponent({
-  onSubmit,
-  loginControl,
-  clearLoginSubmitError,
-  isPasswordVisible,
-  onTogglePasswordVisibility,
-  isSubmitting,
-  submitError,
-  onForgotPasswordPress,
-  signUpControl,
-  clearSignUpSubmitError,
-  isSignUpPasswordVisible,
-  onToggleSignUpPasswordVisibility,
-  isSigningUp,
-  signUpError,
-  onSubmitSignUp,
-}: LoginScreenProps) {
+  const {
+    control: loginControl,
+    clearSubmitError: clearLoginSubmitError,
+    isPasswordVisible,
+    togglePasswordVisibility: onTogglePasswordVisibility,
+    isSubmitting,
+    submitError,
+    submit: onSubmit,
+  } = login;
+
+  const {
+    control: signUpControl,
+    clearSubmitError: clearSignUpSubmitError,
+    isPasswordVisible: isSignUpPasswordVisible,
+    togglePasswordVisibility: onToggleSignUpPasswordVisibility,
+    isSubmitting: isSigningUp,
+    submitError: signUpError,
+    submit: onSubmitSignUp,
+  } = signUp;
+
   const [mode, setMode] = useState<AuthMode>("login");
   const [language, setLanguage] = useState("en");
 
@@ -291,7 +282,7 @@ function LoginScreenComponent({
   );
 }
 
-export const LoginScreen = React.memo(LoginScreenComponent);
+export const AuthEntryScreen = React.memo(AuthEntryScreenComponent);
 
 const styles = StyleSheet.create({
   safeArea: {
