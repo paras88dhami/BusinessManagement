@@ -38,8 +38,8 @@ export function Dropdown({
   }, [options, value]);
 
   const handleSelect = (nextValue: string) => {
-    onChange(nextValue);
     setVisible(false);
+    onChange(nextValue);
   };
 
   return (
