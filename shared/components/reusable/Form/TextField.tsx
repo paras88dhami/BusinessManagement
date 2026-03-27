@@ -26,7 +26,7 @@ interface TextFieldProps<TFieldValues extends FieldValues>
   errorTestID?: string;
 }
 
-export function TextField<TFieldValues extends FieldValues>({
+function TextFieldComponent<TFieldValues extends FieldValues>({
   control,
   name,
   leftIcon,
@@ -44,7 +44,6 @@ export function TextField<TFieldValues extends FieldValues>({
   style,
   ...inputProps
 }: TextFieldProps<TFieldValues>) {
-
   return (
     <Controller
       control={control}
@@ -93,6 +92,10 @@ export function TextField<TFieldValues extends FieldValues>({
     />
   );
 }
+
+export const TextField = React.memo(
+  TextFieldComponent,
+) as typeof TextFieldComponent;
 
 const styles = StyleSheet.create({
   wrapper: {

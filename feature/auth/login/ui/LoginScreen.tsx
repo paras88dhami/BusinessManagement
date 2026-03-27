@@ -36,7 +36,7 @@ interface LoginScreenProps {
   onSubmitSignUp: () => void | Promise<void>;
 }
 
-export function LoginScreen({
+function LoginScreenComponent({
   onSubmit,
   loginControl,
   clearLoginSubmitError,
@@ -101,6 +101,7 @@ export function LoginScreen({
         <ScrollView
           bounces={false}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.content}>
@@ -143,13 +144,15 @@ export function LoginScreen({
             </View>
 
             {!isLoginMode ? (
-              <View style={styles.form}>
+              <View key="signup-form" style={styles.form}>
                 <TextField<SignUpInput>
                   control={signUpControl}
                   name="fullName"
                   placeholder="Full Name"
                   leftIcon={<User size={18} color={colors.mutedForeground} />}
                   autoCapitalize="words"
+                  autoComplete="off"
+                  importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
                   accessibilityLabel="Full name"
@@ -161,6 +164,8 @@ export function LoginScreen({
                   placeholder="Phone Number"
                   leftIcon={<Phone size={18} color={colors.mutedForeground} />}
                   keyboardType="phone-pad"
+                  autoComplete="off"
+                  importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
                   accessibilityLabel="Phone number"
@@ -172,6 +177,8 @@ export function LoginScreen({
                   placeholder="Password"
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
+                  autoComplete="off"
+                  importantForAutofill="no"
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
                   accessibilityLabel="Sign up password"
@@ -193,7 +200,7 @@ export function LoginScreen({
                 {signUpError ? <Text style={styles.submitError}>{signUpError}</Text> : null}
               </View>
             ) : (
-              <View style={styles.form}>
+              <View key="login-form" style={styles.form}>
                 <TextField<LoginInput>
                   control={loginControl}
                   name="phoneNumber"
@@ -283,6 +290,8 @@ export function LoginScreen({
     </SafeAreaView>
   );
 }
+
+export const LoginScreen = React.memo(LoginScreenComponent);
 
 const styles = StyleSheet.create({
   safeArea: {
