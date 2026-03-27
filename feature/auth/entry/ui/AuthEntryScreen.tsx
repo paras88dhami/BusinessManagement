@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -23,6 +23,7 @@ type AuthEntryScreenProps = {
 function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   const { t } = useTranslation();
   const { language, login, signUp, onForgotPasswordPress } = viewModel;
+  const isAndroid = Platform.OS === "android";
 
   const {
     selectedLanguageCode,
@@ -257,8 +258,10 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   placeholder={t("auth.entry.fields.password")}
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isSignUpPasswordVisible}
+                  keyboardType="default"
                   autoComplete="off"
                   importantForAutofill="no"
+                  textContentType={isAndroid ? "none" : undefined}
                   onFocus={clearSignUpSubmitError}
                   editable={!isSigningUp}
                   accessibilityLabel={t("auth.entry.fields.password")}
@@ -300,8 +303,10 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   placeholder={t("auth.entry.fields.password")}
                   leftIcon={<Lock size={18} color={colors.mutedForeground} />}
                   secureTextEntry={!isPasswordVisible}
-                  autoComplete="password"
-                  textContentType="password"
+                  keyboardType="default"
+                  autoComplete={isAndroid ? "off" : "password"}
+                  textContentType={isAndroid ? "none" : "password"}
+                  importantForAutofill={isAndroid ? "no" : "auto"}
                   onFocus={clearLoginSubmitError}
                   editable={!isSubmitting}
                   accessibilityLabel={t("auth.entry.fields.password")}
