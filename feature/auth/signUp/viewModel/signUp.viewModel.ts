@@ -1,6 +1,6 @@
 import { Control } from "react-hook-form";
 import {
-  SignUpInput,
+  SignUpFormInput,
   SignUpPhoneCountryCode,
   SignUpPhoneCountryOption,
   SignUpState,
@@ -8,7 +8,7 @@ import {
 
 export interface SignUpViewModel {
   state: SignUpState;
-  control: Control<SignUpInput>;
+  control: Control<SignUpFormInput>;
   selectedPhoneCountryCode: SignUpPhoneCountryCode;
   selectedPhoneDialCode: string;
   phoneNumberMaxLength: number;

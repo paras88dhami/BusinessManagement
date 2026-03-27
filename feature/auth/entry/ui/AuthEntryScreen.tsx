@@ -11,7 +11,7 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
 import { LoginInput } from "@/feature/auth/login/types/login.types";
-import { SignUpInput } from "@/feature/auth/signUp/types/signUp.types";
+import { SignUpFormInput } from "@/feature/auth/signUp/types/signUp.types";
 import { AuthEntryViewModel } from "../viewModel/authEntry.viewModel";
 
 type AuthMode = "login" | "signup";
@@ -205,7 +205,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
             {!isLoginMode ? (
               <View key="signup-form" style={styles.form}>
-                <TextField<SignUpInput>
+                <TextField<SignUpFormInput>
                   control={signUpControl}
                   name="fullName"
                   placeholder={t("auth.entry.fields.fullName")}
@@ -234,7 +234,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   </View>
 
                   <View style={styles.phoneNumberInputWrap}>
-                    <TextField<SignUpInput>
+                    <TextField<SignUpFormInput>
                       control={signUpControl}
                       name="phoneNumber"
                       placeholder={t("auth.entry.fields.phoneNumber")}
@@ -252,7 +252,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   </View>
                 </View>
 
-                <TextField<SignUpInput>
+                <TextField<SignUpFormInput>
                   control={signUpControl}
                   name="password"
                   placeholder={t("auth.entry.fields.password")}
@@ -554,3 +554,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+

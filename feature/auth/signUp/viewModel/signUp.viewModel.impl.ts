@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Status } from "@/shared/types/status.types";
 import { useCallback, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   SIGN_UP_PHONE_COUNTRY_OPTIONS,
+  SignUpFormInput,
   SignUpInput,
   SignUpPhoneCountryCode,
   SignUpState,
@@ -12,11 +13,11 @@ import { signUpFormSchema } from "../validation/signUp.schema";
 import { SignUpWithEmailUseCase } from "../useCase/signUpWithEmail.useCase";
 import { SignUpViewModel, UseSignUpViewModelOptions } from "./signUp.viewModel";
 import {
-  getInvalidSignUpPhoneMessageForCountry,
   getSignUpPhoneLengthForCountry,
-  isValidSignUpPhoneForCountry,
   sanitizeSignUpPhoneDigits,
 } from "../utils/signUpPhoneNumber.util";
+
+const DEFAULT_PHONE_COUNTRY_CODE: SignUpPhoneCountryCode = "NP";
 
 const getCountryOptionByCode = (countryCode: SignUpPhoneCountryCode) => {
   return (
@@ -31,19 +32,17 @@ export const useSignUpViewModel = (
 ): SignUpViewModel => {
   const [state, setState] = useState<SignUpState>({ status: Status.Idle });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [selectedPhoneCountryCode, setSelectedPhoneCountryCode] =
-    useState<SignUpPhoneCountryCode>("NP");
 
   const {
     control,
     handleSubmit,
     clearErrors,
     getValues,
-    setError,
     setValue,
-  } = useForm<SignUpInput>({
+  } = useForm<SignUpFormInput>({
     defaultValues: {
       fullName: "",
+      phoneCountryCode: DEFAULT_PHONE_COUNTRY_CODE,
       phoneNumber: "",
       password: "",
     },
@@ -51,6 +50,12 @@ export const useSignUpViewModel = (
     mode: "onBlur",
     reValidateMode: "onBlur",
   });
+
+  const selectedPhoneCountryCode =
+    useWatch({
+      control,
+      name: "phoneCountryCode",
+    }) ?? DEFAULT_PHONE_COUNTRY_CODE;
 
   const selectedPhoneCountryOption = useMemo(
     () => getCountryOptionByCode(selectedPhoneCountryCode),
@@ -76,75 +81,45 @@ export const useSignUpViewModel = (
 
   const onChangeSelectedPhoneCountry = useCallback(
     (countryCode: SignUpPhoneCountryCode) => {
-      if (selectedPhoneCountryCode === countryCode) {
+      const currentPhoneCountryCode = getValues("phoneCountryCode");
+
+      if (currentPhoneCountryCode === countryCode) {
         return;
       }
 
       const nextPhoneMaxLength = getSignUpPhoneLengthForCountry(countryCode);
       const currentPhoneNumber = sanitizeSignUpPhoneDigits(getValues("phoneNumber"));
 
-      setValue(
-        "phoneNumber",
-        currentPhoneNumber.slice(0, nextPhoneMaxLength),
-        {
-          shouldDirty: true,
-          shouldTouch: true,
-          shouldValidate: false,
-        },
-      );
+      setValue("phoneNumber", currentPhoneNumber.slice(0, nextPhoneMaxLength), {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: false,
+      });
+
+      setValue("phoneCountryCode", countryCode, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: false,
+      });
 
       clearErrors("phoneNumber");
-      setSelectedPhoneCountryCode(countryCode);
     },
-    [clearErrors, getValues, selectedPhoneCountryCode, setValue],
+    [clearErrors, getValues, setValue],
   );
 
   const submitWithValidPayload = useCallback(
-    async (payload: SignUpInput): Promise<void> => {
+    async (payload: SignUpFormInput): Promise<void> => {
       if (state.status === Status.Loading) {
         return;
       }
 
+      const selectedCountryOption = getCountryOptionByCode(payload.phoneCountryCode);
       const normalizedPhoneDigits = sanitizeSignUpPhoneDigits(payload.phoneNumber);
 
-      if (!normalizedPhoneDigits) {
-        setError("phoneNumber", {
-          type: "manual",
-          message: "Phone number is required.",
-        });
-
-        setState((currentState) =>
-          currentState.status === Status.Failure
-            ? { status: Status.Idle }
-            : currentState,
-        );
-        return;
-      }
-
-      if (
-        !isValidSignUpPhoneForCountry(
-          normalizedPhoneDigits,
-          selectedPhoneCountryCode,
-        )
-      ) {
-        setError("phoneNumber", {
-          type: "manual",
-          message: getInvalidSignUpPhoneMessageForCountry(selectedPhoneCountryCode),
-        });
-
-        setState((currentState) =>
-          currentState.status === Status.Failure
-            ? { status: Status.Idle }
-            : currentState,
-        );
-        return;
-      }
-
-      clearErrors("phoneNumber");
-
       const normalizedPayload: SignUpInput = {
-        ...payload,
-        phoneNumber: `${selectedPhoneCountryOption.dialCode}${normalizedPhoneDigits}`,
+        fullName: payload.fullName,
+        phoneNumber: `${selectedCountryOption.dialCode}${normalizedPhoneDigits}`,
+        password: payload.password,
       };
 
       setState({ status: Status.Loading });
@@ -173,15 +148,7 @@ export const useSignUpViewModel = (
         });
       }
     },
-    [
-      clearErrors,
-      options,
-      selectedPhoneCountryCode,
-      selectedPhoneCountryOption.dialCode,
-      setError,
-      state.status,
-      useCase,
-    ],
+    [options, state.status, useCase],
   );
 
   const submit = useCallback(async () => {

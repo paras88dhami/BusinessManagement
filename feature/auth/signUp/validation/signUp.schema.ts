@@ -1,46 +1,59 @@
 import { z } from "zod";
 import { normalizePhoneNumber } from "@/shared/utils/auth/phoneNumber.util";
-import { sanitizeSignUpPhoneDigits } from "../utils/signUpPhoneNumber.util";
+import {
+  getInvalidSignUpPhoneMessageForCountry,
+  isValidSignUpPhoneForCountry,
+  sanitizeSignUpPhoneDigits,
+} from "../utils/signUpPhoneNumber.util";
 
 const fullNameSchema = z.string().refine((value) => value.trim().length > 0, {
   message: "Full name is required.",
-});
-
-const phoneNumberSchema = z.string().superRefine((value, context) => {
-  const phoneDigits = sanitizeSignUpPhoneDigits(value);
-
-  if (phoneDigits.length === 0) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Phone number is required.",
-    });
-    return;
-  }
-
-  if (!/^[6-9]\d{9}$/.test(phoneDigits)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Enter a valid phone number.",
-    });
-  }
-});
-
-const e164PhoneNumberSchema = z.string().refine((value) => {
-  const normalizedPhoneNumber = normalizePhoneNumber(value);
-  return /^\+\d{8,15}$/.test(normalizedPhoneNumber);
-}, {
-  message: "Invalid phone number format.",
 });
 
 const passwordSchema = z.string().refine((value) => value.trim().length > 0, {
   message: "Password is required.",
 });
 
-export const signUpFormSchema = z.object({
-  fullName: fullNameSchema,
-  phoneNumber: phoneNumberSchema,
-  password: passwordSchema,
-});
+const phoneCountryCodeSchema = z.enum(["NP", "IN"]);
+
+const phoneNumberSchema = z.string();
+
+const e164PhoneNumberSchema = z
+  .string()
+  .refine((value) => {
+    const normalizedPhoneNumber = normalizePhoneNumber(value);
+    return /^\+\d{8,15}$/.test(normalizedPhoneNumber);
+  }, {
+    message: "Invalid phone number format.",
+  });
+
+export const signUpFormSchema = z
+  .object({
+    fullName: fullNameSchema,
+    phoneCountryCode: phoneCountryCodeSchema,
+    phoneNumber: phoneNumberSchema,
+    password: passwordSchema,
+  })
+  .superRefine((value, context) => {
+    const phoneDigits = sanitizeSignUpPhoneDigits(value.phoneNumber);
+
+    if (phoneDigits.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone number is required.",
+        path: ["phoneNumber"],
+      });
+      return;
+    }
+
+    if (!isValidSignUpPhoneForCountry(phoneDigits, value.phoneCountryCode)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: getInvalidSignUpPhoneMessageForCountry(value.phoneCountryCode),
+        path: ["phoneNumber"],
+      });
+    }
+  });
 
 export const signUpInputSchema = z.object({
   fullName: fullNameSchema.transform((value) => value.trim()),

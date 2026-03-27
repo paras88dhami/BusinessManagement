@@ -1,7 +1,7 @@
 import { Control } from "react-hook-form";
 import { LoginInput } from "@/feature/auth/login/types/login.types";
 import {
-  SignUpInput,
+  SignUpFormInput,
   SignUpPhoneCountryCode,
   SignUpPhoneCountryOption,
 } from "@/feature/auth/signUp/types/signUp.types";
@@ -21,7 +21,7 @@ interface AuthEntryLoginViewModel {
 }
 
 interface AuthEntrySignUpViewModel {
-  control: Control<SignUpInput>;
+  control: Control<SignUpFormInput>;
   selectedPhoneCountryCode: SignUpPhoneCountryCode;
   selectedPhoneDialCode: string;
   phoneNumberMaxLength: number;
