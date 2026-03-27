@@ -1,5 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
-import { AppSettingsModel } from "../../setting/appSetting/data/dataSource/db/appSettings.model";
+import { AppSettingsModel } from "./dataSource/db/appSettings.model";
 
 const APP_SETTINGS_TABLE = "app_settings";
 const DEFAULT_LANGUAGE = "en";

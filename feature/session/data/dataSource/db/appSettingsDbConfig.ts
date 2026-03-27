@@ -1,5 +1,5 @@
-import { AppSettingsModel } from "../../../../setting/appSetting/data/dataSource/db/appSettings.model";
-import { appSettingsTable } from "../../../../setting/appSetting/data/dataSource/db/appSettings.schema";
+import { AppSettingsModel } from "./appSettings.model";
+import { appSettingsTable } from "./appSettings.schema";
 
 export const appSettingsDbConfig = {
   models: [AppSettingsModel],
