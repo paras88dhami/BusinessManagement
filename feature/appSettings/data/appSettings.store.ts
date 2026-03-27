@@ -120,6 +120,36 @@ export const setActiveUserSession = async (
   });
 };
 
+export const setActiveAccountSession = async (
+  database: Database,
+  accountRemoteId: string,
+): Promise<void> => {
+  const normalizedAccountRemoteId = accountRemoteId.trim();
+
+  if (!normalizedAccountRemoteId) {
+    throw new Error(
+      "Cannot set active account session without account remote id.",
+    );
+  }
+
+  const settings = await ensureAppSettingsRecord(database);
+
+  if (!settings.activeUserRemoteId) {
+    throw new Error("Cannot set active account session without active user.");
+  }
+
+  if (settings.activeAccountRemoteId === normalizedAccountRemoteId) {
+    return;
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      record.activeAccountRemoteId = normalizedAccountRemoteId;
+      setUpdatedAt(record, Date.now());
+    });
+  });
+};
+
 export const clearActiveUserSession = async (
   database: Database,
 ): Promise<void> => {

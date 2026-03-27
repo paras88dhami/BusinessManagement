@@ -2,7 +2,6 @@ import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import { AuthCredentialRepository } from "../data/repository/authCredential.repository";
 import { AuthUserRepository } from "../data/repository/authUser.repository";
 import {
-  AuthSessionErrorType,
   CredentialType,
   InvalidCredentialsError,
   TooManyAttemptsError,
@@ -32,16 +31,7 @@ export const createVerifyLocalCredentialUseCase = (
       );
 
     if (!authCredentialResult.success) {
-      if (
-        authCredentialResult.error.type ===
-        AuthSessionErrorType.AuthCredentialNotFound
-      ) {
-        return {
-          success: false,
-          error: InvalidCredentialsError,
-        };
-      }
-
+      // Preserve NOT_FOUND so login repository can try fallback phone formats.
       return authCredentialResult;
     }
 

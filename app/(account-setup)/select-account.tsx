@@ -57,6 +57,11 @@ export default function SelectAccountRoute() {
     return null;
   }
 
-  return <GetAccountSelectionScreenFactory onBackToLogin={handleBackToLogin} />;
+  return (
+    <GetAccountSelectionScreenFactory
+      database={appDatabase}
+      onBackToLogin={handleBackToLogin}
+    />
+  );
 }
 
