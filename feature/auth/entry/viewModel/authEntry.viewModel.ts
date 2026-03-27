@@ -5,10 +5,7 @@ import {
   SignUpPhoneCountryCode,
   SignUpPhoneCountryOption,
 } from "@/feature/auth/signUp/types/signUp.types";
-import {
-  SupportedLanguageCode,
-  SupportedLanguageOption,
-} from "@/shared/i18n/resources";
+import { LanguageSelectionViewModel } from "@/feature/session/types/languageSelection.types";
 
 export interface AuthEntryLoginViewModel {
   control: Control<LoginInput>;
@@ -37,14 +34,8 @@ export interface AuthEntrySignUpViewModel {
   submit: () => Promise<void>;
 }
 
-export interface AuthEntryLanguageViewModel {
-  selectedLanguageCode: SupportedLanguageCode;
-  options: readonly SupportedLanguageOption[];
-  onChangeSelectedLanguage: (languageCode: SupportedLanguageCode) => void;
-}
-
 export interface AuthEntryViewModel {
-  language: AuthEntryLanguageViewModel;
+  language: LanguageSelectionViewModel;
   login: AuthEntryLoginViewModel;
   signUp: AuthEntrySignUpViewModel;
   onForgotPasswordPress?: () => void;
