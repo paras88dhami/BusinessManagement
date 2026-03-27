@@ -1,6 +1,6 @@
-import { Database, Q } from "@nozbe/watermelondb";
 import { Result } from "@/shared/types/result.types";
 import { createDatabaseFieldEncryptionService } from "@/shared/utils/security/databaseFieldEncryption.service";
+import { Database, Q } from "@nozbe/watermelondb";
 import {
   CredentialTypeValue,
   RecordSyncStatus,
@@ -59,9 +59,8 @@ export const createLocalAuthCredentialDatasource = (
         throw new Error("Login id is required");
       }
 
-      const encryptedPasswordHash = await databaseFieldEncryptionService.encrypt(
-        payload.passwordHash,
-      );
+      const encryptedPasswordHash =
+        await databaseFieldEncryptionService.encrypt(payload.passwordHash);
       const passwordSalt = payload.passwordSalt;
       const hint = payload.hint;
 

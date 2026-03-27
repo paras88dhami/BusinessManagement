@@ -1,5 +1,5 @@
-import { Database, Q } from "@nozbe/watermelondb";
 import { Result } from "@/shared/types/result.types";
+import { Database, Q } from "@nozbe/watermelondb";
 import {
   RecordSyncStatus,
   SaveAuthUserPayload,

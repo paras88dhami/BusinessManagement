@@ -1,5 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
-import { AppSettingsModel } from "./dataSource/db/appSettings.model";
+import { AppSettingsModel } from "../../setting/appSetting/data/dataSource/db/appSettings.model";
 
 const APP_SETTINGS_TABLE = "app_settings";
 const DEFAULT_LANGUAGE = "en";
@@ -73,7 +73,9 @@ export const setSelectedLanguage = async (
   const normalizedSelectedLanguage = selectedLanguage.trim().toLowerCase();
 
   if (!normalizedSelectedLanguage) {
-    throw new Error("Cannot set selected language without a valid language code.");
+    throw new Error(
+      "Cannot set selected language without a valid language code.",
+    );
   }
 
   const settings = await ensureAppSettingsRecord(database);
@@ -118,7 +120,9 @@ export const setActiveUserSession = async (
   });
 };
 
-export const clearActiveUserSession = async (database: Database): Promise<void> => {
+export const clearActiveUserSession = async (
+  database: Database,
+): Promise<void> => {
   const settings = await ensureAppSettingsRecord(database);
 
   await database.write(async () => {

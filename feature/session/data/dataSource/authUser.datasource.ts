@@ -1,6 +1,6 @@
 import { Result } from "@/shared/types/result.types";
-import { AuthUserModel } from "./db/authUser.model";
 import { SaveAuthUserPayload } from "../../types/authSession.types";
+import { AuthUserModel } from "./db/authUser.model";
 
 export interface AuthUserDatasource {
   saveAuthUser(payload: SaveAuthUserPayload): Promise<Result<AuthUserModel>>;
