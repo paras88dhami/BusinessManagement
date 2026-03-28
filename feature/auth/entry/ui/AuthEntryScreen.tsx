@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,11 +21,9 @@ type AuthEntryScreenProps = {
   viewModel: AuthEntryViewModel;
 };
 
-type AuthMode = "login" | "signup";
-
 function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   const { t } = useTranslation();
-  const { language, login, signUp, onForgotPasswordPress } = viewModel;
+  const { language, mode, login, signUp, onForgotPasswordPress } = viewModel;
   const isAndroid = Platform.OS === "android";
 
   const {
@@ -59,17 +57,13 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     clearSubmitError: clearSignUpSubmitError,
     isPasswordVisible: isSignUpPasswordVisible,
     togglePasswordVisibility: onToggleSignUpPasswordVisibility,
-    hasSucceeded: hasSignUpSucceeded,
     isSubmitting: isSigningUp,
     submitError: signUpError,
     submit: onSubmitSignUp,
   } = signUp;
 
-  const [mode, setMode] = useState<AuthMode>("login");
-  const hasHandledLatestSignUpSuccess = useRef(false);
-
   const insets = useSafeAreaInsets();
-  const isLoginMode = mode === "login";
+  const isLoginMode = mode.isLoginMode;
 
   const dropdownOptions = useMemo<DropdownOption[]>(
     () =>
@@ -178,20 +172,6 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     ? t("auth.entry.footer.signUp")
     : t("auth.entry.footer.login");
 
-  useEffect(() => {
-    if (!hasSignUpSucceeded) {
-      hasHandledLatestSignUpSuccess.current = false;
-      return;
-    }
-
-    if (hasHandledLatestSignUpSuccess.current) {
-      return;
-    }
-
-    hasHandledLatestSignUpSuccess.current = true;
-    setMode("login");
-  }, [hasSignUpSucceeded]);
-
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <View style={styles.container}>
@@ -225,7 +205,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
           <View style={styles.content}>
             <View style={styles.tabContainer}>
               <Pressable
-                onPress={() => setMode("login")}
+                onPress={mode.switchToLogin}
                 style={[
                   styles.tabButton,
                   isLoginMode ? styles.tabButtonActive : undefined,
@@ -243,7 +223,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </Pressable>
 
               <Pressable
-                onPress={() => setMode("signup")}
+                onPress={mode.switchToSignUp}
                 style={[
                   styles.tabButton,
                   !isLoginMode ? styles.tabButtonActive : undefined,
@@ -505,7 +485,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
             <View style={styles.footerRow}>
               <Text style={styles.footerText}>{footerPrompt} </Text>
               <Pressable
-                onPress={() => setMode(isLoginMode ? "signup" : "login")}
+                onPress={mode.toggleMode}
                 accessibilityRole="button"
               >
                 <Text style={styles.footerLink}>{footerActionLabel}</Text>

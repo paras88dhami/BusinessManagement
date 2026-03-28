@@ -4,6 +4,7 @@ import { LoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEma
 import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
 import { useAuthEntryLanguageViewModel } from "./authEntry.language.viewModel.impl";
 import { useAuthEntryLoginViewModel } from "./authEntry.login.viewModel.impl";
+import { useAuthEntryModeViewModel } from "./authEntry.mode.viewModel.impl";
 import { useAuthEntrySignUpViewModel } from "./authEntry.signUp.viewModel.impl";
 import { AuthEntryViewModel } from "./authEntry.viewModel";
 
@@ -40,13 +41,18 @@ export const useAuthEntryViewModel = (
     onSuccess: onSignUpSuccess,
   });
 
+  const mode = useAuthEntryModeViewModel({
+    hasSignUpSucceeded: signUp.hasSucceeded,
+  });
+
   return useMemo<AuthEntryViewModel>(
     () => ({
       language,
+      mode,
       login,
       signUp,
       onForgotPasswordPress,
     }),
-    [language, login, signUp, onForgotPasswordPress],
+    [language, mode, login, signUp, onForgotPasswordPress],
   );
 };
