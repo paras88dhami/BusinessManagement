@@ -3,7 +3,7 @@ import {
   AuthSessionErrorType,
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
-import { normalizePhoneNumber } from "@/shared/utils/auth/phoneNumber.util";
+import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 import { LoginRepository } from "./login.repository";
 import {
   DatabaseError,
@@ -26,7 +26,7 @@ export const createLocalLoginRepository = (
   options: LocalLoginRepositoryOptions = {},
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
-    const loginIdCandidates = buildLoginIdCandidates(payload.phoneNumber);
+    const loginIdCandidates = buildPhoneLoginIdCandidates(payload.phoneNumber);
     let verifiedCredential: VerifiedLocalCredential | null = null;
     let lastError: { type: string; message: string } | Error | unknown = null;
 
@@ -78,24 +78,6 @@ export const createLocalLoginRepository = (
     };
   },
 });
-
-const buildLoginIdCandidates = (phoneNumber: string): string[] => {
-  const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
-
-  if (!normalizedPhoneNumber) {
-    return [phoneNumber];
-  }
-
-  if (normalizedPhoneNumber.startsWith("+")) {
-    return [normalizedPhoneNumber];
-  }
-
-  const loginIdCandidates = new Set<string>([normalizedPhoneNumber]);
-  loginIdCandidates.add(`+977${normalizedPhoneNumber}`);
-  loginIdCandidates.add(`+91${normalizedPhoneNumber}`);
-
-  return Array.from(loginIdCandidates);
-};
 
 const mapAuthSessionErrorToLoginError = (
   error: { type: string; message: string } | Error | unknown,

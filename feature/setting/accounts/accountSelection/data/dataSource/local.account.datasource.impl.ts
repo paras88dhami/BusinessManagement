@@ -50,6 +50,28 @@ const sortAccounts = (accounts: AccountModel[]): AccountModel[] => {
   });
 };
 
+const clearDefaultFromOtherAccounts = async (
+  accounts: AccountModel[],
+  currentRemoteId: string,
+  now: number,
+): Promise<void> => {
+  for (const account of accounts) {
+    if (account.remoteId === currentRemoteId) {
+      continue;
+    }
+
+    await account.update((record) => {
+      if (!record.isDefault) {
+        return;
+      }
+
+      record.isDefault = false;
+      updateSyncStatusOnMutation(record);
+      setUpdatedAt(record, now);
+    });
+  }
+};
+
 export const createLocalAccountDatasource = (
   database: Database,
 ): AccountDatasource => ({
@@ -78,6 +100,14 @@ export const createLocalAccountDatasource = (
       const normalizedCountryCode = normalizeOptional(payload.countryCode);
 
       const accountsCollection = database.get<AccountModel>(ACCOUNTS_TABLE);
+      const ownerDefaultAccounts = payload.isDefault
+        ? await accountsCollection
+            .query(
+              Q.where("owner_user_remote_id", normalizedOwnerUserRemoteId),
+              Q.where("is_default", true),
+            )
+            .fetch()
+        : [];
 
       const existingAccounts = await accountsCollection
         .query(Q.where("remote_id", normalizedRemoteId))
@@ -87,6 +117,8 @@ export const createLocalAccountDatasource = (
 
       if (existingAccount) {
         await database.write(async () => {
+          const now = Date.now();
+
           await existingAccount.update((record) => {
             record.remoteId = normalizedRemoteId;
             record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
@@ -98,8 +130,16 @@ export const createLocalAccountDatasource = (
             record.isActive = payload.isActive;
             record.isDefault = payload.isDefault;
             updateSyncStatusOnMutation(record);
-            setUpdatedAt(record, Date.now());
+            setUpdatedAt(record, now);
           });
+
+          if (payload.isDefault) {
+            await clearDefaultFromOtherAccounts(
+              ownerDefaultAccounts,
+              normalizedRemoteId,
+              now,
+            );
+          }
         });
 
         return { success: true, value: existingAccount };
@@ -108,9 +148,9 @@ export const createLocalAccountDatasource = (
       let createdAccount!: AccountModel;
 
       await database.write(async () => {
-        createdAccount = await accountsCollection.create((record) => {
-          const now = Date.now();
+        const now = Date.now();
 
+        createdAccount = await accountsCollection.create((record) => {
           record.remoteId = normalizedRemoteId;
           record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
           record.accountType = payload.accountType;
@@ -127,6 +167,14 @@ export const createLocalAccountDatasource = (
 
           setCreatedAndUpdatedAt(record, now);
         });
+
+        if (payload.isDefault) {
+          await clearDefaultFromOtherAccounts(
+            ownerDefaultAccounts,
+            normalizedRemoteId,
+            now,
+          );
+        }
       });
 
       return { success: true, value: createdAccount };

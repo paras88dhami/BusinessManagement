@@ -23,6 +23,8 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
     accounts,
     selectedAccountRemoteId,
     isCreateMode,
+    canStartCreateMode,
+    canCancelCreateMode,
     newAccountType,
     newAccountDisplayName,
     isLoading,
@@ -30,6 +32,8 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
     submitError,
     successMessage,
     onSelectAccount,
+    onStartCreateMode,
+    onCancelCreateMode,
     onChangeNewAccountType,
     onChangeNewAccountDisplayName,
     onConfirmSelection,
@@ -52,7 +56,9 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
         </Text>
         <Text style={styles.description}>
           {isCreateMode
-            ? "Create your first workspace as personal or business."
+            ? accounts.length === 0
+              ? "Create your first workspace as personal or business."
+              : "Create an additional workspace as personal or business."
             : "Choose the account you want to use for this session."}
         </Text>
 
@@ -169,6 +175,26 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
         {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
         {successMessage ? (
           <Text style={styles.successText}>{successMessage}</Text>
+        ) : null}
+
+        {!isLoading && canStartCreateMode ? (
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={onStartCreateMode}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>Create New Account</Text>
+          </Pressable>
+        ) : null}
+
+        {!isLoading && canCancelCreateMode ? (
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={onCancelCreateMode}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>Cancel</Text>
+          </Pressable>
         ) : null}
 
         <Pressable

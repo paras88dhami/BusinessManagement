@@ -6,13 +6,23 @@ import {
   sanitizeSignUpPhoneDigits,
 } from "../utils/signUpPhoneNumber.util";
 
-const fullNameSchema = z.string().refine((value) => value.trim().length > 0, {
-  message: "Full name is required.",
-});
+const fullNameSchema = z
+  .string()
+  .refine((value) => value.trim().length > 0, {
+    message: "Full name is required.",
+  })
+  .refine((value) => value.trim().length >= 2, {
+    message: "Full name must be at least 2 characters.",
+  });
 
-const passwordSchema = z.string().refine((value) => value.trim().length > 0, {
-  message: "Password is required.",
-});
+const passwordSchema = z
+  .string()
+  .refine((value) => value.trim().length > 0, {
+    message: "Password is required.",
+  })
+  .refine((value) => value.trim().length >= 8, {
+    message: "Password must be at least 8 characters.",
+  });
 
 const phoneCountryCodeSchema = z.enum(["NP", "IN"]);
 

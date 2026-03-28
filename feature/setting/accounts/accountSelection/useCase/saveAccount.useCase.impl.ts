@@ -1,5 +1,6 @@
 import { AccountRepository } from "../data/repository/account.repository";
 import {
+  AccountType,
   AccountResult,
   AccountSelectionValidationError,
   SaveAccountPayload,
@@ -28,6 +29,16 @@ export const createSaveAccountUseCase = (
       return {
         success: false,
         error: AccountSelectionValidationError("Display name is required."),
+      };
+    }
+
+    if (
+      payload.accountType !== AccountType.Personal &&
+      payload.accountType !== AccountType.Business
+    ) {
+      return {
+        success: false,
+        error: AccountSelectionValidationError("Account type is invalid."),
       };
     }
 

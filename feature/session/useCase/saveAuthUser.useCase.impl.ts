@@ -24,6 +24,15 @@ export const createSaveAuthUserUseCase = (
       };
     }
 
+    if (payload.fullName.trim().length < 2) {
+      return {
+        success: false,
+        error: AuthSessionValidationError(
+          "Full name must be at least 2 characters.",
+        ),
+      };
+    }
+
     return authUserRepository.saveAuthUser(payload);
   },
 });

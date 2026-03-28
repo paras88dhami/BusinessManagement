@@ -24,6 +24,16 @@ type UseAccountSelectionFeatureParams = {
   onAccountSelected?: (accountRemoteId: string) => Promise<void> | void;
 };
 
+const sortAccounts = (accounts: Account[]): Account[] => {
+  return [...accounts].sort((leftAccount, rightAccount) => {
+    if (leftAccount.isDefault !== rightAccount.isDefault) {
+      return leftAccount.isDefault ? -1 : 1;
+    }
+
+    return rightAccount.updatedAt - leftAccount.updatedAt;
+  });
+};
+
 export function useAccountSelectionFeature(
   params: UseAccountSelectionFeatureParams,
 ): AccountSelectionViewModel {
@@ -124,6 +134,7 @@ export function useAccountSelectionFeature(
 
         setAccounts(availableAccounts);
         setIsCreateMode(false);
+        setNewAccountType(AccountType.Personal);
         setNewAccountDisplayName("");
 
         const persistedActiveAccountId = sessionState.activeAccountRemoteId;
@@ -171,7 +182,6 @@ export function useAccountSelectionFeature(
     database,
     getAccountsByOwnerUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
-    saveAccountUseCase,
   ]);
 
   const onSelectAccount = useCallback(
@@ -198,6 +208,26 @@ export function useAccountSelectionFeature(
     setSubmitError(undefined);
     setSuccessMessage(undefined);
   }, []);
+
+  const onStartCreateMode = useCallback(() => {
+    setIsCreateMode(true);
+    setNewAccountType(AccountType.Personal);
+    setNewAccountDisplayName("");
+    setSubmitError(undefined);
+    setSuccessMessage(undefined);
+  }, []);
+
+  const onCancelCreateMode = useCallback(() => {
+    if (accounts.length === 0) {
+      return;
+    }
+
+    setIsCreateMode(false);
+    setNewAccountType(AccountType.Personal);
+    setNewAccountDisplayName("");
+    setSubmitError(undefined);
+    setSuccessMessage(undefined);
+  }, [accounts.length]);
 
   const onConfirmSelection = useCallback(async (): Promise<void> => {
     setIsSubmitting(true);
@@ -229,7 +259,7 @@ export function useAccountSelectionFeature(
           cityOrLocation: null,
           countryCode: null,
           isActive: true,
-          isDefault: true,
+          isDefault: accounts.length === 0,
         });
 
         if (!saveAccountResult.success) {
@@ -238,14 +268,18 @@ export function useAccountSelectionFeature(
         }
 
         const createdAccount = saveAccountResult.value;
-        setAccounts([createdAccount]);
+        setAccounts((previousAccounts) =>
+          sortAccounts([...previousAccounts, createdAccount]),
+        );
         setSelectedAccountRemoteId(createdAccount.remoteId);
         setIsCreateMode(false);
+        setNewAccountType(AccountType.Personal);
         setNewAccountDisplayName("");
         targetAccountRemoteId = createdAccount.remoteId;
-      }
-
-      if (!targetAccountRemoteId) {
+      } else if (
+        !targetAccountRemoteId ||
+        !accounts.some((account) => account.remoteId === targetAccountRemoteId)
+      ) {
         setSubmitError("Please select an account to continue.");
         return;
       }
@@ -269,6 +303,7 @@ export function useAccountSelectionFeature(
   }, [
     activeUserRemoteId,
     database,
+    accounts,
     isCreateMode,
     newAccountDisplayName,
     newAccountType,
@@ -277,11 +312,16 @@ export function useAccountSelectionFeature(
     selectedAccountRemoteId,
   ]);
 
+  const canStartCreateMode = !isCreateMode && accounts.length > 0;
+  const canCancelCreateMode = isCreateMode && accounts.length > 0;
+
   return useMemo<AccountSelectionViewModel>(
     () => ({
       accounts,
       selectedAccountRemoteId,
       isCreateMode,
+      canStartCreateMode,
+      canCancelCreateMode,
       newAccountType,
       newAccountDisplayName,
       isLoading,
@@ -289,6 +329,8 @@ export function useAccountSelectionFeature(
       submitError,
       successMessage,
       onSelectAccount,
+      onStartCreateMode,
+      onCancelCreateMode,
       onChangeNewAccountType,
       onChangeNewAccountDisplayName,
       onConfirmSelection,
@@ -298,6 +340,8 @@ export function useAccountSelectionFeature(
       accounts,
       selectedAccountRemoteId,
       isCreateMode,
+      canStartCreateMode,
+      canCancelCreateMode,
       newAccountType,
       newAccountDisplayName,
       isLoading,
@@ -305,6 +349,8 @@ export function useAccountSelectionFeature(
       submitError,
       successMessage,
       onSelectAccount,
+      onStartCreateMode,
+      onCancelCreateMode,
       onChangeNewAccountType,
       onChangeNewAccountDisplayName,
       onConfirmSelection,

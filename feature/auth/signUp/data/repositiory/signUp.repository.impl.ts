@@ -8,6 +8,7 @@ import {
   CredentialType,
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
+import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 import { SignUpRepository } from "./signUp.repository";
 import {
   DatabaseError,
@@ -35,28 +36,31 @@ export const createLocalSignUpRepository = (
     const fullName = payload.fullName;
     const phoneNumber = payload.phoneNumber;
     const password = payload.password;
+    const loginIdCandidates = buildPhoneLoginIdCandidates(phoneNumber);
 
-    const existingCredentialResult =
-      await getActiveAuthCredentialByLoginIdUseCase.execute(
-        phoneNumber,
-        CredentialType.Password,
-      );
+    for (const loginId of loginIdCandidates) {
+      const existingCredentialResult =
+        await getActiveAuthCredentialByLoginIdUseCase.execute(
+          loginId,
+          CredentialType.Password,
+        );
 
-    if (existingCredentialResult.success) {
-      return {
-        success: false,
-        error: PhoneNumberAlreadyInUseError,
-      };
-    }
+      if (existingCredentialResult.success) {
+        return {
+          success: false,
+          error: PhoneNumberAlreadyInUseError,
+        };
+      }
 
-    if (
-      existingCredentialResult.error.type !==
-      AuthSessionErrorType.AuthCredentialNotFound
-    ) {
-      return {
-        success: false,
-        error: mapAuthSessionErrorToSignUpError(existingCredentialResult.error),
-      };
+      if (
+        existingCredentialResult.error.type !==
+        AuthSessionErrorType.AuthCredentialNotFound
+      ) {
+        return {
+          success: false,
+          error: mapAuthSessionErrorToSignUpError(existingCredentialResult.error),
+        };
+      }
     }
 
     const userRemoteId = Crypto.randomUUID();
