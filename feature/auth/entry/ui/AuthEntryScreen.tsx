@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -7,6 +7,7 @@ import {
   type DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { TextField } from "@/shared/components/reusable/Form/TextField";
+import { KeyboardSafeScrollView } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeScrollView";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
@@ -64,6 +65,32 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
   const insets = useSafeAreaInsets();
   const isLoginMode = mode.isLoginMode;
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardShowEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const keyboardHideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const keyboardShowSubscription = Keyboard.addListener(
+      keyboardShowEvent,
+      () => {
+        setIsKeyboardVisible(true);
+      },
+    );
+    const keyboardHideSubscription = Keyboard.addListener(
+      keyboardHideEvent,
+      () => {
+        setIsKeyboardVisible(false);
+      },
+    );
+
+    return () => {
+      keyboardShowSubscription.remove();
+      keyboardHideSubscription.remove();
+    };
+  }, []);
 
   const dropdownOptions = useMemo<DropdownOption[]>(
     () =>
@@ -175,7 +202,17 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + spacing.xxl + spacing.sm }]}>
+        <View
+          style={[
+            styles.header,
+            isKeyboardVisible ? styles.headerCompact : undefined,
+            {
+              paddingTop:
+                insets.top +
+                (isKeyboardVisible ? spacing.md : spacing.xxl + spacing.sm),
+            },
+          ]}
+        >
           <View style={[styles.languageDropdownWrap, { top: insets.top + spacing.xs }]}>
             <Dropdown
               value={selectedLanguageCode}
@@ -186,21 +223,30 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
             />
           </View>
 
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>eL</Text>
+          <View style={[styles.logoBox, isKeyboardVisible ? styles.logoBoxCompact : undefined]}>
+            <Text
+              style={[
+                styles.logoText,
+                isKeyboardVisible ? styles.logoTextCompact : undefined,
+              ]}
+            >
+              eL
+            </Text>
           </View>
 
-          <Text style={styles.brand}>eLekha</Text>
-          <Text style={styles.brandSub}>{t("auth.entry.brand.subtitle")}</Text>
+          <Text style={[styles.brand, isKeyboardVisible ? styles.brandCompact : undefined]}>
+            eLekha
+          </Text>
+          {!isKeyboardVisible ? (
+            <Text style={styles.brandSub}>{t("auth.entry.brand.subtitle")}</Text>
+          ) : null}
         </View>
 
         <View style={styles.divider} />
 
-        <ScrollView
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardSafeScrollView
           contentContainerStyle={styles.scrollContent}
+          bottomInset={insets.bottom}
         >
           <View style={styles.content}>
             <View style={styles.tabContainer}>
@@ -492,7 +538,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardSafeScrollView>
       </View>
     </SafeAreaView>
   );
@@ -522,6 +568,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl + spacing.sm,
     position: "relative",
   },
+  headerCompact: {
+    paddingBottom: spacing.md,
+  },
   logoBox: {
     width: 64,
     height: 64,
@@ -531,17 +580,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: spacing.md,
   },
+  logoBoxCompact: {
+    width: 44,
+    height: 44,
+    marginBottom: spacing.xs,
+  },
   logoText: {
     color: colors.headerForeground,
     fontSize: 24,
     fontWeight: "700",
     lineHeight: 28,
   },
+  logoTextCompact: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
   brand: {
     color: colors.headerForeground,
     fontSize: 24,
     fontWeight: "700",
     lineHeight: 28,
+  },
+  brandCompact: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   brandSub: {
     color: "rgba(255,255,255,0.8)",
@@ -558,10 +620,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.md,
   },
   tabContainer: {
     flexDirection: "row",
