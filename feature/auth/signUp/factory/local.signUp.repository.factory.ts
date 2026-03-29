@@ -8,6 +8,7 @@ import { createAuthCredentialRepository } from "@/feature/session/data/repositor
 import { createGetActiveAuthCredentialByLoginIdUseCase } from "@/feature/session/useCase/getActiveAuthCredentialByLoginId.useCase.impl";
 import { createSaveAuthCredentialUseCase } from "@/feature/session/useCase/saveAuthCredential.useCase.impl";
 import { createSaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase.impl";
+import { setActiveUserSession } from "@/feature/appSettings/data/appSettings.store";
 import { SignUpProfileType } from "../types/signUp.types";
 import { createLocalSignUpRepository } from "../data/repositiory/signUp.repository.impl";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
@@ -60,6 +61,8 @@ export function createLocalSignUpRepositoryWithDatabase(database: Database) {
         if (!saveAccountResult.success) {
           throw new Error(saveAccountResult.error.message);
         }
+
+        await setActiveUserSession(database, verifiedCredential.authUser.remoteId);
       },
     },
   );

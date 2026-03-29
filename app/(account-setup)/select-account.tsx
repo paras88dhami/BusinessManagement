@@ -5,6 +5,10 @@ import {
   clearActiveUserSession,
   hasActiveUserSession,
 } from "@/feature/appSettings/data/appSettings.store";
+import {
+  AccountType,
+  SelectedAccountContext,
+} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { GetAccountSelectionScreenFactory } from "@/feature/setting/accounts/accountSelection/factory/getAccountSelectionScreen.factory";
 
 export default function SelectAccountRoute() {
@@ -20,6 +24,18 @@ export default function SelectAccountRoute() {
       // Keep user on this screen if session clear fails.
     }
   }, [router]);
+
+  const handleAccountSelected = useCallback(
+    async ({ accountType }: SelectedAccountContext) => {
+      if (accountType === AccountType.Business) {
+        router.replace("/(dashboard)/business");
+        return;
+      }
+
+      router.replace("/(dashboard)/personal");
+    },
+    [router],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -61,6 +77,7 @@ export default function SelectAccountRoute() {
     <GetAccountSelectionScreenFactory
       database={appDatabase}
       onBackToLogin={handleBackToLogin}
+      onAccountSelected={handleAccountSelected}
     />
   );
 }

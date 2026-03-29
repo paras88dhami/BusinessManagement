@@ -14,6 +14,10 @@ export default function LoginRoute() {
     router.replace("/(account-setup)/select-account");
   }, [router]);
 
+  const handleOnSignUpSuccess = useCallback(() => {
+    router.replace("/(account-setup)/select-account");
+  }, [router]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -56,6 +60,7 @@ export default function LoginRoute() {
     <GetAuthEntryScreenFactory
       database={appDatabase}
       onLoginSuccess={handleOnLoginSuccess}
+      onSignUpSuccess={handleOnSignUpSuccess}
     />
   );
 }
