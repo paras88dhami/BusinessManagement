@@ -1,5 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
-import { useLanguageSelectionFeature } from "@/feature/appSettings/hooks/useLanguageSelectionFeature";
+import { useLanguageSelectionFeature } from "@/feature/appSettings/language/hooks/useLanguageSelectionFeature";
 import { AuthEntryLanguageViewModel } from "./authEntry.language.viewModel";
 
 type UseAuthEntryLanguageViewModelParams = {
