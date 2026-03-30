@@ -10,6 +10,8 @@ import { AccountSelectionViewModel } from "./accountSelection.viewModel";
 
 export type UseAccountSelectionViewModelParams = {
   database: Database;
+  activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
   onBackToLogin: () => void;
   onAccountSelected?: (
@@ -22,6 +24,8 @@ export function useAccountSelectionViewModel(
 ): AccountSelectionViewModel {
   const {
     database,
+    activeUserRemoteId,
+    activeAccountRemoteId,
     getAccountsByOwnerUserRemoteIdUseCase,
     onBackToLogin,
     onAccountSelected,
@@ -30,7 +34,8 @@ export function useAccountSelectionViewModel(
   const { state, actions } = useAccountSelectionState();
 
   const loadViewModel = useAccountSelectionLoadViewModel({
-    database,
+    activeUserRemoteId,
+    activeAccountRemoteId,
     state,
     actions,
     getAccountsByOwnerUserRemoteIdUseCase,

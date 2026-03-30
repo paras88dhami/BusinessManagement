@@ -79,10 +79,7 @@ export const useMoreDashboardViewModel = (
   params: UseMoreDashboardViewModelParams,
 ): MoreDashboardViewModel => {
   const {
-    activeTab,
-    tabItems,
     isBusinessMode,
-    onTabPress,
     onOpenProfile,
     onOpenLedger,
     onOpenPos,
@@ -130,12 +127,9 @@ export const useMoreDashboardViewModel = (
 
   return useMemo<MoreDashboardViewModel>(
     () => ({
-      activeTab,
-      tabItems,
       sections,
-      onTabPress,
       onMenuItemPress,
     }),
-    [activeTab, onMenuItemPress, onTabPress, sections, tabItems],
+    [onMenuItemPress, sections],
   );
 };

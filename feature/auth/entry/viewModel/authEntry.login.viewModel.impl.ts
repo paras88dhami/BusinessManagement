@@ -27,6 +27,11 @@ export const useAuthEntryLoginViewModel = (
   return useMemo<AuthEntryLoginViewModel>(
     () => ({
       control: loginViewModel.control,
+      selectedPhoneCountryCode: loginViewModel.selectedPhoneCountryCode,
+      selectedPhoneDialCode: loginViewModel.selectedPhoneDialCode,
+      phoneNumberMaxLength: loginViewModel.phoneNumberMaxLength,
+      phoneCountryOptions: loginViewModel.phoneCountryOptions,
+      onChangeSelectedPhoneCountry: loginViewModel.onChangeSelectedPhoneCountry,
       clearSubmitError: loginViewModel.clearSubmitError,
       isPasswordVisible: loginViewModel.isPasswordVisible,
       togglePasswordVisibility: loginViewModel.togglePasswordVisibility,
@@ -36,6 +41,11 @@ export const useAuthEntryLoginViewModel = (
     }),
     [
       loginViewModel.control,
+      loginViewModel.selectedPhoneCountryCode,
+      loginViewModel.selectedPhoneDialCode,
+      loginViewModel.phoneNumberMaxLength,
+      loginViewModel.phoneCountryOptions,
+      loginViewModel.onChangeSelectedPhoneCountry,
       loginViewModel.clearSubmitError,
       loginViewModel.isPasswordVisible,
       loginViewModel.togglePasswordVisibility,

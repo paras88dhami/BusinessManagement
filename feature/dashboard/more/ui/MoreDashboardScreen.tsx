@@ -20,12 +20,7 @@ type MoreDashboardScreenProps = {
 
 export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
   return (
-    <DashboardTabScaffold
-      title="More"
-      activeTab={viewModel.activeTab}
-      tabItems={viewModel.tabItems}
-      onTabPress={viewModel.onTabPress}
-    >
+    <DashboardTabScaffold>
       {viewModel.sections.map((section) => (
         <View key={section.id} style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>{section.title}</Text>

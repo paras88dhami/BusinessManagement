@@ -1,5 +1,4 @@
 import { Result } from "@/shared/types/result.types";
-import { createDatabaseFieldEncryptionService } from "@/shared/utils/security/databaseFieldEncryption.service";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
   CredentialTypeValue,
@@ -10,10 +9,6 @@ import { AuthCredentialDatasource } from "./authCredential.datasource";
 import { AuthCredentialModel } from "./db/authCredential.model";
 
 const AUTH_CREDENTIALS_TABLE = "auth_credentials";
-const databaseFieldEncryptionService = createDatabaseFieldEncryptionService();
-
-const normalizeLoginId = (loginId: string): string =>
-  loginId.trim().toLowerCase();
 
 const setCreatedAndUpdatedAt = (record: AuthCredentialModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
@@ -41,8 +36,9 @@ const findByRemoteId = async (
 ): Promise<AuthCredentialModel | null> => {
   const collection = database.get<AuthCredentialModel>(AUTH_CREDENTIALS_TABLE);
   const matchingRecords = await collection
-    .query(Q.where("remote_id", remoteId.trim()))
+    .query(Q.where("remote_id", remoteId))
     .fetch();
+
   return matchingRecords[0] ?? null;
 };
 
@@ -53,17 +49,6 @@ export const createLocalAuthCredentialDatasource = (
     payload: SaveAuthCredentialPayload,
   ): Promise<Result<AuthCredentialModel>> {
     try {
-      const normalizedLoginId = normalizeLoginId(payload.loginId);
-
-      if (!normalizedLoginId) {
-        throw new Error("Login id is required");
-      }
-
-      const encryptedPasswordHash =
-        await databaseFieldEncryptionService.encrypt(payload.passwordHash);
-      const passwordSalt = payload.passwordSalt;
-      const hint = payload.hint;
-
       const authCredentialsCollection = database.get<AuthCredentialModel>(
         AUTH_CREDENTIALS_TABLE,
       );
@@ -79,11 +64,11 @@ export const createLocalAuthCredentialDatasource = (
           await existingCredential.update((record) => {
             record.remoteId = payload.remoteId;
             record.userRemoteId = payload.userRemoteId;
-            record.loginId = normalizedLoginId;
+            record.loginId = payload.loginId;
             record.credentialType = payload.credentialType;
-            record.passwordHash = encryptedPasswordHash;
-            record.passwordSalt = passwordSalt;
-            record.hint = hint;
+            record.passwordHash = payload.passwordHash;
+            record.passwordSalt = payload.passwordSalt;
+            record.hint = payload.hint;
             record.isActive = payload.isActive;
             updateSyncStatusOnMutation(record);
             setUpdatedAt(record, Date.now());
@@ -101,11 +86,11 @@ export const createLocalAuthCredentialDatasource = (
 
           record.remoteId = payload.remoteId;
           record.userRemoteId = payload.userRemoteId;
-          record.loginId = normalizedLoginId;
+          record.loginId = payload.loginId;
           record.credentialType = payload.credentialType;
-          record.passwordHash = encryptedPasswordHash;
-          record.passwordSalt = passwordSalt;
-          record.hint = hint;
+          record.passwordHash = payload.passwordHash;
+          record.passwordSalt = payload.passwordSalt;
+          record.hint = payload.hint;
           record.lastLoginAt = null;
           record.isActive = payload.isActive;
           record.failedAttemptCount = 0;
@@ -134,22 +119,15 @@ export const createLocalAuthCredentialDatasource = (
     credentialType: CredentialTypeValue,
   ): Promise<Result<AuthCredentialModel>> {
     try {
-      const normalizedLoginId = normalizeLoginId(loginId);
-
-      if (!normalizedLoginId) {
-        throw new Error("Login id is required");
-      }
-
       const authCredentialsCollection = database.get<AuthCredentialModel>(
         AUTH_CREDENTIALS_TABLE,
       );
 
       const matchingCredentials = await authCredentialsCollection
         .query(
-          Q.where("login_id", normalizedLoginId),
+          Q.where("login_id", loginId),
           Q.where("credential_type", credentialType),
           Q.where("is_active", true),
-          Q.sortBy("updated_at", Q.desc),
         )
         .fetch();
 
@@ -175,10 +153,7 @@ export const createLocalAuthCredentialDatasource = (
       );
 
       const matchingCredentials = await authCredentialsCollection
-        .query(
-          Q.where("user_remote_id", userRemoteId),
-          Q.sortBy("updated_at", Q.desc),
-        )
+        .query(Q.where("user_remote_id", userRemoteId))
         .fetch();
 
       if (matchingCredentials.length === 0) {
@@ -196,8 +171,9 @@ export const createLocalAuthCredentialDatasource = (
 
   async recordFailedLoginAttemptByRemoteId(
     remoteId: string,
-    maxFailedAttempts: number,
-    lockoutDurationMs: number,
+    failedAttemptCount: number,
+    lockoutUntil: number | null,
+    lastFailedLoginAt: number,
   ): Promise<Result<AuthCredentialModel>> {
     try {
       const targetCredential = await findByRemoteId(database, remoteId);
@@ -208,23 +184,11 @@ export const createLocalAuthCredentialDatasource = (
 
       await database.write(async () => {
         await targetCredential.update((record) => {
-          const now = Date.now();
-          const hasLockoutExpired =
-            record.lockoutUntil !== null && record.lockoutUntil <= now;
-          const baselineCount = hasLockoutExpired
-            ? 0
-            : (record.failedAttemptCount ?? 0);
-          const nextFailedCount = baselineCount + 1;
-          const shouldLock = nextFailedCount >= maxFailedAttempts;
-
-          record.failedAttemptCount = shouldLock
-            ? maxFailedAttempts
-            : nextFailedCount;
-          record.lastFailedLoginAt = now;
-          record.lockoutUntil = shouldLock ? now + lockoutDurationMs : null;
-
+          record.failedAttemptCount = failedAttemptCount;
+          record.lockoutUntil = lockoutUntil;
+          record.lastFailedLoginAt = lastFailedLoginAt;
           updateSyncStatusOnMutation(record);
-          setUpdatedAt(record, now);
+          setUpdatedAt(record, Date.now());
         });
       });
 
@@ -237,7 +201,10 @@ export const createLocalAuthCredentialDatasource = (
     }
   },
 
-  async markLoginSuccessByRemoteId(remoteId: string): Promise<Result<boolean>> {
+  async markLoginSuccessByRemoteId(
+    remoteId: string,
+    lastLoginAt: number,
+  ): Promise<Result<boolean>> {
     try {
       const targetCredential = await findByRemoteId(database, remoteId);
 
@@ -247,15 +214,12 @@ export const createLocalAuthCredentialDatasource = (
 
       await database.write(async () => {
         await targetCredential.update((record) => {
-          const now = Date.now();
-
-          record.lastLoginAt = now;
+          record.lastLoginAt = lastLoginAt;
           record.failedAttemptCount = 0;
           record.lockoutUntil = null;
           record.lastFailedLoginAt = null;
-
           updateSyncStatusOnMutation(record);
-          setUpdatedAt(record, now);
+          setUpdatedAt(record, Date.now());
         });
       });
 
@@ -270,6 +234,7 @@ export const createLocalAuthCredentialDatasource = (
 
   async updateLastLoginAtByRemoteId(
     remoteId: string,
+    lastLoginAt: number,
   ): Promise<Result<boolean>> {
     try {
       const targetCredential = await findByRemoteId(database, remoteId);
@@ -280,10 +245,9 @@ export const createLocalAuthCredentialDatasource = (
 
       await database.write(async () => {
         await targetCredential.update((record) => {
-          const now = Date.now();
-          record.lastLoginAt = now;
+          record.lastLoginAt = lastLoginAt;
           updateSyncStatusOnMutation(record);
-          setUpdatedAt(record, now);
+          setUpdatedAt(record, Date.now());
         });
       });
 
@@ -312,6 +276,29 @@ export const createLocalAuthCredentialDatasource = (
           updateSyncStatusOnMutation(record);
           setUpdatedAt(record, Date.now());
         });
+      });
+
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async deleteAuthCredentialByRemoteId(
+    remoteId: string,
+  ): Promise<Result<boolean>> {
+    try {
+      const targetCredential = await findByRemoteId(database, remoteId);
+
+      if (!targetCredential) {
+        return { success: true, value: true };
+      }
+
+      await database.write(async () => {
+        await targetCredential.destroyPermanently();
       });
 
       return { success: true, value: true };

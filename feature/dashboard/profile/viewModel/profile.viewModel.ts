@@ -22,6 +22,8 @@ export interface DashboardProfileViewModel {
 
 export type UseDashboardProfileViewModelParams = {
   database: Database;
+  activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
   onSwitchAccountViaSelector: () => void;
   onLogout: () => Promise<void>;

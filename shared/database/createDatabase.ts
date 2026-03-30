@@ -7,17 +7,41 @@ type CreateDatabaseParams = {
   migrations?: any;
 };
 
+let databaseSetupError: Error | null = null;
+
+const normalizeSetupError = (error: unknown): Error => {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error("Database setup failed with an unknown error.");
+};
+
+export const getDatabaseSetupError = (): Error | null => {
+  return databaseSetupError;
+};
+
+export const assertDatabaseSetupHealthy = (): void => {
+  if (databaseSetupError) {
+    throw databaseSetupError;
+  }
+};
+
 export function createDatabase({
   schema,
   models,
   migrations,
 }: CreateDatabaseParams) {
+  databaseSetupError = null;
+
   const adapter = new SQLiteAdapter({
     schema,
     migrations,
     jsi: true,
     onSetUpError: (error) => {
-      console.error(error);
+      const setupError = normalizeSetupError(error);
+      databaseSetupError = setupError;
+      console.error("Database setup failed.", setupError);
     },
   });
 

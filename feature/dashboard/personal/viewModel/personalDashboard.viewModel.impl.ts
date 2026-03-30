@@ -4,10 +4,7 @@ import {
   PersonalDashboardRecentItem,
   PersonalDashboardSummaryCard,
 } from "../types/personalDashboard.types";
-import {
-  PersonalDashboardViewModel,
-  UsePersonalDashboardViewModelParams,
-} from "./personalDashboard.viewModel";
+import { PersonalDashboardViewModel } from "./personalDashboard.viewModel";
 
 const summaryCards: readonly PersonalDashboardSummaryCard[] = [
   {
@@ -61,25 +58,13 @@ const recentItems: readonly PersonalDashboardRecentItem[] = [
   },
 ];
 
-export const usePersonalDashboardViewModel = (
-  params: UsePersonalDashboardViewModelParams,
-): PersonalDashboardViewModel => {
-  const { profileInitials, activeTab, tabItems, onTabPress, onProfilePress } =
-    params;
-
+export const usePersonalDashboardViewModel = (): PersonalDashboardViewModel => {
   return useMemo<PersonalDashboardViewModel>(
     () => ({
-      greetingLabel: "Good Evening",
-      workspaceLabel: "Personal Dashboard",
-      profileInitials,
       summaryCards,
       quickActions,
       recentItems,
-      activeTab,
-      tabItems,
-      onTabPress,
-      onProfilePress,
     }),
-    [activeTab, onProfilePress, onTabPress, profileInitials, tabItems],
+    [],
   );
 };

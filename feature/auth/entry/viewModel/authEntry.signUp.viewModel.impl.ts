@@ -19,7 +19,6 @@ export const useAuthEntrySignUpViewModel = (
   });
 
   const isSubmitting = signUpViewModel.state.status === Status.Loading;
-  const hasSucceeded = signUpViewModel.state.status === Status.Success;
   const submitError =
     signUpViewModel.state.status === Status.Failure
       ? signUpViewModel.state.error
@@ -42,7 +41,6 @@ export const useAuthEntrySignUpViewModel = (
       clearSubmitError: signUpViewModel.clearSubmitError,
       isPasswordVisible: signUpViewModel.isPasswordVisible,
       togglePasswordVisibility: signUpViewModel.togglePasswordVisibility,
-      hasSucceeded,
       isSubmitting,
       submitError,
       submit: signUpViewModel.submit,
@@ -63,7 +61,6 @@ export const useAuthEntrySignUpViewModel = (
       signUpViewModel.clearSubmitError,
       signUpViewModel.isPasswordVisible,
       signUpViewModel.togglePasswordVisibility,
-      hasSucceeded,
       signUpViewModel.submit,
       isSubmitting,
       submitError,

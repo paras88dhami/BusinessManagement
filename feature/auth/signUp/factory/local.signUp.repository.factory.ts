@@ -1,6 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
-import * as Crypto from "expo-crypto";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
@@ -9,11 +8,11 @@ import { createGetActiveAuthCredentialByLoginIdUseCase } from "@/feature/session
 import { createSaveAuthCredentialUseCase } from "@/feature/session/useCase/saveAuthCredential.useCase.impl";
 import { createSaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase.impl";
 import { setActiveUserSession } from "@/feature/appSettings/data/appSettings.store";
-import { SignUpProfileType } from "../types/signUp.types";
-import { createLocalSignUpRepository } from "../data/repositiory/signUp.repository.impl";
+import { createLocalSignUpRepository } from "../data/repository/signUp.repository.impl";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
 import { createSaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase.impl";
+import { createRegisterUserWithDefaultAccountUseCase } from "../useCase/registerUserWithDefaultAccount.useCase.impl";
 
 export function createLocalSignUpRepositoryWithDatabase(database: Database) {
   const authUserDatasource = createLocalAuthUserDatasource(database);
@@ -34,34 +33,21 @@ export function createLocalSignUpRepositoryWithDatabase(database: Database) {
     createSaveAuthCredentialUseCase(authCredentialRepository);
   const saveAccountUseCase = createSaveAccountUseCase(accountRepository);
   const passwordHashService = createPasswordHashService();
+  const registerUserWithDefaultAccountUseCase =
+    createRegisterUserWithDefaultAccountUseCase({
+      getActiveAuthCredentialByLoginIdUseCase,
+      saveAuthUserUseCase,
+      saveAuthCredentialUseCase,
+      saveAccountUseCase,
+      authUserRepository,
+      authCredentialRepository,
+      passwordHashService,
+    });
 
   return createLocalSignUpRepository(
-    getActiveAuthCredentialByLoginIdUseCase,
-    saveAuthUserUseCase,
-    saveAuthCredentialUseCase,
-    passwordHashService,
+    registerUserWithDefaultAccountUseCase,
     {
-      onRegistered: async (verifiedCredential, payload) => {
-        const saveAccountResult = await saveAccountUseCase.execute({
-          remoteId: Crypto.randomUUID(),
-          ownerUserRemoteId: verifiedCredential.authUser.remoteId,
-          accountType: payload.profileType,
-          businessType:
-            payload.profileType === SignUpProfileType.Business
-              ? payload.businessType
-              : null,
-          displayName: payload.fullName,
-          currencyCode: null,
-          cityOrLocation: null,
-          countryCode: null,
-          isActive: true,
-          isDefault: true,
-        });
-
-        if (!saveAccountResult.success) {
-          throw new Error(saveAccountResult.error.message);
-        }
-
+      onRegistered: async (verifiedCredential) => {
         await setActiveUserSession(database, verifiedCredential.authUser.remoteId);
       },
     },

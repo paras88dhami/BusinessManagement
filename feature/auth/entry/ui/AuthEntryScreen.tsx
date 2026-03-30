@@ -11,7 +11,7 @@ import { KeyboardSafeScrollView } from "@/shared/components/reusable/ScreenLayou
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
-import { LoginInput } from "@/feature/auth/login/types/login.types";
+import { LoginFormInput } from "@/feature/auth/login/types/login.types";
 import {
   SignUpFormInput,
   SignUpProfileType,
@@ -35,6 +35,10 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
   const {
     control: loginControl,
+    selectedPhoneCountryCode: selectedLoginPhoneCountryCode,
+    phoneNumberMaxLength: loginPhoneNumberMaxLength,
+    phoneCountryOptions: loginPhoneCountryOptions,
+    onChangeSelectedPhoneCountry: onChangeLoginSelectedPhoneCountry,
     clearSubmitError: clearLoginSubmitError,
     isPasswordVisible,
     togglePasswordVisibility: onTogglePasswordVisibility,
@@ -108,6 +112,14 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     );
   }, [phoneCountryOptions, selectedPhoneCountryCode]);
 
+  const selectedLoginPhoneCountryLabel = useMemo(() => {
+    return (
+      loginPhoneCountryOptions.find(
+        (option) => option.code === selectedLoginPhoneCountryCode,
+      )?.label ?? loginPhoneCountryOptions[0]?.label
+    );
+  }, [loginPhoneCountryOptions, selectedLoginPhoneCountryCode]);
+
   const signUpPhoneCountryDropdownOptions = useMemo<DropdownOption[]>(
     () =>
       phoneCountryOptions.map((option) => ({
@@ -115,6 +127,15 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
         value: option.code,
       })),
     [phoneCountryOptions],
+  );
+
+  const loginPhoneCountryDropdownOptions = useMemo<DropdownOption[]>(
+    () =>
+      loginPhoneCountryOptions.map((option) => ({
+        label: `${option.flag} ${option.label}`,
+        value: option.code,
+      })),
+    [loginPhoneCountryOptions],
   );
 
   const signUpBusinessTypeDropdownOptions = useMemo<DropdownOption[]>(
@@ -150,6 +171,21 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
       onChangeSelectedPhoneCountry(selectedCountryOption.code);
     },
     [onChangeSelectedPhoneCountry, phoneCountryOptions],
+  );
+
+  const handleLoginPhoneCountryChange = useCallback(
+    (nextCountryCode: string): void => {
+      const selectedCountryOption = loginPhoneCountryOptions.find(
+        (option) => option.code === nextCountryCode,
+      );
+
+      if (!selectedCountryOption) {
+        return;
+      }
+
+      onChangeLoginSelectedPhoneCountry(selectedCountryOption.code);
+    },
+    [loginPhoneCountryOptions, onChangeLoginSelectedPhoneCountry],
   );
 
   const handleSignUpProfileTypeChange = useCallback(
@@ -450,20 +486,41 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </View>
             ) : (
               <View key="login-form" style={styles.form}>
-                <TextField<LoginInput>
-                  control={loginControl}
-                  name="phoneNumber"
-                  placeholder={t("auth.entry.fields.phoneNumber")}
-                  leftIcon={<Phone size={18} color={colors.mutedForeground} />}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
-                  onFocus={clearLoginSubmitError}
-                  editable={!isSubmitting}
-                  accessibilityLabel={t("auth.entry.fields.phoneNumber")}
-                />
+                <View style={styles.phoneInputRow}>
+                  <View style={styles.phoneCountryDropdownWrap}>
+                    <Dropdown
+                      value={selectedLoginPhoneCountryCode}
+                      options={loginPhoneCountryDropdownOptions}
+                      onChange={handleLoginPhoneCountryChange}
+                      placeholder="Country"
+                      modalTitle="Choose country"
+                      showLeadingIcon={false}
+                      disabled={isSubmitting}
+                      triggerStyle={styles.phoneCountryDropdownTrigger}
+                      triggerTextStyle={styles.phoneCountryDropdownText}
+                    />
+                  </View>
 
-                <TextField<LoginInput>
+                  <View style={styles.phoneNumberInputWrap}>
+                    <TextField<LoginFormInput>
+                      control={loginControl}
+                      name="phoneNumber"
+                      placeholder={t("auth.entry.fields.phoneNumber")}
+                      leftIcon={<Phone size={18} color={colors.mutedForeground} />}
+                      keyboardType="number-pad"
+                      autoComplete="off"
+                      importantForAutofill="no"
+                      maxLength={loginPhoneNumberMaxLength}
+                      onFocus={clearLoginSubmitError}
+                      editable={!isSubmitting}
+                      accessibilityLabel={`${selectedLoginPhoneCountryLabel ?? ""} ${t(
+                        "auth.entry.fields.phoneNumber",
+                      )}`}
+                    />
+                  </View>
+                </View>
+
+                <TextField<LoginFormInput>
                   control={loginControl}
                   name="password"
                   placeholder={t("auth.entry.fields.password")}

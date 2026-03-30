@@ -1,6 +1,11 @@
 import { VerifiedLocalCredential } from "@/feature/session/types/authSession.types";
 import { Result } from "@/shared/types/result.types";
 import { Status } from "@/shared/types/status.types";
+import {
+  SignUpPhoneCountryCode,
+  SignUpPhoneCountryOption,
+  SIGN_UP_PHONE_COUNTRY_OPTIONS,
+} from "@/feature/auth/signUp/types/signUp.types";
 
 export const LoginErrorType = {
   ValidationError: "VALIDATION_ERROR",
@@ -44,6 +49,17 @@ export type LoginInput = {
   phoneNumber: string;
   password: string;
 };
+
+export type LoginPhoneCountryCode = SignUpPhoneCountryCode;
+
+export type LoginFormInput = {
+  phoneCountryCode: LoginPhoneCountryCode;
+  phoneNumber: string;
+  password: string;
+};
+
+export const LOGIN_PHONE_COUNTRY_OPTIONS: readonly SignUpPhoneCountryOption[] =
+  SIGN_UP_PHONE_COUNTRY_OPTIONS;
 
 export type LoginResult = Result<VerifiedLocalCredential, LoginError>;
 

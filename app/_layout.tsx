@@ -1,9 +1,11 @@
 import React from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import appDatabase from "@/shared/database/appDatabase";
+import appDatabase, { ensureDatabaseReady } from "@/shared/database/appDatabase";
 import {
+  AppRouteSessionStatus,
   AppRouteSessionProvider,
   useAppRouteSession,
 } from "@/feature/session/ui/AppRouteSessionProvider";
@@ -12,40 +14,67 @@ import { bootstrapSelectedLanguage } from "@/shared/i18n/resources/bootstrapSele
 import { useCurrentLanguageCode } from "@/shared/i18n/resources";
 
 void SplashScreen.preventAutoHideAsync().catch(() => {
-  // Ignore duplicate call races in development.
+  console.warn("Failed to lock splash screen visibility.");
 });
 
 type RootNavigatorProps = {
   languageCode: string;
-  isLanguageReady: boolean;
+  startupStatus: "loading" | "ready" | "failed";
+  startupError?: string;
 };
 
 type SplashScreenControllerProps = {
-  isLanguageReady: boolean;
+  startupStatus: "loading" | "ready" | "failed";
 };
 
-function SplashScreenController({ isLanguageReady }: SplashScreenControllerProps) {
+function SplashScreenController({ startupStatus }: SplashScreenControllerProps) {
   const { isLoading } = useAppRouteSession();
+  const isStartupReady = startupStatus === "ready";
+  const isStartupFailed = startupStatus === "failed";
 
   React.useEffect(() => {
-    if (!isLanguageReady || isLoading) {
+    if (startupStatus === "loading") {
+      return;
+    }
+
+    if (!isStartupFailed && (!isStartupReady || isLoading)) {
       return;
     }
 
     void SplashScreen.hideAsync().catch(() => {
-      // Ignore hide errors and continue rendering app content.
+      console.warn("Failed to hide splash screen.");
     });
-  }, [isLanguageReady, isLoading]);
+  }, [isLoading, isStartupFailed, isStartupReady, startupStatus]);
 
   return null;
 }
 
-function RootNavigator({ languageCode, isLanguageReady }: RootNavigatorProps) {
-  const { isLoading, hasActiveSession, hasActiveAccount } = useAppRouteSession();
+function RootNavigator({
+  languageCode,
+  startupStatus,
+  startupError,
+}: RootNavigatorProps) {
+  const { isLoading, hasActiveSession, hasActiveAccount, sessionStatus } =
+    useAppRouteSession();
 
-  if (!isLanguageReady || isLoading) {
+  if (startupStatus === "failed") {
+    return (
+      <View style={styles.startupErrorContainer}>
+        <Text style={styles.startupErrorTitle}>Startup failed</Text>
+        <Text style={styles.startupErrorMessage}>
+          {startupError ?? "Unable to initialize local database."}
+        </Text>
+      </View>
+    );
+  }
+
+  if (startupStatus !== "ready" || isLoading) {
     return null;
   }
+
+  const isAuthenticated =
+    sessionStatus === AppRouteSessionStatus.Authenticated && hasActiveSession;
+  const shouldShowAccountSetup = isAuthenticated && !hasActiveAccount;
 
   return (
     <Stack
@@ -56,15 +85,15 @@ function RootNavigator({ languageCode, isLanguageReady }: RootNavigatorProps) {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Protected guard={!hasActiveSession}>
+      <Stack.Protected guard={!isAuthenticated}>
         <Stack.Screen name="(auth)/login" />
       </Stack.Protected>
 
-      <Stack.Protected guard={hasActiveSession}>
+      <Stack.Protected guard={shouldShowAccountSetup}>
         <Stack.Screen name="(account-setup)/select-account" />
       </Stack.Protected>
 
-      <Stack.Protected guard={hasActiveSession && hasActiveAccount}>
+      <Stack.Protected guard={isAuthenticated && hasActiveAccount}>
         <Stack.Screen name="(dashboard)" />
       </Stack.Protected>
 
@@ -74,23 +103,42 @@ function RootNavigator({ languageCode, isLanguageReady }: RootNavigatorProps) {
 }
 
 export default function RootLayout() {
-  const [isLanguageReady, setIsLanguageReady] = React.useState(false);
+  const [startupStatus, setStartupStatus] = React.useState<
+    "loading" | "ready" | "failed"
+  >("loading");
+  const [startupError, setStartupError] = React.useState<string>();
   const languageCode = useCurrentLanguageCode();
 
   React.useEffect(() => {
     let isMounted = true;
 
-    const bootstrapLanguage = async (): Promise<void> => {
+    const bootstrapApp = async (): Promise<void> => {
       try {
+        await ensureDatabaseReady();
         await bootstrapSelectedLanguage();
-      } finally {
-        if (isMounted) {
-          setIsLanguageReady(true);
+
+        if (!isMounted) {
+          return;
         }
+
+        setStartupStatus("ready");
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        const resolvedError =
+          error instanceof Error
+            ? error.message
+            : "Unable to initialize local database.";
+
+        console.error("App startup failed.", error);
+        setStartupError(resolvedError);
+        setStartupStatus("failed");
       }
     };
 
-    void bootstrapLanguage();
+    void bootstrapApp();
 
     return () => {
       isMounted = false;
@@ -100,12 +148,36 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider style={{ flex: 1 }}>
       <AppRouteSessionProvider database={appDatabase}>
-        <SplashScreenController isLanguageReady={isLanguageReady} />
+        <SplashScreenController startupStatus={startupStatus} />
         <RootNavigator
           languageCode={languageCode}
-          isLanguageReady={isLanguageReady}
+          startupStatus={startupStatus}
+          startupError={startupError}
         />
       </AppRouteSessionProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  startupErrorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+    paddingHorizontal: 24,
+  },
+  startupErrorTitle: {
+    color: colors.destructive,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  startupErrorMessage: {
+    color: colors.foreground,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+});

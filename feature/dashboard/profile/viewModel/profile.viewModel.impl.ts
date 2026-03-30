@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  getAppSessionState,
-  setActiveAccountSession,
-} from "@/feature/appSettings/data/appSettings.store";
+import { setActiveAccountSession } from "@/feature/appSettings/data/appSettings.store";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
@@ -26,6 +23,8 @@ export const useDashboardProfileViewModel = (
 ): DashboardProfileViewModel => {
   const {
     database,
+    activeUserRemoteId,
+    activeAccountRemoteId: currentSessionAccountRemoteId,
     onNavigateHome,
     onSwitchAccountViaSelector,
     onLogout,
@@ -82,9 +81,7 @@ export const useDashboardProfileViewModel = (
       setLoadError(undefined);
 
       try {
-        const sessionState = await getAppSessionState(database);
-
-        if (!sessionState.activeUserRemoteId) {
+        if (!activeUserRemoteId) {
           if (isMounted) {
             setLoadError("Active user session not found.");
           }
@@ -92,13 +89,11 @@ export const useDashboardProfileViewModel = (
         }
 
         const userResult = await getAuthUserByRemoteIdUseCase.execute(
-          sessionState.activeUserRemoteId,
+          activeUserRemoteId,
         );
 
         const accountsResult =
-          await getAccountsByOwnerUserRemoteIdUseCase.execute(
-            sessionState.activeUserRemoteId,
-          );
+          await getAccountsByOwnerUserRemoteIdUseCase.execute(activeUserRemoteId);
 
         if (!accountsResult.success) {
           if (isMounted) {
@@ -116,7 +111,7 @@ export const useDashboardProfileViewModel = (
         }));
 
         const activeAccount = options.find(
-          (account) => account.remoteId === sessionState.activeAccountRemoteId,
+          (account) => account.remoteId === currentSessionAccountRemoteId,
         );
 
         if (!activeAccount) {
@@ -141,7 +136,9 @@ export const useDashboardProfileViewModel = (
         setActiveAccountRemoteId(activeAccount.remoteId);
         setActiveAccountType(activeAccount.accountType);
         setActiveAccountDisplayName(activeAccount.displayName);
-      } catch {
+      } catch (error) {
+        console.error("Failed to load dashboard profile context.", error);
+
         if (isMounted) {
           setLoadError("Unable to load profile details. Please try again.");
         }
@@ -157,7 +154,12 @@ export const useDashboardProfileViewModel = (
     return () => {
       isMounted = false;
     };
-  }, [database, getAccountsByOwnerUserRemoteIdUseCase, getAuthUserByRemoteIdUseCase]);
+  }, [
+    activeUserRemoteId,
+    currentSessionAccountRemoteId,
+    getAccountsByOwnerUserRemoteIdUseCase,
+    getAuthUserByRemoteIdUseCase,
+  ]);
 
   const onToggleSwitchExpanded = useCallback(() => {
     setIsSwitchExpanded((previousValue) => !previousValue);
@@ -184,7 +186,8 @@ export const useDashboardProfileViewModel = (
         setIsSwitchExpanded(false);
 
         onNavigateHome(selectedAccount.accountType);
-      } catch {
+      } catch (error) {
+        console.error("Failed to switch active account from profile.", error);
         setLoadError("Unable to switch account right now. Please try again.");
       }
     },

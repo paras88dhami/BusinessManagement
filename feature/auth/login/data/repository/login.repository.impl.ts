@@ -3,7 +3,6 @@ import {
   AuthSessionErrorType,
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
-import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 import { LoginRepository } from "./login.repository";
 import {
   DatabaseError,
@@ -26,46 +25,24 @@ export const createLocalLoginRepository = (
   options: LocalLoginRepositoryOptions = {},
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
-    const loginIdCandidates = buildPhoneLoginIdCandidates(payload.phoneNumber);
-    let verifiedCredential: VerifiedLocalCredential | null = null;
-    let lastError: { type: string; message: string } | Error | unknown = null;
+    const verificationResult = await verifyLocalCredentialUseCase.execute({
+      loginId: payload.phoneNumber,
+      password: payload.password,
+    });
 
-    for (const loginId of loginIdCandidates) {
-      const verificationResult = await verifyLocalCredentialUseCase.execute({
-        loginId,
-        password: payload.password,
-      });
-
-      if (verificationResult.success) {
-        verifiedCredential = verificationResult.value;
-        break;
-      }
-
-      lastError = verificationResult.error;
-
-      if (
-        verificationResult.error.type !==
-        AuthSessionErrorType.AuthCredentialNotFound
-      ) {
-        return {
-          success: false,
-          error: mapAuthSessionErrorToLoginError(verificationResult.error),
-        };
-      }
-    }
-
-    if (!verifiedCredential) {
+    if (!verificationResult.success) {
       return {
         success: false,
-        error: mapAuthSessionErrorToLoginError(lastError),
+        error: mapAuthSessionErrorToLoginError(verificationResult.error),
       };
     }
 
     try {
       if (options.onAuthenticated) {
-        await options.onAuthenticated(verifiedCredential);
+        await options.onAuthenticated(verificationResult.value);
       }
-    } catch {
+    } catch (error) {
+      console.error("Failed to persist session after login.", error);
       return {
         success: false,
         error: DatabaseError,
@@ -74,7 +51,7 @@ export const createLocalLoginRepository = (
 
     return {
       success: true,
-      value: verifiedCredential,
+      value: verificationResult.value,
     };
   },
 });

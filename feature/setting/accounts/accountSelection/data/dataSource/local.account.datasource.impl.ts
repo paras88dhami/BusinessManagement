@@ -1,10 +1,6 @@
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
-  BUSINESS_TYPE_VALUES,
-  BusinessTypeValue,
-} from "@/shared/constants/businessType.constants";
-import {
   AccountSyncStatus,
   SaveAccountPayload,
 } from "../../types/accountSelection.types";
@@ -12,35 +8,6 @@ import { AccountDatasource } from "./account.datasource";
 import { AccountModel } from "./db/account.model";
 
 const ACCOUNTS_TABLE = "accounts";
-
-const normalizeRequired = (value: string): string => value.trim();
-
-const normalizeOptional = (value: string | null): string | null => {
-  if (value === null) {
-    return null;
-  }
-
-  const normalizedValue = value.trim();
-  return normalizedValue.length > 0 ? normalizedValue : null;
-};
-
-const normalizeBusinessType = (
-  value: SaveAccountPayload["businessType"],
-): BusinessTypeValue | null => {
-  if (value === null) {
-    return null;
-  }
-
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  return BUSINESS_TYPE_VALUES.includes(normalizedValue as BusinessTypeValue)
-    ? (normalizedValue as BusinessTypeValue)
-    : null;
-};
 
 const setCreatedAndUpdatedAt = (record: AccountModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
@@ -62,111 +29,34 @@ const updateSyncStatusOnMutation = (record: AccountModel) => {
   }
 };
 
-const sortAccounts = (accounts: AccountModel[]): AccountModel[] => {
-  return [...accounts].sort((leftAccount, rightAccount) => {
-    if (leftAccount.isDefault !== rightAccount.isDefault) {
-      return leftAccount.isDefault ? -1 : 1;
-    }
-
-    return rightAccount.updatedAt.getTime() - leftAccount.updatedAt.getTime();
-  });
-};
-
-const clearDefaultFromOtherAccounts = async (
-  accounts: AccountModel[],
-  currentRemoteId: string,
-  now: number,
-): Promise<void> => {
-  for (const account of accounts) {
-    if (account.remoteId === currentRemoteId) {
-      continue;
-    }
-
-    await account.update((record) => {
-      if (!record.isDefault) {
-        return;
-      }
-
-      record.isDefault = false;
-      updateSyncStatusOnMutation(record);
-      setUpdatedAt(record, now);
-    });
-  }
-};
-
 export const createLocalAccountDatasource = (
   database: Database,
 ): AccountDatasource => ({
   async saveAccount(payload: SaveAccountPayload): Promise<Result<AccountModel>> {
     try {
-      const normalizedRemoteId = normalizeRequired(payload.remoteId);
-      const normalizedOwnerUserRemoteId = normalizeRequired(
-        payload.ownerUserRemoteId,
-      );
-      const normalizedDisplayName = normalizeRequired(payload.displayName);
-
-      if (!normalizedRemoteId) {
-        throw new Error("Remote id is required");
-      }
-
-      if (!normalizedOwnerUserRemoteId) {
-        throw new Error("Owner user remote id is required");
-      }
-
-      if (!normalizedDisplayName) {
-        throw new Error("Display name is required");
-      }
-
-      const normalizedCurrencyCode = normalizeOptional(payload.currencyCode);
-      const normalizedCityOrLocation = normalizeOptional(payload.cityOrLocation);
-      const normalizedCountryCode = normalizeOptional(payload.countryCode);
-      const normalizedBusinessType =
-        payload.accountType === "business"
-          ? normalizeBusinessType(payload.businessType)
-          : null;
-
       const accountsCollection = database.get<AccountModel>(ACCOUNTS_TABLE);
-      const ownerDefaultAccounts = payload.isDefault
-        ? await accountsCollection
-            .query(
-              Q.where("owner_user_remote_id", normalizedOwnerUserRemoteId),
-              Q.where("is_default", true),
-            )
-            .fetch()
-        : [];
-
       const existingAccounts = await accountsCollection
-        .query(Q.where("remote_id", normalizedRemoteId))
+        .query(Q.where("remote_id", payload.remoteId))
         .fetch();
 
       const existingAccount = existingAccounts[0];
 
       if (existingAccount) {
         await database.write(async () => {
-          const now = Date.now();
-
           await existingAccount.update((record) => {
-            record.remoteId = normalizedRemoteId;
-            record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
+            record.remoteId = payload.remoteId;
+            record.ownerUserRemoteId = payload.ownerUserRemoteId;
             record.accountType = payload.accountType;
-            record.businessType = normalizedBusinessType;
-            record.displayName = normalizedDisplayName;
-            record.currencyCode = normalizedCurrencyCode;
-            record.cityOrLocation = normalizedCityOrLocation;
-            record.countryCode = normalizedCountryCode;
+            record.businessType = payload.businessType;
+            record.displayName = payload.displayName;
+            record.currencyCode = payload.currencyCode;
+            record.cityOrLocation = payload.cityOrLocation;
+            record.countryCode = payload.countryCode;
             record.isActive = payload.isActive;
             record.isDefault = payload.isDefault;
             updateSyncStatusOnMutation(record);
-            setUpdatedAt(record, now);
+            setUpdatedAt(record, Date.now());
           });
-
-          if (payload.isDefault) {
-            await clearDefaultFromOtherAccounts(
-              ownerDefaultAccounts,
-              normalizedRemoteId,
-              now,
-            );
-          }
         });
 
         return { success: true, value: existingAccount };
@@ -175,17 +65,17 @@ export const createLocalAccountDatasource = (
       let createdAccount!: AccountModel;
 
       await database.write(async () => {
-        const now = Date.now();
-
         createdAccount = await accountsCollection.create((record) => {
-          record.remoteId = normalizedRemoteId;
-          record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
+          const now = Date.now();
+
+          record.remoteId = payload.remoteId;
+          record.ownerUserRemoteId = payload.ownerUserRemoteId;
           record.accountType = payload.accountType;
-          record.businessType = normalizedBusinessType;
-          record.displayName = normalizedDisplayName;
-          record.currencyCode = normalizedCurrencyCode;
-          record.cityOrLocation = normalizedCityOrLocation;
-          record.countryCode = normalizedCountryCode;
+          record.businessType = payload.businessType;
+          record.displayName = payload.displayName;
+          record.currencyCode = payload.currencyCode;
+          record.cityOrLocation = payload.cityOrLocation;
+          record.countryCode = payload.countryCode;
           record.isActive = payload.isActive;
           record.isDefault = payload.isDefault;
 
@@ -195,14 +85,6 @@ export const createLocalAccountDatasource = (
 
           setCreatedAndUpdatedAt(record, now);
         });
-
-        if (payload.isDefault) {
-          await clearDefaultFromOtherAccounts(
-            ownerDefaultAccounts,
-            normalizedRemoteId,
-            now,
-          );
-        }
       });
 
       return { success: true, value: createdAccount };
@@ -218,24 +100,14 @@ export const createLocalAccountDatasource = (
     ownerUserRemoteId: string,
   ): Promise<Result<AccountModel[]>> {
     try {
-      const normalizedOwnerUserRemoteId = normalizeRequired(ownerUserRemoteId);
-
-      if (!normalizedOwnerUserRemoteId) {
-        throw new Error("Owner user remote id is required");
-      }
-
       const accountsCollection = database.get<AccountModel>(ACCOUNTS_TABLE);
-
       const matchingAccounts = await accountsCollection
-        .query(
-          Q.where("owner_user_remote_id", normalizedOwnerUserRemoteId),
-          Q.where("is_active", true),
-        )
+        .query(Q.where("owner_user_remote_id", ownerUserRemoteId))
         .fetch();
 
       return {
         success: true,
-        value: sortAccounts(matchingAccounts),
+        value: matchingAccounts,
       };
     } catch (error) {
       return {

@@ -28,7 +28,6 @@ export interface AuthEntrySignUpViewModel {
   clearSubmitError: () => void;
   isPasswordVisible: boolean;
   togglePasswordVisibility: () => void;
-  hasSucceeded: boolean;
   isSubmitting: boolean;
   submitError?: string;
   submit: () => Promise<void>;

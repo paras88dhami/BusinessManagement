@@ -31,15 +31,15 @@ export const createVerifyLocalCredentialUseCase = (
       );
 
     if (!authCredentialResult.success) {
-      // Preserve NOT_FOUND so login repository can try fallback phone formats.
       return authCredentialResult;
     }
 
     const authCredential = authCredentialResult.value;
+    const now = Date.now();
 
     if (
       authCredential.lockoutUntil !== null &&
-      authCredential.lockoutUntil > Date.now()
+      authCredential.lockoutUntil > now
     ) {
       return {
         success: false,
@@ -54,11 +54,21 @@ export const createVerifyLocalCredentialUseCase = (
     );
 
     if (!isPasswordValid) {
+      const hasLockoutExpired =
+        authCredential.lockoutUntil !== null && authCredential.lockoutUntil <= now;
+      const baselineFailedAttemptCount = hasLockoutExpired
+        ? 0
+        : authCredential.failedAttemptCount;
+      const nextFailedAttemptCount = baselineFailedAttemptCount + 1;
+      const shouldLockAccount = nextFailedAttemptCount >= MAX_FAILED_ATTEMPTS;
+      const lockoutUntil = shouldLockAccount ? now + LOCKOUT_DURATION_MS : null;
+
       const failedAttemptResult =
         await authCredentialRepository.recordFailedLoginAttemptByRemoteId(
           authCredential.remoteId,
-          MAX_FAILED_ATTEMPTS,
-          LOCKOUT_DURATION_MS,
+          shouldLockAccount ? MAX_FAILED_ATTEMPTS : nextFailedAttemptCount,
+          lockoutUntil,
+          now,
         );
 
       if (!failedAttemptResult.success) {
@@ -69,7 +79,7 @@ export const createVerifyLocalCredentialUseCase = (
 
       if (
         updatedCredential.lockoutUntil !== null &&
-        updatedCredential.lockoutUntil > Date.now()
+        updatedCredential.lockoutUntil > now
       ) {
         return {
           success: false,
@@ -84,7 +94,10 @@ export const createVerifyLocalCredentialUseCase = (
     }
 
     const [markLoginSuccessResult, authUserResult] = await Promise.all([
-      authCredentialRepository.markLoginSuccessByRemoteId(authCredential.remoteId),
+      authCredentialRepository.markLoginSuccessByRemoteId(
+        authCredential.remoteId,
+        now,
+      ),
       authUserRepository.getAuthUserByRemoteId(authCredential.userRemoteId),
     ]);
 
@@ -114,8 +127,8 @@ export const createVerifyLocalCredentialUseCase = (
             hint: authCredential.hint,
             isActive: authCredential.isActive,
           });
-        } catch {
-          // Keep login successful even if background rehash fails.
+        } catch (error) {
+          console.error("Failed to rehash credential in background.", error);
         }
       })();
     }
@@ -126,7 +139,7 @@ export const createVerifyLocalCredentialUseCase = (
         authUser: authUserResult.value,
         authCredential: {
           ...authCredential,
-          lastLoginAt: Date.now(),
+          lastLoginAt: now,
           failedAttemptCount: 0,
           lockoutUntil: null,
           lastFailedLoginAt: null,

@@ -19,7 +19,17 @@ import { createAuthUserRepository } from "@/feature/session/data/repository/auth
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
 import { buildInitials } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 
+export const AppRouteSessionStatus = {
+  Loading: "loading",
+  Authenticated: "authenticated",
+  UnauthenticatedOrError: "unauthenticated_or_error",
+} as const;
+
+export type AppRouteSessionStatusValue =
+  (typeof AppRouteSessionStatus)[keyof typeof AppRouteSessionStatus];
+
 export type DashboardRouteContext = {
+  sessionStatus: AppRouteSessionStatusValue;
   isLoading: boolean;
   hasActiveSession: boolean;
   hasActiveAccount: boolean;
@@ -29,6 +39,7 @@ export type DashboardRouteContext = {
   activeAccountDisplayName: string;
   profileName: string;
   profileInitials: string;
+  sessionError?: string;
 };
 
 export type AppRouteSessionValue = DashboardRouteContext & {
@@ -36,6 +47,7 @@ export type AppRouteSessionValue = DashboardRouteContext & {
 };
 
 const INITIAL_CONTEXT: DashboardRouteContext = {
+  sessionStatus: AppRouteSessionStatus.Loading,
   isLoading: true,
   hasActiveSession: false,
   hasActiveAccount: false,
@@ -45,6 +57,7 @@ const INITIAL_CONTEXT: DashboardRouteContext = {
   activeAccountDisplayName: "",
   profileName: "eLekha User",
   profileInitials: "EL",
+  sessionError: undefined,
 };
 
 const APP_SETTINGS_TABLE = "app_settings";
@@ -69,6 +82,7 @@ export function AppRouteSessionProvider({
   const [context, setContext] = useState<DashboardRouteContext>(INITIAL_CONTEXT);
   const isMountedRef = useRef(false);
   const activeRequestIdRef = useRef(0);
+  const lastKnownGoodContextRef = useRef<DashboardRouteContext | null>(null);
 
   const accountDatasource = useMemo(
     () => createLocalAccountDatasource(database),
@@ -159,7 +173,10 @@ export function AppRouteSessionProvider({
         return;
       }
 
-      setContext({
+      const nextContext: DashboardRouteContext = {
+        sessionStatus: hasActiveSession
+          ? AppRouteSessionStatus.Authenticated
+          : AppRouteSessionStatus.UnauthenticatedOrError,
         isLoading: false,
         hasActiveSession,
         hasActiveAccount,
@@ -169,15 +186,43 @@ export function AppRouteSessionProvider({
         activeAccountDisplayName,
         profileName,
         profileInitials,
-      });
-    } catch {
+        sessionError: undefined,
+      };
+
+      if (nextContext.hasActiveSession) {
+        lastKnownGoodContextRef.current = nextContext;
+      } else {
+        lastKnownGoodContextRef.current = null;
+      }
+
+      setContext(nextContext);
+    } catch (error) {
       if (!isMountedRef.current || requestId !== activeRequestIdRef.current) {
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to resolve session state.";
+
+      console.error("Failed to resolve app route session.", error);
+
+      if (lastKnownGoodContextRef.current?.hasActiveSession) {
+        setContext({
+          ...lastKnownGoodContextRef.current,
+          sessionStatus: AppRouteSessionStatus.Authenticated,
+          isLoading: false,
+          sessionError: errorMessage,
+        });
         return;
       }
 
       setContext({
         ...INITIAL_CONTEXT,
+        sessionStatus: AppRouteSessionStatus.UnauthenticatedOrError,
         isLoading: false,
+        sessionError: errorMessage,
       });
     }
   }, [
@@ -197,6 +242,7 @@ export function AppRouteSessionProvider({
       .observeWithColumns([
         "active_user_remote_id",
         "active_account_remote_id",
+        "selected_language",
       ])
       .subscribe(() => {
         void resolveContext();

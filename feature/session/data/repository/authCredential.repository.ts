@@ -18,12 +18,20 @@ export interface AuthCredentialRepository {
   ): Promise<AuthCredentialResult>;
   recordFailedLoginAttemptByRemoteId(
     remoteId: string,
-    maxFailedAttempts: number,
-    lockoutDurationMs: number,
+    failedAttemptCount: number,
+    lockoutUntil: number | null,
+    lastFailedLoginAt: number,
   ): Promise<AuthCredentialResult>;
-  markLoginSuccessByRemoteId(remoteId: string): Promise<AuthOperationResult>;
-  updateLastLoginAtByRemoteId(remoteId: string): Promise<AuthOperationResult>;
+  markLoginSuccessByRemoteId(
+    remoteId: string,
+    lastLoginAt: number,
+  ): Promise<AuthOperationResult>;
+  updateLastLoginAtByRemoteId(
+    remoteId: string,
+    lastLoginAt: number,
+  ): Promise<AuthOperationResult>;
   deactivateAuthCredentialByRemoteId(
     remoteId: string,
   ): Promise<AuthOperationResult>;
+  deleteAuthCredentialByRemoteId(remoteId: string): Promise<AuthOperationResult>;
 }

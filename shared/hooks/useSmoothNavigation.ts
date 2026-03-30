@@ -1,8 +1,6 @@
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-const NAVIGATION_LOCK_MS = 180;
-
 type SmoothHref = Parameters<ReturnType<typeof useRouter>["replace"]>[0];
 type NormalizableHref = SmoothHref | string;
 
@@ -25,58 +23,71 @@ const normalizePath = (href: NormalizableHref): string => {
 export const useSmoothNavigation = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const isTransitioningRef = useRef(false);
+  const pendingPathRef = useRef<string | null>(null);
 
   useEffect(() => {
-    isTransitioningRef.current = false;
+    const normalizedPathname = normalizePath(pathname);
+
+    if (pendingPathRef.current === normalizedPathname) {
+      pendingPathRef.current = null;
+    }
   }, [pathname]);
 
-  const withNavigationLock = useCallback((action: () => void): void => {
-    if (isTransitioningRef.current) {
-      return;
-    }
-
-    isTransitioningRef.current = true;
-    action();
-
-    setTimeout(() => {
-      isTransitioningRef.current = false;
-    }, NAVIGATION_LOCK_MS);
-  }, []);
-
-  const replace = useCallback(
-    (targetPath: SmoothHref): void => {
+  const navigate = useCallback(
+    (
+      action: (targetPath: SmoothHref) => void,
+      targetPath: SmoothHref,
+    ): void => {
+      const normalizedCurrentPath = normalizePath(pathname);
       const normalizedTargetPath = normalizePath(targetPath);
 
-      if (normalizePath(pathname) === normalizedTargetPath) {
+      if (
+        !normalizedTargetPath ||
+        normalizedCurrentPath === normalizedTargetPath
+      ) {
         return;
       }
 
-      withNavigationLock(() => {
-        router.replace(targetPath);
-      });
+      if (pendingPathRef.current === normalizedTargetPath) {
+        return;
+      }
+
+      pendingPathRef.current = normalizedTargetPath;
+
+      try {
+        action(targetPath);
+      } catch (error) {
+        if (pendingPathRef.current === normalizedTargetPath) {
+          pendingPathRef.current = null;
+        }
+
+        throw error;
+      }
     },
-    [pathname, router, withNavigationLock],
+    [pathname],
+  );
+
+  const replace = useCallback(
+    (targetPath: SmoothHref): void => {
+      navigate(router.replace, targetPath);
+    },
+    [navigate, router.replace],
   );
 
   const push = useCallback(
     (targetPath: SmoothHref): void => {
-      const normalizedTargetPath = normalizePath(targetPath);
-
-      if (normalizePath(pathname) === normalizedTargetPath) {
-        return;
-      }
-
-      withNavigationLock(() => {
-        router.push(targetPath);
-      });
+      navigate(router.push, targetPath);
     },
-    [pathname, router, withNavigationLock],
+    [navigate, router.push],
   );
 
   const prefetch = useCallback(
     (targetPath: SmoothHref): void => {
-      void router.prefetch(targetPath);
+      try {
+        void router.prefetch(targetPath);
+      } catch (error) {
+        console.error("Failed to prefetch route.", error);
+      }
     },
     [router],
   );

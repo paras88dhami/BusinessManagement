@@ -9,6 +9,8 @@ import { AccountSelectionScreen } from "../ui/AccountSelectionScreen";
 
 type GetAccountSelectionScreenFactoryProps = {
   database: Database;
+  activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   onBackToLogin: () => void;
   onAccountSelected?: (
     selectedAccountContext: SelectedAccountContext,
@@ -17,6 +19,8 @@ type GetAccountSelectionScreenFactoryProps = {
 
 export function GetAccountSelectionScreenFactory({
   database,
+  activeUserRemoteId,
+  activeAccountRemoteId,
   onBackToLogin,
   onAccountSelected,
 }: GetAccountSelectionScreenFactoryProps) {
@@ -37,6 +41,8 @@ export function GetAccountSelectionScreenFactory({
 
   const viewModel = useAccountSelectionViewModel({
     database,
+    activeUserRemoteId,
+    activeAccountRemoteId,
     getAccountsByOwnerUserRemoteIdUseCase,
     onBackToLogin,
     onAccountSelected,

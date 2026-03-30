@@ -10,21 +10,38 @@ export const createSaveAuthUserUseCase = (
   authUserRepository: AuthUserRepository,
 ): SaveAuthUserUseCase => ({
   async execute(payload: SaveAuthUserPayload): Promise<AuthUserResult> {
-    if (!payload.remoteId.trim()) {
+    const normalizedPayload: SaveAuthUserPayload = {
+      ...payload,
+      remoteId: payload.remoteId.trim(),
+      fullName: payload.fullName.trim(),
+      email: payload.email?.trim() ? payload.email.trim() : null,
+      phone: payload.phone?.trim() ? payload.phone.trim() : null,
+      authProvider: payload.authProvider?.trim()
+        ? payload.authProvider.trim()
+        : null,
+      profileImageUrl: payload.profileImageUrl?.trim()
+        ? payload.profileImageUrl.trim()
+        : null,
+      preferredLanguage: payload.preferredLanguage?.trim()
+        ? payload.preferredLanguage.trim()
+        : null,
+    };
+
+    if (!normalizedPayload.remoteId) {
       return {
         success: false,
         error: AuthSessionValidationError("Remote id is required."),
       };
     }
 
-    if (!payload.fullName.trim()) {
+    if (!normalizedPayload.fullName) {
       return {
         success: false,
         error: AuthSessionValidationError("Full name is required."),
       };
     }
 
-    if (payload.fullName.trim().length < 2) {
+    if (normalizedPayload.fullName.length < 2) {
       return {
         success: false,
         error: AuthSessionValidationError(
@@ -33,6 +50,6 @@ export const createSaveAuthUserUseCase = (
       };
     }
 
-    return authUserRepository.saveAuthUser(payload);
+    return authUserRepository.saveAuthUser(normalizedPayload);
   },
 });

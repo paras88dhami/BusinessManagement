@@ -3,8 +3,14 @@ import { appSettingsDbConfig } from "@/feature/appSettings/data/dataSource/db/ap
 import { authCredentialDbConfig } from "@/feature/session/data/dataSource/db/authCredentialDbConfig";
 import { authUserDbConfig } from "@/feature/session/data/dataSource/db/authUserDbConfig";
 import { accountDbConfig } from "@/feature/setting/accounts/accountSelection/data/dataSource/db/accountDbConfig";
-import { createDatabase } from "@/shared/database/createDatabase";
+import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
+import {
+  assertDatabaseSetupHealthy,
+  createDatabase,
+} from "@/shared/database/createDatabase";
 import { appSchema } from "@nozbe/watermelondb";
+
+const APP_SETTINGS_TABLE = "app_settings";
 
 const schema = appSchema({
   version: 14,
@@ -26,5 +32,16 @@ export const database = createDatabase({
   ],
   migrations,
 });
+
+export const ensureDatabaseReady = async (): Promise<void> => {
+  assertDatabaseSetupHealthy();
+
+  const appSettingsCollection = database.get<AppSettingsModel>(
+    APP_SETTINGS_TABLE,
+  );
+
+  await appSettingsCollection.query().fetchCount();
+  assertDatabaseSetupHealthy();
+};
 
 export default database;

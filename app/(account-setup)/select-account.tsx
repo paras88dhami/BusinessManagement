@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import appDatabase from "@/shared/database/appDatabase";
 import {
   clearActiveUserSession,
 } from "@/feature/appSettings/data/appSettings.store";
-import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import {
-  AccountTypeValue,
   SelectedAccountContext,
 } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
@@ -16,56 +14,26 @@ export default function SelectAccountRoute() {
   const navigation = useSmoothNavigation();
   const {
     refreshSession,
-    hasActiveSession,
-    hasActiveAccount,
-    activeAccountType,
+    activeUserRemoteId,
+    activeAccountRemoteId,
   } = useAppRouteSession();
-  const [pendingSelectedAccountType, setPendingSelectedAccountType] =
-    useState<AccountTypeValue | null>(null);
-  const [isNavigatingToLogin, setIsNavigatingToLogin] = useState(false);
-
-  useEffect(() => {
-    if (!isNavigatingToLogin || hasActiveSession) {
-      return;
-    }
-
-    setIsNavigatingToLogin(false);
-    navigation.replace("/(auth)/login");
-  }, [hasActiveSession, isNavigatingToLogin, navigation]);
-
-  useEffect(() => {
-    if (!pendingSelectedAccountType) {
-      return;
-    }
-
-    if (!hasActiveAccount || activeAccountType !== pendingSelectedAccountType) {
-      return;
-    }
-
-    setPendingSelectedAccountType(null);
-    navigation.replace(getDashboardHomePath(pendingSelectedAccountType));
-  }, [
-    activeAccountType,
-    hasActiveAccount,
-    navigation,
-    pendingSelectedAccountType,
-  ]);
 
   const handleBackToLogin = useCallback(async () => {
     try {
-      setIsNavigatingToLogin(true);
       await clearActiveUserSession(appDatabase);
       await refreshSession();
-    } catch {
-      setIsNavigatingToLogin(false);
-      // Keep user on this screen if session clear fails.
+    } catch (error) {
+      console.error("Failed to clear session and return to login.", error);
     }
   }, [refreshSession]);
 
   const handleAccountSelected = useCallback(
-    async (selectedAccountContext: SelectedAccountContext) => {
-      setPendingSelectedAccountType(selectedAccountContext.accountType);
-      await refreshSession();
+    async (_selectedAccountContext: SelectedAccountContext) => {
+      try {
+        await refreshSession();
+      } catch (error) {
+        console.error("Failed to refresh session after account selection.", error);
+      }
     },
     [refreshSession],
   );
@@ -78,6 +46,8 @@ export default function SelectAccountRoute() {
   return (
     <GetAccountSelectionScreenFactory
       database={appDatabase}
+      activeUserRemoteId={activeUserRemoteId}
+      activeAccountRemoteId={activeAccountRemoteId}
       onBackToLogin={handleBackToLogin}
       onAccountSelected={handleAccountSelected}
     />

@@ -9,13 +9,15 @@ export const createGetAuthUserByRemoteIdUseCase = (
   authUserRepository: AuthUserRepository,
 ): GetAuthUserByRemoteIdUseCase => ({
   async execute(remoteId: string): Promise<AuthUserResult> {
-    if (!remoteId.trim()) {
+    const normalizedRemoteId = remoteId.trim();
+
+    if (!normalizedRemoteId) {
       return {
         success: false,
         error: AuthSessionValidationError("Remote id is required."),
       };
     }
 
-    return authUserRepository.getAuthUserByRemoteId(remoteId);
+    return authUserRepository.getAuthUserByRemoteId(normalizedRemoteId);
   },
 });

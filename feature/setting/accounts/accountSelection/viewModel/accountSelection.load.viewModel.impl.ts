@@ -1,7 +1,4 @@
-import { Database } from "@nozbe/watermelondb";
 import { useCallback, useMemo } from "react";
-import { getAppSessionState } from "@/feature/appSettings/data/appSettings.store";
-import { AccountType } from "../types/accountSelection.types";
 import { GetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase";
 import {
   AccountSelectionState,
@@ -10,7 +7,8 @@ import {
 import { AccountSelectionLoadViewModel } from "./accountSelection.load.viewModel";
 
 type UseAccountSelectionLoadViewModelParams = {
-  database: Database;
+  activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   state: AccountSelectionState;
   actions: AccountSelectionStateActions;
   getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
@@ -20,7 +18,8 @@ export const useAccountSelectionLoadViewModel = (
   params: UseAccountSelectionLoadViewModelParams,
 ): AccountSelectionLoadViewModel => {
   const {
-    database,
+    activeUserRemoteId,
+    activeAccountRemoteId,
     state,
     actions,
     getAccountsByOwnerUserRemoteIdUseCase,
@@ -31,28 +30,20 @@ export const useAccountSelectionLoadViewModel = (
     actions.clearFeedback();
 
     try {
-      const sessionState = await getAppSessionState(database);
-      const currentActiveUserRemoteId = sessionState.activeUserRemoteId;
-      actions.setActiveUserRemoteId(currentActiveUserRemoteId);
-
-      if (!currentActiveUserRemoteId) {
+      if (!activeUserRemoteId) {
         actions.setAccounts([]);
         actions.setSelectedAccountRemoteId(null);
-        actions.setIsCreateMode(false);
-        actions.setNewAccountDisplayName("");
         actions.setSubmitError("Active user session not found. Please log in again.");
         return;
       }
 
       const accountsResult = await getAccountsByOwnerUserRemoteIdUseCase.execute(
-        currentActiveUserRemoteId,
+        activeUserRemoteId,
       );
 
       if (!accountsResult.success) {
         actions.setAccounts([]);
         actions.setSelectedAccountRemoteId(null);
-        actions.setIsCreateMode(false);
-        actions.setNewAccountDisplayName("");
         actions.setSubmitError(accountsResult.error.message);
         return;
       }
@@ -62,22 +53,14 @@ export const useAccountSelectionLoadViewModel = (
       if (availableAccounts.length === 0) {
         actions.setAccounts([]);
         actions.setSelectedAccountRemoteId(null);
-        actions.setIsCreateMode(false);
-        actions.setNewAccountType(AccountType.Personal);
-        actions.setNewAccountDisplayName("");
         return;
       }
 
       actions.setAccounts(availableAccounts);
-      actions.setIsCreateMode(false);
-      actions.setNewAccountType(AccountType.Personal);
-      actions.setNewAccountDisplayName("");
-
-      const persistedActiveAccountId = sessionState.activeAccountRemoteId;
       const hasPersistedAccount = Boolean(
-        persistedActiveAccountId &&
+        activeAccountRemoteId &&
           availableAccounts.some(
-            (account) => account.remoteId === persistedActiveAccountId,
+            (account) => account.remoteId === activeAccountRemoteId,
           ),
       );
 
@@ -86,13 +69,11 @@ export const useAccountSelectionLoadViewModel = (
         availableAccounts[0].remoteId;
 
       actions.setSelectedAccountRemoteId(
-        hasPersistedAccount ? persistedActiveAccountId! : defaultAccountRemoteId,
+        hasPersistedAccount ? activeAccountRemoteId! : defaultAccountRemoteId,
       );
     } catch (error) {
       actions.setAccounts([]);
       actions.setSelectedAccountRemoteId(null);
-      actions.setIsCreateMode(false);
-      actions.setNewAccountDisplayName("");
       actions.setSubmitError(
         error instanceof Error
           ? error.message
@@ -102,8 +83,9 @@ export const useAccountSelectionLoadViewModel = (
       actions.setIsLoading(false);
     }
   }, [
+    activeAccountRemoteId,
+    activeUserRemoteId,
     actions,
-    database,
     getAccountsByOwnerUserRemoteIdUseCase,
   ]);
 

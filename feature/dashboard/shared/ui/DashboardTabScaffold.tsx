@@ -3,24 +3,12 @@ import { StyleSheet, Text, View } from "react-native";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import {
-  DashboardTabItems,
-  DashboardTabValue,
-} from "../types/dashboardNavigation.types";
 
 type DashboardTabScaffoldProps = {
-  title: string;
-  activeTab: DashboardTabValue;
-  tabItems: DashboardTabItems;
-  onTabPress: (tab: DashboardTabValue) => void;
   children: React.ReactNode;
 };
 
 export function DashboardTabScaffold({
-  title: _title,
-  activeTab: _activeTab,
-  tabItems: _tabItems,
-  onTabPress: _onTabPress,
   children,
 }: DashboardTabScaffoldProps) {
   return (

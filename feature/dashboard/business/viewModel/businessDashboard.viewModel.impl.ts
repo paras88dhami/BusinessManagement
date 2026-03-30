@@ -4,10 +4,7 @@ import {
   BusinessDashboardQuickAction,
   BusinessDashboardSummaryCard,
 } from "../types/businessDashboard.types";
-import {
-  BusinessDashboardViewModel,
-  UseBusinessDashboardViewModelParams,
-} from "./businessDashboard.viewModel";
+import { BusinessDashboardViewModel } from "./businessDashboard.viewModel";
 
 const summaryCards: readonly BusinessDashboardSummaryCard[] = [
   {
@@ -55,25 +52,13 @@ const dueItems: readonly BusinessDashboardDueItem[] = [
   },
 ];
 
-export const useBusinessDashboardViewModel = (
-  params: UseBusinessDashboardViewModelParams,
-): BusinessDashboardViewModel => {
-  const { profileInitials, activeTab, tabItems, onTabPress, onProfilePress } =
-    params;
-
+export const useBusinessDashboardViewModel = (): BusinessDashboardViewModel => {
   return useMemo<BusinessDashboardViewModel>(
     () => ({
-      greetingLabel: "Good Evening",
-      workspaceLabel: "My Business",
-      profileInitials,
       summaryCards,
       quickActions,
       dueItems,
-      activeTab,
-      tabItems,
-      onTabPress,
-      onProfilePress,
     }),
-    [activeTab, onProfilePress, onTabPress, profileInitials, tabItems],
+    [],
   );
 };

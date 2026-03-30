@@ -18,12 +18,20 @@ export interface AuthCredentialDatasource {
   ): Promise<Result<AuthCredentialModel>>;
   recordFailedLoginAttemptByRemoteId(
     remoteId: string,
-    maxFailedAttempts: number,
-    lockoutDurationMs: number,
+    failedAttemptCount: number,
+    lockoutUntil: number | null,
+    lastFailedLoginAt: number,
   ): Promise<Result<AuthCredentialModel>>;
-  markLoginSuccessByRemoteId(remoteId: string): Promise<Result<boolean>>;
-  updateLastLoginAtByRemoteId(remoteId: string): Promise<Result<boolean>>;
+  markLoginSuccessByRemoteId(
+    remoteId: string,
+    lastLoginAt: number,
+  ): Promise<Result<boolean>>;
+  updateLastLoginAtByRemoteId(
+    remoteId: string,
+    lastLoginAt: number,
+  ): Promise<Result<boolean>>;
   deactivateAuthCredentialByRemoteId(
     remoteId: string,
   ): Promise<Result<boolean>>;
+  deleteAuthCredentialByRemoteId(remoteId: string): Promise<Result<boolean>>;
 }

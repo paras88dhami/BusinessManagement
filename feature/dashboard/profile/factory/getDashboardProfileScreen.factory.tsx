@@ -6,6 +6,8 @@ import { DashboardProfileScreen } from "../ui/ProfileDashboardScreen";
 
 type GetDashboardProfileScreenFactoryProps = {
   database: Database;
+  activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
   onSwitchAccountViaSelector: () => void;
   onLogout: () => Promise<void>;
@@ -14,6 +16,8 @@ type GetDashboardProfileScreenFactoryProps = {
 
 export function GetDashboardProfileScreenFactory({
   database,
+  activeUserRemoteId,
+  activeAccountRemoteId,
   onNavigateHome,
   onSwitchAccountViaSelector,
   onLogout,
@@ -21,6 +25,8 @@ export function GetDashboardProfileScreenFactory({
 }: GetDashboardProfileScreenFactoryProps) {
   const viewModel = useDashboardProfileViewModel({
     database,
+    activeUserRemoteId,
+    activeAccountRemoteId,
     onNavigateHome,
     onSwitchAccountViaSelector,
     onLogout,

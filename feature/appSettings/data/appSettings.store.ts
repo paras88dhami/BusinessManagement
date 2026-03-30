@@ -2,7 +2,9 @@ import { Database } from "@nozbe/watermelondb";
 import { AppSettingsModel } from "./dataSource/db/appSettings.model";
 
 const APP_SETTINGS_TABLE = "app_settings";
+const APP_SETTINGS_SINGLETON_ID = "singleton";
 const DEFAULT_LANGUAGE = "en";
+let pendingEnsureAppSettingsRecord: Promise<AppSettingsModel> | null = null;
 
 export type AppSessionState = {
   activeUserRemoteId: string | null;
@@ -20,30 +22,114 @@ const setUpdatedAt = (record: AppSettingsModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
 };
 
+const setSingletonId = (record: AppSettingsModel) => {
+  (record as unknown as { _raw: { id: string } })._raw.id =
+    APP_SETTINGS_SINGLETON_ID;
+};
+
+const resolveCanonicalSettingsRecord = (
+  records: readonly AppSettingsModel[],
+): AppSettingsModel | null => {
+  if (records.length === 0) {
+    return null;
+  }
+
+  const sortedRecords = [...records].sort(
+    (leftRecord, rightRecord) =>
+      rightRecord.updatedAt.getTime() - leftRecord.updatedAt.getTime(),
+  );
+
+  return sortedRecords[0] ?? null;
+};
+
+const copySettingsValues = (
+  source: AppSettingsModel,
+  target: AppSettingsModel,
+): void => {
+  target.selectedLanguage = source.selectedLanguage;
+  target.onboardingCompleted = source.onboardingCompleted;
+  target.activeUserRemoteId = source.activeUserRemoteId;
+  target.activeAccountRemoteId = source.activeAccountRemoteId;
+};
+
+const createSingletonRecord = async (
+  database: Database,
+  existingRecords: readonly AppSettingsModel[],
+): Promise<AppSettingsModel> => {
+  const collection = database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
+  const now = Date.now();
+  const canonicalRecord = resolveCanonicalSettingsRecord(existingRecords);
+  let singletonRecord!: AppSettingsModel;
+
+  await database.write(async () => {
+    singletonRecord = await collection.create((record) => {
+      setSingletonId(record);
+
+      if (canonicalRecord) {
+        copySettingsValues(canonicalRecord, record);
+      } else {
+        record.selectedLanguage = DEFAULT_LANGUAGE;
+        record.onboardingCompleted = false;
+        record.activeUserRemoteId = null;
+        record.activeAccountRemoteId = null;
+      }
+
+      setCreatedAndUpdatedAt(record, now);
+    });
+
+    for (const existingRecord of existingRecords) {
+      await existingRecord.destroyPermanently();
+    }
+  });
+
+  return singletonRecord;
+};
+
+const removeDuplicateRecords = async (
+  database: Database,
+  singletonRecord: AppSettingsModel,
+  allRecords: readonly AppSettingsModel[],
+): Promise<void> => {
+  const duplicateRecords = allRecords.filter(
+    (record) => record.id !== singletonRecord.id,
+  );
+
+  if (duplicateRecords.length === 0) {
+    return;
+  }
+
+  await database.write(async () => {
+    for (const duplicateRecord of duplicateRecords) {
+      await duplicateRecord.destroyPermanently();
+    }
+  });
+};
+
 const ensureAppSettingsRecord = async (
   database: Database,
 ): Promise<AppSettingsModel> => {
-  const collection = database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
-  const existingSettings = await collection.query().fetch();
-
-  if (existingSettings.length > 0) {
-    return existingSettings[0];
+  if (pendingEnsureAppSettingsRecord) {
+    return pendingEnsureAppSettingsRecord;
   }
 
-  const now = Date.now();
-  let createdSettings!: AppSettingsModel;
+  pendingEnsureAppSettingsRecord = (async (): Promise<AppSettingsModel> => {
+    const collection = database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
+    const existingSettings = await collection.query().fetch();
+    const singletonRecord =
+      existingSettings.find((record) => record.id === APP_SETTINGS_SINGLETON_ID) ??
+      null;
 
-  await database.write(async () => {
-    createdSettings = await collection.create((record) => {
-      record.selectedLanguage = DEFAULT_LANGUAGE;
-      record.onboardingCompleted = false;
-      record.activeUserRemoteId = null;
-      record.activeAccountRemoteId = null;
-      setCreatedAndUpdatedAt(record, now);
-    });
+    if (singletonRecord) {
+      await removeDuplicateRecords(database, singletonRecord, existingSettings);
+      return singletonRecord;
+    }
+
+    return createSingletonRecord(database, existingSettings);
+  })().finally(() => {
+    pendingEnsureAppSettingsRecord = null;
   });
 
-  return createdSettings;
+  return pendingEnsureAppSettingsRecord;
 };
 
 export const getAppSessionState = async (

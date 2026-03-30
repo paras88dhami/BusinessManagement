@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import appDatabase from "@/shared/database/appDatabase";
 import { GetAuthEntryScreenFactory } from "@/feature/auth/entry/factory/getAuthEntryScreen.factory";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
@@ -7,35 +7,25 @@ import { warmDatabaseFieldEncryptionKey } from "@/shared/utils/security/database
 
 export default function LoginRoute() {
   const navigation = useSmoothNavigation();
-  const { refreshSession, hasActiveSession } = useAppRouteSession();
-  const [shouldNavigateToAccountSetup, setShouldNavigateToAccountSetup] =
-    useState(false);
-
-  useEffect(() => {
-    if (!shouldNavigateToAccountSetup || !hasActiveSession) {
-      return;
-    }
-
-    setShouldNavigateToAccountSetup(false);
-    navigation.replace("/(account-setup)/select-account");
-  }, [hasActiveSession, navigation, shouldNavigateToAccountSetup]);
+  const { refreshSession } = useAppRouteSession();
 
   const handleOnLoginSuccess = useCallback(() => {
-    void (async () => {
-      setShouldNavigateToAccountSetup(true);
-      await refreshSession();
-    })();
+    void refreshSession().catch((error) => {
+      console.error("Failed to refresh session after login.", error);
+    });
   }, [refreshSession]);
 
   const handleOnSignUpSuccess = useCallback(() => {
-    void (async () => {
-      setShouldNavigateToAccountSetup(true);
-      await refreshSession();
-    })();
+    void refreshSession().catch((error) => {
+      console.error("Failed to refresh session after sign up.", error);
+    });
   }, [refreshSession]);
 
   useEffect(() => {
-    void warmDatabaseFieldEncryptionKey().catch(() => {});
+    void warmDatabaseFieldEncryptionKey().catch((error) => {
+      console.error("Failed to warm database encryption key.", error);
+    });
+
     navigation.prefetch("/(account-setup)/select-account");
   }, [navigation]);
 

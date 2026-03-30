@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import appDatabase from "@/shared/database/appDatabase";
 import {
   clearActiveUserSession,
@@ -13,17 +13,7 @@ import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/ty
 export default function DashboardProfileRoute() {
   const navigation = useSmoothNavigation();
   const dashboardContext = useDashboardRouteContext();
-  const { refreshSession, hasActiveSession } = useAppRouteSession();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  useEffect(() => {
-    if (!isLoggingOut || hasActiveSession) {
-      return;
-    }
-
-    setIsLoggingOut(false);
-    navigation.replace("/(auth)/login");
-  }, [hasActiveSession, isLoggingOut, navigation]);
+  const { refreshSession } = useAppRouteSession();
 
   const handleNavigateHome = useCallback(
     (accountType: AccountTypeValue) => {
@@ -38,12 +28,10 @@ export default function DashboardProfileRoute() {
 
   const handleLogout = useCallback(async () => {
     try {
-      setIsLoggingOut(true);
       await clearActiveUserSession(appDatabase);
       await refreshSession();
-    } catch {
-      setIsLoggingOut(false);
-      // Keep user on profile if logout fails.
+    } catch (error) {
+      console.error("Failed to clear session during logout.", error);
     }
   }, [refreshSession]);
 
@@ -54,6 +42,8 @@ export default function DashboardProfileRoute() {
   return (
     <GetDashboardProfileScreenFactory
       database={appDatabase}
+      activeUserRemoteId={dashboardContext.activeUserRemoteId}
+      activeAccountRemoteId={dashboardContext.activeAccountRemoteId}
       onNavigateHome={handleNavigateHome}
       onSwitchAccountViaSelector={handleSwitchAccountViaSelector}
       onLogout={handleLogout}

@@ -1,28 +1,12 @@
 import React, { useCallback } from "react";
 import { GetMoreDashboardScreenFactory } from "@/feature/dashboard/more/factory/getMoreDashboardScreen.factory";
-import {
-  DashboardTab,
-  DashboardTabValue,
-} from "@/feature/dashboard/shared/types/dashboardNavigation.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
-import {
-  getDashboardTabItems,
-  getDashboardTabPath,
-} from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 
 export default function MoreDashboardRoute() {
   const navigation = useSmoothNavigation();
   const { activeAccountType } = useDashboardRouteContext();
-
-  const handleTabPress = useCallback(
-    (tab: DashboardTabValue) => {
-      const targetPath = getDashboardTabPath(tab, activeAccountType);
-      navigation.replace(targetPath);
-    },
-    [activeAccountType, navigation],
-  );
 
   const handleOpenProfile = useCallback(() => {
     navigation.push("/(dashboard)/profile");
@@ -50,10 +34,7 @@ export default function MoreDashboardRoute() {
 
   return (
     <GetMoreDashboardScreenFactory
-      activeTab={DashboardTab.More}
-      tabItems={getDashboardTabItems(activeAccountType)}
       isBusinessMode={activeAccountType === AccountType.Business}
-      onTabPress={handleTabPress}
       onOpenProfile={handleOpenProfile}
       onOpenLedger={handleOpenLedger}
       onOpenPos={handleOpenPos}
