@@ -64,18 +64,22 @@ const recentItems: readonly PersonalDashboardRecentItem[] = [
 export const usePersonalDashboardViewModel = (
   params: UsePersonalDashboardViewModelParams,
 ): PersonalDashboardViewModel => {
-  const { onSwitchAccount, onLogout } = params;
+  const { profileInitials, activeTab, tabItems, onTabPress, onProfilePress } =
+    params;
 
   return useMemo<PersonalDashboardViewModel>(
     () => ({
       greetingLabel: "Good Evening",
       workspaceLabel: "Personal Dashboard",
+      profileInitials,
       summaryCards,
       quickActions,
       recentItems,
-      onSwitchAccount,
-      onLogout,
+      activeTab,
+      tabItems,
+      onTabPress,
+      onProfilePress,
     }),
-    [onLogout, onSwitchAccount],
+    [activeTab, onProfilePress, onTabPress, profileInitials, tabItems],
   );
 };

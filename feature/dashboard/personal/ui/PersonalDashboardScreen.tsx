@@ -1,6 +1,15 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Bell, Wallet } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  CreditCard,
+  PiggyBank,
+  ReceiptText,
+} from "lucide-react-native";
+import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { PersonalDashboardViewModel } from "../viewModel/personalDashboard.viewModel";
@@ -12,199 +21,117 @@ type PersonalDashboardScreenProps = {
 export function PersonalDashboardScreen({
   viewModel,
 }: PersonalDashboardScreenProps) {
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>eL</Text>
-            </View>
-            <View>
-              <Text style={styles.headerSubtitle}>{viewModel.greetingLabel}</Text>
-              <Text style={styles.headerTitle}>{viewModel.workspaceLabel}</Text>
-            </View>
-          </View>
+  const primarySummaryCards = viewModel.summaryCards.slice(0, 2);
+  const netBalanceCard = viewModel.summaryCards[2];
 
-          <View style={styles.headerRight}>
-            <View style={styles.iconButton}>
-              <Bell size={20} color={colors.headerForeground} />
+  return (
+    <ScreenContainer
+      showDivider={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.summaryRow}>
+        {primarySummaryCards.map((summaryCard) => {
+          const toneColor =
+            summaryCard.tone === "income" ? colors.success : colors.destructive;
+
+          return (
+            <View key={summaryCard.id} style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>{summaryCard.title}</Text>
+              <Text style={[styles.summaryValue, { color: toneColor }]}>
+                {summaryCard.value}
+              </Text>
             </View>
-          </View>
+          );
+        })}
+      </View>
+
+      <View style={styles.statRow}>
+        <View style={styles.statCard}>
+          <ArrowDownLeft size={16} color={colors.success} />
+          <Text style={styles.statValue}>NPR 5,600</Text>
+          <Text style={styles.statLabel}>Today In</Text>
+        </View>
+        <View style={styles.statCard}>
+          <ArrowUpRight size={16} color={colors.destructive} />
+          <Text style={styles.statValue}>NPR 2,450</Text>
+          <Text style={styles.statLabel}>Today Out</Text>
+        </View>
+        <View style={styles.statCard}>
+          <AlertCircle size={16} color={colors.warning} />
+          <Text style={styles.statValue}>{netBalanceCard?.value ?? "NPR 0"}</Text>
+          <Text style={styles.statLabel}>Net</Text>
         </View>
       </View>
 
-      <View style={styles.headerDivider} />
-
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.summaryGrid}>
-          {viewModel.summaryCards.map((summaryCard) => {
-            const valueColor =
-              summaryCard.tone === "income"
-                ? colors.success
-                : summaryCard.tone === "expense"
-                  ? colors.destructive
-                  : colors.cardForeground;
-
-            return (
-              <View key={summaryCard.id} style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>{summaryCard.title}</Text>
-                <Text style={[styles.summaryValue, { color: valueColor }]}>
-                  {summaryCard.value}
-                </Text>
-              </View>
+      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <View style={styles.quickActionRow}>
+        {viewModel.quickActions.map((quickAction) => {
+          const icon =
+            quickAction.id === "transactions" ? (
+              <ArrowLeftRight size={20} color={colors.primary} />
+            ) : quickAction.id === "emi" ? (
+              <CreditCard size={20} color={colors.primary} />
+            ) : quickAction.id === "reports" ? (
+              <ReceiptText size={20} color={colors.primary} />
+            ) : (
+              <PiggyBank size={20} color={colors.primary} />
             );
-          })}
-        </View>
 
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionGrid}>
-          {viewModel.quickActions.map((quickAction) => (
+          return (
             <View key={quickAction.id} style={styles.quickActionCard}>
-              <View style={styles.quickActionIconWrap}>
-                <Wallet size={18} color={colors.primary} />
-              </View>
+              <View style={styles.quickActionIconWrap}>{icon}</View>
               <Text style={styles.quickActionLabel}>{quickAction.label}</Text>
             </View>
-          ))}
-        </View>
+          );
+        })}
+      </View>
 
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
-        <View style={styles.recentContainer}>
-          {viewModel.recentItems.map((recentItem) => (
-            <View key={recentItem.id} style={styles.recentRow}>
-              <View
-                style={[
-                  styles.recentIconWrap,
-                  recentItem.tone === "income"
-                    ? styles.recentIconIncome
-                    : styles.recentIconExpense,
-                ]}
-              >
-                {recentItem.tone === "income" ? (
-                  <ArrowDownLeft size={16} color={colors.success} />
-                ) : (
-                  <ArrowUpRight size={16} color={colors.destructive} />
-                )}
-              </View>
+      <Text style={styles.sectionTitle}>Recent Activity</Text>
+      <View style={styles.activityContainer}>
+        {viewModel.recentItems.map((recentItem) => (
+          <View key={recentItem.id} style={styles.activityRow}>
+            <View style={styles.activityAvatar}>
+              <Text style={styles.activityAvatarText}>{recentItem.title[0]}</Text>
+            </View>
 
-              <View style={styles.recentBody}>
-                <Text style={styles.recentTitle}>{recentItem.title}</Text>
-                <Text style={styles.recentSubtitle}>{recentItem.subtitle}</Text>
-              </View>
+            <View style={styles.activityBody}>
+              <Text style={styles.activityTitle}>{recentItem.title}</Text>
+              <Text style={styles.activitySubtitle}>{recentItem.subtitle}</Text>
+            </View>
 
+            <View style={styles.activityAmountWrap}>
               <Text
                 style={[
-                  styles.recentAmount,
+                  styles.activityAmount,
                   recentItem.tone === "income"
-                    ? styles.recentAmountIncome
-                    : styles.recentAmountExpense,
+                    ? styles.activityAmountIncome
+                    : styles.activityAmountExpense,
                 ]}
               >
                 {recentItem.amount}
               </Text>
+              <Text style={styles.activityDirectionLabel}>
+                {recentItem.tone === "income" ? "Income" : "Expense"}
+              </Text>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.actionRow}>
-          <Pressable
-            style={[styles.actionButton, styles.secondaryActionButton]}
-            onPress={viewModel.onSwitchAccount}
-            accessibilityRole="button"
-          >
-            <ArrowLeftRight size={16} color={colors.foreground} />
-            <Text style={styles.secondaryActionLabel}>Switch Account</Text>
-          </Pressable>
-
-          <Pressable
-            style={[styles.actionButton, styles.primaryActionButton]}
-            onPress={viewModel.onLogout}
-            accessibilityRole="button"
-          >
-            <Text style={styles.primaryActionLabel}>Logout</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </View>
+          </View>
+        ))}
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    backgroundColor: colors.header,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logoCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    color: colors.headerForeground,
-    fontWeight: "800",
-  },
-  headerSubtitle: {
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    color: colors.headerForeground,
-    fontSize: 19,
-    fontWeight: "800",
-  },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerDivider: {
-    height: 4,
-    backgroundColor: colors.destructive,
-  },
-  scrollArea: {
-    flex: 1,
-  },
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
   },
-  summaryGrid: {
+  summaryRow: {
+    flexDirection: "row",
     gap: spacing.sm,
   },
   summaryCard: {
+    flex: 1,
     backgroundColor: colors.card,
     borderColor: colors.border,
     borderWidth: 1,
@@ -221,6 +148,33 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
   },
+  statRow: {
+    marginTop: spacing.sm,
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 4,
+  },
+  statValue: {
+    marginTop: 4,
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  statLabel: {
+    marginTop: 2,
+    color: colors.mutedForeground,
+    fontSize: 10,
+  },
   sectionTitle: {
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
@@ -228,7 +182,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800",
   },
-  quickActionGrid: {
+  quickActionRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
@@ -245,8 +199,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quickActionIconWrap: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
@@ -258,14 +212,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  recentContainer: {
+  activityContainer: {
     backgroundColor: colors.card,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.lg,
     overflow: "hidden",
   },
-  recentRow: {
+  activityRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.md,
@@ -274,72 +228,48 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     gap: spacing.sm,
   },
-  recentIconWrap: {
-    width: 32,
-    height: 32,
+  activityAvatar: {
+    width: 34,
+    height: 34,
     borderRadius: radius.pill,
+    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  recentIconIncome: {
-    backgroundColor: "rgba(46,139,87,0.15)",
+  activityAvatarText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "800",
   },
-  recentIconExpense: {
-    backgroundColor: "rgba(228,71,71,0.15)",
-  },
-  recentBody: {
+  activityBody: {
     flex: 1,
   },
-  recentTitle: {
+  activityTitle: {
     color: colors.cardForeground,
     fontSize: 14,
     fontWeight: "600",
   },
-  recentSubtitle: {
+  activitySubtitle: {
+    marginTop: 2,
     color: colors.mutedForeground,
     fontSize: 11,
-    marginTop: 2,
   },
-  recentAmount: {
+  activityAmountWrap: {
+    alignItems: "flex-end",
+  },
+  activityAmount: {
     fontSize: 13,
     fontWeight: "700",
   },
-  recentAmountIncome: {
+  activityAmountIncome: {
     color: colors.success,
   },
-  recentAmountExpense: {
+  activityAmountExpense: {
     color: colors.destructive,
   },
-  actionRow: {
-    marginTop: spacing.lg,
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  actionButton: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-  },
-  secondaryActionButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-  },
-  secondaryActionLabel: {
-    color: colors.foreground,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  primaryActionButton: {
-    backgroundColor: colors.primary,
-  },
-  primaryActionLabel: {
-    color: colors.primaryForeground,
-    fontSize: 13,
-    fontWeight: "700",
+  activityDirectionLabel: {
+    marginTop: 2,
+    color: colors.mutedForeground,
+    fontSize: 10,
   },
 });

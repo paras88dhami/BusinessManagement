@@ -1,4 +1,8 @@
 import {
+  DashboardTabItem,
+  DashboardTabValue,
+} from "@/feature/dashboard/shared/types/dashboardNavigation.types";
+import {
   BusinessDashboardDueItem,
   BusinessDashboardQuickAction,
   BusinessDashboardSummaryCard,
@@ -7,14 +11,20 @@ import {
 export interface BusinessDashboardViewModel {
   greetingLabel: string;
   workspaceLabel: string;
+  profileInitials: string;
   summaryCards: readonly BusinessDashboardSummaryCard[];
   quickActions: readonly BusinessDashboardQuickAction[];
   dueItems: readonly BusinessDashboardDueItem[];
-  onSwitchAccount: () => void;
-  onLogout: () => void;
+  activeTab: DashboardTabValue;
+  tabItems: readonly DashboardTabItem[];
+  onTabPress: (tab: DashboardTabValue) => void;
+  onProfilePress: () => void;
 }
 
 export type UseBusinessDashboardViewModelParams = {
-  onSwitchAccount: () => void;
-  onLogout: () => void;
+  profileInitials: string;
+  activeTab: DashboardTabValue;
+  tabItems: readonly DashboardTabItem[];
+  onTabPress: (tab: DashboardTabValue) => void;
+  onProfilePress: () => void;
 };

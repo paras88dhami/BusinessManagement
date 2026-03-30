@@ -58,18 +58,22 @@ const dueItems: readonly BusinessDashboardDueItem[] = [
 export const useBusinessDashboardViewModel = (
   params: UseBusinessDashboardViewModelParams,
 ): BusinessDashboardViewModel => {
-  const { onSwitchAccount, onLogout } = params;
+  const { profileInitials, activeTab, tabItems, onTabPress, onProfilePress } =
+    params;
 
   return useMemo<BusinessDashboardViewModel>(
     () => ({
       greetingLabel: "Good Evening",
       workspaceLabel: "My Business",
+      profileInitials,
       summaryCards,
       quickActions,
       dueItems,
-      onSwitchAccount,
-      onLogout,
+      activeTab,
+      tabItems,
+      onTabPress,
+      onProfilePress,
     }),
-    [onLogout, onSwitchAccount],
+    [activeTab, onProfilePress, onTabPress, profileInitials, tabItems],
   );
 };

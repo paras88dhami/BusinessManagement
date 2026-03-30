@@ -1,77 +1,79 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useRouter } from "expo-router";
-import appDatabase from "@/app/database/database";
+import appDatabase from "@/shared/database/appDatabase";
 import {
   clearActiveUserSession,
-  hasActiveUserSession,
 } from "@/feature/appSettings/data/appSettings.store";
+import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import {
-  AccountType,
+  AccountTypeValue,
   SelectedAccountContext,
 } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
+import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { GetAccountSelectionScreenFactory } from "@/feature/setting/accounts/accountSelection/factory/getAccountSelectionScreen.factory";
 
 export default function SelectAccountRoute() {
-  const router = useRouter();
-  const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
+  const navigation = useSmoothNavigation();
+  const {
+    refreshSession,
+    hasActiveSession,
+    hasActiveAccount,
+    activeAccountType,
+  } = useAppRouteSession();
+  const [pendingSelectedAccountType, setPendingSelectedAccountType] =
+    useState<AccountTypeValue | null>(null);
+  const [isNavigatingToLogin, setIsNavigatingToLogin] = useState(false);
+
+  useEffect(() => {
+    if (!isNavigatingToLogin || hasActiveSession) {
+      return;
+    }
+
+    setIsNavigatingToLogin(false);
+    navigation.replace("/(auth)/login");
+  }, [hasActiveSession, isNavigatingToLogin, navigation]);
+
+  useEffect(() => {
+    if (!pendingSelectedAccountType) {
+      return;
+    }
+
+    if (!hasActiveAccount || activeAccountType !== pendingSelectedAccountType) {
+      return;
+    }
+
+    setPendingSelectedAccountType(null);
+    navigation.replace(getDashboardHomePath(pendingSelectedAccountType));
+  }, [
+    activeAccountType,
+    hasActiveAccount,
+    navigation,
+    pendingSelectedAccountType,
+  ]);
 
   const handleBackToLogin = useCallback(async () => {
     try {
+      setIsNavigatingToLogin(true);
       await clearActiveUserSession(appDatabase);
-      router.replace("/(auth)/login");
+      await refreshSession();
     } catch {
+      setIsNavigatingToLogin(false);
       // Keep user on this screen if session clear fails.
     }
-  }, [router]);
+  }, [refreshSession]);
 
   const handleAccountSelected = useCallback(
-    async ({ accountType }: SelectedAccountContext) => {
-      if (accountType === AccountType.Business) {
-        router.replace("/(dashboard)/business");
-        return;
-      }
-
-      router.replace("/(dashboard)/personal");
+    async (selectedAccountContext: SelectedAccountContext) => {
+      setPendingSelectedAccountType(selectedAccountContext.accountType);
+      await refreshSession();
     },
-    [router],
+    [refreshSession],
   );
 
   useEffect(() => {
-    let isMounted = true;
-
-    const checkSession = async () => {
-      try {
-        const activeSession = await hasActiveUserSession(appDatabase);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setHasSession(activeSession);
-      } finally {
-        if (isMounted) {
-          setIsSessionLoading(false);
-        }
-      }
-    };
-
-    void checkSession();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSessionLoading && !hasSession) {
-      router.replace("/(auth)/login");
-    }
-  }, [hasSession, isSessionLoading, router]);
-
-  if (isSessionLoading || !hasSession) {
-    return null;
-  }
+    navigation.prefetch("/(dashboard)/business");
+    navigation.prefetch("/(dashboard)/personal");
+  }, [navigation]);
 
   return (
     <GetAccountSelectionScreenFactory

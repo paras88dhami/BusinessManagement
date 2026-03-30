@@ -3,47 +3,74 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   ArrowLeftRight,
   BookOpen,
+  CreditCard,
   Home,
   MoreHorizontal,
+  PiggyBank,
   ShoppingCart,
 } from "lucide-react-native";
-import { RouteName } from "@/shared/types/navigation";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomTabIconName, BottomTabItem, RouteName } from "@/shared/types/navigation";
 import { colors } from "../../theme/colors";
-import { radius } from "../../theme/spacing";
+import { radius, spacing } from "../../theme/spacing";
 
-interface BottomTabBarProps {
-  route: RouteName;
-  onNavigate: (route: RouteName) => void;
-}
+type BottomTabBarProps<T extends string = RouteName> = {
+  route: T;
+  onNavigate: (route: T) => void;
+  items?: readonly BottomTabItem<T>[];
+};
 
-const items = [
-  { key: "home" as const, label: "Home", icon: Home },
-  { key: "ledger" as const, label: "Ledger", icon: BookOpen },
-  { key: "pos" as const, label: "POS", icon: ShoppingCart, center: true },
-  { key: "transactions" as const, label: "Txns", icon: ArrowLeftRight },
-  { key: "more" as const, label: "More", icon: MoreHorizontal },
+const DEFAULT_ITEMS: readonly BottomTabItem<RouteName>[] = [
+  { key: "home", label: "Home", icon: "home" },
+  { key: "ledger", label: "Ledger", icon: "ledger" },
+  { key: "pos", label: "POS", icon: "pos", center: true },
+  { key: "transactions", label: "Txns", icon: "transactions" },
+  { key: "more", label: "More", icon: "more" },
 ];
 
-export function BottomTabBar({ route, onNavigate }: BottomTabBarProps) {
-  return (
-    <View style={styles.wrapper}>
-      <View style={styles.row}>
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = route === item.key;
+export function BottomTabBar<T extends string = RouteName>({
+  route,
+  onNavigate,
+  items,
+}: BottomTabBarProps<T>) {
+  const insets = useSafeAreaInsets();
+  const tabItems = items ?? (DEFAULT_ITEMS as readonly BottomTabItem<T>[]);
 
-          if (item.center) {
+  return (
+    <View
+      style={[
+        styles.wrapper,
+        {
+          bottom: Math.max(insets.bottom, spacing.sm),
+        },
+      ]}
+    >
+      <View style={styles.row}>
+        {tabItems.map((tabItem) => {
+          const Icon = resolveIcon(tabItem.icon, String(tabItem.key));
+          const isActive = route === tabItem.key;
+
+          if (tabItem.center) {
             return (
               <Pressable
-                key={item.key}
+                key={tabItem.key}
                 style={styles.centerItem}
-                onPress={() => onNavigate(item.key)}
+                onPress={() => {
+                  if (isActive) {
+                    return;
+                  }
+
+                  onNavigate(tabItem.key);
+                }}
+                disabled={isActive}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
               >
                 <View style={styles.centerCircle}>
-                  <Icon color={colors.primaryForeground} size={24} />
+                  <Icon size={24} color={colors.primaryForeground} />
                 </View>
-                <Text style={[styles.label, active && styles.activeLabel]}>
-                  {item.label}
+                <Text style={[styles.label, isActive ? styles.activeLabel : null]}>
+                  {tabItem.label}
                 </Text>
               </Pressable>
             );
@@ -51,16 +78,26 @@ export function BottomTabBar({ route, onNavigate }: BottomTabBarProps) {
 
           return (
             <Pressable
-              key={item.key}
+              key={tabItem.key}
               style={styles.item}
-              onPress={() => onNavigate(item.key)}
+              onPress={() => {
+                if (isActive) {
+                  return;
+                }
+
+                onNavigate(tabItem.key);
+              }}
+              disabled={isActive}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
             >
               <Icon
-                color={active ? colors.navActive : colors.navForeground}
-                size={21}
+                size={22}
+                color={isActive ? colors.navActive : colors.navForeground}
+                strokeWidth={isActive ? 2.5 : 2}
               />
-              <Text style={[styles.label, active && styles.activeLabel]}>
-                {item.label}
+              <Text style={[styles.label, isActive ? styles.activeLabel : null]}>
+                {tabItem.label}
               </Text>
             </Pressable>
           );
@@ -70,18 +107,63 @@ export function BottomTabBar({ route, onNavigate }: BottomTabBarProps) {
   );
 }
 
+const resolveIcon = (
+  iconName: BottomTabIconName | undefined,
+  fallbackRoute: string,
+) => {
+  const resolvedName = iconName ?? routeToIconName(fallbackRoute);
+
+  switch (resolvedName) {
+    case "home":
+      return Home;
+    case "ledger":
+      return BookOpen;
+    case "pos":
+      return ShoppingCart;
+    case "transactions":
+      return ArrowLeftRight;
+    case "budget":
+      return PiggyBank;
+    case "emi":
+      return CreditCard;
+    case "more":
+      return MoreHorizontal;
+    default:
+      return Home;
+  }
+};
+
+const routeToIconName = (route: string): BottomTabIconName => {
+  switch (route) {
+    case "ledger":
+      return "ledger";
+    case "pos":
+      return "pos";
+    case "transactions":
+      return "transactions";
+    case "budget":
+      return "budget";
+    case "emi":
+      return "emi";
+    case "more":
+      return "more";
+    default:
+      return "home";
+  }
+};
+
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 12,
+    left: spacing.md,
+    right: spacing.md,
     backgroundColor: colors.nav,
-    borderRadius: 22,
-    borderWidth: 1,
+    borderTopWidth: 1,
     borderColor: colors.border,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    zIndex: 40,
   },
   row: {
     flexDirection: "row",
@@ -91,26 +173,27 @@ const styles = StyleSheet.create({
   item: {
     flex: 1,
     alignItems: "center",
-    gap: 4,
-    paddingVertical: 6,
+    justifyContent: "center",
+    gap: 2,
+    paddingVertical: spacing.xs,
   },
   centerItem: {
     flex: 1,
     alignItems: "center",
-    marginTop: -28,
+    marginTop: -(spacing.xl + spacing.xs),
   },
   centerCircle: {
-    width: 58,
-    height: 58,
+    width: 56,
+    height: 56,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
     borderWidth: 4,
     borderColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
   },
   label: {
+    marginTop: 2,
     color: colors.navForeground,
     fontSize: 10,
     fontWeight: "600",

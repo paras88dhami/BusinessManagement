@@ -1,4 +1,8 @@
 import {
+  DashboardTabItem,
+  DashboardTabValue,
+} from "@/feature/dashboard/shared/types/dashboardNavigation.types";
+import {
   PersonalDashboardQuickAction,
   PersonalDashboardRecentItem,
   PersonalDashboardSummaryCard,
@@ -7,14 +11,20 @@ import {
 export interface PersonalDashboardViewModel {
   greetingLabel: string;
   workspaceLabel: string;
+  profileInitials: string;
   summaryCards: readonly PersonalDashboardSummaryCard[];
   quickActions: readonly PersonalDashboardQuickAction[];
   recentItems: readonly PersonalDashboardRecentItem[];
-  onSwitchAccount: () => void;
-  onLogout: () => void;
+  activeTab: DashboardTabValue;
+  tabItems: readonly DashboardTabItem[];
+  onTabPress: (tab: DashboardTabValue) => void;
+  onProfilePress: () => void;
 }
 
 export type UsePersonalDashboardViewModelParams = {
-  onSwitchAccount: () => void;
-  onLogout: () => void;
+  profileInitials: string;
+  activeTab: DashboardTabValue;
+  tabItems: readonly DashboardTabItem[];
+  onTabPress: (tab: DashboardTabValue) => void;
+  onProfilePress: () => void;
 };

@@ -1,19 +1,32 @@
 import React from "react";
+import {
+  DashboardTabItem,
+  DashboardTabValue,
+} from "@/feature/dashboard/shared/types/dashboardNavigation.types";
 import { useBusinessDashboardViewModel } from "../viewModel/businessDashboard.viewModel.impl";
 import { BusinessDashboardScreen } from "../ui/BusinessDashboardScreen";
 
 type GetBusinessDashboardScreenFactoryProps = {
-  onSwitchAccount: () => void;
-  onLogout: () => void;
+  profileInitials: string;
+  activeTab: DashboardTabValue;
+  tabItems: readonly DashboardTabItem[];
+  onTabPress: (tab: DashboardTabValue) => void;
+  onProfilePress: () => void;
 };
 
 export function GetBusinessDashboardScreenFactory({
-  onSwitchAccount,
-  onLogout,
+  profileInitials,
+  activeTab,
+  tabItems,
+  onTabPress,
+  onProfilePress,
 }: GetBusinessDashboardScreenFactoryProps) {
   const viewModel = useBusinessDashboardViewModel({
-    onSwitchAccount,
-    onLogout,
+    profileInitials,
+    activeTab,
+    tabItems,
+    onTabPress,
+    onProfilePress,
   });
 
   return <BusinessDashboardScreen viewModel={viewModel} />;

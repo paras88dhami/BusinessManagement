@@ -1,6 +1,14 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import { Bell, ChevronLeft } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import { radius } from "../../theme/spacing";
 
@@ -10,7 +18,15 @@ interface PrimaryHeaderProps {
   showBack?: boolean;
   onBack?: () => void;
   onProfilePress?: () => void;
+  onBellPress?: () => void;
   rightLabel?: string;
+  showBell?: boolean;
+  showProfile?: boolean;
+  topInsetEnabled?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  rightContent?: React.ReactNode;
+  bottomContent?: React.ReactNode;
+  bottomContentStyle?: StyleProp<ViewStyle>;
 }
 
 export function PrimaryHeader({
@@ -19,14 +35,30 @@ export function PrimaryHeader({
   showBack = false,
   onBack,
   onProfilePress,
+  onBellPress,
   rightLabel = "KD",
+  showBell = true,
+  showProfile = true,
+  topInsetEnabled = true,
+  containerStyle,
+  rightContent,
+  bottomContent,
+  bottomContentStyle,
 }: PrimaryHeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.wrapper}>
+    <View
+      style={[
+        styles.wrapper,
+        { paddingTop: (topInsetEnabled ? insets.top : 0) + 12 },
+        containerStyle,
+      ]}
+    >
       <View style={styles.row}>
         <View style={styles.leftRow}>
           {showBack ? (
-            <Pressable onPress={onBack} style={styles.iconButton}>
+            <Pressable onPress={onBack} style={styles.iconButton} accessibilityRole="button">
               <ChevronLeft color={colors.headerForeground} size={22} />
             </Pressable>
           ) : (
@@ -40,15 +72,35 @@ export function PrimaryHeader({
           </View>
         </View>
 
-        <View style={styles.rightRow}>
-          <Pressable style={styles.iconButton}>
-            <Bell color={colors.headerForeground} size={20} />
-          </Pressable>
-          <Pressable style={styles.profileButton} onPress={onProfilePress}>
-            <Text style={styles.profileText}>{rightLabel}</Text>
-          </Pressable>
-        </View>
+        {rightContent ? (
+          rightContent
+        ) : (
+          <View style={styles.rightRow}>
+            {showBell ? (
+              <Pressable
+                style={styles.iconButton}
+                onPress={onBellPress}
+                accessibilityRole="button"
+              >
+                <Bell color={colors.headerForeground} size={20} />
+              </Pressable>
+            ) : null}
+            {showProfile ? (
+              <Pressable
+                style={styles.profileButton}
+                onPress={onProfilePress}
+                accessibilityRole="button"
+              >
+                <Text style={styles.profileText}>{rightLabel}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
       </View>
+
+      {bottomContent ? (
+        <View style={[styles.bottomContent, bottomContentStyle]}>{bottomContent}</View>
+      ) : null}
     </View>
   );
 }
@@ -57,7 +109,6 @@ const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: colors.header,
     paddingHorizontal: 16,
-    paddingTop: 12,
     paddingBottom: 18,
   },
   row: {
@@ -117,5 +168,8 @@ const styles = StyleSheet.create({
     color: colors.headerForeground,
     fontSize: 20,
     fontWeight: "800",
+  },
+  bottomContent: {
+    marginTop: 14,
   },
 });

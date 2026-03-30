@@ -1,4 +1,4 @@
-import { migrations } from "@/app/database/migration";
+import { migrations } from "@/shared/database/migration";
 import { appSettingsDbConfig } from "@/feature/appSettings/data/dataSource/db/appSettingsDbConfig";
 import { authCredentialDbConfig } from "@/feature/session/data/dataSource/db/authCredentialDbConfig";
 import { authUserDbConfig } from "@/feature/session/data/dataSource/db/authUserDbConfig";
