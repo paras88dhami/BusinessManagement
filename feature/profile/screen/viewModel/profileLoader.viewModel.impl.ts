@@ -17,7 +17,7 @@ export const useProfileLoaderViewModel = (
   const {
     activeUserRemoteId,
     activeAccountRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase,
     onLoaded,
@@ -42,7 +42,7 @@ export const useProfileLoaderViewModel = (
 
       const [userResult, accountsResult] = await Promise.all([
         getAuthUserByRemoteIdUseCase.execute(activeUserRemoteId),
-        getAccountsByOwnerUserRemoteIdUseCase.execute(activeUserRemoteId),
+        getAccessibleAccountsByUserRemoteIdUseCase.execute(activeUserRemoteId),
       ]);
 
       if (!accountsResult.success) {
@@ -145,7 +145,7 @@ export const useProfileLoaderViewModel = (
   }, [
     activeAccountRemoteId,
     activeUserRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase,
     onLoaded,

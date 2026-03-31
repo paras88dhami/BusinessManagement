@@ -11,7 +11,12 @@ import {
   DashboardRouteKey,
 } from "@/feature/dashboard/shell/types/dashboardShell.types";
 
-const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>(["business", "ledger", "pos"]);
+const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>([
+  "business",
+  "ledger",
+  "pos",
+  "user-management",
+]);
 const PERSONAL_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "personal",
   "personal-transactions",
@@ -20,6 +25,7 @@ const PERSONAL_ONLY_ROUTES = new Set<DashboardRouteKey>([
 const SLOT_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "profile",
   "business-details",
+  "user-management",
 ]);
 
 export const resolveDashboardRouteKey = (
@@ -35,6 +41,7 @@ export const resolveDashboardRouteKey = (
     case "pos":
     case "emi-loans":
     case "more":
+    case "user-management":
     case "personal-transactions":
     case "personal-budget":
     case "profile":
@@ -75,6 +82,13 @@ export const resolveDashboardHeaderConfig = (
       };
     case "more":
       return { title: "More", subtitle: undefined, showBell: false, showProfile: false };
+    case "user-management":
+      return {
+        title: "User Management",
+        subtitle: undefined,
+        showBell: false,
+        showProfile: false,
+      };
     case "personal-transactions":
       return {
         title: "Transactions",

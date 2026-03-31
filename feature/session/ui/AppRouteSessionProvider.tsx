@@ -12,7 +12,9 @@ import { getAppSessionState } from "@/feature/appSettings/data/appSettings.store
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createGetAccountsByOwnerUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccountsByOwnerUserRemoteId.useCase.impl";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
@@ -94,11 +96,6 @@ export function AppRouteSessionProvider({
     [accountDatasource],
   );
 
-  const getAccountsByOwnerUserRemoteIdUseCase = useMemo(
-    () => createGetAccountsByOwnerUserRemoteIdUseCase(accountRepository),
-    [accountRepository],
-  );
-
   const authUserDatasource = useMemo(
     () => createLocalAuthUserDatasource(database),
     [database],
@@ -114,6 +111,30 @@ export function AppRouteSessionProvider({
     [authUserRepository],
   );
 
+  const userManagementDatasource = useMemo(
+    () => createLocalUserManagementDatasource(database),
+    [database],
+  );
+
+  const userManagementRepository = useMemo(
+    () =>
+      createUserManagementRepository({
+        localDatasource: userManagementDatasource,
+        accountRepository,
+        authUserRepository,
+      }),
+    [accountRepository, authUserRepository, userManagementDatasource],
+  );
+
+  const getAccessibleAccountsByUserRemoteIdUseCase = useMemo(
+    () =>
+      createGetAccessibleAccountsByUserRemoteIdUseCase({
+        accountRepository,
+        userManagementRepository,
+      }),
+    [accountRepository, userManagementRepository],
+  );
+
   const resolveContext = useCallback(async (): Promise<void> => {
     const requestId = ++activeRequestIdRef.current;
 
@@ -127,6 +148,7 @@ export function AppRouteSessionProvider({
       let hasActiveAccount = Boolean(activeAccountRemoteId);
       let activeAccountType: AccountTypeValue | null = null;
       let activeAccountDisplayName = "";
+      let sessionError: string | undefined;
 
       let profileName = "eLekha User";
       let profileInitials = "EL";
@@ -145,9 +167,15 @@ export function AppRouteSessionProvider({
         }
 
         const accountsResult =
-          await getAccountsByOwnerUserRemoteIdUseCase.execute(activeUserRemoteId);
+          await getAccessibleAccountsByUserRemoteIdUseCase.execute(activeUserRemoteId);
 
         if (accountsResult.success) {
+          if (accountsResult.value.length === 0) {
+            hasActiveAccount = false;
+            sessionError =
+              "No active accounts are assigned to this user. Contact your account owner.";
+          }
+
           const activeAccount = accountsResult.value.find(
             (account) => account.remoteId === activeAccountRemoteId,
           );
@@ -166,6 +194,7 @@ export function AppRouteSessionProvider({
           }
         } else {
           hasActiveAccount = false;
+          sessionError = accountsResult.error.message;
         }
       }
 
@@ -186,7 +215,7 @@ export function AppRouteSessionProvider({
         activeAccountDisplayName,
         profileName,
         profileInitials,
-        sessionError: undefined,
+        sessionError,
       };
 
       if (nextContext.hasActiveSession) {
@@ -227,7 +256,7 @@ export function AppRouteSessionProvider({
     }
   }, [
     database,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
   ]);
 

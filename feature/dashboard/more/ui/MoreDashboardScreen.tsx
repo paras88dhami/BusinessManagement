@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CreditCard,
   PiggyBank,
+  ShieldCheck,
   ShoppingCart,
   User,
 } from "lucide-react-native";
@@ -64,6 +65,8 @@ const getItemIcon = (itemId: string) => {
       return <ArrowLeftRight size={18} color={colors.primary} />;
     case "budget":
       return <PiggyBank size={18} color={colors.primary} />;
+    case "userManagement":
+      return <ShieldCheck size={18} color={colors.primary} />;
     default:
       return <User size={18} color={colors.primary} />;
   }

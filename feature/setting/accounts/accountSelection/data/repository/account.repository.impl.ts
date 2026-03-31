@@ -57,6 +57,53 @@ export const createAccountRepository = (
       error: mapAccountError(result.error),
     };
   },
+
+  async getAccountsByRemoteIds(remoteIds: readonly string[]): Promise<AccountsResult> {
+    const result = await localDatasource.getAccountsByRemoteIds(remoteIds);
+
+    if (result.success) {
+      try {
+        const mappedAccounts = await Promise.all(
+          result.value.map((accountModel) => mapAccountModelToDomain(accountModel)),
+        );
+
+        return {
+          success: true,
+          value: mappedAccounts,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: mapAccountError(error),
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: mapAccountError(result.error),
+    };
+  },
+
+  async getAccountByRemoteId(remoteId: string): Promise<AccountResult> {
+    const result = await localDatasource.getAccountByRemoteId(remoteId);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: mapAccountError(result.error),
+      };
+    }
+
+    if (!result.value) {
+      return {
+        success: false,
+        error: AccountNotFoundError,
+      };
+    }
+
+    return mapAccountModel(result.value);
+  },
 });
 
 const mapAccountModel = async (

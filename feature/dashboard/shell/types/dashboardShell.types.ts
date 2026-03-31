@@ -11,6 +11,7 @@ export type DashboardRouteKey =
   | "pos"
   | "emi-loans"
   | "more"
+  | "user-management"
   | "personal-transactions"
   | "personal-budget"
   | "profile"

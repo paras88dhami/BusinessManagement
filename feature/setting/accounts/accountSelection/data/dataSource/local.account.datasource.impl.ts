@@ -116,4 +116,55 @@ export const createLocalAccountDatasource = (
       };
     }
   },
+
+  async getAccountsByRemoteIds(
+    remoteIds: readonly string[],
+  ): Promise<Result<AccountModel[]>> {
+    try {
+      const normalizedRemoteIds = Array.from(
+        new Set(remoteIds.map((remoteId) => remoteId.trim()).filter(Boolean)),
+      );
+
+      if (normalizedRemoteIds.length === 0) {
+        return {
+          success: true,
+          value: [],
+        };
+      }
+
+      const accountsCollection = database.get<AccountModel>(ACCOUNTS_TABLE);
+      const matchingAccounts = await accountsCollection
+        .query(Q.where("remote_id", Q.oneOf(normalizedRemoteIds)))
+        .fetch();
+
+      return {
+        success: true,
+        value: matchingAccounts,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async getAccountByRemoteId(remoteId: string): Promise<Result<AccountModel | null>> {
+    try {
+      const accountsCollection = database.get<AccountModel>(ACCOUNTS_TABLE);
+      const matchingAccounts = await accountsCollection
+        .query(Q.where("remote_id", remoteId))
+        .fetch();
+
+      return {
+        success: true,
+        value: matchingAccounts[0] ?? null,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
 });

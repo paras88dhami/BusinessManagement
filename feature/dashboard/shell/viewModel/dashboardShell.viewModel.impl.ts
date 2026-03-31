@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useSegments } from "expo-router";
+import appDatabase from "@/shared/database/appDatabase";
+import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import {
@@ -11,6 +13,7 @@ import { DashboardTabValue } from "@/feature/dashboard/shared/types/dashboardNav
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import {
   DashboardShellViewModel,
+  DashboardRouteKey,
 } from "@/feature/dashboard/shell/types/dashboardShell.types";
 import {
   isBusinessOnlyDashboardRoute,
@@ -21,10 +24,41 @@ import {
   resolveDashboardRouteKey,
 } from "@/feature/dashboard/shell/viewModel/dashboardShell.shared";
 
+const DASHBOARD_TAB_PERMISSION_CODE: Partial<Record<DashboardTabValue, string>> = {
+  ledger: "ledger.view",
+  pos: "pos.view",
+  emi: "emi.view",
+  transactions: "transactions.view",
+  budget: "budget.view",
+};
+
+const DASHBOARD_ROUTE_PERMISSION_CODE: Partial<
+  Record<Exclude<DashboardRouteKey, null>, string>
+> = {
+  "user-management": "user_management.view",
+  ledger: "ledger.view",
+  pos: "pos.view",
+  "emi-loans": "emi.view",
+  "personal-transactions": "transactions.view",
+  "personal-budget": "budget.view",
+};
+
 export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   const navigation = useSmoothNavigation();
   const segments = useSegments();
-  const { isLoading, activeAccountType, profileInitials } = useAppRouteSession();
+  const {
+    isLoading,
+    activeAccountType,
+    activeUserRemoteId,
+    activeAccountRemoteId,
+    profileInitials,
+  } = useAppRouteSession();
+
+  const permissionAccess = useAccountPermissionAccess({
+    database: appDatabase,
+    activeUserRemoteId,
+    activeAccountRemoteId,
+  });
 
   const routeKey = useMemo(() => resolveDashboardRouteKey(segments), [segments]);
 
@@ -39,10 +73,20 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
 
   const onTabPress = useCallback(
     (tab: DashboardTabValue) => {
+      const requiredPermissionCode = DASHBOARD_TAB_PERMISSION_CODE[tab];
+
+      if (
+        requiredPermissionCode &&
+        !permissionAccess.isLoading &&
+        !permissionAccess.hasPermission(requiredPermissionCode)
+      ) {
+        return;
+      }
+
       const targetPath = getDashboardTabPath(tab, activeAccountType);
       navigation.replace(targetPath);
     },
-    [activeAccountType, navigation],
+    [activeAccountType, navigation, permissionAccess],
   );
 
   useEffect(() => {
@@ -68,8 +112,27 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
       isPersonalOnlyDashboardRoute(routeKey)
     ) {
       navigation.replace(homePath);
+      return;
     }
-  }, [activeAccountType, homePath, isLoading, navigation, routeKey]);
+
+    if (!permissionAccess.isLoading) {
+      const requiredPermissionCode = DASHBOARD_ROUTE_PERMISSION_CODE[routeKey];
+
+      if (
+        requiredPermissionCode &&
+        !permissionAccess.hasPermission(requiredPermissionCode)
+      ) {
+        navigation.replace(homePath);
+      }
+    }
+  }, [
+    activeAccountType,
+    homePath,
+    isLoading,
+    navigation,
+    permissionAccess,
+    routeKey,
+  ]);
 
   const showSlotOnly = useMemo(
     () => isSlotOnlyDashboardRoute(routeKey),
@@ -87,8 +150,17 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   );
 
   const tabItems = useMemo(
-    () => getDashboardTabItems(activeAccountType),
-    [activeAccountType],
+    () =>
+      getDashboardTabItems(activeAccountType).filter((tabItem) => {
+        const requiredPermissionCode = DASHBOARD_TAB_PERMISSION_CODE[tabItem.key];
+
+        if (!requiredPermissionCode || permissionAccess.isLoading) {
+          return true;
+        }
+
+        return permissionAccess.hasPermission(requiredPermissionCode);
+      }),
+    [activeAccountType, permissionAccess],
   );
 
   const activeTab = useMemo(() => resolveDashboardActiveTab(routeKey), [routeKey]);

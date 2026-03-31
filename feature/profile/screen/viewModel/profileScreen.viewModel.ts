@@ -4,7 +4,7 @@ import {
   EditablePersonalProfile,
   ProfileAccountOption,
 } from "@/feature/profile/screen/types/profileScreen.types";
-import { GetAccountsByOwnerUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccountsByOwnerUserRemoteId.useCase";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
@@ -77,7 +77,7 @@ export interface ProfileScreenViewModel {
 }
 
 export type ProfileScreenDependencies = {
-  getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
+  getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
   saveAccountUseCase: SaveAccountUseCase;
   getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
   saveAuthUserUseCase: SaveAuthUserUseCase;

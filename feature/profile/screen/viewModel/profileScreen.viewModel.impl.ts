@@ -52,8 +52,8 @@ export const useProfileScreenViewModel = (
   const loader = useProfileLoaderViewModel({
     activeUserRemoteId,
     activeAccountRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase:
-      dependencies.getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase:
+      dependencies.getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase: dependencies.getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase:
       dependencies.getBusinessProfileByAccountRemoteIdUseCase,

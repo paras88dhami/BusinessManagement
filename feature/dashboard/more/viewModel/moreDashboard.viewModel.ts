@@ -1,4 +1,7 @@
-import { MoreDashboardSection } from "../types/moreDashboard.types";
+import {
+  MoreDashboardMenuAccessPredicate,
+  MoreDashboardSection,
+} from "../types/moreDashboard.types";
 
 export interface MoreDashboardViewModel {
   sections: readonly MoreDashboardSection[];
@@ -13,4 +16,6 @@ export type UseMoreDashboardViewModelParams = {
   onOpenEmi: () => void;
   onOpenTransactions: () => void;
   onOpenBudget: () => void;
+  onOpenUserManagement: () => void;
+  hasMenuAccess?: MoreDashboardMenuAccessPredicate;
 };

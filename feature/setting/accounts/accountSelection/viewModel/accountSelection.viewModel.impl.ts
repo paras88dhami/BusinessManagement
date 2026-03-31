@@ -1,7 +1,7 @@
 import { Database } from "@nozbe/watermelondb";
 import { useEffect, useMemo } from "react";
 import { SelectedAccountContext } from "../types/accountSelection.types";
-import { GetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "../useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { useAccountSelectionLoadViewModel } from "./accountSelection.load.viewModel.impl";
 import { useAccountSelectionSelectViewModel } from "./accountSelection.select.viewModel.impl";
 import { useAccountSelectionState } from "./accountSelection.state";
@@ -12,7 +12,7 @@ export type UseAccountSelectionViewModelParams = {
   database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
-  getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
+  getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
   onBackToLogin: () => void;
   onAccountSelected?: (
     selectedAccountContext: SelectedAccountContext,
@@ -26,7 +26,7 @@ export function useAccountSelectionViewModel(
     database,
     activeUserRemoteId,
     activeAccountRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
     onBackToLogin,
     onAccountSelected,
   } = params;
@@ -38,7 +38,7 @@ export function useAccountSelectionViewModel(
     activeAccountRemoteId,
     state,
     actions,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
   });
 
   const selectViewModel = useAccountSelectionSelectViewModel({

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { GetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "../useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import {
   AccountSelectionState,
   AccountSelectionStateActions,
@@ -11,7 +11,7 @@ type UseAccountSelectionLoadViewModelParams = {
   activeAccountRemoteId: string | null;
   state: AccountSelectionState;
   actions: AccountSelectionStateActions;
-  getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
+  getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
 };
 
 export const useAccountSelectionLoadViewModel = (
@@ -22,7 +22,7 @@ export const useAccountSelectionLoadViewModel = (
     activeAccountRemoteId,
     state,
     actions,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
   } = params;
 
   const load = useCallback(async (): Promise<void> => {
@@ -37,7 +37,7 @@ export const useAccountSelectionLoadViewModel = (
         return;
       }
 
-      const accountsResult = await getAccountsByOwnerUserRemoteIdUseCase.execute(
+      const accountsResult = await getAccessibleAccountsByUserRemoteIdUseCase.execute(
         activeUserRemoteId,
       );
 
@@ -53,6 +53,9 @@ export const useAccountSelectionLoadViewModel = (
       if (availableAccounts.length === 0) {
         actions.setAccounts([]);
         actions.setSelectedAccountRemoteId(null);
+        actions.setSubmitError(
+          "No active accounts are assigned to this user. Contact your account owner or sign in with another profile.",
+        );
         return;
       }
 
@@ -86,7 +89,7 @@ export const useAccountSelectionLoadViewModel = (
     activeAccountRemoteId,
     activeUserRemoteId,
     actions,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
   ]);
 
   return useMemo<AccountSelectionLoadViewModel>(

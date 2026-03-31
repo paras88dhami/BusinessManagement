@@ -139,5 +139,77 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 17,
+      steps: [
+        createTable({
+          name: "user_management_permissions",
+          columns: [
+            { name: "code", type: "string", isIndexed: true },
+            { name: "module", type: "string", isIndexed: true },
+            { name: "label", type: "string" },
+            { name: "description", type: "string" },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+        createTable({
+          name: "account_roles",
+          columns: [
+            { name: "remote_id", type: "string", isIndexed: true },
+            { name: "account_remote_id", type: "string", isIndexed: true },
+            { name: "name", type: "string" },
+            { name: "is_system", type: "boolean" },
+            { name: "is_default", type: "boolean" },
+            { name: "sync_status", type: "string", isIndexed: true },
+            { name: "last_synced_at", type: "number", isOptional: true },
+            { name: "deleted_at", type: "number", isOptional: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+        createTable({
+          name: "account_role_permissions",
+          columns: [
+            { name: "role_remote_id", type: "string", isIndexed: true },
+            { name: "permission_code", type: "string", isIndexed: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+        createTable({
+          name: "account_user_roles",
+          columns: [
+            { name: "account_remote_id", type: "string", isIndexed: true },
+            { name: "user_remote_id", type: "string", isIndexed: true },
+            { name: "role_remote_id", type: "string", isIndexed: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 18,
+      steps: [
+        createTable({
+          name: "account_members",
+          columns: [
+            { name: "remote_id", type: "string", isIndexed: true },
+            { name: "account_remote_id", type: "string", isIndexed: true },
+            { name: "user_remote_id", type: "string", isIndexed: true },
+            { name: "status", type: "string", isIndexed: true },
+            { name: "invited_by_user_remote_id", type: "string", isOptional: true },
+            { name: "joined_at", type: "number", isOptional: true },
+            { name: "last_active_at", type: "number", isOptional: true },
+            { name: "sync_status", type: "string", isIndexed: true },
+            { name: "last_synced_at", type: "number", isOptional: true },
+            { name: "deleted_at", type: "number", isOptional: true },
+            { name: "created_at", type: "number" },
+            { name: "updated_at", type: "number" },
+          ],
+        }),
+      ],
+    },
   ],
 });

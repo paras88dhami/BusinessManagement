@@ -13,6 +13,9 @@ describe("dashboardShell.shared", () => {
   it("resolves dashboard route keys from route segments", () => {
     expect(resolveDashboardRouteKey(["(dashboard)", "business"])).toBe("business");
     expect(resolveDashboardRouteKey(["(dashboard)", "profile"])).toBe("profile");
+    expect(resolveDashboardRouteKey(["(dashboard)", "user-management"])).toBe(
+      "user-management",
+    );
     expect(resolveDashboardRouteKey(["(dashboard)", "unknown"])).toBeNull();
   });
 
@@ -34,11 +37,18 @@ describe("dashboardShell.shared", () => {
       false,
     );
     expect(isDashboardRouteAllowed("profile", AccountType.Business)).toBe(true);
+    expect(isDashboardRouteAllowed("user-management", AccountType.Business)).toBe(
+      true,
+    );
+    expect(isDashboardRouteAllowed("user-management", AccountType.Personal)).toBe(
+      false,
+    );
   });
 
   it("marks slot-only routes correctly", () => {
     expect(isSlotOnlyDashboardRoute("profile")).toBe(true);
     expect(isSlotOnlyDashboardRoute("business-details")).toBe(true);
+    expect(isSlotOnlyDashboardRoute("user-management")).toBe(true);
     expect(isSlotOnlyDashboardRoute("business")).toBe(false);
   });
 });

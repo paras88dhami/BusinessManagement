@@ -13,6 +13,10 @@ export interface AuthCredentialDatasource {
     loginId: string,
     credentialType: CredentialTypeValue,
   ): Promise<Result<AuthCredentialModel>>;
+  getAuthCredentialByLoginId(
+    loginId: string,
+    credentialType: CredentialTypeValue,
+  ): Promise<Result<AuthCredentialModel>>;
   getAuthCredentialByUserRemoteId(
     userRemoteId: string,
   ): Promise<Result<AuthCredentialModel>>;

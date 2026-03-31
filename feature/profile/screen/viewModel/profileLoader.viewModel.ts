@@ -1,4 +1,4 @@
-import { GetAccountsByOwnerUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccountsByOwnerUserRemoteId.useCase";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { GetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase";
 import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
@@ -6,7 +6,7 @@ import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.
 export type UseProfileLoaderViewModelParams = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
-  getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
+  getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
   getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
   getBusinessProfileByAccountRemoteIdUseCase: GetBusinessProfileByAccountRemoteIdUseCase;
   onLoaded: (nextData: ProfileScreenData) => void;
