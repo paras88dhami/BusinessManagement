@@ -1,5 +1,13 @@
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import {
+  Platform,
+  ScrollView,
+  ScrollViewProps,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
 import { colors } from "../../theme/colors";
 
 interface ScreenContainerProps {
@@ -7,6 +15,11 @@ interface ScreenContainerProps {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   padded?: boolean;
+  showDivider?: boolean;
+  dividerColor?: string;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  scrollProps?: Omit<ScrollViewProps, "contentContainerStyle">;
+  baseBottomPadding?: number;
 }
 
 export function ScreenContainer({
@@ -14,15 +27,28 @@ export function ScreenContainer({
   header,
   footer,
   padded = false,
+  showDivider = true,
+  dividerColor = colors.destructive,
+  contentContainerStyle,
+  scrollProps,
+  baseBottomPadding = 110,
 }: ScreenContainerProps) {
   return (
     <View style={styles.container}>
       {header}
-      <View style={styles.divider} />
+      {showDivider ? <View style={[styles.divider, { backgroundColor: dividerColor }]} /> : null}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, padded && styles.padded]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: baseBottomPadding },
+          padded ? styles.padded : null,
+          contentContainerStyle,
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        {...scrollProps}
       >
         {children}
       </ScrollView>
@@ -32,23 +58,18 @@ export function ScreenContainer({
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
   divider: {
     height: 4,
-    backgroundColor: colors.destructive,
   },
   scroll: {
     flex: 1,
   },
   content: {
-    paddingBottom: 110,
+    flexGrow: 1,
   },
   padded: {
     paddingHorizontal: 16,

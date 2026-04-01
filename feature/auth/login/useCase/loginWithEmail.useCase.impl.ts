@@ -1,4 +1,4 @@
-import { LoginRepository } from "../data/repositiory/login.repository";
+import { LoginRepository } from "../data/repository/login.repository";
 import { LoginInput, LoginResult, ValidationError } from "../types/login.types";
 import { loginInputSchema } from "../validation/login.schema";
 import { LoginWithEmailUseCase } from "./loginWithEmail.useCase";

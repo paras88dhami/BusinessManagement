@@ -14,7 +14,9 @@ export const createGetActiveAuthCredentialByLoginIdUseCase = (
     loginId: string,
     credentialType: CredentialTypeValue = CredentialType.Password,
   ): Promise<AuthCredentialResult> {
-    if (!loginId.trim()) {
+    const normalizedLoginId = loginId.trim();
+
+    if (!normalizedLoginId) {
       return {
         success: false,
         error: AuthSessionValidationError("Login id is required."),
@@ -22,7 +24,7 @@ export const createGetActiveAuthCredentialByLoginIdUseCase = (
     }
 
     return authCredentialRepository.getActiveAuthCredentialByLoginId(
-      loginId,
+      normalizedLoginId,
       credentialType,
     );
   },

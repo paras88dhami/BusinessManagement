@@ -1,41 +1,29 @@
 import React from "react";
 import { Database } from "@nozbe/watermelondb";
-import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
-import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
+import { SelectedAccountContext } from "../types/accountSelection.types";
 import { createLocalAccountDatasource } from "../data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "../data/repository/account.repository.impl";
 import { createGetAccountsByOwnerUserRemoteIdUseCase } from "../useCase/getAccountsByOwnerUserRemoteId.useCase.impl";
-import { createSaveAccountUseCase } from "../useCase/saveAccount.useCase.impl";
 import { useAccountSelectionViewModel } from "../viewModel/accountSelection.viewModel.impl";
 import { AccountSelectionScreen } from "../ui/AccountSelectionScreen";
 
 type GetAccountSelectionScreenFactoryProps = {
   database: Database;
+  activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   onBackToLogin: () => void;
-  onAccountSelected?: (accountRemoteId: string) => Promise<void> | void;
+  onAccountSelected?: (
+    selectedAccountContext: SelectedAccountContext,
+  ) => Promise<void> | void;
 };
 
 export function GetAccountSelectionScreenFactory({
   database,
+  activeUserRemoteId,
+  activeAccountRemoteId,
   onBackToLogin,
   onAccountSelected,
 }: GetAccountSelectionScreenFactoryProps) {
-  const authUserDatasource = React.useMemo(
-    () => createLocalAuthUserDatasource(database),
-    [database],
-  );
-
-  const authUserRepository = React.useMemo(
-    () => createAuthUserRepository(authUserDatasource),
-    [authUserDatasource],
-  );
-
-  const getAuthUserByRemoteIdUseCase = React.useMemo(
-    () => createGetAuthUserByRemoteIdUseCase(authUserRepository),
-    [authUserRepository],
-  );
-
   const accountDatasource = React.useMemo(
     () => createLocalAccountDatasource(database),
     [database],
@@ -51,16 +39,11 @@ export function GetAccountSelectionScreenFactory({
     [accountRepository],
   );
 
-  const saveAccountUseCase = React.useMemo(
-    () => createSaveAccountUseCase(accountRepository),
-    [accountRepository],
-  );
-
   const viewModel = useAccountSelectionViewModel({
     database,
+    activeUserRemoteId,
+    activeAccountRemoteId,
     getAccountsByOwnerUserRemoteIdUseCase,
-    saveAccountUseCase,
-    getAuthUserByRemoteIdUseCase,
     onBackToLogin,
     onAccountSelected,
   });

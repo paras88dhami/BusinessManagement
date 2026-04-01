@@ -1,16 +1,18 @@
-import React, { useCallback, useMemo } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Dropdown,
   type DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { TextField } from "@/shared/components/reusable/Form/TextField";
+import { KeyboardSafeScrollView } from "@/shared/components/reusable/ScreenLayouts/KeyboardSafeScrollView";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { isSupportedLanguageCode, useTranslation } from "@/shared/i18n/resources";
-import { LoginInput } from "@/feature/auth/login/types/login.types";
+import { LoginFormInput } from "@/feature/auth/login/types/login.types";
 import {
   SignUpFormInput,
   SignUpProfileType,
@@ -34,6 +36,10 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
   const {
     control: loginControl,
+    selectedPhoneCountryCode: selectedLoginPhoneCountryCode,
+    phoneNumberMaxLength: loginPhoneNumberMaxLength,
+    phoneCountryOptions: loginPhoneCountryOptions,
+    onChangeSelectedPhoneCountry: onChangeLoginSelectedPhoneCountry,
     clearSubmitError: clearLoginSubmitError,
     isPasswordVisible,
     togglePasswordVisibility: onTogglePasswordVisibility,
@@ -64,6 +70,32 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
 
   const insets = useSafeAreaInsets();
   const isLoginMode = mode.isLoginMode;
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardShowEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const keyboardHideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const keyboardShowSubscription = Keyboard.addListener(
+      keyboardShowEvent,
+      () => {
+        setIsKeyboardVisible(true);
+      },
+    );
+    const keyboardHideSubscription = Keyboard.addListener(
+      keyboardHideEvent,
+      () => {
+        setIsKeyboardVisible(false);
+      },
+    );
+
+    return () => {
+      keyboardShowSubscription.remove();
+      keyboardHideSubscription.remove();
+    };
+  }, []);
 
   const dropdownOptions = useMemo<DropdownOption[]>(
     () =>
@@ -81,6 +113,14 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
     );
   }, [phoneCountryOptions, selectedPhoneCountryCode]);
 
+  const selectedLoginPhoneCountryLabel = useMemo(() => {
+    return (
+      loginPhoneCountryOptions.find(
+        (option) => option.code === selectedLoginPhoneCountryCode,
+      )?.label ?? loginPhoneCountryOptions[0]?.label
+    );
+  }, [loginPhoneCountryOptions, selectedLoginPhoneCountryCode]);
+
   const signUpPhoneCountryDropdownOptions = useMemo<DropdownOption[]>(
     () =>
       phoneCountryOptions.map((option) => ({
@@ -88,6 +128,15 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
         value: option.code,
       })),
     [phoneCountryOptions],
+  );
+
+  const loginPhoneCountryDropdownOptions = useMemo<DropdownOption[]>(
+    () =>
+      loginPhoneCountryOptions.map((option) => ({
+        label: `${option.flag} ${option.label}`,
+        value: option.code,
+      })),
+    [loginPhoneCountryOptions],
   );
 
   const signUpBusinessTypeDropdownOptions = useMemo<DropdownOption[]>(
@@ -123,6 +172,21 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
       onChangeSelectedPhoneCountry(selectedCountryOption.code);
     },
     [onChangeSelectedPhoneCountry, phoneCountryOptions],
+  );
+
+  const handleLoginPhoneCountryChange = useCallback(
+    (nextCountryCode: string): void => {
+      const selectedCountryOption = loginPhoneCountryOptions.find(
+        (option) => option.code === nextCountryCode,
+      );
+
+      if (!selectedCountryOption) {
+        return;
+      }
+
+      onChangeLoginSelectedPhoneCountry(selectedCountryOption.code);
+    },
+    [loginPhoneCountryOptions, onChangeLoginSelectedPhoneCountry],
   );
 
   const handleSignUpProfileTypeChange = useCallback(
@@ -175,7 +239,17 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + spacing.xxl + spacing.sm }]}>
+        <View
+          style={[
+            styles.header,
+            isKeyboardVisible ? styles.headerCompact : undefined,
+            {
+              paddingTop:
+                insets.top +
+                (isKeyboardVisible ? spacing.md : spacing.xxl + spacing.sm),
+            },
+          ]}
+        >
           <View style={[styles.languageDropdownWrap, { top: insets.top + spacing.xs }]}>
             <Dropdown
               value={selectedLanguageCode}
@@ -186,21 +260,30 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
             />
           </View>
 
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>eL</Text>
+          <View style={[styles.logoBox, isKeyboardVisible ? styles.logoBoxCompact : undefined]}>
+            <Text
+              style={[
+                styles.logoText,
+                isKeyboardVisible ? styles.logoTextCompact : undefined,
+              ]}
+            >
+              eL
+            </Text>
           </View>
 
-          <Text style={styles.brand}>eLekha</Text>
-          <Text style={styles.brandSub}>{t("auth.entry.brand.subtitle")}</Text>
+          <Text style={[styles.brand, isKeyboardVisible ? styles.brandCompact : undefined]}>
+            eLekha
+          </Text>
+          {!isKeyboardVisible ? (
+            <Text style={styles.brandSub}>{t("auth.entry.brand.subtitle")}</Text>
+          ) : null}
         </View>
 
         <View style={styles.divider} />
 
-        <ScrollView
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardSafeScrollView
           contentContainerStyle={styles.scrollContent}
+          bottomInset={insets.bottom}
         >
           <View style={styles.content}>
             <View style={styles.tabContainer}>
@@ -404,20 +487,41 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </View>
             ) : (
               <View key="login-form" style={styles.form}>
-                <TextField<LoginInput>
-                  control={loginControl}
-                  name="phoneNumber"
-                  placeholder={t("auth.entry.fields.phoneNumber")}
-                  leftIcon={<Phone size={18} color={colors.mutedForeground} />}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                  textContentType="telephoneNumber"
-                  onFocus={clearLoginSubmitError}
-                  editable={!isSubmitting}
-                  accessibilityLabel={t("auth.entry.fields.phoneNumber")}
-                />
+                <View style={styles.phoneInputRow}>
+                  <View style={styles.phoneCountryDropdownWrap}>
+                    <Dropdown
+                      value={selectedLoginPhoneCountryCode}
+                      options={loginPhoneCountryDropdownOptions}
+                      onChange={handleLoginPhoneCountryChange}
+                      placeholder="Country"
+                      modalTitle="Choose country"
+                      showLeadingIcon={false}
+                      disabled={isSubmitting}
+                      triggerStyle={styles.phoneCountryDropdownTrigger}
+                      triggerTextStyle={styles.phoneCountryDropdownText}
+                    />
+                  </View>
 
-                <TextField<LoginInput>
+                  <View style={styles.phoneNumberInputWrap}>
+                    <TextField<LoginFormInput>
+                      control={loginControl}
+                      name="phoneNumber"
+                      placeholder={t("auth.entry.fields.phoneNumber")}
+                      leftIcon={<Phone size={18} color={colors.mutedForeground} />}
+                      keyboardType="number-pad"
+                      autoComplete="off"
+                      importantForAutofill="no"
+                      maxLength={loginPhoneNumberMaxLength}
+                      onFocus={clearLoginSubmitError}
+                      editable={!isSubmitting}
+                      accessibilityLabel={`${selectedLoginPhoneCountryLabel ?? ""} ${t(
+                        "auth.entry.fields.phoneNumber",
+                      )}`}
+                    />
+                  </View>
+                </View>
+
+                <TextField<LoginFormInput>
                   control={loginControl}
                   name="password"
                   placeholder={t("auth.entry.fields.password")}
@@ -461,20 +565,17 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </View>
             )}
 
-            <Pressable
-              style={[
-                styles.primaryButton,
-                isPrimaryDisabled ? styles.primaryButtonDisabled : undefined,
-              ]}
+            <AppButton
+              label={
+                isPrimaryBusy ? t("auth.entry.actions.pleaseWait") : primaryLabel
+              }
+              variant="primary"
+              size="lg"
+              style={styles.primaryButton}
               onPress={handlePrimaryAction}
               disabled={isPrimaryDisabled}
-              accessibilityRole="button"
               accessibilityState={{ disabled: isPrimaryDisabled, busy: isPrimaryBusy }}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isPrimaryBusy ? t("auth.entry.actions.pleaseWait") : primaryLabel}
-              </Text>
-            </Pressable>
+            />
 
             <View style={styles.separatorRow}>
               <View style={styles.separatorLine} />
@@ -492,7 +593,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardSafeScrollView>
       </View>
     </SafeAreaView>
   );
@@ -522,6 +623,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl + spacing.sm,
     position: "relative",
   },
+  headerCompact: {
+    paddingBottom: spacing.md,
+  },
   logoBox: {
     width: 64,
     height: 64,
@@ -531,23 +635,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: spacing.md,
   },
+  logoBoxCompact: {
+    width: 44,
+    height: 44,
+    marginBottom: spacing.xs,
+  },
   logoText: {
     color: colors.headerForeground,
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     lineHeight: 28,
+  },
+  logoTextCompact: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   brand: {
     color: colors.headerForeground,
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: "InterBold",
     lineHeight: 28,
+  },
+  brandCompact: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   brandSub: {
     color: "rgba(255,255,255,0.8)",
     marginTop: 4,
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
     textAlign: "center",
   },
   divider: {
@@ -558,10 +675,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.md,
   },
   tabContainer: {
     flexDirection: "row",
@@ -583,7 +699,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     color: colors.mutedForeground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   tabLabelActive: {
     color: colors.primaryForeground,
@@ -594,7 +710,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     color: colors.mutedForeground,
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   profileTypeRow: {
     flexDirection: "row",
@@ -617,11 +733,11 @@ const styles = StyleSheet.create({
   profileTypeButtonText: {
     color: colors.foreground,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   profileTypeButtonTextActive: {
     color: colors.primary,
-    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   businessTypeWrap: {
     gap: spacing.xs,
@@ -640,7 +756,7 @@ const styles = StyleSheet.create({
   },
   phoneCountryDropdownText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
     color: colors.cardForeground,
   },
   phoneNumberInputWrap: {
@@ -653,28 +769,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: "right",
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   submitError: {
     color: colors.destructive,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
   primaryButton: {
     marginTop: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: colors.primaryForeground,
-    fontWeight: "600",
-    fontSize: 14,
   },
   separatorRow: {
     flexDirection: "row",
@@ -691,7 +794,7 @@ const styles = StyleSheet.create({
   separatorLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   footerRow: {
     flexDirection: "row",
@@ -701,12 +804,13 @@ const styles = StyleSheet.create({
   footerText: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "InterMedium",
   },
   footerLink: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
 });
+
 

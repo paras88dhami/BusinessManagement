@@ -16,6 +16,9 @@ export const createUpdateLastLoginAtByRemoteIdUseCase = (
       };
     }
 
-    return authCredentialRepository.updateLastLoginAtByRemoteId(remoteId);
+    return authCredentialRepository.updateLastLoginAtByRemoteId(
+      remoteId,
+      Date.now(),
+    );
   },
 });

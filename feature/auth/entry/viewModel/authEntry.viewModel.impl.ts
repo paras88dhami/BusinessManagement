@@ -1,5 +1,5 @@
 import { Database } from "@nozbe/watermelondb";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { LoginWithEmailUseCase } from "@/feature/auth/login/useCase/loginWithEmail.useCase";
 import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
 import { useAuthEntryLanguageViewModel } from "./authEntry.language.viewModel.impl";
@@ -30,19 +30,24 @@ export const useAuthEntryViewModel = (
   } = params;
 
   const language = useAuthEntryLanguageViewModel({ database });
+  const mode = useAuthEntryModeViewModel();
 
   const login = useAuthEntryLoginViewModel({
     loginWithEmailUseCase,
     onSuccess: onLoginSuccess,
   });
 
+  const handleSignUpSuccess = useCallback(() => {
+    mode.switchToLogin();
+
+    if (onSignUpSuccess) {
+      onSignUpSuccess();
+    }
+  }, [mode, onSignUpSuccess]);
+
   const signUp = useAuthEntrySignUpViewModel({
     signUpWithEmailUseCase,
-    onSuccess: onSignUpSuccess,
-  });
-
-  const mode = useAuthEntryModeViewModel({
-    hasSignUpSucceeded: signUp.hasSucceeded,
+    onSuccess: handleSignUpSuccess,
   });
 
   return useMemo<AuthEntryViewModel>(

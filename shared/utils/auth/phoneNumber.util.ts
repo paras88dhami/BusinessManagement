@@ -11,28 +11,27 @@ export const normalizePhoneNumber = (value: string): string => {
   return hasLeadingPlus ? `+${digits}` : digits;
 };
 
-export const buildPhoneLoginIdCandidates = (value: string): string[] => {
+const STRICT_E164_REGEX = /^\+[1-9]\d{7,14}$/;
+
+export const normalizeE164PhoneNumber = (value: string): string => {
   const normalizedPhoneNumber = normalizePhoneNumber(value);
 
+  return STRICT_E164_REGEX.test(normalizedPhoneNumber)
+    ? normalizedPhoneNumber
+    : "";
+};
+
+export const isStrictE164PhoneNumber = (value: string): boolean =>
+  normalizeE164PhoneNumber(value).length > 0;
+
+export const buildPhoneLoginIdCandidates = (value: string): string[] => {
+  const normalizedPhoneNumber = normalizeE164PhoneNumber(value);
+
   if (!normalizedPhoneNumber) {
-    return [value];
+    return [];
   }
 
-  if (normalizedPhoneNumber.startsWith("+")) {
-    const digitsOnly = normalizedPhoneNumber.slice(1);
-
-    if (!digitsOnly) {
-      return [normalizedPhoneNumber];
-    }
-
-    return [normalizedPhoneNumber, digitsOnly];
-  }
-
-  const loginIdCandidates = new Set<string>([normalizedPhoneNumber]);
-  loginIdCandidates.add(`+977${normalizedPhoneNumber}`);
-  loginIdCandidates.add(`+91${normalizedPhoneNumber}`);
-
-  return Array.from(loginIdCandidates);
+  return [normalizedPhoneNumber];
 };
 
 export const composePhoneNumberWithDialCode = (

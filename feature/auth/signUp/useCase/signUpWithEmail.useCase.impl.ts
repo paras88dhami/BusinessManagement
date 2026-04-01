@@ -1,4 +1,4 @@
-import { SignUpRepository } from "../data/repositiory/signUp.repository";
+import { SignUpRepository } from "../data/repository/signUp.repository";
 import { SignUpInput, SignUpResult, ValidationError } from "../types/signUp.types";
 import { signUpInputSchema } from "../validation/signUp.schema";
 import { SignUpWithEmailUseCase } from "./signUpWithEmail.useCase";

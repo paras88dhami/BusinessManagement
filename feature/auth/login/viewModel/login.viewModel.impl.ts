@@ -1,11 +1,30 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Status } from "@/shared/types/status.types";
-import { useCallback, useState } from "react";
-import { useForm } from "react-hook-form";
+import { composePhoneNumberWithDialCode } from "@/shared/utils/auth/phoneNumber.util";
+import { useCallback, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { LoginWithEmailUseCase } from "../useCase/loginWithEmail.useCase";
-import { LoginInput, LoginState } from "../types/login.types";
+import {
+  LoginFormInput,
+  LoginPhoneCountryCode,
+  LOGIN_PHONE_COUNTRY_OPTIONS,
+  LoginState,
+} from "../types/login.types";
 import { loginFormSchema } from "../validation/login.schema";
 import { LoginViewModel, UseLoginViewModelOptions } from "./login.viewModel";
+import {
+  getSignUpPhoneLengthForCountry,
+  sanitizeSignUpPhoneDigits,
+} from "@/feature/auth/signUp/utils/signUpPhoneNumber.util";
+
+const DEFAULT_PHONE_COUNTRY_CODE: LoginPhoneCountryCode = "NP";
+
+const getCountryOptionByCode = (countryCode: LoginPhoneCountryCode) => {
+  return (
+    LOGIN_PHONE_COUNTRY_OPTIONS.find((option) => option.code === countryCode) ??
+    LOGIN_PHONE_COUNTRY_OPTIONS[0]
+  );
+};
 
 export const useLoginViewModel = (
   useCase: LoginWithEmailUseCase,
@@ -17,8 +36,12 @@ export const useLoginViewModel = (
   const {
     control,
     handleSubmit,
-  } = useForm<LoginInput>({
+    clearErrors,
+    getValues,
+    setValue,
+  } = useForm<LoginFormInput>({
     defaultValues: {
+      phoneCountryCode: DEFAULT_PHONE_COUNTRY_CODE,
       phoneNumber: "",
       password: "",
     },
@@ -26,6 +49,22 @@ export const useLoginViewModel = (
     mode: "onBlur",
     reValidateMode: "onBlur",
   });
+
+  const selectedPhoneCountryCode =
+    useWatch({
+      control,
+      name: "phoneCountryCode",
+    }) ?? DEFAULT_PHONE_COUNTRY_CODE;
+
+  const selectedPhoneCountryOption = useMemo(
+    () => getCountryOptionByCode(selectedPhoneCountryCode),
+    [selectedPhoneCountryCode],
+  );
+
+  const phoneNumberMaxLength = useMemo(
+    () => getSignUpPhoneLengthForCountry(selectedPhoneCountryCode),
+    [selectedPhoneCountryCode],
+  );
 
   const clearSubmitError = useCallback(() => {
     if (state.status !== Status.Failure) {
@@ -39,16 +78,54 @@ export const useLoginViewModel = (
     setIsPasswordVisible((previousValue) => !previousValue);
   }, []);
 
+  const onChangeSelectedPhoneCountry = useCallback(
+    (countryCode: LoginPhoneCountryCode) => {
+      const currentPhoneCountryCode = getValues("phoneCountryCode");
+
+      if (currentPhoneCountryCode === countryCode) {
+        return;
+      }
+
+      const nextPhoneMaxLength = getSignUpPhoneLengthForCountry(countryCode);
+      const currentPhoneNumber = sanitizeSignUpPhoneDigits(getValues("phoneNumber"));
+
+      setValue("phoneNumber", currentPhoneNumber.slice(0, nextPhoneMaxLength), {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: false,
+      });
+
+      setValue("phoneCountryCode", countryCode, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: false,
+      });
+
+      clearErrors("phoneNumber");
+    },
+    [clearErrors, getValues, setValue],
+  );
+
   const submitWithValidPayload = useCallback(
-    async (payload: LoginInput): Promise<void> => {
+    async (payload: LoginFormInput): Promise<void> => {
       if (state.status === Status.Loading) {
         return;
       }
 
+      const normalizedPhoneDigits = sanitizeSignUpPhoneDigits(payload.phoneNumber);
+      const selectedCountryOption = getCountryOptionByCode(payload.phoneCountryCode);
+      const normalizedPhoneNumber = composePhoneNumberWithDialCode(
+        normalizedPhoneDigits,
+        selectedCountryOption.dialCode,
+      );
+
       setState({ status: Status.Loading });
 
       try {
-        const result = await useCase.login(payload);
+        const result = await useCase.login({
+          phoneNumber: normalizedPhoneNumber,
+          password: payload.password,
+        });
 
         if (result.success) {
           setState({ status: Status.Success });
@@ -85,6 +162,11 @@ export const useLoginViewModel = (
   return {
     state,
     control,
+    selectedPhoneCountryCode,
+    selectedPhoneDialCode: selectedPhoneCountryOption.dialCode,
+    phoneNumberMaxLength,
+    phoneCountryOptions: LOGIN_PHONE_COUNTRY_OPTIONS,
+    onChangeSelectedPhoneCountry,
     isPasswordVisible,
     clearSubmitError,
     togglePasswordVisibility,

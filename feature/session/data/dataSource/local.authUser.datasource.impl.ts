@@ -111,7 +111,7 @@ export const createLocalAuthUserDatasource = (
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 
       const matchingUsers = await authUsersCollection
-        .query(Q.where("remote_id", remoteId), Q.sortBy("updated_at", Q.desc))
+        .query(Q.where("remote_id", remoteId))
         .fetch();
 
       if (matchingUsers.length === 0) {
@@ -132,7 +132,7 @@ export const createLocalAuthUserDatasource = (
       const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
 
       const authUsers = await authUsersCollection
-        .query(Q.sortBy("updated_at", Q.desc))
+        .query()
         .fetch();
 
       return { success: true, value: authUsers };

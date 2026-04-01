@@ -5,19 +5,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  Account,
-  AccountType,
-  AccountTypeValue,
-} from "../types/accountSelection.types";
+import { Account } from "../types/accountSelection.types";
 
 export type AccountSelectionState = {
   accounts: Account[];
   selectedAccountRemoteId: string | null;
-  activeUserRemoteId: string | null;
-  isCreateMode: boolean;
-  newAccountType: AccountTypeValue;
-  newAccountDisplayName: string;
   isLoading: boolean;
   isSubmitting: boolean;
   submitError?: string;
@@ -27,10 +19,6 @@ export type AccountSelectionState = {
 export type AccountSelectionStateActions = {
   setAccounts: Dispatch<SetStateAction<Account[]>>;
   setSelectedAccountRemoteId: Dispatch<SetStateAction<string | null>>;
-  setActiveUserRemoteId: Dispatch<SetStateAction<string | null>>;
-  setIsCreateMode: Dispatch<SetStateAction<boolean>>;
-  setNewAccountType: Dispatch<SetStateAction<AccountTypeValue>>;
-  setNewAccountDisplayName: Dispatch<SetStateAction<string>>;
   setIsLoading: Dispatch<SetStateAction<boolean>>;
   setIsSubmitting: Dispatch<SetStateAction<boolean>>;
   setSubmitError: Dispatch<SetStateAction<string | undefined>>;
@@ -46,14 +34,6 @@ export const useAccountSelectionState = (): {
   const [selectedAccountRemoteId, setSelectedAccountRemoteId] = useState<
     string | null
   >(null);
-  const [activeUserRemoteId, setActiveUserRemoteId] = useState<string | null>(
-    null,
-  );
-  const [isCreateMode, setIsCreateMode] = useState(false);
-  const [newAccountType, setNewAccountType] = useState<AccountTypeValue>(
-    AccountType.Personal,
-  );
-  const [newAccountDisplayName, setNewAccountDisplayName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
@@ -68,10 +48,6 @@ export const useAccountSelectionState = (): {
     () => ({
       accounts,
       selectedAccountRemoteId,
-      activeUserRemoteId,
-      isCreateMode,
-      newAccountType,
-      newAccountDisplayName,
       isLoading,
       isSubmitting,
       submitError,
@@ -80,10 +56,6 @@ export const useAccountSelectionState = (): {
     [
       accounts,
       selectedAccountRemoteId,
-      activeUserRemoteId,
-      isCreateMode,
-      newAccountType,
-      newAccountDisplayName,
       isLoading,
       isSubmitting,
       submitError,
@@ -95,10 +67,6 @@ export const useAccountSelectionState = (): {
     () => ({
       setAccounts,
       setSelectedAccountRemoteId,
-      setActiveUserRemoteId,
-      setIsCreateMode,
-      setNewAccountType,
-      setNewAccountDisplayName,
       setIsLoading,
       setIsSubmitting,
       setSubmitError,

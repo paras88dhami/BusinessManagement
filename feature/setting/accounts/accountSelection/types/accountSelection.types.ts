@@ -47,6 +47,11 @@ export type Account = {
   updatedAt: number;
 };
 
+export type SelectedAccountContext = {
+  accountRemoteId: string;
+  accountType: AccountTypeValue;
+};
+
 export const AccountSelectionErrorType = {
   DatabaseError: "DATABASE_ERROR",
   ValidationError: "VALIDATION_ERROR",

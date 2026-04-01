@@ -6,7 +6,7 @@ import { createLocalAuthCredentialDatasource } from "@/feature/session/data/data
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
 import { createVerifyLocalCredentialUseCase } from "@/feature/session/useCase/verifyLocalCredential.useCase.impl";
-import { createLocalLoginRepository } from "../data/repositiory/login.repository.impl";
+import { createLocalLoginRepository } from "../data/repository/login.repository.impl";
 
 export function createLocalLoginRepositoryWithDatabase(database: Database) {
   const authUserDatasource = createLocalAuthUserDatasource(database);

@@ -12,41 +12,51 @@ export const createSaveAuthCredentialUseCase = (
   async execute(
     payload: SaveAuthCredentialPayload,
   ): Promise<AuthCredentialResult> {
-    if (!payload.remoteId.trim()) {
+    const normalizedPayload: SaveAuthCredentialPayload = {
+      ...payload,
+      remoteId: payload.remoteId.trim(),
+      userRemoteId: payload.userRemoteId.trim(),
+      loginId: payload.loginId.trim(),
+      passwordHash: payload.passwordHash.trim(),
+      passwordSalt: payload.passwordSalt.trim(),
+      hint: payload.hint?.trim() ? payload.hint.trim() : null,
+    };
+
+    if (!normalizedPayload.remoteId) {
       return {
         success: false,
         error: AuthSessionValidationError("Remote id is required."),
       };
     }
 
-    if (!payload.userRemoteId.trim()) {
+    if (!normalizedPayload.userRemoteId) {
       return {
         success: false,
         error: AuthSessionValidationError("User remote id is required."),
       };
     }
 
-    if (!payload.loginId.trim()) {
+    if (!normalizedPayload.loginId) {
       return {
         success: false,
         error: AuthSessionValidationError("Login id is required."),
       };
     }
 
-    if (!payload.passwordHash.trim()) {
+    if (!normalizedPayload.passwordHash) {
       return {
         success: false,
         error: AuthSessionValidationError("Password hash is required."),
       };
     }
 
-    if (!payload.passwordSalt.trim()) {
+    if (!normalizedPayload.passwordSalt) {
       return {
         success: false,
         error: AuthSessionValidationError("Password salt is required."),
       };
     }
 
-    return authCredentialRepository.saveAuthCredential(payload);
+    return authCredentialRepository.saveAuthCredential(normalizedPayload);
   },
 });

@@ -1,4 +1,4 @@
-import appDatabase from "@/app/database/database";
+import appDatabase from "@/shared/database/appDatabase";
 import { getSelectedLanguage } from "@/feature/appSettings/data/appSettings.store";
 import { changeLanguage, isSupportedLanguageCode } from "./i18n";
 import { FALLBACK_LANGUAGE } from "./types";
