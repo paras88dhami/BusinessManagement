@@ -1,8 +1,12 @@
+import {
+  SaveAuthCredentialPayload,
+  SaveAuthUserPayload,
+} from "@/feature/session/types/authSession.types";
 import { Result } from "@/shared/types/result.types";
 import { UserManagementPermissionSeed } from "../../types/userManagementPermissionSeed.types";
-import { AccountRoleModel } from "./db/accountRole.model";
 import { AccountMemberModel } from "./db/accountMember.model";
 import { AccountRolePermissionModel } from "./db/accountRolePermission.model";
+import { AccountRoleModel } from "./db/accountRole.model";
 import { AccountUserRoleModel } from "./db/accountUserRole.model";
 import { UserManagementPermissionModel } from "./db/userManagementPermission.model";
 
@@ -30,6 +34,19 @@ export type SaveAccountMemberRecordPayload = {
   lastActiveAt: number | null;
 };
 
+export type CreateMemberAccessRecordPayload = {
+  authUser: SaveAuthUserPayload;
+  authCredential: SaveAuthCredentialPayload;
+  member: SaveAccountMemberRecordPayload;
+  roleAssignment: AssignAccountUserRoleRecordPayload;
+};
+
+export type UpdateMemberAccessRecordPayload = {
+  authUser: SaveAuthUserPayload;
+  authCredential: SaveAuthCredentialPayload;
+  roleAssignment?: AssignAccountUserRoleRecordPayload | null;
+};
+
 export interface UserManagementDatasource {
   ensurePermissionCatalogSeeded(
     seed: readonly UserManagementPermissionSeed[],
@@ -47,6 +64,12 @@ export interface UserManagementDatasource {
     accountRemoteId: string,
     userRemoteId: string,
   ): Promise<Result<AccountMemberModel | null>>;
+  createMemberAccessRecord(
+    payload: CreateMemberAccessRecordPayload,
+  ): Promise<Result<boolean>>;
+  updateMemberAccessRecord(
+    payload: UpdateMemberAccessRecordPayload,
+  ): Promise<Result<boolean>>;
   saveMember(
     payload: SaveAccountMemberRecordPayload,
   ): Promise<Result<AccountMemberModel>>;

@@ -12,6 +12,7 @@ import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/sett
 import { createSaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase.impl";
 import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
+import { createGetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
@@ -70,6 +71,11 @@ export const useProfileScreenDependencies = (
     [accountRepository, userManagementRepository],
   );
 
+  const getUserManagementSnapshotUseCase = useMemo(
+    () => createGetUserManagementSnapshotUseCase(userManagementRepository),
+    [userManagementRepository],
+  );
+
   const getAuthUserByRemoteIdUseCase = useMemo(
     () => createGetAuthUserByRemoteIdUseCase(authUserRepository),
     [authUserRepository],
@@ -92,7 +98,9 @@ export const useProfileScreenDependencies = (
 
   const getBusinessProfileByAccountRemoteIdUseCase = useMemo(
     () =>
-      createGetBusinessProfileByAccountRemoteIdUseCase(businessProfileRepository),
+      createGetBusinessProfileByAccountRemoteIdUseCase(
+        businessProfileRepository,
+      ),
     [businessProfileRepository],
   );
 
@@ -111,7 +119,8 @@ export const useProfileScreenDependencies = (
   );
 
   const onSetActiveAccountSession = useCallback(
-    (accountRemoteId: string) => setActiveAccountSession(database, accountRemoteId),
+    (accountRemoteId: string) =>
+      setActiveAccountSession(database, accountRemoteId),
     [database],
   );
 
@@ -120,6 +129,7 @@ export const useProfileScreenDependencies = (
       getAccessibleAccountsByUserRemoteIdUseCase,
       saveAccountUseCase,
       getAuthUserByRemoteIdUseCase,
+      getUserManagementSnapshotUseCase,
       saveAuthUserUseCase,
       getBusinessProfileByAccountRemoteIdUseCase,
       saveBusinessProfileUseCase,
@@ -130,6 +140,7 @@ export const useProfileScreenDependencies = (
       createBusinessWorkspaceUseCase,
       getAccessibleAccountsByUserRemoteIdUseCase,
       getAuthUserByRemoteIdUseCase,
+      getUserManagementSnapshotUseCase,
       getBusinessProfileByAccountRemoteIdUseCase,
       onSetActiveAccountSession,
       saveAccountUseCase,
@@ -138,4 +149,3 @@ export const useProfileScreenDependencies = (
     ],
   );
 };
-

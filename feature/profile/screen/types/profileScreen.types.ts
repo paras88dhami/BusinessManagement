@@ -40,6 +40,7 @@ export type ProfileScreenData = {
   activeAccountRemoteId: string | null;
   activeAccountType: AccountTypeValue | null;
   activeAccountDisplayName: string;
+  activeAccountRoleLabel: string;
   personalProfile: EditablePersonalProfile;
   activeBusinessProfile: EditableBusinessProfile;
   hasActiveBusinessProfile: boolean;

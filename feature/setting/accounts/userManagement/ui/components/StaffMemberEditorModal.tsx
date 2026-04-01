@@ -12,6 +12,10 @@ import { X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import {
+  SignUpPhoneCountryCode,
+  SignUpPhoneCountryOption,
+} from "@/feature/auth/signUp/types/signUp.types";
 
 export type StaffMemberRoleOption = {
   remoteId: string;
@@ -22,6 +26,8 @@ type StaffMemberEditorModalProps = {
   visible: boolean;
   mode: "create" | "edit";
   fullName: string;
+  phoneCountryCode: SignUpPhoneCountryCode;
+  phoneCountryOptions: readonly SignUpPhoneCountryOption[];
   phone: string;
   email: string;
   password: string;
@@ -30,6 +36,7 @@ type StaffMemberEditorModalProps = {
   canAssignRoles: boolean;
   isSaving: boolean;
   onChangeFullName: (fullName: string) => void;
+  onChangeSelectedPhoneCountry: (phoneCountryCode: SignUpPhoneCountryCode) => void;
   onChangePhone: (phone: string) => void;
   onChangeEmail: (email: string) => void;
   onChangePassword: (password: string) => void;
@@ -42,6 +49,8 @@ export function StaffMemberEditorModal({
   visible,
   mode,
   fullName,
+  phoneCountryCode,
+  phoneCountryOptions,
   phone,
   email,
   password,
@@ -50,6 +59,7 @@ export function StaffMemberEditorModal({
   canAssignRoles,
   isSaving,
   onChangeFullName,
+  onChangeSelectedPhoneCountry,
   onChangePhone,
   onChangeEmail,
   onChangePassword,
@@ -98,15 +108,48 @@ export function StaffMemberEditorModal({
             editable={!isSaving}
           />
 
+          <Text style={styles.inputLabel}>Phone country</Text>
+          <ScrollView
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.roleOptionsRow}
+          >
+            {phoneCountryOptions.map((phoneCountryOption) => {
+              const isSelected = phoneCountryOption.code === phoneCountryCode;
+
+              return (
+                <Pressable
+                  key={phoneCountryOption.code}
+                  style={[
+                    styles.roleChip,
+                    isSelected ? styles.roleChipSelected : null,
+                  ]}
+                  onPress={() => onChangeSelectedPhoneCountry(phoneCountryOption.code)}
+                  disabled={isSaving}
+                  accessibilityRole="button"
+                >
+                  <Text
+                    style={[
+                      styles.roleChipText,
+                      isSelected ? styles.roleChipTextSelected : null,
+                    ]}
+                  >
+                    {phoneCountryOption.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
           <Text style={styles.inputLabel}>Phone number</Text>
           <TextInput
             value={phone}
             onChangeText={onChangePhone}
-            placeholder="Enter phone number"
+            placeholder="Enter local phone number"
             placeholderTextColor={colors.mutedForeground}
             style={styles.input}
             keyboardType="phone-pad"
-            editable={!isSaving && mode === "create"}
+            editable={!isSaving}
           />
 
           <Text style={styles.inputLabel}>Email (optional)</Text>
@@ -121,20 +164,18 @@ export function StaffMemberEditorModal({
             editable={!isSaving}
           />
 
-          {mode === "create" ? (
-            <>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                value={password}
-                onChangeText={onChangePassword}
-                placeholder="Set password"
-                placeholderTextColor={colors.mutedForeground}
-                style={styles.input}
-                secureTextEntry={true}
-                editable={!isSaving}
-              />
-            </>
-          ) : null}
+          <Text style={styles.inputLabel}>
+            {mode === "create" ? "Password" : "Reset password (optional)"}
+          </Text>
+          <TextInput
+            value={password}
+            onChangeText={onChangePassword}
+            placeholder={mode === "create" ? "Set password" : "Leave blank to keep current password"}
+            placeholderTextColor={colors.mutedForeground}
+            style={styles.input}
+            secureTextEntry={true}
+            editable={!isSaving}
+          />
 
           <Text style={styles.roleLabel}>Role</Text>
           <ScrollView

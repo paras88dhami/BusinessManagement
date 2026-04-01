@@ -1,9 +1,14 @@
 import {
+  SaveAuthCredentialPayload,
+  SaveAuthUserPayload,
+} from "@/feature/session/types/authSession.types";
+import { Result } from "@/shared/types/result.types";
+import {
   AccountMemberResult,
   AccountMembersResult,
   AccountMembersWithRoleResult,
-  AccountRemoteIdsResult,
   AccountPermissionCodesResult,
+  AccountRemoteIdsResult,
   AccountUserRoleAssignmentResult,
   AssignUserManagementRolePayload,
   ResolveAccountPermissionCodesPayload,
@@ -16,7 +21,6 @@ import {
   UserManagementRoleResult,
   UserManagementRolesResult,
 } from "../../types/userManagement.types";
-import { Result } from "@/shared/types/result.types";
 
 export interface UserManagementRepository {
   ensurePermissionCatalogSeeded(): Promise<UserManagementOperationResult>;
@@ -42,6 +46,17 @@ export interface UserManagementRepository {
   saveAccountMember(
     payload: SaveAccountMemberPayload,
   ): Promise<AccountMemberResult>;
+  createMemberAccessTransaction(payload: {
+    authUser: SaveAuthUserPayload;
+    authCredential: SaveAuthCredentialPayload;
+    member: SaveAccountMemberPayload;
+    roleRemoteId: string;
+  }): Promise<UserManagementOperationResult>;
+  updateMemberAccessTransaction(payload: {
+    authUser: SaveAuthUserPayload;
+    authCredential: SaveAuthCredentialPayload;
+    roleAssignment?: AssignUserManagementRolePayload | null;
+  }): Promise<UserManagementOperationResult>;
   deleteAccountMemberByRemoteId(
     memberRemoteId: string,
   ): Promise<UserManagementOperationResult>;

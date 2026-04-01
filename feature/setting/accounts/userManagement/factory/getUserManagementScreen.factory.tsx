@@ -8,8 +8,6 @@ import { createAuthCredentialRepository } from "@/feature/session/data/repositor
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
-import { createSaveAuthCredentialUseCase } from "@/feature/session/useCase/saveAuthCredential.useCase.impl";
-import { createSaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase.impl";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import { createLocalUserManagementDatasource } from "../data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "../data/repository/userManagement.repository.impl";
@@ -96,36 +94,16 @@ export function GetUserManagementScreenFactory({
     [authUserRepository],
   );
 
-  const saveAuthUserUseCase = React.useMemo(
-    () => createSaveAuthUserUseCase(authUserRepository),
-    [authUserRepository],
-  );
-
-  const saveAuthCredentialUseCase = React.useMemo(
-    () => createSaveAuthCredentialUseCase(authCredentialRepository),
-    [authCredentialRepository],
-  );
-
   const passwordHashService = React.useMemo(() => createPasswordHashService(), []);
 
   const createAccountMemberUseCase = React.useMemo(
     () =>
       createCreateAccountMemberUseCase({
         userManagementRepository,
-        saveAuthUserUseCase,
-        saveAuthCredentialUseCase,
-        authUserRepository,
         authCredentialRepository,
         passwordHashService,
       }),
-    [
-      authCredentialRepository,
-      authUserRepository,
-      passwordHashService,
-      saveAuthCredentialUseCase,
-      saveAuthUserUseCase,
-      userManagementRepository,
-    ],
+    [authCredentialRepository, passwordHashService, userManagementRepository],
   );
 
   const updateAccountMemberUseCase = React.useMemo(
@@ -133,9 +111,15 @@ export function GetUserManagementScreenFactory({
       createUpdateAccountMemberUseCase({
         userManagementRepository,
         getAuthUserByRemoteIdUseCase,
-        saveAuthUserUseCase,
+        authCredentialRepository,
+        passwordHashService,
       }),
-    [getAuthUserByRemoteIdUseCase, saveAuthUserUseCase, userManagementRepository],
+    [
+      authCredentialRepository,
+      getAuthUserByRemoteIdUseCase,
+      passwordHashService,
+      userManagementRepository,
+    ],
   );
 
   const getAccessibleAccountsByUserRemoteIdUseCase = React.useMemo(

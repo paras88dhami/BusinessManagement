@@ -1,3 +1,4 @@
+import { SignUpPhoneCountryCode } from "@/feature/auth/signUp/types/signUp.types";
 import { Result } from "@/shared/types/result.types";
 
 export type UserManagementPermission = {
@@ -98,6 +99,7 @@ export type CreateAccountMemberPayload = {
   actorUserRemoteId: string;
   fullName: string;
   email: string | null;
+  phoneCountryCode: SignUpPhoneCountryCode;
   phone: string;
   password: string;
   roleRemoteId: string;
@@ -109,6 +111,9 @@ export type UpdateAccountMemberPayload = {
   memberRemoteId: string;
   fullName?: string;
   email?: string | null;
+  phoneCountryCode?: SignUpPhoneCountryCode;
+  phone?: string;
+  password?: string;
   roleRemoteId?: string;
 };
 

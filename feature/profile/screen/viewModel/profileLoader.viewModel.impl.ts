@@ -20,6 +20,7 @@ export const useProfileLoaderViewModel = (
     getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase,
+    getUserManagementSnapshotUseCase,
     onLoaded,
   } = params;
 
@@ -87,6 +88,7 @@ export const useProfileLoaderViewModel = (
             activeAccountRemoteId: null,
             activeAccountType: null,
             activeAccountDisplayName: "",
+            activeAccountRoleLabel: "",
             personalProfile,
             activeBusinessProfile: createDefaultBusinessProfileForm(),
             hasActiveBusinessProfile: false,
@@ -99,12 +101,19 @@ export const useProfileLoaderViewModel = (
 
       let activeBusinessProfile = createDefaultBusinessProfileForm();
       let hasActiveBusinessProfile = false;
+      let activeAccountRoleLabel =
+        activeAccount.accountType === AccountType.Business
+          ? "Business Owner"
+          : "Personal Account";
 
       if (activeAccount.accountType === AccountType.Business) {
-        const businessProfileResult =
-          await getBusinessProfileByAccountRemoteIdUseCase.execute(
-            activeAccount.remoteId,
-          );
+        const [businessProfileResult, userManagementSnapshotResult] = await Promise.all([
+          getBusinessProfileByAccountRemoteIdUseCase.execute(activeAccount.remoteId),
+          getUserManagementSnapshotUseCase.execute({
+            accountRemoteId: activeAccount.remoteId,
+            userRemoteId: activeUserRemoteId,
+          }),
+        ]);
 
         if (businessProfileResult.success) {
           activeBusinessProfile = mapBusinessProfileToForm(
@@ -115,6 +124,14 @@ export const useProfileLoaderViewModel = (
           activeBusinessProfile = mapAccountOptionToFallbackBusinessForm(
             activeAccount,
           );
+        }
+
+        if (userManagementSnapshotResult.success) {
+          const activeMember = userManagementSnapshotResult.value.members.find(
+            (member) => member.userRemoteId === activeUserRemoteId,
+          );
+
+          activeAccountRoleLabel = activeMember?.roleName ?? activeAccountRoleLabel;
         }
       }
 
@@ -127,6 +144,7 @@ export const useProfileLoaderViewModel = (
           activeAccountRemoteId: activeAccount.remoteId,
           activeAccountType: activeAccount.accountType,
           activeAccountDisplayName: activeAccount.displayName,
+          activeAccountRoleLabel,
           personalProfile,
           activeBusinessProfile,
           hasActiveBusinessProfile,
@@ -148,6 +166,7 @@ export const useProfileLoaderViewModel = (
     getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase,
+    getUserManagementSnapshotUseCase,
     onLoaded,
   ]);
 

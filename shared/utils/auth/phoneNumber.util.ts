@@ -31,7 +31,23 @@ export const buildPhoneLoginIdCandidates = (value: string): string[] => {
     return [];
   }
 
-  return [normalizedPhoneNumber];
+  const candidates = new Set<string>([normalizedPhoneNumber]);
+
+  if (
+    normalizedPhoneNumber.startsWith("+977") &&
+    normalizedPhoneNumber.length === 14
+  ) {
+    candidates.add(normalizedPhoneNumber.slice(4));
+  }
+
+  if (
+    normalizedPhoneNumber.startsWith("+91") &&
+    normalizedPhoneNumber.length === 13
+  ) {
+    candidates.add(normalizedPhoneNumber.slice(3));
+  }
+
+  return Array.from(candidates);
 };
 
 export const composePhoneNumberWithDialCode = (

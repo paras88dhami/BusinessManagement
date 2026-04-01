@@ -57,6 +57,8 @@ export const useProfileScreenViewModel = (
     getAuthUserByRemoteIdUseCase: dependencies.getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase:
       dependencies.getBusinessProfileByAccountRemoteIdUseCase,
+    getUserManagementSnapshotUseCase:
+      dependencies.getUserManagementSnapshotUseCase,
     onLoaded,
   });
 
@@ -105,8 +107,8 @@ export const useProfileScreenViewModel = (
   const initials = useMemo(() => buildInitials(data.profileName), [data.profileName]);
 
   const roleLabel = useMemo(
-    () => getAccountRoleLabel(data.activeAccountType),
-    [data.activeAccountType],
+    () => data.activeAccountRoleLabel || getAccountRoleLabel(data.activeAccountType),
+    [data.activeAccountRoleLabel, data.activeAccountType],
   );
 
   const activeAccountTypeLabel = useMemo(

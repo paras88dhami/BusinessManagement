@@ -10,6 +10,7 @@ import {
   UserManagementPermission,
   UserManagementRole,
 } from "../types/userManagement.types";
+import { SignUpPhoneCountryCode } from "@/feature/auth/signUp/types/signUp.types";
 
 export type UserManagementRoleEditorMode = "create" | "edit" | null;
 
@@ -26,6 +27,7 @@ export type UserManagementMemberEditorState = {
   mode: UserManagementMemberEditorMode;
   editingMemberRemoteId: string | null;
   fullName: string;
+  phoneCountryCode: SignUpPhoneCountryCode;
   phone: string;
   email: string;
   password: string;
@@ -84,6 +86,7 @@ const INITIAL_MEMBER_EDITOR_STATE: UserManagementMemberEditorState = {
   mode: null,
   editingMemberRemoteId: null,
   fullName: "",
+  phoneCountryCode: "NP",
   phone: "",
   email: "",
   password: "",

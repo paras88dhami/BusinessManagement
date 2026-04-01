@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
+  getSignUpPhoneLengthForCountry,
+  sanitizeSignUpPhoneDigits,
+} from "@/feature/auth/signUp/utils/signUpPhoneNumber.util";
+import {
+  SIGN_UP_PHONE_COUNTRY_OPTIONS,
+  SignUpPhoneCountryCode,
+} from "@/feature/auth/signUp/types/signUp.types";
+import {
   AccountMemberStatus,
   AccountMemberWithRole,
 } from "../types/userManagement.types";
@@ -38,6 +46,35 @@ const ROLE_MANAGEMENT_PERMISSION_CODE = "user_management.manage_roles";
 const ROLE_ASSIGNMENT_PERMISSION_CODE = "user_management.assign_role";
 const ALL_ROLE_FILTER_KEY = "all";
 const UNASSIGNED_ROLE_FILTER_KEY = "unassigned";
+
+const DEFAULT_MEMBER_PHONE_COUNTRY_CODE: SignUpPhoneCountryCode = "NP";
+
+const splitStoredPhoneNumber = (
+  phoneNumber: string | null,
+): { phoneCountryCode: SignUpPhoneCountryCode; phone: string } => {
+  const normalizedPhoneNumber = (phoneNumber ?? "").trim();
+
+  for (const phoneCountryOption of SIGN_UP_PHONE_COUNTRY_OPTIONS) {
+    if (!normalizedPhoneNumber.startsWith(phoneCountryOption.dialCode)) {
+      continue;
+    }
+
+    return {
+      phoneCountryCode: phoneCountryOption.code,
+      phone: sanitizeSignUpPhoneDigits(
+        normalizedPhoneNumber.slice(phoneCountryOption.dialCode.length),
+      ).slice(0, getSignUpPhoneLengthForCountry(phoneCountryOption.code)),
+    };
+  }
+
+  return {
+    phoneCountryCode: DEFAULT_MEMBER_PHONE_COUNTRY_CODE,
+    phone: sanitizeSignUpPhoneDigits(normalizedPhoneNumber).slice(
+      0,
+      getSignUpPhoneLengthForCountry(DEFAULT_MEMBER_PHONE_COUNTRY_CODE),
+    ),
+  };
+};
 
 const normalizeRoleFilterKey = (roleName: string): string => roleName.trim().toLowerCase();
 
@@ -441,6 +478,7 @@ export const useUserManagementViewModel = (
       mode: "create",
       editingMemberRemoteId: null,
       fullName: "",
+      phoneCountryCode: DEFAULT_MEMBER_PHONE_COUNTRY_CODE,
       phone: "",
       email: "",
       password: "",
@@ -464,12 +502,15 @@ export const useUserManagementViewModel = (
         return;
       }
 
+      const memberPhone = splitStoredPhoneNumber(targetMember.phone);
+
       actions.clearFeedback();
       actions.setMemberEditor({
         mode: "edit",
         editingMemberRemoteId: targetMember.remoteId,
         fullName: targetMember.fullName,
-        phone: targetMember.phone ?? "",
+        phoneCountryCode: memberPhone.phoneCountryCode,
+        phone: memberPhone.phone,
         email: targetMember.email ?? "",
         password: "",
         roleRemoteId: targetMember.roleRemoteId,
@@ -494,11 +535,31 @@ export const useUserManagementViewModel = (
     [actions],
   );
 
+  const onChangeMemberSelectedPhoneCountry = useCallback(
+    (phoneCountryCode: SignUpPhoneCountryCode): void => {
+      const nextPhoneMaxLength = getSignUpPhoneLengthForCountry(phoneCountryCode);
+
+      actions.setMemberEditor((previousEditorState) => ({
+        ...previousEditorState,
+        phoneCountryCode,
+        phone: sanitizeSignUpPhoneDigits(previousEditorState.phone).slice(
+          0,
+          nextPhoneMaxLength,
+        ),
+      }));
+      actions.clearFeedback();
+    },
+    [actions],
+  );
+
   const onChangeMemberPhone = useCallback(
     (phone: string): void => {
       actions.setMemberEditor((previousEditorState) => ({
         ...previousEditorState,
-        phone,
+        phone: sanitizeSignUpPhoneDigits(phone).slice(
+          0,
+          getSignUpPhoneLengthForCountry(previousEditorState.phoneCountryCode),
+        ),
       }));
       actions.clearFeedback();
     },
@@ -575,6 +636,7 @@ export const useUserManagementViewModel = (
           email: state.memberEditor.email.trim()
             ? state.memberEditor.email.trim()
             : null,
+          phoneCountryCode: state.memberEditor.phoneCountryCode,
           phone: state.memberEditor.phone,
           password: state.memberEditor.password,
           roleRemoteId: state.memberEditor.roleRemoteId,
@@ -596,6 +658,11 @@ export const useUserManagementViewModel = (
           memberRemoteId: state.memberEditor.editingMemberRemoteId,
           fullName: state.memberEditor.fullName,
           email: state.memberEditor.email,
+          phoneCountryCode: state.memberEditor.phoneCountryCode,
+          phone: state.memberEditor.phone,
+          password: state.memberEditor.password.trim()
+            ? state.memberEditor.password
+            : undefined,
           roleRemoteId: state.memberEditor.roleRemoteId ?? undefined,
         });
 
@@ -629,6 +696,7 @@ export const useUserManagementViewModel = (
     state.memberEditor.mode,
     state.memberEditor.password,
     state.memberEditor.phone,
+    state.memberEditor.phoneCountryCode,
     state.memberEditor.roleRemoteId,
     updateAccountMemberUseCase,
   ]);
@@ -950,6 +1018,7 @@ export const useUserManagementViewModel = (
       onStartEditMember,
       onCancelMemberEditor,
       onChangeMemberFullName,
+      onChangeMemberSelectedPhoneCountry,
       onChangeMemberPhone,
       onChangeMemberEmail,
       onChangeMemberPassword,
@@ -979,6 +1048,7 @@ export const useUserManagementViewModel = (
       onChangeMemberEmail,
       onChangeMemberFullName,
       onChangeMemberPassword,
+      onChangeMemberSelectedPhoneCountry,
       onChangeMemberPhone,
       onChangeMemberRole,
       onChangeRoleName,

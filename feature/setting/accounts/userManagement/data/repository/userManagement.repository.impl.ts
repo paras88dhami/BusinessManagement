@@ -1,6 +1,10 @@
 import { AccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository";
 import { AuthUserRepository } from "@/feature/session/data/repository/authUser.repository";
 import {
+  SaveAuthCredentialPayload,
+  SaveAuthUserPayload,
+} from "@/feature/session/types/authSession.types";
+import {
   USER_MANAGEMENT_OWNER_ROLE_NAME,
   USER_MANAGEMENT_PERMISSION_SEED,
 } from "../../types/userManagementPermissionSeed.types";
@@ -782,6 +786,77 @@ export const createUserManagementRepository = ({
         success: true,
         value: mapAccountMemberModelToDomain(saveResult.value),
       };
+    },
+
+    async createMemberAccessTransaction(payload: {
+      authUser: SaveAuthUserPayload;
+      authCredential: SaveAuthCredentialPayload;
+      member: SaveAccountMemberPayload;
+      roleRemoteId: string;
+    }): Promise<UserManagementOperationResult> {
+      const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
+
+      if (!normalizedRoleRemoteId) {
+        return {
+          success: false,
+          error: UserManagementValidationError("Role remote id is required."),
+        };
+      }
+
+      const saveResult = await localDatasource.createMemberAccessRecord({
+        authUser: payload.authUser,
+        authCredential: payload.authCredential,
+        member: {
+          remoteId: payload.member.remoteId ?? createMemberRemoteId(),
+          accountRemoteId: payload.member.accountRemoteId,
+          userRemoteId: payload.member.userRemoteId,
+          status: payload.member.status,
+          invitedByUserRemoteId: payload.member.invitedByUserRemoteId ?? null,
+          joinedAt: payload.member.joinedAt ?? null,
+          lastActiveAt: payload.member.lastActiveAt ?? null,
+        },
+        roleAssignment: {
+          accountRemoteId: payload.member.accountRemoteId,
+          userRemoteId: payload.member.userRemoteId,
+          roleRemoteId: normalizedRoleRemoteId,
+        },
+      });
+
+      if (!saveResult.success) {
+        return {
+          success: false,
+          error: mapUserManagementError(saveResult.error),
+        };
+      }
+
+      return { success: true, value: true };
+    },
+
+    async updateMemberAccessTransaction(payload: {
+      authUser: SaveAuthUserPayload;
+      authCredential: SaveAuthCredentialPayload;
+      roleAssignment?: AssignUserManagementRolePayload | null;
+    }): Promise<UserManagementOperationResult> {
+      const updateResult = await localDatasource.updateMemberAccessRecord({
+        authUser: payload.authUser,
+        authCredential: payload.authCredential,
+        roleAssignment: payload.roleAssignment
+          ? {
+              accountRemoteId: payload.roleAssignment.accountRemoteId,
+              userRemoteId: payload.roleAssignment.userRemoteId,
+              roleRemoteId: payload.roleAssignment.roleRemoteId,
+            }
+          : null,
+      });
+
+      if (!updateResult.success) {
+        return {
+          success: false,
+          error: mapUserManagementError(updateResult.error),
+        };
+      }
+
+      return { success: true, value: true };
     },
 
     async deleteAccountMemberByRemoteId(

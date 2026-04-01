@@ -11,6 +11,7 @@ import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useC
 import { GetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase";
 import { SaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase";
 import { CreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase";
+import { GetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase";
 import {
   BUSINESS_TYPE_OPTIONS,
   BusinessTypeValue,
@@ -84,6 +85,7 @@ export type ProfileScreenDependencies = {
   getBusinessProfileByAccountRemoteIdUseCase: GetBusinessProfileByAccountRemoteIdUseCase;
   saveBusinessProfileUseCase: SaveBusinessProfileUseCase;
   createBusinessWorkspaceUseCase: CreateBusinessWorkspaceUseCase;
+  getUserManagementSnapshotUseCase: GetUserManagementSnapshotUseCase;
   setActiveAccountSession: (accountRemoteId: string) => Promise<void>;
 };
 

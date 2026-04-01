@@ -26,6 +26,7 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { UserManagementPermission } from "../types/userManagement.types";
 import { UserManagementViewModel } from "../viewModel/userManagement.viewModel";
+import { SIGN_UP_PHONE_COUNTRY_OPTIONS } from "@/feature/auth/signUp/types/signUp.types";
 import {
   RoleEditorModal,
   RoleEditorPermissionGroup,
@@ -497,6 +498,8 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           visible={isMemberEditorOpen}
           mode={viewModel.memberEditor.mode}
           fullName={viewModel.memberEditor.fullName}
+          phoneCountryCode={viewModel.memberEditor.phoneCountryCode}
+          phoneCountryOptions={SIGN_UP_PHONE_COUNTRY_OPTIONS}
           phone={viewModel.memberEditor.phone}
           email={viewModel.memberEditor.email}
           password={viewModel.memberEditor.password}
@@ -505,6 +508,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           canAssignRoles={viewModel.canAssignRoles}
           isSaving={viewModel.isSavingMember}
           onChangeFullName={viewModel.onChangeMemberFullName}
+          onChangeSelectedPhoneCountry={viewModel.onChangeMemberSelectedPhoneCountry}
           onChangePhone={viewModel.onChangeMemberPhone}
           onChangeEmail={viewModel.onChangeMemberEmail}
           onChangePassword={viewModel.onChangeMemberPassword}

@@ -1,10 +1,25 @@
+import {
+  SignUpPhoneCountryCode,
+  SIGN_UP_PHONE_COUNTRY_OPTIONS,
+} from "@/feature/auth/signUp/types/signUp.types";
+import {
+  getInvalidSignUpPhoneMessageForCountry,
+  isValidSignUpPhoneForCountry,
+  sanitizeSignUpPhoneDigits,
+} from "@/feature/auth/signUp/utils/signUpPhoneNumber.util";
+import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
-import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
-import { AuthSessionErrorType } from "@/feature/session/types/authSession.types";
+import {
+  AuthSessionErrorType,
+  CredentialType,
+} from "@/feature/session/types/authSession.types";
+import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
+import { composePhoneNumberWithDialCode } from "@/shared/utils/auth/phoneNumber.util";
 import { UserManagementRepository } from "../data/repository/userManagement.repository";
 import {
   AccountMemberWithRoleResult,
   UpdateAccountMemberPayload,
+  UserManagementConflictError,
   UserManagementDatabaseError,
   UserManagementErrorType,
   UserManagementForbiddenError,
@@ -20,7 +35,8 @@ const ASSIGN_ROLE_PERMISSION_CODE = "user_management.assign_role";
 type UpdateAccountMemberUseCaseParams = {
   userManagementRepository: UserManagementRepository;
   getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
-  saveAuthUserUseCase: SaveAuthUserUseCase;
+  authCredentialRepository: AuthCredentialRepository;
+  passwordHashService: PasswordHashService;
 };
 
 const normalizeRequired = (value: string): string => value.trim();
@@ -55,6 +71,10 @@ const mapAuthSessionErrorToUserManagementError = (
       return UserManagementNotFoundError(typedError.message);
     }
 
+    if (typedError.type === AuthSessionErrorType.AuthCredentialNotFound) {
+      return UserManagementNotFoundError(typedError.message);
+    }
+
     return {
       ...UserManagementUnknownError,
       message: typedError.message,
@@ -71,13 +91,47 @@ const mapAuthSessionErrorToUserManagementError = (
   return UserManagementUnknownError;
 };
 
+const buildPhoneLoginId = (
+  phoneCountryCode: SignUpPhoneCountryCode,
+  phone: string,
+):
+  | { success: true; value: string }
+  | { success: false; error: ReturnType<typeof UserManagementValidationError> } => {
+  const phoneDigits = sanitizeSignUpPhoneDigits(phone);
+
+  if (!isValidSignUpPhoneForCountry(phoneDigits, phoneCountryCode)) {
+    return {
+      success: false,
+      error: UserManagementValidationError(
+        getInvalidSignUpPhoneMessageForCountry(phoneCountryCode),
+      ),
+    };
+  }
+
+  const phoneCountryOption =
+    SIGN_UP_PHONE_COUNTRY_OPTIONS.find((option) => option.code === phoneCountryCode) ??
+    SIGN_UP_PHONE_COUNTRY_OPTIONS[0];
+
+  const loginId = composePhoneNumberWithDialCode(phoneDigits, phoneCountryOption.dialCode);
+
+  if (!loginId) {
+    return {
+      success: false,
+      error: UserManagementValidationError("Enter a valid phone number."),
+    };
+  }
+
+  return { success: true, value: loginId };
+};
+
 export const createUpdateAccountMemberUseCase = (
   params: UpdateAccountMemberUseCaseParams,
 ): UpdateAccountMemberUseCase => {
   const {
     userManagementRepository,
     getAuthUserByRemoteIdUseCase,
-    saveAuthUserUseCase,
+    authCredentialRepository,
+    passwordHashService,
   } = params;
 
   return {
@@ -94,6 +148,7 @@ export const createUpdateAccountMemberUseCase = (
         ? normalizeRequired(payload.fullName)
         : null;
       const normalizedEmail = normalizeOptional(payload.email);
+      const normalizedPassword = normalizeOptional(payload.password ?? null);
 
       if (!normalizedAccountRemoteId) {
         return {
@@ -121,6 +176,15 @@ export const createUpdateAccountMemberUseCase = (
           success: false,
           error: UserManagementValidationError(
             "Full name must be at least 2 characters.",
+          ),
+        };
+      }
+
+      if (normalizedPassword !== null && normalizedPassword.length < 6) {
+        return {
+          success: false,
+          error: UserManagementValidationError(
+            "Password must be at least 6 characters.",
           ),
         };
       }
@@ -204,72 +268,138 @@ export const createUpdateAccountMemberUseCase = (
         };
       }
 
+      const currentCredentialResult =
+        await authCredentialRepository.getAuthCredentialByUserRemoteId(
+          memberResult.value.userRemoteId,
+        );
+
+      if (!currentCredentialResult.success) {
+        return {
+          success: false,
+          error: mapAuthSessionErrorToUserManagementError(currentCredentialResult.error),
+        };
+      }
+
       const existingAuthUser = authUserResult.value;
-      const nextFullName = normalizedFullName ?? existingAuthUser.fullName;
-      const nextEmail = payload.email === undefined ? existingAuthUser.email : normalizedEmail;
-      const shouldUpdateProfile =
-        nextFullName !== existingAuthUser.fullName ||
-        nextEmail !== existingAuthUser.email;
+      const existingCredential = currentCredentialResult.value;
 
-      if (shouldUpdateProfile) {
-        const saveAuthUserResult = await saveAuthUserUseCase.execute({
-          remoteId: existingAuthUser.remoteId,
-          fullName: nextFullName,
-          email: nextEmail,
-          phone: existingAuthUser.phone,
-          authProvider: existingAuthUser.authProvider,
-          profileImageUrl: existingAuthUser.profileImageUrl,
-          preferredLanguage: existingAuthUser.preferredLanguage,
-          isEmailVerified: existingAuthUser.isEmailVerified,
-          isPhoneVerified: existingAuthUser.isPhoneVerified,
-        });
+      let nextPhone = existingCredential.loginId;
 
-        if (!saveAuthUserResult.success) {
+      if (payload.phone !== undefined) {
+        if (!payload.phoneCountryCode) {
           return {
             success: false,
-            error: mapAuthSessionErrorToUserManagementError(saveAuthUserResult.error),
+            error: UserManagementValidationError("Phone country is required."),
+          };
+        }
+
+        const normalizedPhoneResult = buildPhoneLoginId(
+          payload.phoneCountryCode,
+          payload.phone,
+        );
+
+        if (!normalizedPhoneResult.success) {
+          return {
+            success: false,
+            error: normalizedPhoneResult.error,
+          };
+        }
+
+        nextPhone = normalizedPhoneResult.value;
+      }
+
+      if (nextPhone !== existingCredential.loginId) {
+        const phoneConflictResult = await authCredentialRepository.getAuthCredentialByLoginId(
+          nextPhone,
+          CredentialType.Password,
+        );
+
+        if (
+          phoneConflictResult.success &&
+          phoneConflictResult.value.remoteId !== existingCredential.remoteId
+        ) {
+          return {
+            success: false,
+            error: UserManagementConflictError(
+              "An account with this phone number already exists.",
+            ),
+          };
+        }
+
+        if (
+          !phoneConflictResult.success &&
+          phoneConflictResult.error.type !== AuthSessionErrorType.AuthCredentialNotFound
+        ) {
+          return {
+            success: false,
+            error: mapAuthSessionErrorToUserManagementError(phoneConflictResult.error),
           };
         }
       }
 
-      if (shouldAssignRole && normalizedRoleRemoteId) {
-        const assignRoleResult = await userManagementRepository.assignUserRole({
-          accountRemoteId: normalizedAccountRemoteId,
-          actorUserRemoteId: normalizedActorUserRemoteId,
-          userRemoteId: memberResult.value.userRemoteId,
-          roleRemoteId: normalizedRoleRemoteId,
+      const nextFullName = normalizedFullName ?? existingAuthUser.fullName;
+      const nextEmail = payload.email === undefined ? existingAuthUser.email : normalizedEmail;
+      const shouldUpdateProfile =
+        nextFullName !== existingAuthUser.fullName ||
+        nextEmail !== existingAuthUser.email ||
+        nextPhone !== (existingAuthUser.phone ?? "");
+      const shouldUpdateCredential =
+        nextPhone !== existingCredential.loginId || normalizedPassword !== null;
+
+      let nextPasswordHash = existingCredential.passwordHash;
+      let nextPasswordSalt = existingCredential.passwordSalt;
+
+      if (normalizedPassword !== null) {
+        try {
+          nextPasswordSalt = await passwordHashService.generateSalt();
+          nextPasswordHash = await passwordHashService.hash(
+            normalizedPassword,
+            nextPasswordSalt,
+          );
+        } catch (error) {
+          return {
+            success: false,
+            error: mapAuthSessionErrorToUserManagementError(error),
+          };
+        }
+      }
+
+      if (shouldUpdateProfile || shouldUpdateCredential || (shouldAssignRole && normalizedRoleRemoteId)) {
+        const updateAccessResult = await userManagementRepository.updateMemberAccessTransaction({
+          authUser: {
+            remoteId: existingAuthUser.remoteId,
+            fullName: nextFullName,
+            email: nextEmail,
+            phone: nextPhone,
+            authProvider: existingAuthUser.authProvider,
+            profileImageUrl: existingAuthUser.profileImageUrl,
+            preferredLanguage: existingAuthUser.preferredLanguage,
+            isEmailVerified: existingAuthUser.isEmailVerified,
+            isPhoneVerified: existingAuthUser.isPhoneVerified,
+          },
+          authCredential: {
+            remoteId: existingCredential.remoteId,
+            userRemoteId: existingCredential.userRemoteId,
+            loginId: nextPhone,
+            credentialType: existingCredential.credentialType,
+            passwordHash: nextPasswordHash,
+            passwordSalt: nextPasswordSalt,
+            hint: existingCredential.hint,
+            isActive: existingCredential.isActive,
+          },
+          roleAssignment:
+            shouldAssignRole && normalizedRoleRemoteId
+              ? {
+                  accountRemoteId: normalizedAccountRemoteId,
+                  actorUserRemoteId: normalizedActorUserRemoteId,
+                  userRemoteId: memberResult.value.userRemoteId,
+                  roleRemoteId: normalizedRoleRemoteId,
+                }
+              : null,
         });
 
-        if (!assignRoleResult.success) {
-          if (shouldUpdateProfile) {
-            const rollbackAuthUserResult = await saveAuthUserUseCase.execute({
-              remoteId: existingAuthUser.remoteId,
-              fullName: existingAuthUser.fullName,
-              email: existingAuthUser.email,
-              phone: existingAuthUser.phone,
-              authProvider: existingAuthUser.authProvider,
-              profileImageUrl: existingAuthUser.profileImageUrl,
-              preferredLanguage: existingAuthUser.preferredLanguage,
-              isEmailVerified: existingAuthUser.isEmailVerified,
-              isPhoneVerified: existingAuthUser.isPhoneVerified,
-            });
-
-            if (!rollbackAuthUserResult.success) {
-              const rollbackError = mapAuthSessionErrorToUserManagementError(
-                rollbackAuthUserResult.error,
-              );
-
-              return {
-                success: false,
-                error: {
-                  ...UserManagementUnknownError,
-                  message: `Role update failed and profile rollback failed: ${rollbackError.message}`,
-                },
-              };
-            }
-          }
-
-          return assignRoleResult;
+        if (!updateAccessResult.success) {
+          return updateAccessResult;
         }
       }
 
@@ -289,7 +419,7 @@ export const createUpdateAccountMemberUseCase = (
       if (!updatedMember) {
         return {
           success: false,
-          error: UserManagementNotFoundError("Updated member was not found."),
+          error: UserManagementNotFoundError("Updated staff member was not found."),
         };
       }
 

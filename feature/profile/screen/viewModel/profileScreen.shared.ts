@@ -60,6 +60,7 @@ export const createInitialProfileScreenData = (): ProfileScreenData => ({
   activeAccountRemoteId: null,
   activeAccountType: null,
   activeAccountDisplayName: "",
+  activeAccountRoleLabel: "",
   personalProfile: createEmptyPersonalProfile(),
   activeBusinessProfile: createDefaultBusinessProfileForm(),
   hasActiveBusinessProfile: false,

@@ -1,6 +1,7 @@
 import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { GetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase";
+import { GetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase";
 import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
 
 export type UseProfileLoaderViewModelParams = {
@@ -9,6 +10,7 @@ export type UseProfileLoaderViewModelParams = {
   getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
   getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
   getBusinessProfileByAccountRemoteIdUseCase: GetBusinessProfileByAccountRemoteIdUseCase;
+  getUserManagementSnapshotUseCase: GetUserManagementSnapshotUseCase;
   onLoaded: (nextData: ProfileScreenData) => void;
 };
 

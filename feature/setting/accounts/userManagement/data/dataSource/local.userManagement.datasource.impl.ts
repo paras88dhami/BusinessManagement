@@ -5,6 +5,8 @@ import {
   SaveAccountRoleRecordPayload,
   AssignAccountUserRoleRecordPayload,
   SaveAccountMemberRecordPayload,
+  CreateMemberAccessRecordPayload,
+  UpdateMemberAccessRecordPayload,
 } from "./userManagement.datasource";
 import { UserManagementPermissionSeed } from "../../types/userManagementPermissionSeed.types";
 import { UserManagementPermissionModel } from "./db/userManagementPermission.model";
@@ -12,12 +14,17 @@ import { AccountRoleModel } from "./db/accountRole.model";
 import { AccountMemberModel } from "./db/accountMember.model";
 import { AccountRolePermissionModel } from "./db/accountRolePermission.model";
 import { AccountUserRoleModel } from "./db/accountUserRole.model";
+import { AuthUserModel } from "@/feature/session/data/dataSource/db/authUser.model";
+import { AuthCredentialModel } from "@/feature/session/data/dataSource/db/authCredential.model";
+import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 
 const USER_MANAGEMENT_PERMISSIONS_TABLE = "user_management_permissions";
 const ACCOUNT_ROLES_TABLE = "account_roles";
 const ACCOUNT_MEMBERS_TABLE = "account_members";
 const ACCOUNT_ROLE_PERMISSIONS_TABLE = "account_role_permissions";
 const ACCOUNT_USER_ROLES_TABLE = "account_user_roles";
+const AUTH_USERS_TABLE = "auth_users";
+const AUTH_CREDENTIALS_TABLE = "auth_credentials";
 
 type MutableRawTimestamps = {
   _raw: Record<"created_at" | "updated_at", number>;
@@ -238,6 +245,254 @@ export const createLocalUserManagementDatasource = (
         success: true,
         value: matchingMembers[0] ?? null,
       };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async createMemberAccessRecord(
+    payload: CreateMemberAccessRecordPayload,
+  ): Promise<Result<boolean>> {
+    try {
+      const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
+      const authCredentialsCollection = database.get<AuthCredentialModel>(AUTH_CREDENTIALS_TABLE);
+      const membersCollection = database.get<AccountMemberModel>(ACCOUNT_MEMBERS_TABLE);
+      const accountUserRolesCollection = database.get<AccountUserRoleModel>(
+        ACCOUNT_USER_ROLES_TABLE,
+      );
+
+      await database.write(async () => {
+        const existingUsers = await authUsersCollection
+          .query(Q.where("remote_id", payload.authUser.remoteId))
+          .fetch();
+        if (existingUsers[0]) {
+          throw new Error("Conflict: auth user already exists.");
+        }
+
+        const existingCredentialsByRemoteId = await authCredentialsCollection
+          .query(Q.where("remote_id", payload.authCredential.remoteId))
+          .fetch();
+        if (existingCredentialsByRemoteId[0]) {
+          throw new Error("Conflict: auth credential already exists.");
+        }
+
+        const existingCredentialsByLoginId = await authCredentialsCollection
+          .query(
+            Q.where("login_id", payload.authCredential.loginId),
+            Q.where("credential_type", payload.authCredential.credentialType),
+          )
+          .fetch();
+        if (existingCredentialsByLoginId[0]) {
+          throw new Error("Conflict: auth credential login id already exists.");
+        }
+
+        const existingMembers = await membersCollection
+          .query(Q.where("remote_id", payload.member.remoteId))
+          .fetch();
+        if (existingMembers[0]) {
+          throw new Error("Conflict: account member already exists.");
+        }
+
+        const existingMemberByAccountAndUser = await membersCollection
+          .query(
+            Q.where("account_remote_id", payload.member.accountRemoteId),
+            Q.where("user_remote_id", payload.member.userRemoteId),
+          )
+          .fetch();
+        if (existingMemberByAccountAndUser[0]) {
+          throw new Error("Conflict: account member already exists for this user.");
+        }
+
+        const existingAssignments = await accountUserRolesCollection
+          .query(
+            Q.where("account_remote_id", payload.roleAssignment.accountRemoteId),
+            Q.where("user_remote_id", payload.roleAssignment.userRemoteId),
+          )
+          .fetch();
+        if (existingAssignments[0]) {
+          throw new Error("Conflict: user role assignment already exists.");
+        }
+
+        await authUsersCollection.create((record) => {
+          const now = Date.now();
+          record.remoteId = payload.authUser.remoteId;
+          record.fullName = payload.authUser.fullName;
+          record.email = payload.authUser.email;
+          record.phone = payload.authUser.phone;
+          record.authProvider = payload.authUser.authProvider;
+          record.profileImageUrl = payload.authUser.profileImageUrl;
+          record.preferredLanguage = payload.authUser.preferredLanguage;
+          record.isEmailVerified = payload.authUser.isEmailVerified;
+          record.isPhoneVerified = payload.authUser.isPhoneVerified;
+          record.recordSyncStatus = RecordSyncStatus.PendingCreate;
+          record.lastSyncedAt = null;
+          record.deletedAt = null;
+          setCreatedAndUpdatedAt(record, now);
+        });
+
+        await authCredentialsCollection.create((record) => {
+          const now = Date.now();
+          record.remoteId = payload.authCredential.remoteId;
+          record.userRemoteId = payload.authCredential.userRemoteId;
+          record.loginId = payload.authCredential.loginId;
+          record.credentialType = payload.authCredential.credentialType;
+          record.passwordHash = payload.authCredential.passwordHash;
+          record.passwordSalt = payload.authCredential.passwordSalt;
+          record.hint = payload.authCredential.hint;
+          record.lastLoginAt = null;
+          record.isActive = payload.authCredential.isActive;
+          record.failedAttemptCount = 0;
+          record.lockoutUntil = null;
+          record.lastFailedLoginAt = null;
+          record.recordSyncStatus = RecordSyncStatus.PendingCreate;
+          record.lastSyncedAt = null;
+          record.deletedAt = null;
+          setCreatedAndUpdatedAt(record, now);
+        });
+
+        await membersCollection.create((record) => {
+          const now = Date.now();
+          record.remoteId = payload.member.remoteId;
+          record.accountRemoteId = payload.member.accountRemoteId;
+          record.userRemoteId = payload.member.userRemoteId;
+          record.status = payload.member.status;
+          record.invitedByUserRemoteId = payload.member.invitedByUserRemoteId;
+          record.joinedAt = payload.member.joinedAt;
+          record.lastActiveAt = payload.member.lastActiveAt;
+          record.recordSyncStatus = "pending_create";
+          record.lastSyncedAt = null;
+          record.deletedAt = null;
+          setCreatedAndUpdatedAt(record, now);
+        });
+
+        await accountUserRolesCollection.create((record) => {
+          const now = Date.now();
+          record.accountRemoteId = payload.roleAssignment.accountRemoteId;
+          record.userRemoteId = payload.roleAssignment.userRemoteId;
+          record.roleRemoteId = payload.roleAssignment.roleRemoteId;
+          setCreatedAndUpdatedAt(record, now);
+        });
+      });
+
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async updateMemberAccessRecord(
+    payload: UpdateMemberAccessRecordPayload,
+  ): Promise<Result<boolean>> {
+    try {
+      const authUsersCollection = database.get<AuthUserModel>(AUTH_USERS_TABLE);
+      const authCredentialsCollection = database.get<AuthCredentialModel>(AUTH_CREDENTIALS_TABLE);
+      const accountUserRolesCollection = database.get<AccountUserRoleModel>(
+        ACCOUNT_USER_ROLES_TABLE,
+      );
+
+      await database.write(async () => {
+        const existingUsers = await authUsersCollection
+          .query(Q.where("remote_id", payload.authUser.remoteId))
+          .fetch();
+        const existingUser = existingUsers[0];
+        if (!existingUser) {
+          throw new Error("Auth user not found.");
+        }
+
+        const existingCredentials = await authCredentialsCollection
+          .query(Q.where("remote_id", payload.authCredential.remoteId))
+          .fetch();
+        const existingCredential = existingCredentials[0];
+        if (!existingCredential) {
+          throw new Error("Auth credential not found.");
+        }
+
+        if (
+          payload.authCredential.loginId !== existingCredential.loginId ||
+          payload.authCredential.credentialType !== existingCredential.credentialType
+        ) {
+          const credentialConflicts = await authCredentialsCollection
+            .query(
+              Q.where("login_id", payload.authCredential.loginId),
+              Q.where("credential_type", payload.authCredential.credentialType),
+            )
+            .fetch();
+          const conflictingCredential = credentialConflicts.find(
+            (credential) => credential.remoteId !== existingCredential.remoteId,
+          );
+          if (conflictingCredential) {
+            throw new Error("Conflict: auth credential login id already exists.");
+          }
+        }
+
+        await existingUser.update((record) => {
+          record.remoteId = payload.authUser.remoteId;
+          record.fullName = payload.authUser.fullName;
+          record.email = payload.authUser.email;
+          record.phone = payload.authUser.phone;
+          record.authProvider = payload.authUser.authProvider;
+          record.profileImageUrl = payload.authUser.profileImageUrl;
+          record.preferredLanguage = payload.authUser.preferredLanguage;
+          record.isEmailVerified = payload.authUser.isEmailVerified;
+          record.isPhoneVerified = payload.authUser.isPhoneVerified;
+          if (!record.recordSyncStatus) {
+            record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
+          } else if (record.recordSyncStatus === RecordSyncStatus.Synced) {
+            record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
+          }
+          setUpdatedAt(record, Date.now());
+        });
+
+        await existingCredential.update((record) => {
+          record.remoteId = payload.authCredential.remoteId;
+          record.userRemoteId = payload.authCredential.userRemoteId;
+          record.loginId = payload.authCredential.loginId;
+          record.credentialType = payload.authCredential.credentialType;
+          record.passwordHash = payload.authCredential.passwordHash;
+          record.passwordSalt = payload.authCredential.passwordSalt;
+          record.hint = payload.authCredential.hint;
+          record.isActive = payload.authCredential.isActive;
+          if (!record.recordSyncStatus) {
+            record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
+          } else if (record.recordSyncStatus === RecordSyncStatus.Synced) {
+            record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
+          }
+          setUpdatedAt(record, Date.now());
+        });
+
+        if (payload.roleAssignment) {
+          const existingAssignments = await accountUserRolesCollection
+            .query(
+              Q.where("account_remote_id", payload.roleAssignment.accountRemoteId),
+              Q.where("user_remote_id", payload.roleAssignment.userRemoteId),
+            )
+            .fetch();
+          const existingAssignment = existingAssignments[0];
+
+          if (existingAssignment) {
+            await existingAssignment.update((record) => {
+              record.roleRemoteId = payload.roleAssignment?.roleRemoteId ?? record.roleRemoteId;
+              setUpdatedAt(record, Date.now());
+            });
+          } else {
+            await accountUserRolesCollection.create((record) => {
+              const now = Date.now();
+              record.accountRemoteId = payload.roleAssignment?.accountRemoteId ?? "";
+              record.userRemoteId = payload.roleAssignment?.userRemoteId ?? "";
+              record.roleRemoteId = payload.roleAssignment?.roleRemoteId ?? "";
+              setCreatedAndUpdatedAt(record, now);
+            });
+          }
+        }
+      });
+
+      return { success: true, value: true };
     } catch (error) {
       return {
         success: false,

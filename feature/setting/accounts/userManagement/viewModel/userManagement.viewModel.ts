@@ -3,6 +3,7 @@ import {
   UserManagementPermission,
   UserManagementRole,
 } from "../types/userManagement.types";
+import { SignUpPhoneCountryCode } from "@/feature/auth/signUp/types/signUp.types";
 import {
   UserManagementMemberEditorState,
   UserManagementRoleEditorState,
@@ -79,6 +80,7 @@ export interface UserManagementViewModel {
   onStartEditMember: (memberRemoteId: string) => void;
   onCancelMemberEditor: () => void;
   onChangeMemberFullName: (fullName: string) => void;
+  onChangeMemberSelectedPhoneCountry: (phoneCountryCode: SignUpPhoneCountryCode) => void;
   onChangeMemberPhone: (phone: string) => void;
   onChangeMemberEmail: (email: string) => void;
   onChangeMemberPassword: (password: string) => void;

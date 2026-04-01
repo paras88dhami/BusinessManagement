@@ -1,14 +1,20 @@
 import * as Crypto from "expo-crypto";
-import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
-import { AuthUserRepository } from "@/feature/session/data/repository/authUser.repository";
-import { SaveAuthCredentialUseCase } from "@/feature/session/useCase/saveAuthCredential.useCase";
-import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
 import {
-  AuthCredential,
+  SignUpPhoneCountryCode,
+  SIGN_UP_PHONE_COUNTRY_OPTIONS,
+} from "@/feature/auth/signUp/types/signUp.types";
+import {
+  getInvalidSignUpPhoneMessageForCountry,
+  isValidSignUpPhoneForCountry,
+  sanitizeSignUpPhoneDigits,
+} from "@/feature/auth/signUp/utils/signUpPhoneNumber.util";
+import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
+import {
   AuthSessionErrorType,
   CredentialType,
 } from "@/feature/session/types/authSession.types";
 import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
+import { composePhoneNumberWithDialCode } from "@/shared/utils/auth/phoneNumber.util";
 import { UserManagementRepository } from "../data/repository/userManagement.repository";
 import {
   AccountMemberWithRoleResult,
@@ -16,7 +22,6 @@ import {
   UserManagementConflictError,
   UserManagementDatabaseError,
   UserManagementForbiddenError,
-  UserManagementErrorType,
   UserManagementNotFoundError,
   UserManagementUnknownError,
   UserManagementValidationError,
@@ -28,9 +33,6 @@ const ASSIGN_ROLE_PERMISSION_CODE = "user_management.assign_role";
 
 type CreateAccountMemberUseCaseParams = {
   userManagementRepository: UserManagementRepository;
-  saveAuthUserUseCase: SaveAuthUserUseCase;
-  saveAuthCredentialUseCase: SaveAuthCredentialUseCase;
-  authUserRepository: AuthUserRepository;
   authCredentialRepository: AuthCredentialRepository;
   passwordHashService: PasswordHashService;
 };
@@ -83,27 +85,37 @@ const normalizeOptional = (value: string | null): string | null => {
   return normalizedValue.length > 0 ? normalizedValue : null;
 };
 
-const activateCredential = async (
-  saveAuthCredentialUseCase: SaveAuthCredentialUseCase,
-  credential: AuthCredential,
-) => {
-  return saveAuthCredentialUseCase.execute({
-    remoteId: credential.remoteId,
-    userRemoteId: credential.userRemoteId,
-    loginId: credential.loginId,
-    credentialType: credential.credentialType,
-    passwordHash: credential.passwordHash,
-    passwordSalt: credential.passwordSalt,
-    hint: credential.hint,
-    isActive: true,
-  });
-};
+const buildPhoneLoginId = (
+  phoneCountryCode: SignUpPhoneCountryCode,
+  phone: string,
+):
+  | { success: true; value: string }
+  | { success: false; error: ReturnType<typeof UserManagementValidationError> } => {
+  const phoneDigits = sanitizeSignUpPhoneDigits(phone);
 
-const deactivateCredential = async (
-  authCredentialRepository: AuthCredentialRepository,
-  credentialRemoteId: string,
-): Promise<void> => {
-  await authCredentialRepository.deactivateAuthCredentialByRemoteId(credentialRemoteId);
+  if (!isValidSignUpPhoneForCountry(phoneDigits, phoneCountryCode)) {
+    return {
+      success: false,
+      error: UserManagementValidationError(
+        getInvalidSignUpPhoneMessageForCountry(phoneCountryCode),
+      ),
+    };
+  }
+
+  const phoneCountryOption =
+    SIGN_UP_PHONE_COUNTRY_OPTIONS.find((option) => option.code === phoneCountryCode) ??
+    SIGN_UP_PHONE_COUNTRY_OPTIONS[0];
+
+  const loginId = composePhoneNumberWithDialCode(phoneDigits, phoneCountryOption.dialCode);
+
+  if (!loginId) {
+    return {
+      success: false,
+      error: UserManagementValidationError("Enter a valid phone number."),
+    };
+  }
+
+  return { success: true, value: loginId };
 };
 
 export const createCreateAccountMemberUseCase = (
@@ -111,9 +123,6 @@ export const createCreateAccountMemberUseCase = (
 ): CreateAccountMemberUseCase => {
   const {
     userManagementRepository,
-    saveAuthUserUseCase,
-    saveAuthCredentialUseCase,
-    authUserRepository,
     authCredentialRepository,
     passwordHashService,
   } = params;
@@ -126,7 +135,6 @@ export const createCreateAccountMemberUseCase = (
       const normalizedActorUserRemoteId = normalizeRequired(payload.actorUserRemoteId);
       const normalizedFullName = normalizeRequired(payload.fullName);
       const normalizedEmail = normalizeOptional(payload.email);
-      const normalizedPhone = normalizeRequired(payload.phone);
       const normalizedPassword = normalizeRequired(payload.password);
       const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
 
@@ -153,13 +161,6 @@ export const createCreateAccountMemberUseCase = (
         };
       }
 
-      if (!normalizedPhone) {
-        return {
-          success: false,
-          error: UserManagementValidationError("Phone number is required."),
-        };
-      }
-
       if (!normalizedPassword || normalizedPassword.length < 6) {
         return {
           success: false,
@@ -175,6 +176,20 @@ export const createCreateAccountMemberUseCase = (
           error: UserManagementValidationError("Role remote id is required."),
         };
       }
+
+      const normalizedPhoneResult = buildPhoneLoginId(
+        payload.phoneCountryCode,
+        payload.phone,
+      );
+
+      if (!normalizedPhoneResult.success) {
+        return {
+          success: false,
+          error: normalizedPhoneResult.error,
+        };
+      }
+
+      const normalizedPhone = normalizedPhoneResult.value;
 
       const permissionCodesResult =
         await userManagementRepository.getPermissionCodesByAccountUser({
@@ -206,12 +221,6 @@ export const createCreateAccountMemberUseCase = (
         };
       }
 
-      let userRemoteId = "";
-      let credentialRemoteId = "";
-      let createdNewAuthUser = false;
-      let createdNewCredential = false;
-      let reactivatedExistingCredential = false;
-
       const existingCredentialResult =
         await authCredentialRepository.getAuthCredentialByLoginId(
           normalizedPhone,
@@ -219,125 +228,45 @@ export const createCreateAccountMemberUseCase = (
         );
 
       if (existingCredentialResult.success) {
-        const existingCredential = existingCredentialResult.value;
-        const existingAuthUserResult = await authUserRepository.getAuthUserByRemoteId(
-          existingCredential.userRemoteId,
-        );
+        return {
+          success: false,
+          error: UserManagementConflictError(
+            "An account with this phone number already exists.",
+          ),
+        };
+      }
 
-        if (!existingAuthUserResult.success) {
-          return {
-            success: false,
-            error: mapAuthSessionErrorToUserManagementError(existingAuthUserResult.error),
-          };
-        }
+      if (
+        existingCredentialResult.error.type !==
+        AuthSessionErrorType.AuthCredentialNotFound
+      ) {
+        return {
+          success: false,
+          error: mapAuthSessionErrorToUserManagementError(
+            existingCredentialResult.error,
+          ),
+        };
+      }
 
-        const existingMemberResult =
-          await userManagementRepository.getAccountMemberByAccountAndUser(
-            normalizedAccountRemoteId,
-            existingCredential.userRemoteId,
-          );
+      let passwordSalt: string;
+      let passwordHash: string;
 
-        if (existingMemberResult.success) {
-          return {
-            success: false,
-            error: UserManagementConflictError(
-              "This user is already a member of the selected account.",
-            ),
-          };
-        }
+      try {
+        passwordSalt = await passwordHashService.generateSalt();
+        passwordHash = await passwordHashService.hash(normalizedPassword, passwordSalt);
+      } catch (error) {
+        return {
+          success: false,
+          error: mapAuthSessionErrorToUserManagementError(error),
+        };
+      }
 
-        if (existingMemberResult.error.type !== UserManagementErrorType.NotFound) {
-          return existingMemberResult;
-        }
+      const userRemoteId = Crypto.randomUUID();
+      const credentialRemoteId = Crypto.randomUUID();
+      const memberRemoteId = `member-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-        userRemoteId = existingCredential.userRemoteId;
-        credentialRemoteId = existingCredential.remoteId;
-
-        if (!existingCredential.isActive) {
-          const activateCredentialResult = await activateCredential(
-            saveAuthCredentialUseCase,
-            existingCredential,
-          );
-
-          if (!activateCredentialResult.success) {
-            return {
-              success: false,
-              error: mapAuthSessionErrorToUserManagementError(
-                activateCredentialResult.error,
-              ),
-            };
-          }
-
-          reactivatedExistingCredential = true;
-        }
-
-        const existingAuthUser = existingAuthUserResult.value;
-        const shouldFillName = !existingAuthUser.fullName.trim();
-        const shouldFillEmail =
-          existingAuthUser.email === null && normalizedEmail !== null;
-        const shouldUpdateExistingAuthUser = shouldFillName || shouldFillEmail;
-
-        if (shouldUpdateExistingAuthUser) {
-          const updateExistingAuthUserResult = await saveAuthUserUseCase.execute({
-            remoteId: existingAuthUser.remoteId,
-            fullName: shouldFillName ? normalizedFullName : existingAuthUser.fullName,
-            email: shouldFillEmail ? normalizedEmail : existingAuthUser.email,
-            phone: existingAuthUser.phone,
-            authProvider: existingAuthUser.authProvider,
-            profileImageUrl: existingAuthUser.profileImageUrl,
-            preferredLanguage: existingAuthUser.preferredLanguage,
-            isEmailVerified: existingAuthUser.isEmailVerified,
-            isPhoneVerified: existingAuthUser.isPhoneVerified,
-          });
-
-          if (!updateExistingAuthUserResult.success) {
-            if (reactivatedExistingCredential) {
-              await deactivateCredential(authCredentialRepository, credentialRemoteId).catch(
-                () => {},
-              );
-            }
-
-            return {
-              success: false,
-              error: mapAuthSessionErrorToUserManagementError(
-                updateExistingAuthUserResult.error,
-              ),
-            };
-          }
-        }
-      } else {
-        if (
-          existingCredentialResult.error.type !==
-          AuthSessionErrorType.AuthCredentialNotFound
-        ) {
-          return {
-            success: false,
-            error: mapAuthSessionErrorToUserManagementError(
-              existingCredentialResult.error,
-            ),
-          };
-        }
-
-        let passwordSalt: string;
-        let passwordHash: string;
-
-        try {
-          passwordSalt = await passwordHashService.generateSalt();
-          passwordHash = await passwordHashService.hash(
-            normalizedPassword,
-            passwordSalt,
-          );
-        } catch (error) {
-          return {
-            success: false,
-            error: mapAuthSessionErrorToUserManagementError(error),
-          };
-        }
-
-        userRemoteId = Crypto.randomUUID();
-        credentialRemoteId = Crypto.randomUUID();
-
-        const saveAuthUserResult = await saveAuthUserUseCase.execute({
+      const createAccessResult = await userManagementRepository.createMemberAccessTransaction({
+        authUser: {
           remoteId: userRemoteId,
           fullName: normalizedFullName,
           email: normalizedEmail,
@@ -347,18 +276,8 @@ export const createCreateAccountMemberUseCase = (
           preferredLanguage: null,
           isEmailVerified: false,
           isPhoneVerified: false,
-        });
-
-        if (!saveAuthUserResult.success) {
-          return {
-            success: false,
-            error: mapAuthSessionErrorToUserManagementError(saveAuthUserResult.error),
-          };
-        }
-
-        createdNewAuthUser = true;
-
-        const saveCredentialResult = await saveAuthCredentialUseCase.execute({
+        },
+        authCredential: {
           remoteId: credentialRemoteId,
           userRemoteId,
           loginId: normalizedPhone,
@@ -367,74 +286,21 @@ export const createCreateAccountMemberUseCase = (
           passwordSalt,
           hint: null,
           isActive: true,
-        });
-
-        if (!saveCredentialResult.success) {
-          await authUserRepository.deleteAuthUserByRemoteId(userRemoteId).catch(() => {});
-
-          return {
-            success: false,
-            error: mapAuthSessionErrorToUserManagementError(saveCredentialResult.error),
-          };
-        }
-
-        createdNewCredential = true;
-      }
-
-      const saveMemberResult = await userManagementRepository.saveAccountMember({
-        accountRemoteId: normalizedAccountRemoteId,
-        userRemoteId,
-        status: "active",
-        invitedByUserRemoteId: normalizedActorUserRemoteId,
-        joinedAt: Date.now(),
-        lastActiveAt: null,
-      });
-
-      if (!saveMemberResult.success) {
-        if (createdNewCredential) {
-          await authCredentialRepository
-            .deleteAuthCredentialByRemoteId(credentialRemoteId)
-            .catch(() => {});
-        }
-        if (createdNewAuthUser) {
-          await authUserRepository.deleteAuthUserByRemoteId(userRemoteId).catch(() => {});
-        }
-        if (reactivatedExistingCredential) {
-          await deactivateCredential(authCredentialRepository, credentialRemoteId).catch(
-            () => {},
-          );
-        }
-
-        return saveMemberResult;
-      }
-
-      const assignRoleResult = await userManagementRepository.assignUserRole({
-        accountRemoteId: normalizedAccountRemoteId,
-        actorUserRemoteId: normalizedActorUserRemoteId,
-        userRemoteId,
+        },
+        member: {
+          remoteId: memberRemoteId,
+          accountRemoteId: normalizedAccountRemoteId,
+          userRemoteId,
+          status: "active",
+          invitedByUserRemoteId: normalizedActorUserRemoteId,
+          joinedAt: Date.now(),
+          lastActiveAt: null,
+        },
         roleRemoteId: normalizedRoleRemoteId,
       });
 
-      if (!assignRoleResult.success) {
-        await userManagementRepository
-          .deleteAccountMemberByRemoteId(saveMemberResult.value.remoteId)
-          .catch(() => {});
-
-        if (createdNewCredential) {
-          await authCredentialRepository
-            .deleteAuthCredentialByRemoteId(credentialRemoteId)
-            .catch(() => {});
-        }
-        if (createdNewAuthUser) {
-          await authUserRepository.deleteAuthUserByRemoteId(userRemoteId).catch(() => {});
-        }
-        if (reactivatedExistingCredential) {
-          await deactivateCredential(authCredentialRepository, credentialRemoteId).catch(
-            () => {},
-          );
-        }
-
-        return assignRoleResult;
+      if (!createAccessResult.success) {
+        return createAccessResult;
       }
 
       const membersResult =
@@ -443,24 +309,6 @@ export const createCreateAccountMemberUseCase = (
         );
 
       if (!membersResult.success) {
-        await userManagementRepository
-          .deleteAccountMemberByRemoteId(saveMemberResult.value.remoteId)
-          .catch(() => {});
-
-        if (createdNewCredential) {
-          await authCredentialRepository
-            .deleteAuthCredentialByRemoteId(credentialRemoteId)
-            .catch(() => {});
-        }
-        if (createdNewAuthUser) {
-          await authUserRepository.deleteAuthUserByRemoteId(userRemoteId).catch(() => {});
-        }
-        if (reactivatedExistingCredential) {
-          await deactivateCredential(authCredentialRepository, credentialRemoteId).catch(
-            () => {},
-          );
-        }
-
         return membersResult;
       }
 
@@ -469,24 +317,6 @@ export const createCreateAccountMemberUseCase = (
       );
 
       if (!createdMember) {
-        await userManagementRepository
-          .deleteAccountMemberByRemoteId(saveMemberResult.value.remoteId)
-          .catch(() => {});
-
-        if (createdNewCredential) {
-          await authCredentialRepository
-            .deleteAuthCredentialByRemoteId(credentialRemoteId)
-            .catch(() => {});
-        }
-        if (createdNewAuthUser) {
-          await authUserRepository.deleteAuthUserByRemoteId(userRemoteId).catch(() => {});
-        }
-        if (reactivatedExistingCredential) {
-          await deactivateCredential(authCredentialRepository, credentialRemoteId).catch(
-            () => {},
-          );
-        }
-
         return {
           success: false,
           error: UserManagementNotFoundError("Created staff member was not found."),
