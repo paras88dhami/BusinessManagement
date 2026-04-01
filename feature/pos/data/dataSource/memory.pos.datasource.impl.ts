@@ -1,0 +1,422 @@
+import {
+  PosBootstrap,
+  PosCartLine,
+  PosLedgerEffect,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosTotals,
+} from "../../types/pos.entity.types";
+import {
+  PosApplyAmountAdjustmentParams,
+  PosAssignProductToSlotParams,
+  PosChangeQuantityParams,
+  PosCompletePaymentParams,
+  PosLoadBootstrapParams,
+  PosRemoveSlotProductParams,
+} from "../../types/pos.dto.types";
+import {
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosError,
+  PosErrorType,
+  PosOperationResult,
+  PosPaymentResult,
+  PosTotalsResult,
+} from "../../types/pos.error.types";
+import { PosDatasource } from "./pos.datasource";
+
+const SEED_PRODUCTS: readonly PosProduct[] = [
+  {
+    id: "product-basmati-rice-25kg",
+    name: "Basmati Rice (25kg)",
+    categoryLabel: "Grocery",
+    price: 2500,
+    taxRate: 0.13,
+    shortCode: "B",
+  },
+  {
+    id: "product-cooking-oil-5l",
+    name: "Cooking Oil (5L)",
+    categoryLabel: "Grocery",
+    price: 850,
+    taxRate: 0.13,
+    shortCode: "C",
+  },
+  {
+    id: "product-sugar-1kg",
+    name: "Sugar (1kg)",
+    categoryLabel: "Grocery",
+    price: 95,
+    taxRate: 0.13,
+    shortCode: "S",
+  },
+  {
+    id: "product-milk-1l",
+    name: "Milk (1L)",
+    categoryLabel: "Dairy",
+    price: 110,
+    taxRate: 0.13,
+    shortCode: "M",
+  },
+  {
+    id: "product-black-tea-500g",
+    name: "Black Tea (500g)",
+    categoryLabel: "Pantry",
+    price: 330,
+    taxRate: 0.13,
+    shortCode: "T",
+  },
+  {
+    id: "product-noodles-pack",
+    name: "Noodles Pack",
+    categoryLabel: "Snacks",
+    price: 40,
+    taxRate: 0.13,
+    shortCode: "N",
+  },
+] as const;
+
+const createInitialSlots = (): PosSlot[] => {
+  return Array.from({ length: 16 }, (_, index) => ({
+    slotId: `slot-${index + 1}`,
+    assignedProductId: null,
+  }));
+};
+
+const cloneSlots = (slots: readonly PosSlot[]): PosSlot[] =>
+  slots.map((slot) => ({ ...slot }));
+
+const cloneCartLines = (cartLines: readonly PosCartLine[]): PosCartLine[] =>
+  cartLines.map((line) => ({ ...line }));
+
+const formatReceiptNumber = (): string => {
+  const timestamp = Date.now().toString().slice(-8);
+  return `RCPT-${timestamp}`;
+};
+
+const calculateTotals = (
+  cartLines: readonly PosCartLine[],
+  discountAmount: number,
+  surchargeAmount: number,
+): PosTotals => {
+  const gross = cartLines.reduce((sum, line) => sum + line.lineSubtotal, 0);
+  const adjustedBase = Math.max(gross - discountAmount + surchargeAmount, 0);
+  const effectiveTaxRate =
+    cartLines.length === 0
+      ? 0
+      : cartLines.reduce(
+          (sum, line) => sum + line.taxRate * line.lineSubtotal,
+          0,
+        ) / Math.max(gross, 1);
+  const taxAmount = Number((adjustedBase * effectiveTaxRate).toFixed(2));
+  const grandTotal = Number((adjustedBase + taxAmount).toFixed(2));
+
+  return {
+    itemCount: cartLines.reduce((sum, line) => sum + line.quantity, 0),
+    gross: Number(gross.toFixed(2)),
+    discountAmount: Number(discountAmount.toFixed(2)),
+    surchargeAmount: Number(surchargeAmount.toFixed(2)),
+    taxAmount,
+    grandTotal,
+  };
+};
+
+const buildCartLine = (slotId: string, product: PosProduct): PosCartLine => ({
+  lineId: `line-${slotId}`,
+  slotId,
+  productId: product.id,
+  productName: product.name,
+  categoryLabel: product.categoryLabel,
+  shortCode: product.shortCode,
+  quantity: 1,
+  unitPrice: product.price,
+  taxRate: product.taxRate,
+  lineSubtotal: Number(product.price.toFixed(2)),
+});
+
+const createValidationError = (message: string): PosError => ({
+  type: PosErrorType.Validation,
+  message,
+});
+
+const createUnknownError = (message: string): PosError => ({
+  type: PosErrorType.Unknown,
+  message,
+});
+
+export const createMemoryPosDatasource = (): PosDatasource => {
+  let products: readonly PosProduct[] = [...SEED_PRODUCTS];
+  let slots: PosSlot[] = createInitialSlots();
+  let cartLines: PosCartLine[] = [];
+  let discountAmount = 0;
+  let surchargeAmount = 0;
+
+  const getTotalsValue = (): PosTotals =>
+    calculateTotals(cartLines, discountAmount, surchargeAmount);
+
+  const findProduct = (productId: string): PosProduct | undefined =>
+    products.find((product) => product.id === productId);
+
+  const findSlotIndex = (slotId: string): number =>
+    slots.findIndex((slot) => slot.slotId === slotId);
+
+  return {
+    async loadBootstrap(
+      params: PosLoadBootstrapParams,
+    ): Promise<PosBootstrapResult> {
+      if (!params.activeBusinessRemoteId || !params.activeSettlementAccountRemoteId) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.ContextRequired,
+            message:
+              "POS requires an active business and settlement account before it can open.",
+          },
+        };
+      }
+
+      const bootstrap: PosBootstrap = {
+        products,
+        slots: cloneSlots(slots),
+        activeBusinessRemoteId: params.activeBusinessRemoteId,
+        activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
+      };
+
+      return { success: true, value: bootstrap };
+    },
+
+    async searchProducts(searchTerm: string): Promise<readonly PosProduct[]> {
+      const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+      if (!normalizedSearchTerm) {
+        return [...products];
+      }
+
+      return products.filter((product) => {
+        return (
+          product.name.toLowerCase().includes(normalizedSearchTerm) ||
+          product.categoryLabel.toLowerCase().includes(normalizedSearchTerm)
+        );
+      });
+    },
+
+    async assignProductToSlot(
+      params: PosAssignProductToSlotParams,
+    ): Promise<PosCartLinesResult> {
+      const slotIndex = findSlotIndex(params.slotId);
+      if (slotIndex === -1) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.SlotNotFound,
+            message: "The selected slot was not found.",
+          },
+        };
+      }
+
+      const product = findProduct(params.productId);
+      if (!product) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.ProductNotFound,
+            message: "The selected product was not found.",
+          },
+        };
+      }
+
+      slots = slots.map((slot, index) =>
+        index === slotIndex
+          ? { ...slot, assignedProductId: product.id }
+          : slot,
+      );
+
+      const existingLineIndex = cartLines.findIndex(
+        (line) => line.slotId === params.slotId,
+      );
+      const nextLine = buildCartLine(params.slotId, product);
+
+      if (existingLineIndex === -1) {
+        cartLines = [...cartLines, nextLine];
+      } else {
+        cartLines = cartLines.map((line, index) =>
+          index === existingLineIndex ? nextLine : line,
+        );
+      }
+
+      return {
+        success: true,
+        value: cloneCartLines(cartLines),
+      };
+    },
+
+    async removeProductFromSlot(
+      params: PosRemoveSlotProductParams,
+    ): Promise<PosCartLinesResult> {
+      const slotIndex = findSlotIndex(params.slotId);
+      if (slotIndex === -1) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.SlotNotFound,
+            message: "The selected slot was not found.",
+          },
+        };
+      }
+
+      slots = slots.map((slot, index) =>
+        index === slotIndex ? { ...slot, assignedProductId: null } : slot,
+      );
+      cartLines = cartLines.filter((line) => line.slotId !== params.slotId);
+
+      return {
+        success: true,
+        value: cloneCartLines(cartLines),
+      };
+    },
+
+    async changeCartLineQuantity(
+      params: PosChangeQuantityParams,
+    ): Promise<PosCartLinesResult> {
+      const lineIndex = cartLines.findIndex((line) => line.lineId === params.lineId);
+      if (lineIndex === -1) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.CartLineNotFound,
+            message: "The requested cart item was not found.",
+          },
+        };
+      }
+
+      if (params.nextQuantity <= 0) {
+        const targetLine = cartLines[lineIndex];
+        cartLines = cartLines.filter((line) => line.lineId !== params.lineId);
+        slots = slots.map((slot) =>
+          slot.slotId === targetLine.slotId
+            ? { ...slot, assignedProductId: null }
+            : slot,
+        );
+
+        return { success: true, value: cloneCartLines(cartLines) };
+      }
+
+      cartLines = cartLines.map((line, index) => {
+        if (index !== lineIndex) {
+          return line;
+        }
+
+        return {
+          ...line,
+          quantity: params.nextQuantity,
+          lineSubtotal: Number((params.nextQuantity * line.unitPrice).toFixed(2)),
+        };
+      });
+
+      return {
+        success: true,
+        value: cloneCartLines(cartLines),
+      };
+    },
+
+    async applyDiscount(
+      params: PosApplyAmountAdjustmentParams,
+    ): Promise<PosTotalsResult> {
+      if (params.amount < 0) {
+        return { success: false, error: createValidationError("Discount cannot be negative.") };
+      }
+
+      discountAmount = params.amount;
+      return { success: true, value: getTotalsValue() };
+    },
+
+    async applySurcharge(
+      params: PosApplyAmountAdjustmentParams,
+    ): Promise<PosTotalsResult> {
+      if (params.amount < 0) {
+        return { success: false, error: createValidationError("Surcharge cannot be negative.") };
+      }
+
+      surchargeAmount = params.amount;
+      return { success: true, value: getTotalsValue() };
+    },
+
+    async clearCart(): Promise<PosOperationResult> {
+      slots = createInitialSlots();
+      cartLines = [];
+      discountAmount = 0;
+      surchargeAmount = 0;
+      return { success: true, value: true };
+    },
+
+    async getSlots(): Promise<readonly PosSlot[]> {
+      return cloneSlots(slots);
+    },
+
+    async getCartLines(): Promise<readonly PosCartLine[]> {
+      return cloneCartLines(cartLines);
+    },
+
+    async getTotals(): Promise<PosTotalsResult> {
+      return { success: true, value: getTotalsValue() };
+    },
+
+    async completePayment(
+      params: PosCompletePaymentParams,
+    ): Promise<PosPaymentResult> {
+      if (cartLines.length === 0) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.EmptyCart,
+            message: "Add at least one product before taking payment.",
+          },
+        };
+      }
+
+      const totals = getTotalsValue();
+      if (params.paidAmount < 0) {
+        return {
+          success: false,
+          error: createValidationError("Paid amount cannot be negative."),
+        };
+      }
+
+      const dueAmount = Number(Math.max(totals.grandTotal - params.paidAmount, 0).toFixed(2));
+      const ledgerEffect: PosLedgerEffect =
+        dueAmount > 0
+          ? {
+              type: "due_balance_created",
+              dueAmount,
+              accountRemoteId: params.activeSettlementAccountRemoteId,
+            }
+          : {
+              type: "none",
+              dueAmount: 0,
+              accountRemoteId: params.activeSettlementAccountRemoteId,
+            };
+
+      const receipt: PosReceipt = {
+        receiptNumber: formatReceiptNumber(),
+        issuedAt: new Date().toISOString(),
+        lines: cloneCartLines(cartLines),
+        totals,
+        paidAmount: Number(params.paidAmount.toFixed(2)),
+        dueAmount,
+        ledgerEffect,
+      };
+
+      slots = createInitialSlots();
+      cartLines = [];
+      discountAmount = 0;
+      surchargeAmount = 0;
+
+      return { success: true, value: receipt };
+    },
+
+    async printReceipt(_: PosReceipt): Promise<PosOperationResult> {
+      return { success: true, value: true };
+    },
+  };
+};
