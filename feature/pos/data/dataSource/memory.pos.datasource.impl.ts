@@ -232,17 +232,37 @@ export const createMemoryPosDatasource = (): PosDatasource => {
           : slot,
       );
 
+      if (!params.addToCart) {
+        cartLines = cartLines.filter((line) => line.slotId !== params.slotId);
+        return {
+          success: true,
+          value: cloneCartLines(cartLines),
+        };
+      }
+
       const existingLineIndex = cartLines.findIndex(
         (line) => line.slotId === params.slotId,
       );
-      const nextLine = buildCartLine(params.slotId, product);
 
       if (existingLineIndex === -1) {
-        cartLines = [...cartLines, nextLine];
+        cartLines = [...cartLines, buildCartLine(params.slotId, product)];
       } else {
-        cartLines = cartLines.map((line, index) =>
-          index === existingLineIndex ? nextLine : line,
-        );
+        cartLines = cartLines.map((line, index) => {
+          if (index !== existingLineIndex) {
+            return line;
+          }
+
+          if (line.productId !== product.id) {
+            return buildCartLine(params.slotId, product);
+          }
+
+          const nextQuantity = line.quantity + 1;
+          return {
+            ...line,
+            quantity: nextQuantity,
+            lineSubtotal: Number((nextQuantity * line.unitPrice).toFixed(2)),
+          };
+        });
       }
 
       return {

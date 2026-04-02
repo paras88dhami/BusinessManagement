@@ -25,6 +25,7 @@ export type PosScreenState = {
   cartLines: readonly PosCartLine[];
   totals: PosTotals;
   activeSlotId: string | null;
+  selectedSlotId: string | null;
   activeModal: PosModalType;
   productSearchTerm: string;
   discountInput: string;
@@ -44,6 +45,7 @@ export type PosScreenViewModel = {
   totals: PosTotals;
   products: readonly PosProduct[];
   activeSlotId: string | null;
+  selectedSlotId: string | null;
   activeModal: PosModalType;
   productSearchTerm: string;
   discountInput: string;
@@ -55,6 +57,7 @@ export type PosScreenViewModel = {
   errorMessage: string | null;
   isBusinessContextResolved: boolean;
   load: () => Promise<void>;
+  onPressSlot: (slotId: string) => Promise<void>;
   onLongPressSlot: (slotId: string) => void;
   onRemoveSlotProduct: (slotId: string) => Promise<void>;
   onProductSearchChange: (value: string) => Promise<void>;
@@ -77,3 +80,4 @@ export type PosScreenViewModel = {
   onCompletePayment: () => Promise<void>;
   onPrintReceipt: () => Promise<void>;
 };
+

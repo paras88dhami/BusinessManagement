@@ -31,6 +31,7 @@ const INITIAL_STATE: PosScreenState = {
   cartLines: [],
   totals: EMPTY_TOTALS,
   activeSlotId: null,
+  selectedSlotId: null,
   activeModal: "none",
   productSearchTerm: "",
   discountInput: "",
@@ -176,6 +177,8 @@ export function usePosScreenViewModel(
       filteredProducts: products,
       cartLines: [],
       totals: EMPTY_TOTALS,
+      activeSlotId: null,
+      selectedSlotId: null,
       errorMessage: null,
     }));
   }, [
@@ -189,10 +192,41 @@ export function usePosScreenViewModel(
     void load();
   }, [load]);
 
+  const onPressSlot = useCallback(async (slotId: string) => {
+    const selectedSlot = state.slots.find((slot) => slot.slotId === slotId);
+
+    setState((currentState) => ({
+      ...currentState,
+      selectedSlotId: slotId,
+      errorMessage: null,
+    }));
+
+    if (!selectedSlot?.assignedProductId) {
+      return;
+    }
+
+    const result = await assignProductToSlotUseCase.execute({
+      slotId,
+      productId: selectedSlot.assignedProductId,
+      addToCart: true,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    recalculateTotals(result.value);
+  }, [assignProductToSlotUseCase, recalculateTotals, state.slots]);
+
   const onLongPressSlot = useCallback((slotId: string) => {
     setState((currentState) => ({
       ...currentState,
       activeSlotId: slotId,
+      selectedSlotId: slotId,
       activeModal: "product-selection",
       errorMessage: null,
       infoMessage: null,
@@ -243,6 +277,7 @@ export function usePosScreenViewModel(
     const result = await assignProductToSlotUseCase.execute({
       slotId: activeSlotId,
       productId,
+      addToCart: false,
     });
 
     if (!result.success) {
@@ -262,6 +297,7 @@ export function usePosScreenViewModel(
         slots: nextSlots,
         activeModal: "none",
         activeSlotId: null,
+        selectedSlotId: activeSlotId,
         productSearchTerm: "",
       };
     });
@@ -440,6 +476,7 @@ export function usePosScreenViewModel(
       totals: EMPTY_TOTALS,
       activeModal: "none",
       activeSlotId: null,
+      selectedSlotId: null,
       discountInput: "",
       surchargeInput: "",
       paymentInput: "",
@@ -471,6 +508,7 @@ export function usePosScreenViewModel(
       totals: EMPTY_TOTALS,
       activeModal: "receipt",
       activeSlotId: null,
+      selectedSlotId: null,
       discountInput: "",
       surchargeInput: "",
       paymentInput: "",
@@ -512,6 +550,7 @@ export function usePosScreenViewModel(
         ? state.filteredProducts
         : state.products,
       activeSlotId: state.activeSlotId,
+      selectedSlotId: state.selectedSlotId,
       activeModal: state.activeModal,
       productSearchTerm: state.productSearchTerm,
       discountInput: state.discountInput,
@@ -524,6 +563,7 @@ export function usePosScreenViewModel(
       isBusinessContextResolved:
         Boolean(activeBusinessRemoteId) && Boolean(activeSettlementAccountRemoteId),
       load,
+      onPressSlot,
       onLongPressSlot,
       onRemoveSlotProduct,
       onProductSearchChange,
@@ -558,6 +598,7 @@ export function usePosScreenViewModel(
       onDecreaseQuantity,
       onDiscountInputChange,
       onIncreaseQuantity,
+      onPressSlot,
       onLongPressSlot,
       onOpenDiscountModal,
       onOpenPaymentModal,
@@ -573,6 +614,7 @@ export function usePosScreenViewModel(
       onSurchargeInputChange,
       state.activeModal,
       state.activeSlotId,
+      state.selectedSlotId,
       state.cartLines,
       state.discountInput,
       state.errorMessage,
@@ -590,3 +632,4 @@ export function usePosScreenViewModel(
     ],
   );
 }
+

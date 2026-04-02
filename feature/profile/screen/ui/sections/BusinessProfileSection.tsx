@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   Building2,
   CalendarDays,
+  ChevronDown,
   Mail,
   MapPin,
   PencilLine,
@@ -49,6 +50,8 @@ export function BusinessProfileSection({
   onUpdateBusinessProfileField,
   onSaveBusinessProfile,
 }: BusinessProfileSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const businessTypeDropdownOptions = useMemo<DropdownOption[]>(() => {
     const mappedOptions = businessTypeOptions.map((option) => ({
       value: option.value,
@@ -162,73 +165,99 @@ export function BusinessProfileSection({
           placeholder="City / location"
           autoCapitalize="words"
           icon={<MapPin size={16} color={colors.mutedForeground} />}
+          isLast={!isExpanded}
         />
 
-        <ProfileField
-          label="Street address"
-          value={activeBusinessProfileForm.registeredAddress}
-          editable={isBusinessEditing}
-          onChangeText={(nextValue) => {
-            onUpdateBusinessProfileField("registeredAddress", nextValue);
-          }}
-          placeholder="Street, ward, landmark"
-          autoCapitalize="sentences"
-          multiline
-          numberOfLines={2}
-          icon={<MapPin size={16} color={colors.mutedForeground} />}
-        />
+        {isExpanded ? (
+          <ProfileField
+            label="Street address"
+            value={activeBusinessProfileForm.registeredAddress}
+            editable={isBusinessEditing}
+            onChangeText={(nextValue) => {
+              onUpdateBusinessProfileField("registeredAddress", nextValue);
+            }}
+            placeholder="Street, ward, landmark"
+            autoCapitalize="sentences"
+            multiline
+            numberOfLines={2}
+            icon={<MapPin size={16} color={colors.mutedForeground} />}
+          />
+        ) : null}
 
-        <ProfileField
-          label="PAN / Tax ID"
-          value={activeBusinessProfileForm.taxRegistrationId}
-          editable={isBusinessEditing}
-          onChangeText={(nextValue) => {
-            onUpdateBusinessProfileField("taxRegistrationId", nextValue);
-          }}
-          placeholder="Tax registration number"
-          autoCapitalize="characters"
-          icon={<Shield size={16} color={colors.mutedForeground} />}
-        />
+        {isExpanded ? (
+          <ProfileField
+            label="PAN / Tax ID"
+            value={activeBusinessProfileForm.taxRegistrationId}
+            editable={isBusinessEditing}
+            onChangeText={(nextValue) => {
+              onUpdateBusinessProfileField("taxRegistrationId", nextValue);
+            }}
+            placeholder="Tax registration number"
+            autoCapitalize="characters"
+            icon={<Shield size={16} color={colors.mutedForeground} />}
+          />
+        ) : null}
 
-        <View style={styles.businessTypeRow}>
-          <View style={styles.rowIconWrap}>
-            <Store size={16} color={colors.mutedForeground} />
+        {isExpanded ? (
+          <View style={styles.businessTypeRow}>
+            <View style={styles.rowIconWrap}>
+              <Store size={16} color={colors.mutedForeground} />
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Business Type</Text>
+              {isBusinessEditing ? (
+                <Dropdown
+                  value={activeBusinessProfileForm.businessType}
+                  options={businessTypeDropdownOptions}
+                  onChange={(nextValue) => {
+                    onUpdateBusinessProfileField("businessType", nextValue);
+                  }}
+                  placeholder="Select business type"
+                  modalTitle="Choose Business Type"
+                  showLeadingIcon={false}
+                  triggerStyle={styles.dropdownTrigger}
+                  triggerTextStyle={styles.dropdownTriggerText}
+                />
+              ) : (
+                <Text style={styles.rowValue}>
+                  {activeBusinessProfileForm.businessType || "-"}
+                </Text>
+              )}
+            </View>
           </View>
-          <View style={styles.rowContent}>
-            <Text style={styles.rowLabel}>Business Type</Text>
-            {isBusinessEditing ? (
-              <Dropdown
-                value={activeBusinessProfileForm.businessType}
-                options={businessTypeDropdownOptions}
-                onChange={(nextValue) => {
-                  onUpdateBusinessProfileField("businessType", nextValue);
-                }}
-                placeholder="Select business type"
-                modalTitle="Choose Business Type"
-                showLeadingIcon={false}
-                triggerStyle={styles.dropdownTrigger}
-                triggerTextStyle={styles.dropdownTriggerText}
-              />
-            ) : (
+        ) : null}
+
+        {isExpanded ? (
+          <View style={[styles.businessTypeRow, styles.lastRow]}>
+            <View style={styles.rowIconWrap}>
+              <CalendarDays size={16} color={colors.mutedForeground} />
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Established</Text>
               <Text style={styles.rowValue}>
-                {activeBusinessProfileForm.businessType || "-"}
+                {activeBusinessEstablishedYear || "-"}
               </Text>
-            )}
+            </View>
           </View>
-        </View>
-
-        <View style={[styles.businessTypeRow, styles.lastRow]}>
-          <View style={styles.rowIconWrap}>
-            <CalendarDays size={16} color={colors.mutedForeground} />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={styles.rowLabel}>Established</Text>
-            <Text style={styles.rowValue}>
-              {activeBusinessEstablishedYear || "-"}
-            </Text>
-          </View>
-        </View>
+        ) : null}
       </Card>
+
+      <Pressable
+        style={styles.seeMoreButton}
+        onPress={() => {
+          setIsExpanded((previousValue) => !previousValue);
+        }}
+        accessibilityRole="button"
+      >
+        <Text style={styles.seeMoreText}>
+          {isExpanded ? "See less" : "See more"}
+        </Text>
+        <ChevronDown
+          size={14}
+          color={colors.primary}
+          style={isExpanded ? styles.seeMoreChevronOpen : undefined}
+        />
+      </Pressable>
 
       {isSavingBusinessProfile ? (
         <Text style={styles.pendingText}>Saving business profile...</Text>
@@ -294,6 +323,26 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     padding: 0,
+  },
+  seeMoreButton: {
+    alignSelf: "flex-start",
+    marginTop: spacing.xs,
+    marginLeft: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+  },
+  seeMoreText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  seeMoreChevronOpen: {
+    transform: [{ rotate: "180deg" }],
   },
   businessTypeRow: {
     flexDirection: "row",

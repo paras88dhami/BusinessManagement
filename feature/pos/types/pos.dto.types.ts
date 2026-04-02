@@ -6,6 +6,7 @@ export type PosLoadBootstrapParams = {
 export type PosAssignProductToSlotParams = {
   slotId: string;
   productId: string;
+  addToCart?: boolean;
 };
 
 export type PosRemoveSlotProductParams = {
@@ -25,3 +26,4 @@ export type PosCompletePaymentParams = {
   paidAmount: number;
   activeSettlementAccountRemoteId: string | null;
 };
+

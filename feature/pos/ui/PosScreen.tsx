@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   Minus,
@@ -47,6 +47,49 @@ export function PosScreen({ viewModel }: PosScreenProps) {
     return rows;
   }, [viewModel.slots]);
 
+  const selectedSlotId = viewModel.selectedSlotId;
+  const cartLines = viewModel.cartLines;
+
+  const selectedCartLine = useMemo(
+    () =>
+      selectedSlotId
+        ? cartLines.find((cartLine) => cartLine.slotId === selectedSlotId) ?? null
+        : null,
+    [cartLines, selectedSlotId],
+  );
+
+  const selectedSlotLabel = selectedSlotId
+    ? `Slot ${selectedSlotId.replace("slot-", "")}`
+    : null;
+
+  const selectedSlot = useMemo(
+    () =>
+      selectedSlotId
+        ? viewModel.slots.find((slot) => slot.slotId === selectedSlotId) ?? null
+        : null,
+    [selectedSlotId, viewModel.slots],
+  );
+
+  const selectedAssignedProduct = selectedSlot?.assignedProductId
+    ? productLookup[selectedSlot.assignedProductId]
+    : null;
+
+  const longPressTriggeredRef = useRef<string | null>(null);
+
+  const handleSlotPress = useCallback((slotId: string) => {
+    if (longPressTriggeredRef.current === slotId) {
+      longPressTriggeredRef.current = null;
+      return;
+    }
+
+    void viewModel.onPressSlot(slotId);
+  }, [viewModel]);
+
+  const handleSlotLongPress = useCallback((slotId: string) => {
+    longPressTriggeredRef.current = slotId;
+    viewModel.onLongPressSlot(slotId);
+  }, [viewModel]);
+
   return (
     <>
       <ScreenContainer
@@ -57,7 +100,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Product Slots</Text>
             <Text style={styles.sectionSubtitle}>
-              Tap empty to add · Tap filled to remove
+              Tap to add in cart | Hold to assign product
             </Text>
           </View>
 
@@ -70,6 +113,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                       ? productLookup[slot.assignedProductId]
                       : undefined;
                     const isFilled = Boolean(assignedProduct);
+                    const isSelected = viewModel.selectedSlotId === slot.slotId;
 
                     return (
                       <Pressable
@@ -77,17 +121,20 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                         style={[
                           styles.slotCard,
                           isFilled ? styles.slotCardFilled : null,
+                          isSelected ? styles.slotCardSelected : null,
                         ]}
+                        onPress={() => handleSlotPress(slot.slotId)}
                         onLongPress={() =>
-                          viewModel.onLongPressSlot(slot.slotId)
+                          handleSlotLongPress(slot.slotId)
                         }
-                        delayLongPress={180}
+                        delayLongPress={420}
                       >
                         {isFilled ? (
                           <>
                             <Pressable
                               style={styles.slotRemoveButton}
-                              onPress={() => {
+                              onPress={(event) => {
+                                event.stopPropagation();
                                 void viewModel.onRemoveSlotProduct(slot.slotId);
                               }}
                             >
@@ -133,19 +180,58 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </View>
           </View>
 
+          {selectedSlotLabel ? (
+            <View style={styles.slotDetailCard}>
+              <Text style={styles.slotDetailLabel}>{selectedSlotLabel}</Text>
+              {selectedCartLine ? (
+                <>
+                  <Text style={styles.slotDetailTitle}>
+                    {selectedCartLine.productName}
+                  </Text>
+                  <Text style={styles.slotDetailMeta}>
+                    {selectedCartLine.categoryLabel} | {formatCurrency(selectedCartLine.unitPrice)} x {selectedCartLine.quantity} = {formatCurrency(selectedCartLine.lineSubtotal)}
+                  </Text>
+                </>
+              ) : selectedAssignedProduct ? (
+                <>
+                  <Text style={styles.slotDetailTitle}>
+                    {selectedAssignedProduct.name}
+                  </Text>
+                  <Text style={styles.slotDetailMeta}>
+                    Assigned to slot at {formatCurrency(selectedAssignedProduct.price)}. Tap slot to add it to cart.
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.slotDetailMeta}>
+                  No product assigned. Hold the slot to assign one.
+                </Text>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.slotDetailHint}>Tap a slot to show details here.</Text>
+          )}
+
           {viewModel.cartLines.length === 0 ? (
             <Text style={styles.emptyCartText}>
-              Long-press a slot to add products.
+              Tap an assigned slot to add products.
             </Text>
           ) : (
             viewModel.cartLines.map((cartLine) => (
-              <View key={cartLine.lineId} style={styles.cartLineRow}>
+              <View
+                key={cartLine.lineId}
+                style={[
+                  styles.cartLineRow,
+                  viewModel.selectedSlotId === cartLine.slotId
+                    ? styles.cartLineRowSelected
+                    : null,
+                ]}
+              >
                 <View style={styles.cartLineBody}>
                   <Text style={styles.cartLineTitle}>
                     {cartLine.productName}
                   </Text>
                   <Text style={styles.cartLineMeta}>
-                    {formatCurrency(cartLine.unitPrice)} × {cartLine.quantity}
+                    {formatCurrency(cartLine.unitPrice)} x {cartLine.quantity}
                   </Text>
                 </View>
                 <View style={styles.cartLineActions}>
@@ -417,6 +503,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderColor: "#B8D7C0",
   },
+  slotCardSelected: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
   slotRemoveButton: {
     position: "absolute",
     top: -6,
@@ -488,6 +578,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "InterSemiBold",
   },
+  slotDetailCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    backgroundColor: colors.secondary,
+    padding: spacing.sm,
+    gap: 4,
+    marginBottom: spacing.sm,
+  },
+  slotDetailLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterSemiBold",
+  },
+  slotDetailTitle: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  slotDetailMeta: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  slotDetailHint: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    marginBottom: spacing.sm,
+    fontFamily: "InterMedium",
+  },
   emptyCartText: {
     color: colors.mutedForeground,
     fontSize: 13,
@@ -501,6 +621,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderColor: colors.border,
+  },
+  cartLineRowSelected: {
+    backgroundColor: colors.secondary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xs,
   },
   cartLineBody: {
     flex: 1,
