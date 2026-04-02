@@ -3,7 +3,6 @@ import {
   AuthSessionErrorType,
   VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
-import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 import { LoginRepository } from "./login.repository";
 import {
   DatabaseError,
@@ -14,6 +13,7 @@ import {
   UnknownError,
   ValidationError,
 } from "../../types/login.types";
+import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 
 type LocalLoginRepositoryOptions = {
   onAuthenticated?: (
