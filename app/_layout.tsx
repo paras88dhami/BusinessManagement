@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import appDatabase, { ensureDatabaseReady } from "@/shared/database/appDatabase";
+import { ensureUserManagementReady } from "@/feature/setting/accounts/userManagement/factory/userManagementBootstrap.factory";
 import {
   AppRouteSessionStatus,
   AppRouteSessionProvider,
@@ -147,6 +148,7 @@ export default function RootLayout() {
     const bootstrapApp = async (): Promise<void> => {
       try {
         await ensureDatabaseReady();
+        await ensureUserManagementReady(appDatabase);
         await bootstrapSelectedLanguage();
 
         if (!isMounted) {

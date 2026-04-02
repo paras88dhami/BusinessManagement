@@ -4,13 +4,14 @@ import {
   EditablePersonalProfile,
   ProfileAccountOption,
 } from "@/feature/profile/screen/types/profileScreen.types";
-import { GetAccountsByOwnerUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccountsByOwnerUserRemoteId.useCase";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
 import { GetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase";
 import { SaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase";
 import { CreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase";
+import { GetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase";
 import {
   BUSINESS_TYPE_OPTIONS,
   BusinessTypeValue,
@@ -29,6 +30,8 @@ export interface ProfileScreenViewModel {
   activeAccountDisplayName: string;
   activeAccountTypeLabel: string;
   activeAccountRemoteId: string | null;
+  activeBusinessEstablishedYear: string;
+  isActiveBusinessStaff: boolean;
   accountOptions: readonly ProfileAccountOption[];
   isSwitchExpanded: boolean;
   onToggleSwitchExpanded: () => void;
@@ -47,6 +50,7 @@ export interface ProfileScreenViewModel {
 
   activeBusinessProfileForm: EditableBusinessProfile;
   hasActiveBusinessProfile: boolean;
+  canEditBusinessProfile: boolean;
   isBusinessEditing: boolean;
   isSavingBusinessProfile: boolean;
   onStartBusinessEdit: () => void;
@@ -71,19 +75,19 @@ export interface ProfileScreenViewModel {
     value: BusinessTypeValue;
     label: string;
   }[];
-  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 }
 
 export type ProfileScreenDependencies = {
-  getAccountsByOwnerUserRemoteIdUseCase: GetAccountsByOwnerUserRemoteIdUseCase;
+  getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
   saveAccountUseCase: SaveAccountUseCase;
   getAuthUserByRemoteIdUseCase: GetAuthUserByRemoteIdUseCase;
   saveAuthUserUseCase: SaveAuthUserUseCase;
   getBusinessProfileByAccountRemoteIdUseCase: GetBusinessProfileByAccountRemoteIdUseCase;
   saveBusinessProfileUseCase: SaveBusinessProfileUseCase;
   createBusinessWorkspaceUseCase: CreateBusinessWorkspaceUseCase;
+  getUserManagementSnapshotUseCase: GetUserManagementSnapshotUseCase;
   setActiveAccountSession: (accountRemoteId: string) => Promise<void>;
 };
 
@@ -92,9 +96,10 @@ export type UseProfileScreenViewModelParams = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
-  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 };
 
-export const PROFILE_BUSINESS_TYPE_OPTIONS = BUSINESS_TYPE_OPTIONS;
+export const PROFILE_BUSINESS_TYPE_OPTIONS = BUSINESS_TYPE_OPTIONS.filter(
+  (option) => option.value !== "Other",
+);

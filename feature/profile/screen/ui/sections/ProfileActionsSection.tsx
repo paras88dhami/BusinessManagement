@@ -1,7 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { LogOut } from "lucide-react-native";
-import { CardPressable } from "@/shared/components/reusable/Cards/Card";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ChevronRight, LogOut } from "lucide-react-native";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 
@@ -13,27 +13,35 @@ export function ProfileActionsSection({
   onLogout,
 }: ProfileActionsSectionProps) {
   return (
-    <CardPressable
-      style={styles.actionCard}
-      onPress={() => {
-        void onLogout();
-      }}
-    >
-      <View style={styles.actionIconWrap}>
-        <LogOut size={18} color={colors.destructive} />
-      </View>
-      <View style={styles.actionBody}>
-        <Text style={styles.logoutTitle}>Logout</Text>
-        <Text style={styles.actionSubtitle}>Sign out from this device</Text>
-      </View>
-    </CardPressable>
+    <Card style={styles.sectionCard}>
+      <Pressable
+        style={styles.actionCard}
+        onPress={() => {
+          void onLogout();
+        }}
+        accessibilityRole="button"
+      >
+        <View style={styles.actionIconWrap}>
+          <LogOut size={18} color={colors.destructive} />
+        </View>
+        <View style={styles.actionBody}>
+          <Text style={styles.logoutTitle}>Logout</Text>
+          <Text style={styles.actionSubtitle}>Sign out from this device</Text>
+        </View>
+        <ChevronRight size={16} color={colors.mutedForeground} />
+      </Pressable>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  sectionCard: {
+    padding: 0,
+  },
   actionCard: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,

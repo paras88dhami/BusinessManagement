@@ -4,7 +4,8 @@ export type MoreDashboardMenuItemId =
   | "pos"
   | "emi"
   | "transactions"
-  | "budget";
+  | "budget"
+  | "userManagement";
 
 export type MoreDashboardMenuItem = {
   id: MoreDashboardMenuItemId;
@@ -17,3 +18,7 @@ export type MoreDashboardSection = {
   title: string;
   items: readonly MoreDashboardMenuItem[];
 };
+
+export type MoreDashboardMenuAccessPredicate = (
+  itemId: MoreDashboardMenuItemId,
+) => boolean;

@@ -4,6 +4,8 @@ import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
 
 export type ProfileAccountOption = {
   remoteId: string;
+  ownerUserRemoteId: string;
+  createdAt: number;
   displayName: string;
   accountType: AccountTypeValue;
   businessType: BusinessTypeValue | null;
@@ -39,7 +41,11 @@ export type ProfileScreenData = {
   accountOptions: ProfileAccountOption[];
   activeAccountRemoteId: string | null;
   activeAccountType: AccountTypeValue | null;
+  isActiveAccountOwner: boolean;
   activeAccountDisplayName: string;
+  activeBusinessEstablishedYear: string;
+  activeAccountRoleLabel: string;
+  grantedPermissionCodes: string[];
   personalProfile: EditablePersonalProfile;
   activeBusinessProfile: EditableBusinessProfile;
   hasActiveBusinessProfile: boolean;

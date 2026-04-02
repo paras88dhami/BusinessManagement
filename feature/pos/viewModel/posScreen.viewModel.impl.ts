@@ -1,0 +1,635 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Status } from "@/shared/types/status.types";
+import { AssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase";
+import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
+import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
+import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase";
+import { ClearCartUseCase } from "../useCase/clearCart.useCase";
+import { CompletePaymentUseCase } from "../useCase/completePayment.useCase";
+import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
+import { PrintReceiptUseCase } from "../useCase/printReceipt.useCase";
+import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase";
+import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
+import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
+import { PosCartLine, PosProduct, PosTotals } from "../types/pos.entity.types";
+
+const EMPTY_TOTALS: PosTotals = {
+  itemCount: 0,
+  gross: 0,
+  discountAmount: 0,
+  surchargeAmount: 0,
+  taxAmount: 0,
+  grandTotal: 0,
+};
+
+const INITIAL_STATE: PosScreenState = {
+  status: Status.Idle,
+  bootstrap: null,
+  products: [],
+  filteredProducts: [],
+  slots: [],
+  cartLines: [],
+  totals: EMPTY_TOTALS,
+  activeSlotId: null,
+  selectedSlotId: null,
+  activeModal: "none",
+  productSearchTerm: "",
+  discountInput: "",
+  surchargeInput: "",
+  paymentInput: "",
+  paymentSplitCountInput: "2",
+  receipt: null,
+  infoMessage: null,
+  errorMessage: null,
+};
+
+const calculateTotals = (
+  cartLines: readonly PosCartLine[],
+  discountAmount: number,
+  surchargeAmount: number,
+): PosTotals => {
+  const gross = cartLines.reduce((sum, line) => sum + line.lineSubtotal, 0);
+  const adjustedBase = Math.max(gross - discountAmount + surchargeAmount, 0);
+  const weightedTaxRate =
+    cartLines.length === 0
+      ? 0
+      : cartLines.reduce(
+          (sum, line) => sum + line.taxRate * line.lineSubtotal,
+          0,
+        ) / Math.max(gross, 1);
+  const taxAmount = Number((adjustedBase * weightedTaxRate).toFixed(2));
+  const grandTotal = Number((adjustedBase + taxAmount).toFixed(2));
+
+  return {
+    itemCount: cartLines.reduce((sum, line) => sum + line.quantity, 0),
+    gross: Number(gross.toFixed(2)),
+    discountAmount: Number(discountAmount.toFixed(2)),
+    surchargeAmount: Number(surchargeAmount.toFixed(2)),
+    taxAmount,
+    grandTotal,
+  };
+};
+
+const parseAmountInput = (value: string): number => {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  const parsed = Number(normalizedValue);
+  if (Number.isNaN(parsed)) {
+    return 0;
+  }
+
+  return parsed;
+};
+
+export type UsePosScreenViewModelParams = {
+  activeBusinessRemoteId: string | null;
+  activeSettlementAccountRemoteId: string | null;
+  getPosBootstrapUseCase: GetPosBootstrapUseCase;
+  searchPosProductsUseCase: SearchPosProductsUseCase;
+  assignProductToSlotUseCase: AssignProductToSlotUseCase;
+  removeProductFromSlotUseCase: RemoveProductFromSlotUseCase;
+  changeCartLineQuantityUseCase: ChangeCartLineQuantityUseCase;
+  applyDiscountUseCase: ApplyDiscountUseCase;
+  applySurchargeUseCase: ApplySurchargeUseCase;
+  clearCartUseCase: ClearCartUseCase;
+  completePaymentUseCase: CompletePaymentUseCase;
+  printReceiptUseCase: PrintReceiptUseCase;
+};
+
+export function usePosScreenViewModel(
+  params: UsePosScreenViewModelParams,
+): PosScreenViewModel {
+  const {
+    activeBusinessRemoteId,
+    activeSettlementAccountRemoteId,
+    getPosBootstrapUseCase,
+    searchPosProductsUseCase,
+    assignProductToSlotUseCase,
+    removeProductFromSlotUseCase,
+    changeCartLineQuantityUseCase,
+    applyDiscountUseCase,
+    applySurchargeUseCase,
+    clearCartUseCase,
+    completePaymentUseCase,
+    printReceiptUseCase,
+  } = params;
+
+  const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
+
+  const syncProducts = useCallback(async (searchTerm: string) => {
+    const products = await searchPosProductsUseCase.execute(searchTerm);
+    setState((currentState) => ({
+      ...currentState,
+      filteredProducts: products,
+      products: currentState.bootstrap?.products ?? currentState.products,
+    }));
+  }, [searchPosProductsUseCase]);
+
+  const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
+    setState((currentState) => ({
+      ...currentState,
+      cartLines,
+      totals: calculateTotals(
+        cartLines,
+        parseAmountInput(currentState.discountInput),
+        parseAmountInput(currentState.surchargeInput),
+      ),
+    }));
+  }, []);
+
+  const load = useCallback(async () => {
+    setState((currentState) => ({
+      ...currentState,
+      status: Status.Loading,
+      errorMessage: null,
+      infoMessage: null,
+    }));
+
+    const result = await getPosBootstrapUseCase.execute({
+      activeBusinessRemoteId,
+      activeSettlementAccountRemoteId,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        status: Status.Failure,
+        bootstrap: null,
+        slots: [],
+        cartLines: [],
+        totals: EMPTY_TOTALS,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    const products = await searchPosProductsUseCase.execute("");
+
+    setState((currentState) => ({
+      ...currentState,
+      status: Status.Success,
+      bootstrap: result.value,
+      slots: result.value.slots,
+      products: result.value.products,
+      filteredProducts: products,
+      cartLines: [],
+      totals: EMPTY_TOTALS,
+      activeSlotId: null,
+      selectedSlotId: null,
+      errorMessage: null,
+    }));
+  }, [
+    activeBusinessRemoteId,
+    activeSettlementAccountRemoteId,
+    getPosBootstrapUseCase,
+    searchPosProductsUseCase,
+  ]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onPressSlot = useCallback(async (slotId: string) => {
+    const selectedSlot = state.slots.find((slot) => slot.slotId === slotId);
+
+    setState((currentState) => ({
+      ...currentState,
+      selectedSlotId: slotId,
+      errorMessage: null,
+    }));
+
+    if (!selectedSlot?.assignedProductId) {
+      return;
+    }
+
+    const result = await assignProductToSlotUseCase.execute({
+      slotId,
+      productId: selectedSlot.assignedProductId,
+      addToCart: true,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    recalculateTotals(result.value);
+  }, [assignProductToSlotUseCase, recalculateTotals, state.slots]);
+
+  const onLongPressSlot = useCallback((slotId: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      activeSlotId: slotId,
+      selectedSlotId: slotId,
+      activeModal: "product-selection",
+      errorMessage: null,
+      infoMessage: null,
+    }));
+  }, []);
+
+  const onRemoveSlotProduct = useCallback(async (slotId: string) => {
+    const result = await removeProductFromSlotUseCase.execute({ slotId });
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    setState((currentState) => {
+      const nextSlots = currentState.slots.map((slot) =>
+        slot.slotId === slotId ? { ...slot, assignedProductId: null } : slot,
+      );
+      return {
+        ...currentState,
+        slots: nextSlots,
+      };
+    });
+    recalculateTotals(result.value);
+  }, [recalculateTotals, removeProductFromSlotUseCase]);
+
+  const onProductSearchChange = useCallback(async (value: string) => {
+    const products = await searchPosProductsUseCase.execute(value);
+    setState((currentState) => ({
+      ...currentState,
+      productSearchTerm: value,
+      filteredProducts: products,
+    }));
+  }, [searchPosProductsUseCase]);
+
+  const onSelectProduct = useCallback(async (productId: string) => {
+    const activeSlotId = state.activeSlotId;
+    if (!activeSlotId) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Select a slot before assigning a product.",
+      }));
+      return;
+    }
+
+    const result = await assignProductToSlotUseCase.execute({
+      slotId: activeSlotId,
+      productId,
+      addToCart: false,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    setState((currentState) => {
+      const nextSlots = currentState.slots.map((slot) =>
+        slot.slotId === activeSlotId ? { ...slot, assignedProductId: productId } : slot,
+      );
+      return {
+        ...currentState,
+        slots: nextSlots,
+        activeModal: "none",
+        activeSlotId: null,
+        selectedSlotId: activeSlotId,
+        productSearchTerm: "",
+      };
+    });
+
+    const products = await searchPosProductsUseCase.execute("");
+    setState((currentState) => ({
+      ...currentState,
+      filteredProducts: products,
+    }));
+    recalculateTotals(result.value);
+  }, [assignProductToSlotUseCase, recalculateTotals, searchPosProductsUseCase, state.activeSlotId]);
+
+  const onCloseModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "none",
+      activeSlotId: null,
+      productSearchTerm: currentState.activeModal === "product-selection" ? "" : currentState.productSearchTerm,
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onIncreaseQuantity = useCallback(async (lineId: string) => {
+    const line = state.cartLines.find((item) => item.lineId === lineId);
+    if (!line) {
+      return;
+    }
+
+    const result = await changeCartLineQuantityUseCase.execute({
+      lineId,
+      nextQuantity: line.quantity + 1,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    recalculateTotals(result.value);
+  }, [changeCartLineQuantityUseCase, recalculateTotals, state.cartLines]);
+
+  const onDecreaseQuantity = useCallback(async (lineId: string) => {
+    const line = state.cartLines.find((item) => item.lineId === lineId);
+    if (!line) {
+      return;
+    }
+
+    const result = await changeCartLineQuantityUseCase.execute({
+      lineId,
+      nextQuantity: line.quantity - 1,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      slots: currentState.slots.map((slot) => {
+        if (slot.slotId !== line.slotId) {
+          return slot;
+        }
+
+        return result.value.some((cartLine) => cartLine.slotId === slot.slotId)
+          ? slot
+          : { ...slot, assignedProductId: null };
+      }),
+    }));
+    recalculateTotals(result.value);
+  }, [changeCartLineQuantityUseCase, recalculateTotals, state.cartLines]);
+
+  const onRemoveCartLine = useCallback(async (lineId: string) => {
+    const line = state.cartLines.find((item) => item.lineId === lineId);
+    if (!line) {
+      return;
+    }
+
+    await onRemoveSlotProduct(line.slotId);
+  }, [onRemoveSlotProduct, state.cartLines]);
+
+  const onDiscountInputChange = useCallback((value: string) => {
+    setState((currentState) => ({ ...currentState, discountInput: value }));
+  }, []);
+
+  const onSurchargeInputChange = useCallback((value: string) => {
+    setState((currentState) => ({ ...currentState, surchargeInput: value }));
+  }, []);
+
+  const onPaymentInputChange = useCallback((value: string) => {
+    setState((currentState) => ({ ...currentState, paymentInput: value }));
+  }, []);
+
+  const onPaymentSplitCountInputChange = useCallback((value: string) => {
+    setState((currentState) => ({ ...currentState, paymentSplitCountInput: value }));
+  }, []);
+
+  const onOpenDiscountModal = useCallback(() => {
+    setState((currentState) => ({ ...currentState, activeModal: "discount" }));
+  }, []);
+
+  const onOpenSurchargeModal = useCallback(() => {
+    setState((currentState) => ({ ...currentState, activeModal: "surcharge" }));
+  }, []);
+
+  const onOpenPaymentModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "payment",
+      paymentInput:
+        currentState.paymentInput || currentState.totals.grandTotal.toFixed(2),
+      errorMessage: null,
+      infoMessage: null,
+    }));
+  }, []);
+
+  const onOpenSplitBillModal = useCallback(() => {
+    const splitCount = Math.max(Number(state.paymentSplitCountInput || "2"), 2);
+    const splitAmount = splitCount > 0 ? state.totals.grandTotal / splitCount : 0;
+
+    setState((currentState) => ({
+      ...currentState,
+      infoMessage: `Split preview: ${splitCount} people x NPR ${splitAmount.toFixed(2)}`,
+    }));
+  }, [state.paymentSplitCountInput, state.totals.grandTotal]);
+
+  const onApplyDiscount = useCallback(async () => {
+    const result = await applyDiscountUseCase.execute({
+      amount: parseAmountInput(state.discountInput),
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      totals: result.value,
+      activeModal: "none",
+    }));
+  }, [applyDiscountUseCase, state.discountInput]);
+
+  const onApplySurcharge = useCallback(async () => {
+    const result = await applySurchargeUseCase.execute({
+      amount: parseAmountInput(state.surchargeInput),
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      totals: result.value,
+      activeModal: "none",
+    }));
+  }, [applySurchargeUseCase, state.surchargeInput]);
+
+  const onClearCart = useCallback(async () => {
+    const result = await clearCartUseCase.execute();
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    const products = await searchPosProductsUseCase.execute("");
+    setState((currentState) => ({
+      ...currentState,
+      slots: Array.from({ length: 16 }, (_, index) => ({
+        slotId: `slot-${index + 1}`,
+        assignedProductId: null,
+      })),
+      cartLines: [],
+      totals: EMPTY_TOTALS,
+      activeModal: "none",
+      activeSlotId: null,
+      selectedSlotId: null,
+      discountInput: "",
+      surchargeInput: "",
+      paymentInput: "",
+      filteredProducts: products,
+      infoMessage: null,
+      errorMessage: null,
+    }));
+  }, [clearCartUseCase, searchPosProductsUseCase]);
+
+  const onCompletePayment = useCallback(async () => {
+    const result = await completePaymentUseCase.execute({
+      paidAmount: parseAmountInput(state.paymentInput),
+      activeSettlementAccountRemoteId,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    const products = await searchPosProductsUseCase.execute("");
+    setState((currentState) => ({
+      ...currentState,
+      slots: Array.from({ length: 16 }, (_, index) => ({
+        slotId: `slot-${index + 1}`,
+        assignedProductId: null,
+      })),
+      cartLines: [],
+      totals: EMPTY_TOTALS,
+      activeModal: "receipt",
+      activeSlotId: null,
+      selectedSlotId: null,
+      discountInput: "",
+      surchargeInput: "",
+      paymentInput: "",
+      receipt: result.value,
+      filteredProducts: products,
+      infoMessage:
+        result.value.dueAmount > 0
+          ? `Sale completed. NPR ${result.value.dueAmount.toFixed(2)} was posted as ledger due.`
+          : "Sale completed successfully.",
+      errorMessage: null,
+    }));
+  }, [activeSettlementAccountRemoteId, completePaymentUseCase, searchPosProductsUseCase, state.paymentInput]);
+
+  const onPrintReceipt = useCallback(async () => {
+    if (!state.receipt) {
+      return;
+    }
+
+    const result = await printReceiptUseCase.execute(state.receipt);
+    if (!result.success) {
+      setState((currentState) => ({ ...currentState, errorMessage: result.error.message }));
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      infoMessage: `Receipt ${state.receipt?.receiptNumber ?? ""} sent to print.`,
+    }));
+  }, [printReceiptUseCase, state.receipt]);
+
+  return useMemo<PosScreenViewModel>(
+    () => ({
+      status: state.status,
+      screenTitle: "POS Checkout",
+      slots: state.slots,
+      cartLines: state.cartLines,
+      totals: state.totals,
+      products: state.filteredProducts.length > 0 || state.productSearchTerm
+        ? state.filteredProducts
+        : state.products,
+      activeSlotId: state.activeSlotId,
+      selectedSlotId: state.selectedSlotId,
+      activeModal: state.activeModal,
+      productSearchTerm: state.productSearchTerm,
+      discountInput: state.discountInput,
+      surchargeInput: state.surchargeInput,
+      paymentInput: state.paymentInput,
+      paymentSplitCountInput: state.paymentSplitCountInput,
+      receipt: state.receipt,
+      infoMessage: state.infoMessage,
+      errorMessage: state.errorMessage,
+      isBusinessContextResolved:
+        Boolean(activeBusinessRemoteId) && Boolean(activeSettlementAccountRemoteId),
+      load,
+      onPressSlot,
+      onLongPressSlot,
+      onRemoveSlotProduct,
+      onProductSearchChange,
+      onSelectProduct,
+      onCloseModal,
+      onIncreaseQuantity,
+      onDecreaseQuantity,
+      onRemoveCartLine,
+      onDiscountInputChange,
+      onSurchargeInputChange,
+      onPaymentInputChange,
+      onPaymentSplitCountInputChange,
+      onOpenDiscountModal,
+      onOpenSurchargeModal,
+      onOpenPaymentModal,
+      onOpenSplitBillModal,
+      onApplyDiscount,
+      onApplySurcharge,
+      onClearCart,
+      onCompletePayment,
+      onPrintReceipt,
+    }),
+    [
+      activeBusinessRemoteId,
+      activeSettlementAccountRemoteId,
+      load,
+      onApplyDiscount,
+      onApplySurcharge,
+      onClearCart,
+      onCloseModal,
+      onCompletePayment,
+      onDecreaseQuantity,
+      onDiscountInputChange,
+      onIncreaseQuantity,
+      onPressSlot,
+      onLongPressSlot,
+      onOpenDiscountModal,
+      onOpenPaymentModal,
+      onOpenSplitBillModal,
+      onOpenSurchargeModal,
+      onPaymentInputChange,
+      onPaymentSplitCountInputChange,
+      onPrintReceipt,
+      onProductSearchChange,
+      onRemoveCartLine,
+      onRemoveSlotProduct,
+      onSelectProduct,
+      onSurchargeInputChange,
+      state.activeModal,
+      state.activeSlotId,
+      state.selectedSlotId,
+      state.cartLines,
+      state.discountInput,
+      state.errorMessage,
+      state.filteredProducts,
+      state.infoMessage,
+      state.paymentInput,
+      state.paymentSplitCountInput,
+      state.productSearchTerm,
+      state.products,
+      state.receipt,
+      state.slots,
+      state.status,
+      state.surchargeInput,
+      state.totals,
+    ],
+  );
+}
+

@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { colors } from "../../theme/colors";
+import { radius } from "../../theme/spacing";
 
 interface CardProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ interface CardPressableProps extends Omit<PressableProps, "style"> {
 }
 
 export function Card({ children, style }: CardProps) {
-  return <View style={[styles.card, style, styles.cardSurface]}>{children}</View>;
+  return <View style={[styles.card, styles.cardSurface, style]}>{children}</View>;
 }
 
 export function CardPressable({
@@ -37,8 +38,8 @@ export function CardPressable({
       accessibilityRole={accessibilityRole ?? "button"}
       style={({ pressed }) => [
         styles.card,
-        style,
         styles.cardSurface,
+        style,
         pressed && !disabled ? styles.pressed : null,
       ]}
     >
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardSurface: {
-    borderRadius: 7,
+    borderRadius: radius.md,
   },
   pressed: {
     opacity: 0.88,

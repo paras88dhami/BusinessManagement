@@ -10,7 +10,6 @@ export default function DashboardProfileRoute() {
     onNavigateHome,
     onLogout,
     onBackToHome,
-    onOpenBusinessDetails,
   } = useDashboardProfileRouteHandlers();
 
   return (
@@ -19,7 +18,6 @@ export default function DashboardProfileRoute() {
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
       onNavigateHome={onNavigateHome}
-      onOpenBusinessDetails={onOpenBusinessDetails}
       onLogout={onLogout}
       onBack={onBackToHome}
     />

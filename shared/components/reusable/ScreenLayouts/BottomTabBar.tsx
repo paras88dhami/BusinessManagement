@@ -20,6 +20,16 @@ type BottomTabBarProps<T extends string = RouteName> = {
   items?: readonly BottomTabItem<T>[];
 };
 
+const BOTTOM_TAB_BAR_MIN_HEIGHT = 62;
+
+const resolveBottomOffset = (bottomInset: number): number => {
+  return Math.max(bottomInset, spacing.sm);
+};
+
+export const getBottomTabBarClearance = (bottomInset: number): number => {
+  return BOTTOM_TAB_BAR_MIN_HEIGHT + resolveBottomOffset(bottomInset) + spacing.xs;
+};
+
 const DEFAULT_ITEMS: readonly BottomTabItem<RouteName>[] = [
   { key: "home", label: "Home", icon: "home" },
   { key: "ledger", label: "Ledger", icon: "ledger" },
@@ -41,7 +51,7 @@ export function BottomTabBar<T extends string = RouteName>({
       style={[
         styles.wrapper,
         {
-          bottom: Math.max(insets.bottom, spacing.sm),
+          bottom: resolveBottomOffset(insets.bottom),
         },
       ]}
     >
@@ -157,6 +167,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: spacing.md,
     right: spacing.md,
+    minHeight: BOTTOM_TAB_BAR_MIN_HEIGHT,
     backgroundColor: colors.nav,
     borderTopWidth: 1,
     borderColor: colors.border,

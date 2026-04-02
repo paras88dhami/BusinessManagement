@@ -15,6 +15,11 @@ const businessSections: readonly MoreDashboardSection[] = [
         title: "Profile",
         subtitle: "Your profile, switch account and logout",
       },
+      {
+        id: "userManagement",
+        title: "User Management",
+        subtitle: "Roles, permissions, and team access",
+      },
     ],
   },
   {
@@ -86,6 +91,8 @@ export const useMoreDashboardViewModel = (
     onOpenEmi,
     onOpenTransactions,
     onOpenBudget,
+    onOpenUserManagement,
+    hasMenuAccess,
   } = params;
 
   const onMenuItemPress = useCallback(
@@ -109,6 +116,9 @@ export const useMoreDashboardViewModel = (
         case "budget":
           onOpenBudget();
           return;
+        case "userManagement":
+          onOpenUserManagement();
+          return;
         default:
           return;
       }
@@ -120,10 +130,25 @@ export const useMoreDashboardViewModel = (
       onOpenPos,
       onOpenProfile,
       onOpenTransactions,
+      onOpenUserManagement,
     ],
   );
 
-  const sections = isBusinessMode ? businessSections : personalSections;
+  const sections = useMemo(() => {
+    const candidateSections = isBusinessMode ? businessSections : personalSections;
+    const canAccessMenuItem =
+      hasMenuAccess ??
+      (() => {
+        return true;
+      });
+
+    return candidateSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => canAccessMenuItem(item.id)),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [hasMenuAccess, isBusinessMode]);
 
   return useMemo<MoreDashboardViewModel>(
     () => ({

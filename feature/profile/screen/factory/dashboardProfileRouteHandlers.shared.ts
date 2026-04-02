@@ -5,7 +5,6 @@ import {
 } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 
 type DashboardProfileReplacePath = DashboardHomePath | "/(dashboard)/profile";
-type DashboardProfilePushPath = "/(dashboard)/business-details";
 
 export type DashboardProfileRouteHandlers = {
   activeUserRemoteId: string | null;
@@ -13,8 +12,6 @@ export type DashboardProfileRouteHandlers = {
   onNavigateHome: (accountType: AccountTypeValue) => void;
   onLogout: () => Promise<void>;
   onBackToHome: () => void;
-  onBackToProfile: () => void;
-  onOpenBusinessDetails: () => void;
 };
 
 type DashboardProfileRouteHandlerParams = {
@@ -22,7 +19,6 @@ type DashboardProfileRouteHandlerParams = {
   activeAccountRemoteId: string | null;
   activeAccountType: AccountTypeValue | null;
   navigateReplace: (targetPath: DashboardProfileReplacePath) => void;
-  navigatePush: (targetPath: DashboardProfilePushPath) => void;
   clearUserSession: () => Promise<void>;
   refreshSession: () => Promise<void>;
   onLogoutError?: (error: unknown) => void;
@@ -36,7 +32,6 @@ export const createDashboardProfileRouteHandlers = (
     activeAccountRemoteId,
     activeAccountType,
     navigateReplace,
-    navigatePush,
     clearUserSession,
     refreshSession,
     onLogoutError,
@@ -60,12 +55,6 @@ export const createDashboardProfileRouteHandlers = (
     },
     onBackToHome: () => {
       navigateReplace(getDashboardHomePath(activeAccountType));
-    },
-    onBackToProfile: () => {
-      navigateReplace("/(dashboard)/profile");
-    },
-    onOpenBusinessDetails: () => {
-      navigatePush("/(dashboard)/business-details");
     },
   };
 };

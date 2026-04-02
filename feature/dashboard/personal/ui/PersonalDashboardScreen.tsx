@@ -81,7 +81,14 @@ export function PersonalDashboardScreen({
           return (
             <Card key={quickAction.id} style={styles.quickActionCard}>
               <View style={styles.quickActionIconWrap}>{icon}</View>
-              <Text style={styles.quickActionLabel}>{quickAction.label}</Text>
+              <Text
+                style={styles.quickActionLabel}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
+                {quickAction.label}
+              </Text>
             </Card>
           );
         })}
@@ -177,13 +184,15 @@ const styles = StyleSheet.create({
   },
   quickActionRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+    flexWrap: "nowrap",
+    gap: spacing.xs,
+    alignItems: "stretch",
   },
   quickActionCard: {
-    width: "48%",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -198,8 +207,9 @@ const styles = StyleSheet.create({
   },
   quickActionLabel: {
     color: colors.cardForeground,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "InterBold",
+    textAlign: "center",
   },
   activityCard: {
     padding: 0,

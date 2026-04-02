@@ -31,6 +31,8 @@ export function DashboardShellLayout({
       <PrimaryHeader
         title={viewModel.headerConfig.title}
         subtitle={viewModel.headerConfig.subtitle}
+        showBack={Boolean(viewModel.headerConfig.showBack)}
+        onBack={viewModel.onHeaderBack}
         rightLabel={viewModel.profileInitials}
         showBell={viewModel.headerConfig.showBell}
         showProfile={viewModel.headerConfig.showProfile}
@@ -38,11 +40,13 @@ export function DashboardShellLayout({
       />
       <View style={styles.divider} />
       <View style={styles.content}>{children}</View>
-      <BottomTabBar
-        route={viewModel.activeTab}
-        items={viewModel.tabItems}
-        onNavigate={viewModel.onTabPress}
-      />
+      {viewModel.activeTab !== "pos" ? (
+        <BottomTabBar
+          route={viewModel.activeTab}
+          items={viewModel.tabItems}
+          onNavigate={viewModel.onTabPress}
+        />
+      ) : null}
     </View>
   );
 }

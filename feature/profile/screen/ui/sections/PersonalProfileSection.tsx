@@ -1,9 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Edit3, Save, X } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Mail, PencilLine, Phone, Save, UserRound, X } from "lucide-react-native";
 import { EditablePersonalProfile } from "@/feature/profile/screen/types/profileScreen.types";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ProfileField } from "./ProfileField";
 import { colors } from "@/shared/components/theme/colors";
@@ -32,76 +30,89 @@ export function PersonalProfileSection({
   onSavePersonalProfile,
 }: PersonalProfileSectionProps) {
   return (
-    <Card style={styles.sectionCard}>
+    <View style={styles.sectionWrap}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Personal Profile</Text>
         {!isPersonalEditing ? (
-          <AppButton
+          <Pressable
             onPress={onStartPersonalEdit}
-            label="Edit"
-            variant="accent"
-            size="sm"
-            leadingIcon={<Edit3 size={14} color={colors.primary} />}
-          />
+            style={styles.editTrigger}
+            accessibilityRole="button"
+          >
+            <PencilLine size={14} color={colors.primary} />
+            <Text style={styles.editLabel}>Edit</Text>
+          </Pressable>
         ) : (
-          <View style={styles.inlineActionsWrap}>
-            <AppIconButton
+          <View style={styles.editingActions}>
+            <Pressable
               onPress={onCancelPersonalEdit}
+              style={styles.actionTrigger}
+              accessibilityRole="button"
             >
               <X size={14} color={colors.destructive} />
-            </AppIconButton>
-            <AppIconButton
+              <Text style={styles.cancelLabel}>Cancel</Text>
+            </Pressable>
+            <Pressable
               onPress={() => {
                 void onSavePersonalProfile();
               }}
+              style={styles.actionTrigger}
+              accessibilityRole="button"
             >
               <Save size={14} color={colors.success} />
-            </AppIconButton>
+              <Text style={styles.saveLabel}>Save</Text>
+            </Pressable>
           </View>
         )}
       </View>
 
-      <ProfileField
-        label="Full Name"
-        value={personalProfileForm.fullName}
-        editable={isPersonalEditing}
-        onChangeText={(nextValue) => {
-          onUpdatePersonalProfileField("fullName", nextValue);
-        }}
-        placeholder="Your full name"
-        autoCapitalize="words"
-      />
+      <Text style={styles.sectionTitle}>Personal Information</Text>
+      <Card style={styles.sectionCard}>
+        <ProfileField
+          label="Full Name"
+          value={personalProfileForm.fullName}
+          editable={isPersonalEditing}
+          onChangeText={(nextValue) => {
+            onUpdatePersonalProfileField("fullName", nextValue);
+          }}
+          placeholder="Your full name"
+          autoCapitalize="words"
+          icon={<UserRound size={16} color={colors.mutedForeground} />}
+        />
 
-      <ProfileField
-        label="Phone"
-        value={personalProfileForm.phone}
-        editable={isPersonalEditing}
-        onChangeText={(nextValue) => {
-          onUpdatePersonalProfileField("phone", nextValue);
-        }}
-        placeholder="Phone number"
-      />
+        <ProfileField
+          label="Phone"
+          value={personalProfileForm.phone}
+          editable={isPersonalEditing}
+          onChangeText={(nextValue) => {
+            onUpdatePersonalProfileField("phone", nextValue);
+          }}
+          placeholder="Phone number"
+          icon={<Phone size={16} color={colors.mutedForeground} />}
+        />
 
-      <ProfileField
-        label="Email"
-        value={personalProfileForm.email}
-        editable={isPersonalEditing}
-        onChangeText={(nextValue) => {
-          onUpdatePersonalProfileField("email", nextValue);
-        }}
-        placeholder="Email address"
-      />
+        <ProfileField
+          label="Email"
+          value={personalProfileForm.email}
+          editable={isPersonalEditing}
+          onChangeText={(nextValue) => {
+            onUpdatePersonalProfileField("email", nextValue);
+          }}
+          placeholder="Email address"
+          icon={<Mail size={16} color={colors.mutedForeground} />}
+          isLast
+        />
+      </Card>
 
       {isSavingPersonalProfile ? (
         <Text style={styles.pendingText}>Saving personal profile...</Text>
       ) : null}
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionCard: {
-    padding: spacing.md,
+  sectionWrap: {
+    marginTop: spacing.xs,
     gap: spacing.sm,
   },
   sectionHeader: {
@@ -111,14 +122,44 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: colors.mutedForeground,
+    fontSize: 12,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
     fontFamily: "InterBold",
   },
-  inlineActionsWrap: {
+  editTrigger: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
+  },
+  editLabel: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  editingActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  actionTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  cancelLabel: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  saveLabel: {
+    color: colors.success,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  sectionCard: {
+    padding: 0,
   },
   pendingText: {
     color: colors.mutedForeground,
@@ -126,4 +167,3 @@ const styles = StyleSheet.create({
     fontFamily: "InterSemiBold",
   },
 });
-

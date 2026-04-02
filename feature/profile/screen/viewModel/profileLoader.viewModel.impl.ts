@@ -11,15 +11,29 @@ import {
   UseProfileLoaderViewModelParams,
 } from "./profileLoader.viewModel";
 
+const resolveEstablishedYear = (timestamp: number | null | undefined): string => {
+  if (!timestamp) {
+    return "";
+  }
+
+  const dateValue = new Date(timestamp);
+  if (Number.isNaN(dateValue.getTime())) {
+    return "";
+  }
+
+  return String(dateValue.getFullYear());
+};
+
 export const useProfileLoaderViewModel = (
   params: UseProfileLoaderViewModelParams,
 ): ProfileLoaderViewModel => {
   const {
     activeUserRemoteId,
     activeAccountRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase,
+    getUserManagementSnapshotUseCase,
     onLoaded,
   } = params;
 
@@ -42,7 +56,7 @@ export const useProfileLoaderViewModel = (
 
       const [userResult, accountsResult] = await Promise.all([
         getAuthUserByRemoteIdUseCase.execute(activeUserRemoteId),
-        getAccountsByOwnerUserRemoteIdUseCase.execute(activeUserRemoteId),
+        getAccessibleAccountsByUserRemoteIdUseCase.execute(activeUserRemoteId),
       ]);
 
       if (!accountsResult.success) {
@@ -54,6 +68,8 @@ export const useProfileLoaderViewModel = (
 
       const accountOptions = accountsResult.value.map((account) => ({
         remoteId: account.remoteId,
+        ownerUserRemoteId: account.ownerUserRemoteId,
+        createdAt: account.createdAt,
         displayName: account.displayName,
         accountType: account.accountType,
         businessType: account.businessType,
@@ -86,7 +102,11 @@ export const useProfileLoaderViewModel = (
             accountOptions,
             activeAccountRemoteId: null,
             activeAccountType: null,
+            isActiveAccountOwner: false,
             activeAccountDisplayName: "",
+            activeBusinessEstablishedYear: "",
+            activeAccountRoleLabel: "",
+            grantedPermissionCodes: [],
             personalProfile,
             activeBusinessProfile: createDefaultBusinessProfileForm(),
             hasActiveBusinessProfile: false,
@@ -99,22 +119,45 @@ export const useProfileLoaderViewModel = (
 
       let activeBusinessProfile = createDefaultBusinessProfileForm();
       let hasActiveBusinessProfile = false;
+      let activeBusinessEstablishedYear = resolveEstablishedYear(
+        activeAccount.createdAt,
+      );
+      let activeAccountRoleLabel =
+        activeAccount.accountType === AccountType.Business
+          ? "Business Owner"
+          : "Personal Account";
+      let grantedPermissionCodes: string[] = [];
 
       if (activeAccount.accountType === AccountType.Business) {
-        const businessProfileResult =
-          await getBusinessProfileByAccountRemoteIdUseCase.execute(
-            activeAccount.remoteId,
-          );
+        const [businessProfileResult, userManagementSnapshotResult] = await Promise.all([
+          getBusinessProfileByAccountRemoteIdUseCase.execute(activeAccount.remoteId),
+          getUserManagementSnapshotUseCase.execute({
+            accountRemoteId: activeAccount.remoteId,
+            userRemoteId: activeUserRemoteId,
+          }),
+        ]);
 
         if (businessProfileResult.success) {
           activeBusinessProfile = mapBusinessProfileToForm(
             businessProfileResult.value,
           );
           hasActiveBusinessProfile = true;
+          activeBusinessEstablishedYear = resolveEstablishedYear(
+            businessProfileResult.value.createdAt,
+          );
         } else {
           activeBusinessProfile = mapAccountOptionToFallbackBusinessForm(
             activeAccount,
           );
+        }
+
+        if (userManagementSnapshotResult.success) {
+          const activeMember = userManagementSnapshotResult.value.members.find(
+            (member) => member.userRemoteId === activeUserRemoteId,
+          );
+
+          activeAccountRoleLabel = activeMember?.roleName ?? activeAccountRoleLabel;
+          grantedPermissionCodes = [...userManagementSnapshotResult.value.grantedPermissionCodes];
         }
       }
 
@@ -126,7 +169,12 @@ export const useProfileLoaderViewModel = (
           accountOptions,
           activeAccountRemoteId: activeAccount.remoteId,
           activeAccountType: activeAccount.accountType,
+          isActiveAccountOwner:
+            activeAccount.ownerUserRemoteId === activeUserRemoteId,
           activeAccountDisplayName: activeAccount.displayName,
+          activeBusinessEstablishedYear,
+          activeAccountRoleLabel,
+          grantedPermissionCodes,
           personalProfile,
           activeBusinessProfile,
           hasActiveBusinessProfile,
@@ -145,9 +193,10 @@ export const useProfileLoaderViewModel = (
   }, [
     activeAccountRemoteId,
     activeUserRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase,
+    getUserManagementSnapshotUseCase,
     onLoaded,
   ]);
 

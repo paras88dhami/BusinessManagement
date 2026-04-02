@@ -57,7 +57,18 @@ describe("saveAccount.useCase", () => {
 
     const repository: AccountRepository = {
       saveAccount: saveAccountMock,
+      getAccountByRemoteId: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: AccountSelectionErrorType.AccountNotFound,
+          message: "not used in this scenario",
+        },
+      })),
       getAccountsByOwnerUserRemoteId: getAccountsByOwnerUserRemoteIdMock,
+      getAccountsByRemoteIds: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
     };
 
     const useCase = createSaveAccountUseCase(repository);
@@ -93,8 +104,14 @@ describe("saveAccount.useCase", () => {
       saveAccount: vi.fn(async () => {
         throw new Error("saveAccount should not be called");
       }),
+      getAccountByRemoteId: vi.fn(async () => {
+        throw new Error("getAccountByRemoteId should not be called");
+      }),
       getAccountsByOwnerUserRemoteId: vi.fn(async () => {
         throw new Error("getAccountsByOwnerUserRemoteId should not be called");
+      }),
+      getAccountsByRemoteIds: vi.fn(async () => {
+        throw new Error("getAccountsByRemoteIds should not be called");
       }),
     };
 

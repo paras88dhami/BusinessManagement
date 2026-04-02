@@ -1,19 +1,22 @@
 import { Database } from "@nozbe/watermelondb";
 import { useCallback, useMemo } from "react";
 import { setActiveAccountSession } from "@/feature/appSettings/data/appSettings.store";
+import { createLocalBusinessProfileDatasource } from "@/feature/profile/business/data/dataSource/local.businessProfile.datasource.impl";
+import { createBusinessProfileRepository } from "@/feature/profile/business/data/repository/businessProfile.repository.impl";
+import { createCreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase.impl";
+import { createGetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase.impl";
+import { createSaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createGetAccountsByOwnerUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccountsByOwnerUserRemoteId.useCase.impl";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createSaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase.impl";
+import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
+import { createGetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
 import { createSaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase.impl";
-import { createLocalBusinessProfileDatasource } from "@/feature/profile/business/data/dataSource/local.businessProfile.datasource.impl";
-import { createBusinessProfileRepository } from "@/feature/profile/business/data/repository/businessProfile.repository.impl";
-import { createGetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase.impl";
-import { createSaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase.impl";
-import { createCreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase.impl";
 import { ProfileScreenDependencies } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
 
 export const useProfileScreenDependencies = (
@@ -29,11 +32,6 @@ export const useProfileScreenDependencies = (
     [accountDatasource],
   );
 
-  const getAccountsByOwnerUserRemoteIdUseCase = useMemo(
-    () => createGetAccountsByOwnerUserRemoteIdUseCase(accountRepository),
-    [accountRepository],
-  );
-
   const saveAccountUseCase = useMemo(
     () => createSaveAccountUseCase(accountRepository),
     [accountRepository],
@@ -47,6 +45,35 @@ export const useProfileScreenDependencies = (
   const authUserRepository = useMemo(
     () => createAuthUserRepository(authUserDatasource),
     [authUserDatasource],
+  );
+
+  const userManagementDatasource = useMemo(
+    () => createLocalUserManagementDatasource(database),
+    [database],
+  );
+
+  const userManagementRepository = useMemo(
+    () =>
+      createUserManagementRepository({
+        localDatasource: userManagementDatasource,
+        accountRepository,
+        authUserRepository,
+      }),
+    [accountRepository, authUserRepository, userManagementDatasource],
+  );
+
+  const getAccessibleAccountsByUserRemoteIdUseCase = useMemo(
+    () =>
+      createGetAccessibleAccountsByUserRemoteIdUseCase({
+        accountRepository,
+        userManagementRepository,
+      }),
+    [accountRepository, userManagementRepository],
+  );
+
+  const getUserManagementSnapshotUseCase = useMemo(
+    () => createGetUserManagementSnapshotUseCase(userManagementRepository),
+    [userManagementRepository],
   );
 
   const getAuthUserByRemoteIdUseCase = useMemo(
@@ -71,7 +98,9 @@ export const useProfileScreenDependencies = (
 
   const getBusinessProfileByAccountRemoteIdUseCase = useMemo(
     () =>
-      createGetBusinessProfileByAccountRemoteIdUseCase(businessProfileRepository),
+      createGetBusinessProfileByAccountRemoteIdUseCase(
+        businessProfileRepository,
+      ),
     [businessProfileRepository],
   );
 
@@ -90,15 +119,17 @@ export const useProfileScreenDependencies = (
   );
 
   const onSetActiveAccountSession = useCallback(
-    (accountRemoteId: string) => setActiveAccountSession(database, accountRemoteId),
+    (accountRemoteId: string) =>
+      setActiveAccountSession(database, accountRemoteId),
     [database],
   );
 
   return useMemo(
     () => ({
-      getAccountsByOwnerUserRemoteIdUseCase,
+      getAccessibleAccountsByUserRemoteIdUseCase,
       saveAccountUseCase,
       getAuthUserByRemoteIdUseCase,
+      getUserManagementSnapshotUseCase,
       saveAuthUserUseCase,
       getBusinessProfileByAccountRemoteIdUseCase,
       saveBusinessProfileUseCase,
@@ -107,8 +138,9 @@ export const useProfileScreenDependencies = (
     }),
     [
       createBusinessWorkspaceUseCase,
-      getAccountsByOwnerUserRemoteIdUseCase,
+      getAccessibleAccountsByUserRemoteIdUseCase,
       getAuthUserByRemoteIdUseCase,
+      getUserManagementSnapshotUseCase,
       getBusinessProfileByAccountRemoteIdUseCase,
       onSetActiveAccountSession,
       saveAccountUseCase,

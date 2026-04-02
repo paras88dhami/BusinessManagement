@@ -166,6 +166,25 @@ export const createAuthCredentialRepository = (
     };
   },
 
+  async getAuthCredentialByLoginId(
+    loginId: string,
+    credentialType: CredentialTypeValue,
+  ): Promise<AuthCredentialResult> {
+    const result = await localDatasource.getAuthCredentialByLoginId(
+      normalizeLoginId(loginId),
+      credentialType,
+    );
+
+    if (result.success) {
+      return mapCredentialModel(localDatasource, result.value);
+    }
+
+    return {
+      success: false,
+      error: mapAuthCredentialError(result.error),
+    };
+  },
+
   async getAuthCredentialByUserRemoteId(
     userRemoteId: string,
   ): Promise<AuthCredentialResult> {

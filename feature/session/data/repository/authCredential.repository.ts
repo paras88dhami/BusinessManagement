@@ -13,6 +13,10 @@ export interface AuthCredentialRepository {
     loginId: string,
     credentialType: CredentialTypeValue,
   ): Promise<AuthCredentialResult>;
+  getAuthCredentialByLoginId(
+    loginId: string,
+    credentialType: CredentialTypeValue,
+  ): Promise<AuthCredentialResult>;
   getAuthCredentialByUserRemoteId(
     userRemoteId: string,
   ): Promise<AuthCredentialResult>;

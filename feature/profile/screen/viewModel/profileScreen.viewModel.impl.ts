@@ -4,6 +4,7 @@ import {
   getAccountRoleLabel,
   getAccountTypeLabel,
 } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import {
   ProfileScreenViewModel,
   PROFILE_BUSINESS_TYPE_OPTIONS,
@@ -19,6 +20,8 @@ import { useProfileAccountSwitchViewModel } from "./profileAccountSwitch.viewMod
 import { useProfileLoaderViewModel } from "./profileLoader.viewModel.impl";
 import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
 
+const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
+
 export const useProfileScreenViewModel = (
   params: UseProfileScreenViewModelParams,
 ): ProfileScreenViewModel => {
@@ -27,7 +30,6 @@ export const useProfileScreenViewModel = (
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
-    onOpenBusinessDetails,
     onLogout,
     onBack,
   } = params;
@@ -52,11 +54,13 @@ export const useProfileScreenViewModel = (
   const loader = useProfileLoaderViewModel({
     activeUserRemoteId,
     activeAccountRemoteId,
-    getAccountsByOwnerUserRemoteIdUseCase:
-      dependencies.getAccountsByOwnerUserRemoteIdUseCase,
+    getAccessibleAccountsByUserRemoteIdUseCase:
+      dependencies.getAccessibleAccountsByUserRemoteIdUseCase,
     getAuthUserByRemoteIdUseCase: dependencies.getAuthUserByRemoteIdUseCase,
     getBusinessProfileByAccountRemoteIdUseCase:
       dependencies.getBusinessProfileByAccountRemoteIdUseCase,
+    getUserManagementSnapshotUseCase:
+      dependencies.getUserManagementSnapshotUseCase,
     onLoaded,
   });
 
@@ -105,13 +109,22 @@ export const useProfileScreenViewModel = (
   const initials = useMemo(() => buildInitials(data.profileName), [data.profileName]);
 
   const roleLabel = useMemo(
-    () => getAccountRoleLabel(data.activeAccountType),
-    [data.activeAccountType],
+    () => data.activeAccountRoleLabel || getAccountRoleLabel(data.activeAccountType),
+    [data.activeAccountRoleLabel, data.activeAccountType],
   );
 
   const activeAccountTypeLabel = useMemo(
     () => getAccountTypeLabel(data.activeAccountType),
     [data.activeAccountType],
+  );
+  const canEditBusinessProfile = useMemo(
+    () => data.grantedPermissionCodes.includes(PROFILE_EDIT_PERMISSION_CODE),
+    [data.grantedPermissionCodes],
+  );
+  const isActiveBusinessStaff = useMemo(
+    () =>
+      data.activeAccountType === AccountType.Business && !data.isActiveAccountOwner,
+    [data.activeAccountType, data.isActiveAccountOwner],
   );
 
   return useMemo<ProfileScreenViewModel>(
@@ -125,6 +138,8 @@ export const useProfileScreenViewModel = (
       activeAccountDisplayName: data.activeAccountDisplayName,
       activeAccountTypeLabel,
       activeAccountRemoteId: data.activeAccountRemoteId,
+      activeBusinessEstablishedYear: data.activeBusinessEstablishedYear,
+      isActiveBusinessStaff,
       accountOptions: data.accountOptions,
       isSwitchExpanded: accountSwitch.isSwitchExpanded,
       onToggleSwitchExpanded: accountSwitch.onToggleSwitchExpanded,
@@ -140,6 +155,7 @@ export const useProfileScreenViewModel = (
 
       activeBusinessProfileForm: businessEditor.activeBusinessProfileForm,
       hasActiveBusinessProfile: businessEditor.hasActiveBusinessProfile,
+      canEditBusinessProfile,
       isBusinessEditing: businessEditor.isBusinessEditing,
       isSavingBusinessProfile: businessEditor.isSavingBusinessProfile,
       onStartBusinessEdit: businessEditor.onStartBusinessEdit,
@@ -157,7 +173,6 @@ export const useProfileScreenViewModel = (
       onCreateBusinessProfile: businessCreator.onCreateBusinessProfile,
 
       businessTypeOptions: PROFILE_BUSINESS_TYPE_OPTIONS,
-      onOpenBusinessDetails,
       onLogout,
       onBack,
     }),
@@ -180,11 +195,16 @@ export const useProfileScreenViewModel = (
       businessEditor.onSaveBusinessProfile,
       businessEditor.onStartBusinessEdit,
       businessEditor.onUpdateBusinessProfileField,
+      canEditBusinessProfile,
       data.accountOptions,
       data.activeAccountDisplayName,
       data.activeAccountRemoteId,
+      data.activeBusinessEstablishedYear,
+      data.activeAccountType,
+      data.isActiveAccountOwner,
       data.profileName,
       initials,
+      isActiveBusinessStaff,
       loader.isLoading,
       loader.loadError,
       onBack,
@@ -198,7 +218,6 @@ export const useProfileScreenViewModel = (
       personalEditor.personalProfileForm,
       roleLabel,
       successMessage,
-      onOpenBusinessDetails,
     ],
   );
 };

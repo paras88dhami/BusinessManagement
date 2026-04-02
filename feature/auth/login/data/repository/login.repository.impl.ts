@@ -13,6 +13,7 @@ import {
   UnknownError,
   ValidationError,
 } from "../../types/login.types";
+import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 
 type LocalLoginRepositoryOptions = {
   onAuthenticated?: (
@@ -25,33 +26,52 @@ export const createLocalLoginRepository = (
   options: LocalLoginRepositoryOptions = {},
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
-    const verificationResult = await verifyLocalCredentialUseCase.execute({
-      loginId: payload.phoneNumber,
-      password: payload.password,
-    });
+    const loginIdCandidates = buildPhoneLoginIdCandidates(payload.phoneNumber);
+    const candidates = loginIdCandidates.length > 0 ? loginIdCandidates : [payload.phoneNumber];
+    let lastError: LoginError | null = null;
 
-    if (!verificationResult.success) {
-      return {
-        success: false,
-        error: mapAuthSessionErrorToLoginError(verificationResult.error),
-      };
-    }
+    for (const loginIdCandidate of candidates) {
+      const verificationResult = await verifyLocalCredentialUseCase.execute({
+        loginId: loginIdCandidate,
+        password: payload.password,
+      });
 
-    try {
-      if (options.onAuthenticated) {
-        await options.onAuthenticated(verificationResult.value);
+      if (verificationResult.success) {
+        try {
+          if (options.onAuthenticated) {
+            await options.onAuthenticated(verificationResult.value);
+          }
+        } catch (error) {
+          console.error("Failed to persist session after login.", error);
+          return {
+            success: false,
+            error: DatabaseError,
+          };
+        }
+
+        return {
+          success: true,
+          value: verificationResult.value,
+        };
       }
-    } catch (error) {
-      console.error("Failed to persist session after login.", error);
-      return {
-        success: false,
-        error: DatabaseError,
-      };
+
+      const mappedError = mapAuthSessionErrorToLoginError(verificationResult.error);
+
+      if (
+        verificationResult.error.type === AuthSessionErrorType.AuthCredentialNotFound &&
+        loginIdCandidate !== candidates[candidates.length - 1]
+      ) {
+        lastError = mappedError;
+        continue;
+      }
+
+      lastError = mappedError;
+      break;
     }
 
     return {
-      success: true,
-      value: verificationResult.value,
+      success: false,
+      error: lastError ?? UnknownError,
     };
   },
 });

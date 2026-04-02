@@ -144,6 +144,35 @@ export const createLocalAuthCredentialDatasource = (
     }
   },
 
+  async getAuthCredentialByLoginId(
+    loginId: string,
+    credentialType: CredentialTypeValue,
+  ): Promise<Result<AuthCredentialModel>> {
+    try {
+      const authCredentialsCollection = database.get<AuthCredentialModel>(
+        AUTH_CREDENTIALS_TABLE,
+      );
+
+      const matchingCredentials = await authCredentialsCollection
+        .query(
+          Q.where("login_id", loginId),
+          Q.where("credential_type", credentialType),
+        )
+        .fetch();
+
+      if (matchingCredentials.length === 0) {
+        throw new Error("Auth credential not found");
+      }
+
+      return { success: true, value: matchingCredentials[0] };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
   async getAuthCredentialByUserRemoteId(
     userRemoteId: string,
   ): Promise<Result<AuthCredentialModel>> {
