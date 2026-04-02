@@ -70,6 +70,7 @@ export type LedgerEditorFormState = {
 export type LedgerAccountOptionState = {
   remoteId: string;
   label: string;
+  currencyCode: string | null;
 };
 
 export type LedgerEntryTypeOptionState = {

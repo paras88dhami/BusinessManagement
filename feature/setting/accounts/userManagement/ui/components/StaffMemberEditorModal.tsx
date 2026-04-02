@@ -1,21 +1,19 @@
 import React from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { X } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import {
   ChipSelectorField,
   ChipSelectorOption,
 } from "@/shared/components/reusable/Form/ChipSelectorField";
+import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import {
+  RoleOptionGrid,
+  RoleOptionGridItem,
+} from "@/shared/components/reusable/Form/RoleOptionGrid";
 import { colors } from "@/shared/components/theme/colors";
-import { radius, spacing } from "@/shared/components/theme/spacing";
+import { spacing } from "@/shared/components/theme/spacing";
 import {
   SignUpPhoneCountryCode,
   SignUpPhoneCountryOption,
@@ -24,6 +22,7 @@ import {
 export type StaffMemberRoleOption = {
   remoteId: string;
   label: string;
+  category: "default" | "custom";
 };
 
 type StaffMemberEditorModalProps = {
@@ -38,13 +37,17 @@ type StaffMemberEditorModalProps = {
   roleRemoteId: string | null;
   roleOptions: readonly StaffMemberRoleOption[];
   canAssignRoles: boolean;
+  canManageRolePermissions: boolean;
   isSaving: boolean;
+  isSavingRole: boolean;
   onChangeFullName: (fullName: string) => void;
   onChangeSelectedPhoneCountry: (phoneCountryCode: SignUpPhoneCountryCode) => void;
   onChangePhone: (phone: string) => void;
   onChangeEmail: (email: string) => void;
   onChangePassword: (password: string) => void;
   onChangeRole: (roleRemoteId: string) => void;
+  onStartCreateCustomRole: () => void;
+  onManageRolePermissions: () => void;
   onCancel: () => void;
   onSave: () => void;
 };
@@ -61,13 +64,17 @@ export function StaffMemberEditorModal({
   roleRemoteId,
   roleOptions,
   canAssignRoles,
+  canManageRolePermissions,
   isSaving,
+  isSavingRole,
   onChangeFullName,
   onChangeSelectedPhoneCountry,
   onChangePhone,
   onChangeEmail,
   onChangePassword,
   onChangeRole,
+  onStartCreateCustomRole,
+  onManageRolePermissions,
   onCancel,
   onSave,
 }: StaffMemberEditorModalProps) {
@@ -77,175 +84,190 @@ export function StaffMemberEditorModal({
       value: phoneCountryOption.code,
       label: phoneCountryOption.label,
     }));
-  const roleSelectorOptions: ChipSelectorOption<string>[] = roleOptions.map((roleOption) => ({
+
+  const roleGridOptions: RoleOptionGridItem<string>[] = roleOptions.map((roleOption) => ({
     value: roleOption.remoteId,
     label: roleOption.label,
+    category: roleOption.category,
   }));
 
+  const selectedRole = roleOptions.find((roleOption) => roleOption.remoteId === roleRemoteId);
+  const canManageSelectedRolePermissions =
+    canManageRolePermissions && Boolean(roleRemoteId);
+
   return (
-    <Modal
+    <FormSheetModal
       visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onCancel}
+      title={title}
+      subtitle="Set profile and role access"
+      onClose={onCancel}
+      closeAccessibilityLabel="Close staff editor"
+      contentContainerStyle={styles.content}
     >
-      <View style={styles.modalBackdrop}>
-        <Pressable style={styles.modalDismissArea} onPress={onCancel} />
+      <LabeledTextInput
+        label="Full Name"
+        value={fullName}
+        onChangeText={onChangeFullName}
+        placeholder="Enter full name"
+        editable={!isSaving}
+      />
 
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
+      <ChipSelectorField
+        label="Phone Country"
+        options={phoneCountrySelectorOptions}
+        selectedValue={phoneCountryCode}
+        onSelect={onChangeSelectedPhoneCountry}
+        disabled={isSaving}
+      />
 
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>{title}</Text>
-              <Text style={styles.modalSubtitle}>Set profile and role access</Text>
-            </View>
+      <LabeledTextInput
+        label="Phone Number"
+        value={phone}
+        onChangeText={onChangePhone}
+        placeholder="Enter local phone number"
+        keyboardType="phone-pad"
+        editable={!isSaving}
+      />
 
-            <AppIconButton
-              onPress={onCancel}
-              accessibilityRole="button"
-              accessibilityLabel="Close staff editor"
-            >
-              <X size={18} color={colors.mutedForeground} />
-            </AppIconButton>
-          </View>
+      <LabeledTextInput
+        label="Email (Optional)"
+        value={email}
+        onChangeText={onChangeEmail}
+        placeholder="Enter email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        editable={!isSaving}
+      />
 
-          <LabeledTextInput
-            label="Full name"
-            value={fullName}
-            onChangeText={onChangeFullName}
-            placeholder="Enter full name"
-            editable={!isSaving}
-            containerStyle={styles.fieldSpacing}
-          />
+      <LabeledTextInput
+        label={mode === "create" ? "Password" : "Reset Password (Optional)"}
+        value={password}
+        onChangeText={onChangePassword}
+        placeholder={
+          mode === "create" ? "Set password" : "Leave blank to keep current password"
+        }
+        secureTextEntry={true}
+        editable={!isSaving}
+      />
 
-          <ChipSelectorField
-            label="Phone country"
-            options={phoneCountrySelectorOptions}
-            selectedValue={phoneCountryCode}
-            onSelect={onChangeSelectedPhoneCountry}
-            disabled={isSaving}
-          />
+      <View style={styles.roleSectionWrap}>
+        <View style={styles.roleSectionHeader}>
+          <Text style={styles.inlineFieldLabel}>Select Role</Text>
+          {canManageRolePermissions ? (
+            <AppButton
+              label="Create Custom Role"
+              variant="secondary"
+              size="sm"
+              onPress={onStartCreateCustomRole}
+              disabled={isSaving || isSavingRole}
+            />
+          ) : null}
+        </View>
 
-          <LabeledTextInput
-            label="Phone number"
-            value={phone}
-            onChangeText={onChangePhone}
-            placeholder="Enter local phone number"
-            keyboardType="phone-pad"
-            editable={!isSaving}
-            containerStyle={styles.fieldSpacing}
-          />
-
-          <LabeledTextInput
-            label="Email (optional)"
-            value={email}
-            onChangeText={onChangeEmail}
-            placeholder="Enter email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!isSaving}
-            containerStyle={styles.fieldSpacing}
-          />
-
-          <LabeledTextInput
-            label={mode === "create" ? "Password" : "Reset password (optional)"}
-            value={password}
-            onChangeText={onChangePassword}
-            placeholder={mode === "create" ? "Set password" : "Leave blank to keep current password"}
-            secureTextEntry={true}
-            editable={!isSaving}
-            containerStyle={styles.fieldSpacing}
-          />
-
-          <ChipSelectorField
-            label="Role"
-            options={roleSelectorOptions}
+        {roleGridOptions.length === 0 ? (
+          <Text style={styles.noRoleText}>
+            No roles available. Create a custom role to continue.
+          </Text>
+        ) : (
+          <RoleOptionGrid
+            options={roleGridOptions}
             selectedValue={roleRemoteId}
             onSelect={onChangeRole}
             disabled={isSaving}
             isOptionDisabled={() => !canAssignRoles}
           />
-
-          <View style={styles.actionRow}>
-            <AppButton
-              label="Cancel"
-              variant="secondary"
-              size="md"
-              style={styles.actionButton}
-              onPress={onCancel}
-              disabled={isSaving}
-            />
-            <AppButton
-              label={isSaving ? "Saving..." : "Save"}
-              variant="primary"
-              size="md"
-              style={styles.actionButton}
-              onPress={onSave}
-              disabled={isSaving}
-            />
-          </View>
-        </View>
+        )}
       </View>
-    </Modal>
+
+      <Card style={styles.permissionCard}>
+        <Text style={styles.permissionCardTitle}>Permission Access</Text>
+        <Text style={styles.permissionCardSubtitle}>
+          {selectedRole
+            ? `You can view or modify permissions for ${selectedRole.label}.`
+            : "Select a role first, then manage its permissions."}
+        </Text>
+
+        <AppButton
+          label={isSavingRole ? "Opening..." : "Manage Permission"}
+          variant="secondary"
+          size="md"
+          style={styles.permissionButton}
+          onPress={onManageRolePermissions}
+          disabled={isSaving || isSavingRole || !canManageSelectedRolePermissions}
+        />
+      </Card>
+
+      <View style={styles.actionRow}>
+        <AppButton
+          label="Cancel"
+          variant="secondary"
+          size="lg"
+          style={styles.actionButton}
+          onPress={onCancel}
+          disabled={isSaving}
+        />
+        <AppButton
+          label={isSaving ? "Saving..." : "Save"}
+          variant="primary"
+          size="lg"
+          style={styles.actionButton}
+          onPress={onSave}
+          disabled={isSaving}
+        />
+      </View>
+    </FormSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
+  content: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
-  modalDismissArea: {
-    ...StyleSheet.absoluteFillObject,
+  inlineFieldLabel: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    lineHeight: 17,
+    fontFamily: "InterBold",
   },
-  modalSheet: {
-    width: "100%",
-    maxHeight: "88%",
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.md,
-    zIndex: 1,
+  roleSectionWrap: {
+    gap: spacing.xs,
   },
-  modalHandle: {
-    alignSelf: "center",
-    width: 42,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.border,
-    marginBottom: spacing.sm,
-  },
-  modalHeader: {
+  roleSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: spacing.sm,
     gap: spacing.xs,
   },
-  modalTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  modalSubtitle: {
-    marginTop: 2,
+  noRoleText: {
     color: colors.mutedForeground,
     fontSize: 12,
+    lineHeight: 17,
     fontFamily: "InterMedium",
   },
-  fieldSpacing: {
-    marginBottom: spacing.sm,
+  permissionCard: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  permissionCardTitle: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  permissionCardSubtitle: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: "InterMedium",
+  },
+  permissionButton: {
+    marginTop: spacing.xs,
   },
   actionRow: {
-    marginTop: spacing.xs,
     flexDirection: "row",
-    gap: spacing.xs,
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

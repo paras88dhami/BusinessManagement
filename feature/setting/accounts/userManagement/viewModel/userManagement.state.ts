@@ -13,6 +13,9 @@ import {
 import { SignUpPhoneCountryCode } from "@/feature/auth/signUp/types/signUp.types";
 
 export type UserManagementRoleEditorMode = "create" | "edit" | null;
+export type UserManagementRoleEditorPresentation =
+  | "role_form"
+  | "permission_manager";
 
 export type UserManagementRoleEditorState = {
   mode: UserManagementRoleEditorMode;
@@ -46,10 +49,11 @@ export type UserManagementState = {
   permissions: UserManagementPermission[];
   assignedRoleRemoteId: string | null;
   grantedPermissionCodes: string[];
-  searchQuery: string;
   selectedRoleFilterKey: string;
   memberEditor: UserManagementMemberEditorState;
   roleEditor: UserManagementRoleEditorState;
+  roleEditorPresentation: UserManagementRoleEditorPresentation;
+  isRolePermissionEditEnabled: boolean;
   screenError?: string;
   screenSuccess?: string;
 };
@@ -66,10 +70,13 @@ export type UserManagementStateActions = {
   setPermissions: Dispatch<SetStateAction<UserManagementPermission[]>>;
   setAssignedRoleRemoteId: Dispatch<SetStateAction<string | null>>;
   setGrantedPermissionCodes: Dispatch<SetStateAction<string[]>>;
-  setSearchQuery: Dispatch<SetStateAction<string>>;
   setSelectedRoleFilterKey: Dispatch<SetStateAction<string>>;
   setMemberEditor: Dispatch<SetStateAction<UserManagementMemberEditorState>>;
   setRoleEditor: Dispatch<SetStateAction<UserManagementRoleEditorState>>;
+  setRoleEditorPresentation: Dispatch<
+    SetStateAction<UserManagementRoleEditorPresentation>
+  >;
+  setIsRolePermissionEditEnabled: Dispatch<SetStateAction<boolean>>;
   setScreenError: Dispatch<SetStateAction<string | undefined>>;
   setScreenSuccess: Dispatch<SetStateAction<string | undefined>>;
   clearFeedback: () => void;
@@ -81,6 +88,8 @@ const INITIAL_ROLE_EDITOR_STATE: UserManagementRoleEditorState = {
   roleName: "",
   selectedPermissionCodes: [],
 };
+const INITIAL_ROLE_EDITOR_PRESENTATION: UserManagementRoleEditorPresentation =
+  "role_form";
 
 const INITIAL_MEMBER_EDITOR_STATE: UserManagementMemberEditorState = {
   mode: null,
@@ -112,7 +121,6 @@ export const useUserManagementState = (): {
     null,
   );
   const [grantedPermissionCodes, setGrantedPermissionCodes] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedRoleFilterKey, setSelectedRoleFilterKey] = useState(
     INITIAL_ROLE_FILTER_KEY,
   );
@@ -120,6 +128,12 @@ export const useUserManagementState = (): {
     useState<UserManagementMemberEditorState>(INITIAL_MEMBER_EDITOR_STATE);
   const [roleEditor, setRoleEditor] =
     useState<UserManagementRoleEditorState>(INITIAL_ROLE_EDITOR_STATE);
+  const [roleEditorPresentation, setRoleEditorPresentation] =
+    useState<UserManagementRoleEditorPresentation>(
+      INITIAL_ROLE_EDITOR_PRESENTATION,
+    );
+  const [isRolePermissionEditEnabled, setIsRolePermissionEditEnabled] =
+    useState(false);
   const [screenError, setScreenError] = useState<string>();
   const [screenSuccess, setScreenSuccess] = useState<string>();
 
@@ -141,10 +155,11 @@ export const useUserManagementState = (): {
       permissions,
       assignedRoleRemoteId,
       grantedPermissionCodes,
-      searchQuery,
       selectedRoleFilterKey,
       memberEditor,
       roleEditor,
+      roleEditorPresentation,
+      isRolePermissionEditEnabled,
       screenError,
       screenSuccess,
     }),
@@ -159,8 +174,9 @@ export const useUserManagementState = (): {
       isDeletingRole,
       memberEditor,
       members,
+      isRolePermissionEditEnabled,
       permissions,
-      searchQuery,
+      roleEditorPresentation,
       selectedRoleFilterKey,
       roleEditor,
       roles,
@@ -182,10 +198,11 @@ export const useUserManagementState = (): {
       setPermissions,
       setAssignedRoleRemoteId,
       setGrantedPermissionCodes,
-      setSearchQuery,
       setSelectedRoleFilterKey,
       setMemberEditor,
       setRoleEditor,
+      setRoleEditorPresentation,
+      setIsRolePermissionEditEnabled,
       setScreenError,
       setScreenSuccess,
       clearFeedback,

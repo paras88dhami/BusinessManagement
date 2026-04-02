@@ -68,6 +68,59 @@ export const formatDateLabel = (timestamp: number | null): string => {
   });
 };
 
+export const parseDateInput = (value: string): number | null => {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const [yearText, monthText, dayText] = normalizedValue.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  date.setHours(0, 0, 0, 0);
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date.getTime();
+};
+
+export const formatDateInput = (timestamp: number | null): string => {
+  if (timestamp === null) {
+    return "";
+  }
+
+  const date = new Date(timestamp);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 export const getLedgerEntryTypeLabel = (
   entryType: LedgerEntryTypeValue,
 ): string => {

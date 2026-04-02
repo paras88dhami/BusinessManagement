@@ -30,6 +30,8 @@ export interface ProfileScreenViewModel {
   activeAccountDisplayName: string;
   activeAccountTypeLabel: string;
   activeAccountRemoteId: string | null;
+  activeBusinessEstablishedYear: string;
+  isActiveBusinessStaff: boolean;
   accountOptions: readonly ProfileAccountOption[];
   isSwitchExpanded: boolean;
   onToggleSwitchExpanded: () => void;
@@ -73,7 +75,6 @@ export interface ProfileScreenViewModel {
     value: BusinessTypeValue;
     label: string;
   }[];
-  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 }
@@ -95,9 +96,10 @@ export type UseProfileScreenViewModelParams = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
-  onOpenBusinessDetails: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 };
 
-export const PROFILE_BUSINESS_TYPE_OPTIONS = BUSINESS_TYPE_OPTIONS;
+export const PROFILE_BUSINESS_TYPE_OPTIONS = BUSINESS_TYPE_OPTIONS.filter(
+  (option) => option.value !== "Other",
+);

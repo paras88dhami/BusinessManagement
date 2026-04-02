@@ -18,7 +18,9 @@ import {
 } from "@/feature/ledger/types/ledger.state.types";
 import { LedgerEditorViewModel } from "./ledgerEditor.viewModel";
 import {
+  formatDateInput,
   getLedgerEntryTypeLabel,
+  parseDateInput,
   resolveDefaultDirectionForEntryType,
   shouldShowDirectionSelector,
 } from "./ledger.shared";
@@ -34,7 +36,7 @@ const DEFAULT_LEDGER_STATE: LedgerEditorFormState = {
   title: "",
   amount: "",
   note: "",
-  happenedAt: new Date().toISOString().slice(0, 10),
+  happenedAt: formatDateInput(Date.now()),
   dueAt: "",
   settlementAccountRemoteId: "",
   isSaving: false,
@@ -45,37 +47,10 @@ const createLedgerRemoteId = (): string => {
   return `led-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const parseDateInput = (value: string): number | null => {
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
-    return null;
-  }
-
-  const parsedDate = new Date(`${normalizedValue}T00:00:00`);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null;
-  }
-
-  return parsedDate.getTime();
-};
-
-const formatDateInput = (timestamp: number | null): string => {
-  if (timestamp === null) {
-    return "";
-  }
-
-  return new Date(timestamp).toISOString().slice(0, 10);
-};
-
 type UseLedgerEditorViewModelParams = {
   ownerUserRemoteId: string;
   activeBusinessAccountRemoteId: string | null;
+  activeBusinessCurrencyCode: string | null;
   accounts: readonly Account[];
   getLedgerEntryByRemoteIdUseCase: GetLedgerEntryByRemoteIdUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
@@ -101,6 +76,7 @@ const directionOptions: readonly LedgerDirectionOptionState[] = [
 export const useLedgerEditorViewModel = ({
   ownerUserRemoteId,
   activeBusinessAccountRemoteId,
+  activeBusinessCurrencyCode,
   accounts,
   getLedgerEntryByRemoteIdUseCase,
   addLedgerEntryUseCase,
@@ -115,6 +91,7 @@ export const useLedgerEditorViewModel = ({
       .map((account) => ({
         remoteId: account.remoteId,
         label: account.displayName,
+        currencyCode: account.currencyCode,
       }));
   }, [accounts]);
 
@@ -138,7 +115,7 @@ export const useLedgerEditorViewModel = ({
         title: getLedgerEntryTypeLabel(entryType),
         partyName,
         partyPhone,
-        happenedAt: new Date().toISOString().slice(0, 10),
+        happenedAt: formatDateInput(Date.now()),
         settlementAccountRemoteId,
       };
     },
@@ -302,7 +279,7 @@ export const useLedgerEditorViewModel = ({
         : resolveDefaultDirectionForEntryType(state.entryType),
       title: normalizedTitle,
       amount,
-      currencyCode: "NPR",
+      currencyCode: selectedAccount?.currencyCode ?? activeBusinessCurrencyCode ?? "NPR",
       note: state.note.trim() || null,
       happenedAt,
       dueAt: state.dueAt.trim().length === 0 ? null : dueAt,
@@ -329,6 +306,7 @@ export const useLedgerEditorViewModel = ({
   }, [
     accountOptions,
     activeBusinessAccountRemoteId,
+    activeBusinessCurrencyCode,
     addLedgerEntryUseCase,
     close,
     onSaved,

@@ -3,31 +3,25 @@ import { AccountType } from "@/feature/setting/accounts/accountSelection/types/a
 import { createDashboardProfileRouteHandlers } from "@/feature/profile/screen/factory/dashboardProfileRouteHandlers.shared";
 
 describe("dashboardProfileRouteHandlers.shared", () => {
-  it("navigates to account-specific home and fixed profile routes", () => {
+  it("navigates to account-specific home routes", () => {
     const replaceCalls: string[] = [];
-    const pushCalls: string[] = [];
 
     const handlers = createDashboardProfileRouteHandlers({
       activeUserRemoteId: "user-1",
       activeAccountRemoteId: "acct-1",
       activeAccountType: AccountType.Business,
       navigateReplace: (targetPath) => replaceCalls.push(targetPath),
-      navigatePush: (targetPath) => pushCalls.push(targetPath),
       clearUserSession: async () => {},
       refreshSession: async () => {},
     });
 
     handlers.onNavigateHome(AccountType.Personal);
     handlers.onBackToHome();
-    handlers.onBackToProfile();
-    handlers.onOpenBusinessDetails();
 
     expect(replaceCalls).toEqual([
       "/(dashboard)/personal",
       "/(dashboard)/business",
-      "/(dashboard)/profile",
     ]);
-    expect(pushCalls).toEqual(["/(dashboard)/business-details"]);
   });
 
   it("falls back to personal home when active account type is missing", () => {
@@ -38,7 +32,6 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: null,
       navigateReplace: replace,
-      navigatePush: vi.fn(),
       clearUserSession: async () => {},
       refreshSession: async () => {},
     });
@@ -55,7 +48,6 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: AccountType.Personal,
       navigateReplace: vi.fn(),
-      navigatePush: vi.fn(),
       clearUserSession: async () => {
         calls.push("clear");
       },
@@ -76,7 +68,6 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: AccountType.Personal,
       navigateReplace: vi.fn(),
-      navigatePush: vi.fn(),
       clearUserSession: async () => {
         throw new Error("clear-failed");
       },

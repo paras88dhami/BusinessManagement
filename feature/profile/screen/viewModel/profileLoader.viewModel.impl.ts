@@ -11,6 +11,19 @@ import {
   UseProfileLoaderViewModelParams,
 } from "./profileLoader.viewModel";
 
+const resolveEstablishedYear = (timestamp: number | null | undefined): string => {
+  if (!timestamp) {
+    return "";
+  }
+
+  const dateValue = new Date(timestamp);
+  if (Number.isNaN(dateValue.getTime())) {
+    return "";
+  }
+
+  return String(dateValue.getFullYear());
+};
+
 export const useProfileLoaderViewModel = (
   params: UseProfileLoaderViewModelParams,
 ): ProfileLoaderViewModel => {
@@ -56,6 +69,7 @@ export const useProfileLoaderViewModel = (
       const accountOptions = accountsResult.value.map((account) => ({
         remoteId: account.remoteId,
         ownerUserRemoteId: account.ownerUserRemoteId,
+        createdAt: account.createdAt,
         displayName: account.displayName,
         accountType: account.accountType,
         businessType: account.businessType,
@@ -88,7 +102,9 @@ export const useProfileLoaderViewModel = (
             accountOptions,
             activeAccountRemoteId: null,
             activeAccountType: null,
+            isActiveAccountOwner: false,
             activeAccountDisplayName: "",
+            activeBusinessEstablishedYear: "",
             activeAccountRoleLabel: "",
             grantedPermissionCodes: [],
             personalProfile,
@@ -103,6 +119,9 @@ export const useProfileLoaderViewModel = (
 
       let activeBusinessProfile = createDefaultBusinessProfileForm();
       let hasActiveBusinessProfile = false;
+      let activeBusinessEstablishedYear = resolveEstablishedYear(
+        activeAccount.createdAt,
+      );
       let activeAccountRoleLabel =
         activeAccount.accountType === AccountType.Business
           ? "Business Owner"
@@ -123,6 +142,9 @@ export const useProfileLoaderViewModel = (
             businessProfileResult.value,
           );
           hasActiveBusinessProfile = true;
+          activeBusinessEstablishedYear = resolveEstablishedYear(
+            businessProfileResult.value.createdAt,
+          );
         } else {
           activeBusinessProfile = mapAccountOptionToFallbackBusinessForm(
             activeAccount,
@@ -147,7 +169,10 @@ export const useProfileLoaderViewModel = (
           accountOptions,
           activeAccountRemoteId: activeAccount.remoteId,
           activeAccountType: activeAccount.accountType,
+          isActiveAccountOwner:
+            activeAccount.ownerUserRemoteId === activeUserRemoteId,
           activeAccountDisplayName: activeAccount.displayName,
+          activeBusinessEstablishedYear,
           activeAccountRoleLabel,
           grantedPermissionCodes,
           personalProfile,

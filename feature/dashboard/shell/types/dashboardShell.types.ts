@@ -5,7 +5,6 @@ import {
 
 export type DashboardRouteKey =
   | "business"
-  | "business-details"
   | "personal"
   | "ledger"
   | "pos"
@@ -22,6 +21,7 @@ export type DashboardHeaderConfig = {
   subtitle?: string;
   showBell: boolean;
   showProfile: boolean;
+  showBack?: boolean;
 };
 
 export interface DashboardShellViewModel {
@@ -33,5 +33,6 @@ export interface DashboardShellViewModel {
   activeTab: DashboardTabValue;
   profileInitials: string;
   onProfilePress: () => void;
+  onHeaderBack: () => void;
   onTabPress: (tab: DashboardTabValue) => void;
 }

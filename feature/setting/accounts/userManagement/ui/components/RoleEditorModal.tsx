@@ -1,16 +1,15 @@
 import React from "react";
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Check, CircleDashed, X } from "lucide-react-native";
+import { Check, CircleDashed } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -49,211 +48,166 @@ export function RoleEditorModal({
   const modalTitle = mode === "create" ? "Create Role" : "Edit Role";
 
   return (
-    <Modal
+    <FormSheetModal
       visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onCancel}
+      title={modalTitle}
+      subtitle="Set role name and permissions"
+      onClose={onCancel}
+      closeAccessibilityLabel="Close role editor"
+      contentContainerStyle={styles.content}
+      sheetStyle={styles.sheet}
     >
-      <View style={styles.modalBackdrop}>
-        <Pressable style={styles.modalDismissArea} onPress={onCancel} />
+      <LabeledTextInput
+        label="Role Name"
+        value={roleName}
+        onChangeText={onRoleNameChange}
+        placeholder="Enter role name"
+        editable={!isSaving}
+      />
 
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
+      <Text style={styles.permissionSelectorTitle}>Permissions</Text>
+      <ScrollView
+        style={styles.permissionScroll}
+        contentContainerStyle={styles.permissionScrollContent}
+        nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={false}
+      >
+        {permissionGroups.map((permissionGroup) => (
+          <Card key={permissionGroup.module} style={styles.permissionGroupWrap}>
+            <Text style={styles.permissionGroupTitle}>{permissionGroup.module}</Text>
+            {permissionGroup.permissions.map((permission) => {
+              const isSelected = selectedPermissionCodes.includes(permission.code);
 
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>{modalTitle}</Text>
-              <Text style={styles.modalSubtitle}>Set role name and permissions</Text>
-            </View>
+              return (
+                <Pressable
+                  key={permission.code}
+                  style={styles.permissionRow}
+                  onPress={() => onTogglePermission(permission.code)}
+                  disabled={isSaving}
+                  accessibilityRole="button"
+                >
+                  <View
+                    style={[
+                      styles.permissionToggleIconWrap,
+                      isSelected ? styles.permissionToggleSelected : null,
+                    ]}
+                  >
+                    {isSelected ? (
+                      <Check size={14} color={colors.primaryForeground} />
+                    ) : (
+                      <CircleDashed size={14} color={colors.mutedForeground} />
+                    )}
+                  </View>
+                  <View style={styles.permissionRowTextWrap}>
+                    <Text style={styles.permissionRowTitle}>{permission.label}</Text>
+                    <Text style={styles.permissionRowSubtitle}>
+                      {permission.description}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </Card>
+        ))}
+      </ScrollView>
 
-            <AppIconButton
-              onPress={onCancel}
-              accessibilityRole="button"
-              accessibilityLabel="Close role editor"
-            >
-              <X size={18} color={colors.mutedForeground} />
-            </AppIconButton>
-          </View>
-
-          <LabeledTextInput
-            label="Role name"
-            value={roleName}
-            onChangeText={onRoleNameChange}
-            placeholder="Enter role name"
-            editable={!isSaving}
-            containerStyle={styles.roleNameField}
-          />
-
-          <Text style={styles.permissionSelectorTitle}>Permissions</Text>
-          <ScrollView
-            style={styles.permissionScroll}
-            contentContainerStyle={styles.permissionScrollContent}
-            nestedScrollEnabled={true}
-            showsVerticalScrollIndicator={false}
-          >
-            {permissionGroups.map((permissionGroup) => (
-              <Card key={permissionGroup.module} style={styles.permissionGroupWrap}>
-                <Text style={styles.permissionGroupTitle}>{permissionGroup.module}</Text>
-                {permissionGroup.permissions.map((permission) => {
-                  const isSelected = selectedPermissionCodes.includes(permission.code);
-
-                  return (
-                    <Pressable
-                      key={permission.code}
-                      style={styles.permissionRow}
-                      onPress={() => onTogglePermission(permission.code)}
-                      disabled={isSaving}
-                    >
-                      <View style={styles.permissionToggleIconWrap}>
-                        {isSelected ? (
-                          <Check size={14} color={colors.success} />
-                        ) : (
-                          <CircleDashed size={14} color={colors.mutedForeground} />
-                        )}
-                      </View>
-                      <View style={styles.permissionRowTextWrap}>
-                        <Text style={styles.permissionRowTitle}>{permission.label}</Text>
-                        <Text style={styles.permissionRowSubtitle}>
-                          {permission.description}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </Card>
-            ))}
-          </ScrollView>
-
-          <View style={styles.actionRow}>
-            <AppButton
-              label="Cancel"
-              variant="secondary"
-              size="md"
-              style={styles.actionButton}
-              onPress={onCancel}
-              disabled={isSaving}
-            />
-            <AppButton
-              label={isSaving ? "Saving..." : "Save Role"}
-              variant="primary"
-              size="md"
-              style={styles.actionButton}
-              onPress={onSave}
-              disabled={isSaving}
-            />
-          </View>
-        </View>
+      <View style={styles.actionRow}>
+        <AppButton
+          label="Cancel"
+          variant="secondary"
+          size="lg"
+          style={styles.actionButton}
+          onPress={onCancel}
+          disabled={isSaving}
+        />
+        <AppButton
+          label={isSaving ? "Saving..." : "Save Role"}
+          variant="primary"
+          size="lg"
+          style={styles.actionButton}
+          onPress={onSave}
+          disabled={isSaving}
+        />
       </View>
-    </Modal>
+    </FormSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
+  sheet: {
+    minHeight: "78%",
   },
-  modalDismissArea: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalSheet: {
-    width: "100%",
-    maxHeight: "85%",
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+  content: {
+    gap: spacing.sm,
     paddingBottom: spacing.md,
-    zIndex: 1,
-  },
-  modalHandle: {
-    alignSelf: "center",
-    width: 42,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.border,
-    marginBottom: spacing.sm,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm,
-    gap: spacing.xs,
-  },
-  modalTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  modalSubtitle: {
-    marginTop: 2,
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  roleNameField: {
-    marginBottom: spacing.sm,
   },
   permissionSelectorTitle: {
     color: colors.cardForeground,
     fontSize: 13,
     fontFamily: "InterBold",
-    marginBottom: spacing.xs,
   },
   permissionScroll: {
-    maxHeight: 360,
+    minHeight: 220,
+    maxHeight: 380,
   },
   permissionScrollContent: {
     gap: spacing.sm,
     paddingBottom: spacing.sm,
   },
   permissionGroupWrap: {
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: spacing.xs,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   permissionGroupTitle: {
     color: colors.primary,
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 14,
     fontFamily: "InterBold",
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 0.55,
   },
   permissionRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.xs,
-    paddingVertical: 4,
+    gap: spacing.sm,
+    paddingVertical: 3,
   },
   permissionToggleIconWrap: {
-    width: 20,
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
     alignItems: "center",
-    paddingTop: 2,
+    justifyContent: "center",
+    backgroundColor: colors.secondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: 1,
+  },
+  permissionToggleSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   permissionRowTextWrap: {
     flex: 1,
+    gap: 2,
   },
   permissionRowTitle: {
     color: colors.cardForeground,
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 17,
     fontFamily: "InterSemiBold",
   },
   permissionRowSubtitle: {
     color: colors.mutedForeground,
     fontSize: 11,
-    marginTop: 2,
-    lineHeight: 15,
+    lineHeight: 16,
+    fontFamily: "InterMedium",
   },
   actionRow: {
-    marginTop: spacing.xs,
     flexDirection: "row",
-    gap: spacing.xs,
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

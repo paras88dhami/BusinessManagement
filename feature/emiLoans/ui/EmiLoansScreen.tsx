@@ -4,24 +4,27 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import {
-  BellRing,
-  ChevronRight,
+  CalendarClock,
   CircleAlert,
   HandCoins,
-  Landmark,
-  Search,
+  Plus,
   Wallet,
 } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { Card } from "@/shared/components/reusable/Cards/Card";
+import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
+import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
+import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
+import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { EmiListFilter } from "@/feature/emiLoans/types/emi.state.types";
+import {
+  EmiListFilter,
+  EmiPlanListItemState,
+} from "@/feature/emiLoans/types/emi.state.types";
 import { EmiListViewModel } from "@/feature/emiLoans/viewModel/emiList.viewModel";
 import { EmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel";
 import { EmiPlanDetailViewModel } from "@/feature/emiLoans/viewModel/emiPlanDetail.viewModel";
@@ -32,6 +35,58 @@ type EmiLoansScreenProps = {
   listViewModel: EmiListViewModel;
   editorViewModel: EmiPlanEditorViewModel;
   detailViewModel: EmiPlanDetailViewModel;
+};
+
+const parseProgressRatio = (progressLabel: string): number => {
+  const match = progressLabel.match(/(\d+)\s*\/\s*(\d+)/);
+
+  if (!match) {
+    return 0;
+  }
+
+  const paid = Number(match[1]);
+  const total = Number(match[2]);
+
+  if (!Number.isFinite(paid) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, (paid / total) * 100));
+};
+
+const normalizeSubtitle = (subtitle: string): string => {
+  return subtitle
+    .replace(/\s*\u2022\s*/g, " | ")
+    .replace(/\s*\u00e2\u20ac\u00a2\s*/g, " | ");
+};
+
+const getNextDueLabel = (subtitle: string): string => {
+  const marker = "Next ";
+  const markerIndex = subtitle.lastIndexOf(marker);
+
+  if (markerIndex < 0) {
+    return subtitle;
+  }
+
+  return subtitle.slice(markerIndex + marker.length);
+};
+
+const isZeroLike = (value: string): boolean => {
+  const numericValue = Number(value.replace(/[^\d.-]/g, ""));
+
+  if (!Number.isFinite(numericValue)) {
+    return false;
+  }
+
+  return numericValue === 0;
+};
+
+const buildPlanIcon = (plan: EmiPlanListItemState) => {
+  if (plan.tone === "collect") {
+    return <HandCoins size={18} color={colors.success} />;
+  }
+
+  return <Wallet size={18} color={colors.primary} />;
 };
 
 export function EmiLoansScreen({
@@ -56,115 +111,107 @@ export function EmiLoansScreen({
           { label: "Closed", value: EmiListFilter.Closed },
         ];
 
+  const summaryById = React.useMemo(
+    () => new Map(listViewModel.summaryCards.map((summaryCard) => [summaryCard.id, summaryCard])),
+    [listViewModel.summaryCards],
+  );
+
+  const dueSummary = summaryById.get("due-today");
+  const overdueSummary = summaryById.get("overdue");
+
+  const primaryLeftSummary =
+    listViewModel.planMode === "business"
+      ? summaryById.get("to-collect")
+      : summaryById.get("remaining");
+
+  const primaryRightSummary =
+    listViewModel.planMode === "business"
+      ? summaryById.get("to-pay")
+      : summaryById.get("my-plans");
+
+  const dueBannerLabel = dueSummary?.value ?? "NPR 0";
+  const shouldShowDueBanner = !isZeroLike(dueBannerLabel) || Boolean(overdueSummary);
+
   return (
     <>
       <ScreenContainer
         showDivider={false}
         padded={true}
         contentContainerStyle={styles.content}
-        baseBottomPadding={134}
+        baseBottomPadding={140}
         footer={
-          <View style={styles.footer}>
+          <BottomTabAwareFooter>
             <AppButton
-              label={listViewModel.primaryActionLabel}
-              variant="primary"
+              label={
+                listViewModel.planMode === "business"
+                  ? "Create New Plan"
+                  : "Create New EMI"
+              }
+              variant="secondary"
               size="lg"
-              style={styles.primaryActionButton}
+              style={styles.createPlanButton}
+              labelStyle={styles.createPlanLabel}
+              leadingIcon={<Plus size={18} color={colors.primary} />}
               onPress={listViewModel.onOpenCreate}
             />
-          </View>
+          </BottomTabAwareFooter>
         }
       >
-        <View style={styles.heroCardWrap}>
-          <Card style={styles.heroCard}>
-            <View style={styles.heroIconWrap}>
-              {listViewModel.planMode === "business" ? (
-                <Landmark size={18} color={colors.primary} />
-              ) : (
-                <Wallet size={18} color={colors.primary} />
-              )}
+        {shouldShowDueBanner ? (
+          <View style={styles.alertCard}>
+            <CircleAlert size={20} color={colors.destructive} />
+            <View style={styles.alertTextWrap}>
+              <Text style={styles.alertTitle}>Upcoming Dues</Text>
+              <Text style={styles.alertSubtitle}>{dueBannerLabel} due soon</Text>
             </View>
-            <View style={styles.heroTextWrap}>
-              <Text style={styles.heroTitle}>{listViewModel.title}</Text>
-              <Text style={styles.heroSubtitle}>{listViewModel.subtitle}</Text>
-            </View>
-          </Card>
-        </View>
+          </View>
+        ) : null}
 
         <View style={styles.summaryGrid}>
-          {listViewModel.summaryCards.map((summaryCard) => {
-            const icon =
-              summaryCard.id === "overdue" ? (
-                <CircleAlert size={18} color={colors.warning} />
-              ) : summaryCard.tone === "collect" ? (
-                <HandCoins size={18} color={colors.success} />
-              ) : summaryCard.tone === "pay" ? (
-                <Wallet size={18} color={colors.destructive} />
-              ) : (
-                <BellRing size={18} color={colors.primary} />
-              );
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>
+              {primaryLeftSummary?.label ?? "Total Outstanding"}
+            </Text>
+            <Text style={styles.summaryValue}>
+              {primaryLeftSummary?.value ?? "NPR 0"}
+            </Text>
+          </View>
 
-            return (
-              <Card key={summaryCard.id} style={styles.summaryCard}>
-                <View style={styles.summaryIconWrap}>{icon}</View>
-                <Text style={styles.summaryLabel}>{summaryCard.label}</Text>
-                <Text style={styles.summaryValue}>{summaryCard.value}</Text>
-              </Card>
-            );
-          })}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>
+              {primaryRightSummary?.label ?? "Active Plans"}
+            </Text>
+            <Text style={styles.summaryValueAccent}>
+              {primaryRightSummary?.value ?? "0"}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.searchWrap}>
-          <Search size={18} color={colors.mutedForeground} />
-          <TextInput
-            value={listViewModel.searchQuery}
-            onChangeText={listViewModel.onChangeSearchQuery}
-            placeholder={
-              listViewModel.planMode === "business"
-                ? "Search plans or party name"
-                : "Search plans"
-            }
-            placeholderTextColor={colors.mutedForeground}
-            style={styles.searchInput}
-          />
-        </View>
+        <SearchInputRow
+          value={listViewModel.searchQuery}
+          onChangeText={listViewModel.onChangeSearchQuery}
+          placeholder={
+            listViewModel.planMode === "business"
+              ? "Search plans or party name"
+              : "Search plans"
+          }
+          inputStyle={styles.searchInput}
+        />
 
-        <View style={styles.filterRow}>
-          {filterOptions.map((filterOption) => {
-            const isSelected = filterOption.value === listViewModel.selectedFilter;
+        <FilterChipGroup
+          options={filterOptions}
+          selectedValue={listViewModel.selectedFilter}
+          onSelect={listViewModel.onChangeFilter}
+        />
 
-            return (
-              <Pressable
-                key={filterOption.value}
-                style={[
-                  styles.filterChip,
-                  isSelected ? styles.filterChipSelected : null,
-                ]}
-                onPress={() => listViewModel.onChangeFilter(filterOption.value)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isSelected ? styles.filterChipTextSelected : null,
-                  ]}
-                >
-                  {filterOption.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>
-            {listViewModel.planMode === "business"
-              ? "Installment Plans"
-              : "My EMI and Loan Plans"}
-          </Text>
-          <Pressable onPress={() => void listViewModel.refresh()}>
-            <Text style={styles.refreshLabel}>Refresh</Text>
-          </Pressable>
-        </View>
+        <InlineSectionHeader
+          title="Active Plans"
+          actionLabel="View More"
+          onActionPress={() => {
+            listViewModel.onChangeSearchQuery("");
+            listViewModel.onChangeFilter(EmiListFilter.All);
+          }}
+        />
 
         {listViewModel.isLoading ? (
           <View style={styles.centerState}>
@@ -179,53 +226,78 @@ export function EmiLoansScreen({
             <Text style={styles.emptyText}>{listViewModel.emptyStateMessage}</Text>
           </View>
         ) : (
-          listViewModel.planItems.map((planItem) => (
-            <Pressable
-              key={planItem.remoteId}
-              onPress={() => void listViewModel.onOpenDetail(planItem.remoteId)}
-            >
-              <Card style={styles.planCard}>
-                <View style={styles.planTopRow}>
-                  <View
-                    style={[
-                      styles.planIconWrap,
-                      planItem.tone === "collect"
-                        ? styles.collectIconWrap
-                        : styles.payIconWrap,
-                    ]}
-                  >
-                    {planItem.tone === "collect" ? (
-                      <HandCoins size={18} color={colors.success} />
-                    ) : (
-                      <Wallet size={18} color={colors.primary} />
-                    )}
-                  </View>
+          <View style={styles.planListWrap}>
+            {listViewModel.planItems.map((planItem) => {
+              const progress = parseProgressRatio(planItem.progressLabel);
+              const normalizedSubtitle = normalizeSubtitle(planItem.subtitle);
+              const nextDueLabel = getNextDueLabel(normalizedSubtitle);
 
-                  <View style={styles.planTextWrap}>
-                    <Text style={styles.planTitle}>{planItem.title}</Text>
-                    <Text style={styles.planSubtitle}>{planItem.subtitle}</Text>
-                    <View style={styles.badgeWrap}>
+              return (
+                <Pressable
+                  key={planItem.remoteId}
+                  onPress={() => void listViewModel.onOpenDetail(planItem.remoteId)}
+                  style={styles.planCard}
+                >
+                  <View style={styles.planTopRow}>
+                    <View
+                      style={[
+                        styles.planIconWrap,
+                        planItem.tone === "collect"
+                          ? styles.collectIconWrap
+                          : styles.payIconWrap,
+                      ]}
+                    >
+                      {buildPlanIcon(planItem)}
+                    </View>
+
+                    <View style={styles.planTextWrap}>
+                      <Text style={styles.planTitle}>{planItem.title}</Text>
+                      <Text style={styles.planSubtitle}>{normalizedSubtitle}</Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.planStatusBadge,
+                        planItem.isClosed
+                          ? styles.planStatusClosed
+                          : styles.planStatusActive,
+                      ]}
+                    >
                       <Text
                         style={[
-                          styles.badgeText,
-                          planItem.isOverdue ? styles.overdueBadgeText : null,
+                          styles.planStatusText,
+                          planItem.isClosed
+                            ? styles.planStatusTextClosed
+                            : styles.planStatusTextActive,
                         ]}
                       >
-                        {planItem.badgeLabel}
+                        {planItem.isClosed ? "CLOSED" : "ACTIVE"}
                       </Text>
                     </View>
                   </View>
 
-                  <View style={styles.planAmountWrap}>
-                    <Text style={styles.planAmount}>{planItem.amountLabel}</Text>
-                    <Text style={styles.planProgress}>{planItem.progressLabel}</Text>
+                  <View style={styles.progressMetaRow}>
+                    <Text style={styles.progressMeta}>{planItem.progressLabel}</Text>
+                    <Text style={styles.progressMeta}>{planItem.amountLabel} left</Text>
                   </View>
 
-                  <ChevronRight size={18} color={colors.mutedForeground} />
-                </View>
-              </Card>
-            </Pressable>
-          ))
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                  </View>
+
+                  {!planItem.isClosed ? (
+                    <View style={styles.nextDueRow}>
+                      <View style={styles.nextDueTextWrap}>
+                        <CalendarClock size={12} color={colors.mutedForeground} />
+                        <Text style={styles.nextDueLabel}>Next: {nextDueLabel}</Text>
+                      </View>
+                      <Text style={styles.nextDueAmount}>{planItem.amountLabel}</Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
         )}
       </ScreenContainer>
 
@@ -237,132 +309,74 @@ export function EmiLoansScreen({
 
 const styles = StyleSheet.create({
   content: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+  createPlanButton: {
+    width: "100%",
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(31, 99, 64, 0.35)",
     backgroundColor: colors.background,
   },
-  primaryActionButton: {
-    width: "100%",
+  createPlanLabel: {
+    color: colors.primary,
   },
-  heroCardWrap: {
-    marginTop: spacing.xs,
-  },
-  heroCard: {
+  alertCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: "rgba(228, 71, 71, 0.24)",
+    backgroundColor: "rgba(228, 71, 71, 0.1)",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
-  heroIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroTextWrap: {
+  alertTextWrap: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
-  heroTitle: {
+  alertTitle: {
     color: colors.cardForeground,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "InterBold",
   },
-  heroSubtitle: {
+  alertSubtitle: {
     color: colors.mutedForeground,
-    fontSize: 13,
+    fontSize: 12,
   },
   summaryGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: spacing.sm,
   },
   summaryCard: {
-    width: "48%",
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-  },
-  summaryIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.md,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.sm,
   },
   summaryLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   summaryValue: {
     color: colors.cardForeground,
-    fontSize: 16,
+    fontSize: 19,
     fontFamily: "InterBold",
   },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.md,
-    minHeight: 48,
+  summaryValueAccent: {
+    color: colors.primary,
+    fontSize: 19,
+    fontFamily: "InterBold",
   },
   searchInput: {
-    flex: 1,
     color: colors.foreground,
     fontSize: 14,
-  },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  filterChip: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-  },
-  filterChipSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  filterChipText: {
-    color: colors.foreground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  filterChipTextSelected: {
-    color: colors.primaryForeground,
-  },
-  sectionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  refreshLabel: {
-    color: colors.primary,
-    fontSize: 13,
-    fontFamily: "InterBold",
+    paddingVertical: 12,
   },
   centerState: {
     paddingVertical: spacing.xxl,
@@ -372,26 +386,35 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.destructive,
     fontSize: 13,
-    fontFamily: "InterBold",
+    fontFamily: "InterMedium",
+    textAlign: "center",
   },
   emptyText: {
     color: colors.mutedForeground,
     fontSize: 14,
     textAlign: "center",
   },
+  planListWrap: {
+    gap: spacing.sm,
+  },
   planCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
   planTopRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.sm,
   },
   planIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -403,7 +426,7 @@ const styles = StyleSheet.create({
   },
   planTextWrap: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   planTitle: {
     color: colors.cardForeground,
@@ -413,34 +436,71 @@ const styles = StyleSheet.create({
   planSubtitle: {
     color: colors.mutedForeground,
     fontSize: 12,
+    lineHeight: 17,
   },
-  badgeWrap: {
-    alignSelf: "flex-start",
-    marginTop: 2,
-    borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.sm,
+  planStatusBadge: {
+    paddingHorizontal: 8,
     paddingVertical: 4,
+    borderRadius: radius.sm,
   },
-  badgeText: {
+  planStatusActive: {
+    backgroundColor: "rgba(31, 99, 64, 0.16)",
+  },
+  planStatusClosed: {
+    backgroundColor: "rgba(46, 139, 87, 0.16)",
+  },
+  planStatusText: {
+    fontSize: 10,
+    fontFamily: "InterBold",
+  },
+  planStatusTextActive: {
     color: colors.primary,
+  },
+  planStatusTextClosed: {
+    color: colors.success,
+  },
+  progressMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  progressMeta: {
+    color: colors.mutedForeground,
     fontSize: 11,
-    fontFamily: "InterBold",
   },
-  overdueBadgeText: {
-    color: colors.destructive,
+  progressTrack: {
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.muted,
+    overflow: "hidden",
   },
-  planAmountWrap: {
-    alignItems: "flex-end",
-    gap: 4,
+  progressFill: {
+    height: "100%",
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
-  planAmount: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
+  nextDueRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
   },
-  planProgress: {
+  nextDueTextWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  nextDueLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
+  },
+  nextDueAmount: {
+    color: colors.cardForeground,
+    fontSize: 13,
+    fontFamily: "InterBold",
   },
 });

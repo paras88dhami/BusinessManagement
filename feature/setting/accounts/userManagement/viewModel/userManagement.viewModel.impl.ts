@@ -11,6 +11,7 @@ import {
   AccountMemberStatus,
   AccountMemberWithRole,
 } from "../types/userManagement.types";
+import { isDefaultBusinessRole } from "../types/userManagementDefaultRoles.shared";
 import { ChangeAccountMemberStatusUseCase } from "../useCase/changeAccountMemberStatus.useCase";
 import { CreateAccountMemberUseCase } from "../useCase/createAccountMember.useCase";
 import { DeleteAccountMemberUseCase } from "../useCase/deleteAccountMember.useCase";
@@ -48,6 +49,11 @@ const ALL_ROLE_FILTER_KEY = "all";
 const UNASSIGNED_ROLE_FILTER_KEY = "unassigned";
 
 const DEFAULT_MEMBER_PHONE_COUNTRY_CODE: SignUpPhoneCountryCode = "NP";
+
+type RoleEditorLaunchSource =
+  | "global"
+  | "member_create_custom_role"
+  | "member_manage_permissions";
 
 const splitStoredPhoneNumber = (
   phoneNumber: string | null,
@@ -174,6 +180,7 @@ export const useUserManagementViewModel = (
   const { state, actions } = useUserManagementState();
   const roleEditorRef = useRef(state.roleEditor);
   const memberEditorRef = useRef(state.memberEditor);
+  const roleEditorLaunchSourceRef = useRef<RoleEditorLaunchSource>("global");
 
   useEffect(() => {
     roleEditorRef.current = state.roleEditor;
@@ -182,6 +189,13 @@ export const useUserManagementViewModel = (
   useEffect(() => {
     memberEditorRef.current = state.memberEditor;
   }, [state.memberEditor]);
+
+  const resetRoleEditorUiState = useCallback((): void => {
+    actions.setRoleEditor(createInitialRoleEditorState());
+    actions.setRoleEditorPresentation("role_form");
+    actions.setIsRolePermissionEditEnabled(false);
+    roleEditorLaunchSourceRef.current = "global";
+  }, [actions]);
 
   const load = useCallback(
     async ({ clearFeedback }: { clearFeedback?: boolean } = {}): Promise<void> => {
@@ -199,7 +213,7 @@ export const useUserManagementViewModel = (
           actions.setAssignedRoleRemoteId(null);
           actions.setGrantedPermissionCodes([]);
           actions.setMemberEditor(createInitialMemberEditorState());
-          actions.setRoleEditor(createInitialRoleEditorState());
+          resetRoleEditorUiState();
           actions.setScreenError(
             "Active account session not found. Please sign in again.",
           );
@@ -218,7 +232,7 @@ export const useUserManagementViewModel = (
           actions.setAssignedRoleRemoteId(null);
           actions.setGrantedPermissionCodes([]);
           actions.setMemberEditor(createInitialMemberEditorState());
-          actions.setRoleEditor(createInitialRoleEditorState());
+          resetRoleEditorUiState();
           actions.setScreenError(snapshotResult.error.message);
           return;
         }
@@ -239,7 +253,7 @@ export const useUserManagementViewModel = (
           );
 
           if (!roleStillExists) {
-            actions.setRoleEditor(createInitialRoleEditorState());
+            resetRoleEditorUiState();
           }
         }
 
@@ -260,7 +274,7 @@ export const useUserManagementViewModel = (
         actions.setAssignedRoleRemoteId(null);
         actions.setGrantedPermissionCodes([]);
         actions.setMemberEditor(createInitialMemberEditorState());
-        actions.setRoleEditor(createInitialRoleEditorState());
+        resetRoleEditorUiState();
         actions.setScreenError(
           error instanceof Error
             ? error.message
@@ -275,6 +289,7 @@ export const useUserManagementViewModel = (
       activeAccountRemoteId,
       activeUserRemoteId,
       getUserManagementSnapshotUseCase,
+      resetRoleEditorUiState,
     ],
   );
 
@@ -296,13 +311,30 @@ export const useUserManagementViewModel = (
     () => state.grantedPermissionCodes.includes(ROLE_ASSIGNMENT_PERMISSION_CODE),
     [state.grantedPermissionCodes],
   );
-  const hasAssignableRoles = useMemo(
+  const memberRoleOptions = useMemo(
     () =>
-      state.roles.some(
-        (role) => !(role.isSystem && role.name.trim().toLowerCase() === "owner"),
-      ),
-    [state.roles],
+      state.roles
+        .filter((role) => !(role.isSystem && role.name.trim().toLowerCase() === "owner"))
+        .map((role) => ({
+          remoteId: role.remoteId,
+          label: role.name,
+          isBusinessDefault: isDefaultBusinessRole({
+            accountRemoteId: activeAccountRemoteId,
+            roleRemoteId: role.remoteId,
+            roleName: role.name,
+          }),
+        }))
+        .sort((left, right) => {
+          if (left.isBusinessDefault !== right.isBusinessDefault) {
+            return left.isBusinessDefault ? -1 : 1;
+          }
+
+          return left.label.localeCompare(right.label);
+        }),
+    [activeAccountRemoteId, state.roles],
   );
+
+  const hasAssignableRoles = memberRoleOptions.length > 0;
 
   const summaryCards = useMemo(() => {
     const totalMembers = state.members.length;
@@ -370,8 +402,6 @@ export const useUserManagementViewModel = (
   }, [actions, roleFilters, state.selectedRoleFilterKey]);
 
   const memberListItems = useMemo(() => {
-    const normalizedSearchQuery = state.searchQuery.trim().toLowerCase();
-
     const visibleMembers = state.members.filter((member) => {
       const memberRoleKey = member.roleName
         ? normalizeRoleFilterKey(member.roleName)
@@ -380,34 +410,11 @@ export const useUserManagementViewModel = (
         state.selectedRoleFilterKey === ALL_ROLE_FILTER_KEY ||
         state.selectedRoleFilterKey === memberRoleKey;
 
-      if (!matchesFilter) {
-        return false;
-      }
-
-      if (!normalizedSearchQuery) {
-        return true;
-      }
-
-      const searchableText = [
-        member.fullName,
-        member.email ?? "",
-        member.phone ?? "",
-        member.roleName ?? "unassigned",
-        member.status,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(normalizedSearchQuery);
+      return matchesFilter;
     });
 
     return visibleMembers.map((member) => buildMemberListItem(member, canManageStaff));
-  }, [
-    canManageStaff,
-    state.members,
-    state.searchQuery,
-    state.selectedRoleFilterKey,
-  ]);
+  }, [canManageStaff, state.members, state.selectedRoleFilterKey]);
 
   const roleListItems = useMemo<readonly UserManagementRoleListItem[]>(() => {
     const assignedMemberCountByRoleRemoteId = new Map<string, number>();
@@ -445,13 +452,6 @@ export const useUserManagementViewModel = (
     });
   }, [canManageRoles, state.members, state.roles]);
 
-  const onChangeSearchQuery = useCallback(
-    (searchQuery: string): void => {
-      actions.setSearchQuery(searchQuery);
-    },
-    [actions],
-  );
-
   const onSelectRoleFilter = useCallback(
     (filterKey: string): void => {
       actions.setSelectedRoleFilterKey(filterKey);
@@ -474,6 +474,11 @@ export const useUserManagementViewModel = (
     }
 
     actions.clearFeedback();
+    const preferredRoleOption =
+      memberRoleOptions.find((roleOption) => roleOption.isBusinessDefault) ??
+      memberRoleOptions[0] ??
+      null;
+
     actions.setMemberEditor({
       mode: "create",
       editingMemberRemoteId: null,
@@ -482,9 +487,15 @@ export const useUserManagementViewModel = (
       phone: "",
       email: "",
       password: "",
-      roleRemoteId: null,
+      roleRemoteId: preferredRoleOption?.remoteId ?? null,
     });
-  }, [actions, canAssignRoles, canManageStaff, hasAssignableRoles]);
+  }, [
+    actions,
+    canAssignRoles,
+    canManageStaff,
+    hasAssignableRoles,
+    memberRoleOptions,
+  ]);
 
   const onStartEditMember = useCallback(
     (memberRemoteId: string): void => {
@@ -598,6 +609,58 @@ export const useUserManagementViewModel = (
     },
     [actions],
   );
+
+  const onStartCreateCustomRoleForMember = useCallback((): void => {
+    if (!canManageRoles) {
+      actions.setScreenError("You do not have permission to create custom roles.");
+      return;
+    }
+
+    roleEditorLaunchSourceRef.current = "member_create_custom_role";
+    actions.clearFeedback();
+    actions.setRoleEditorPresentation("role_form");
+    actions.setIsRolePermissionEditEnabled(true);
+    actions.setRoleEditor({
+      mode: "create",
+      editingRoleRemoteId: null,
+      roleName: "",
+      selectedPermissionCodes: [],
+    });
+  }, [actions, canManageRoles]);
+
+  const onManageSelectedMemberRolePermissions = useCallback((): void => {
+    if (!canManageRoles) {
+      actions.setScreenError("You do not have permission to edit role permissions.");
+      return;
+    }
+
+    const selectedRoleRemoteId = memberEditorRef.current.roleRemoteId;
+
+    if (!selectedRoleRemoteId) {
+      actions.setScreenError("Select a role before managing permissions.");
+      return;
+    }
+
+    const selectedRole = state.roles.find(
+      (role) => role.remoteId === selectedRoleRemoteId,
+    );
+
+    if (!selectedRole) {
+      actions.setScreenError("Selected role was not found.");
+      return;
+    }
+
+    if (selectedRole.isSystem) {
+      actions.setScreenError("System roles cannot be edited.");
+      return;
+    }
+
+    roleEditorLaunchSourceRef.current = "member_manage_permissions";
+    actions.clearFeedback();
+    actions.setRoleEditorPresentation("permission_manager");
+    actions.setIsRolePermissionEditEnabled(false);
+    actions.setRoleEditor(buildRoleEditorStateFromRole(selectedRole));
+  }, [actions, canManageRoles, state.roles]);
 
   const onSaveMember = useCallback(async (): Promise<void> => {
     if (!canManageStaff) {
@@ -810,7 +873,10 @@ export const useUserManagementViewModel = (
       return;
     }
 
+    roleEditorLaunchSourceRef.current = "global";
     actions.clearFeedback();
+    actions.setRoleEditorPresentation("role_form");
+    actions.setIsRolePermissionEditEnabled(true);
     actions.setRoleEditor({
       mode: "create",
       editingRoleRemoteId: null,
@@ -838,16 +904,19 @@ export const useUserManagementViewModel = (
         return;
       }
 
+      roleEditorLaunchSourceRef.current = "global";
       actions.clearFeedback();
+      actions.setRoleEditorPresentation("role_form");
+      actions.setIsRolePermissionEditEnabled(true);
       actions.setRoleEditor(buildRoleEditorStateFromRole(targetRole));
     },
     [actions, canManageRoles, state.roles],
   );
 
   const onCancelRoleEditor = useCallback((): void => {
-    actions.setRoleEditor(createInitialRoleEditorState());
+    resetRoleEditorUiState();
     actions.clearFeedback();
-  }, [actions]);
+  }, [actions, resetRoleEditorUiState]);
 
   const onChangeRoleName = useCallback(
     (roleName: string): void => {
@@ -860,8 +929,30 @@ export const useUserManagementViewModel = (
     [actions],
   );
 
+  const onEnableRolePermissionEdit = useCallback((): void => {
+    if (!canManageRoles) {
+      actions.setScreenError("You do not have permission to edit role permissions.");
+      return;
+    }
+
+    if (!state.roleEditor.mode) {
+      actions.setScreenError("Open role permissions before editing.");
+      return;
+    }
+
+    actions.setIsRolePermissionEditEnabled(true);
+    actions.clearFeedback();
+  }, [actions, canManageRoles, state.roleEditor.mode]);
+
   const onToggleRolePermission = useCallback(
     (permissionCode: string): void => {
+      if (
+        state.roleEditorPresentation === "permission_manager" &&
+        !state.isRolePermissionEditEnabled
+      ) {
+        return;
+      }
+
       actions.setRoleEditor((previousEditorState) => {
         if (!previousEditorState.mode) {
           return previousEditorState;
@@ -878,7 +969,11 @@ export const useUserManagementViewModel = (
 
       actions.clearFeedback();
     },
-    [actions],
+    [
+      actions,
+      state.isRolePermissionEditEnabled,
+      state.roleEditorPresentation,
+    ],
   );
 
   const onSaveRole = useCallback(async (): Promise<void> => {
@@ -901,6 +996,7 @@ export const useUserManagementViewModel = (
     actions.clearFeedback();
 
     try {
+      const roleEditorLaunchSource = roleEditorLaunchSourceRef.current;
       const saveRoleResult = await saveUserManagementRoleUseCase.execute({
         remoteId: state.roleEditor.editingRoleRemoteId ?? undefined,
         accountRemoteId: activeAccountRemoteId,
@@ -914,9 +1010,28 @@ export const useUserManagementViewModel = (
         return;
       }
 
-      actions.setRoleEditor(createInitialRoleEditorState());
+      if (roleEditorLaunchSource === "member_create_custom_role") {
+        actions.setMemberEditor((previousEditorState) => {
+          if (!previousEditorState.mode) {
+            return previousEditorState;
+          }
+
+          return {
+            ...previousEditorState,
+            roleRemoteId: saveRoleResult.value.remoteId,
+          };
+        });
+      }
+
+      resetRoleEditorUiState();
       await load({ clearFeedback: false });
-      actions.setScreenSuccess("Role saved successfully.");
+      actions.setScreenSuccess(
+        roleEditorLaunchSource === "member_create_custom_role"
+          ? "Custom role created and selected."
+          : roleEditorLaunchSource === "member_manage_permissions"
+            ? "Role permissions updated successfully."
+            : "Role saved successfully.",
+      );
     } catch (error) {
       actions.setScreenError(error instanceof Error ? error.message : "Failed to save role.");
     } finally {
@@ -928,11 +1043,31 @@ export const useUserManagementViewModel = (
     activeUserRemoteId,
     canManageRoles,
     load,
+    resetRoleEditorUiState,
     saveUserManagementRoleUseCase,
     state.roleEditor.editingRoleRemoteId,
     state.roleEditor.mode,
     state.roleEditor.roleName,
     state.roleEditor.selectedPermissionCodes,
+  ]);
+
+  const onDoneRolePermissionManager = useCallback(async (): Promise<void> => {
+    if (state.roleEditorPresentation !== "permission_manager") {
+      await onSaveRole();
+      return;
+    }
+
+    if (!state.isRolePermissionEditEnabled) {
+      onCancelRoleEditor();
+      return;
+    }
+
+    await onSaveRole();
+  }, [
+    onCancelRoleEditor,
+    onSaveRole,
+    state.isRolePermissionEditEnabled,
+    state.roleEditorPresentation,
   ]);
 
   const onDeleteRole = useCallback(
@@ -963,7 +1098,7 @@ export const useUserManagementViewModel = (
         }
 
         if (state.roleEditor.editingRoleRemoteId === roleRemoteId) {
-          actions.setRoleEditor(createInitialRoleEditorState());
+          resetRoleEditorUiState();
         }
 
         await load({ clearFeedback: false });
@@ -981,6 +1116,7 @@ export const useUserManagementViewModel = (
       canManageRoles,
       deleteUserManagementRoleUseCase,
       load,
+      resetRoleEditorUiState,
       state.roleEditor.editingRoleRemoteId,
     ],
   );
@@ -998,20 +1134,21 @@ export const useUserManagementViewModel = (
       permissions: state.permissions,
       assignedRoleRemoteId: state.assignedRoleRemoteId,
       grantedPermissionCodes: state.grantedPermissionCodes,
-      searchQuery: state.searchQuery,
       selectedRoleFilterKey: state.selectedRoleFilterKey,
       summaryCards,
       roleFilters,
       memberListItems,
       roleListItems,
+      memberRoleOptions,
       memberEditor: state.memberEditor,
       roleEditor: state.roleEditor,
+      roleEditorPresentation: state.roleEditorPresentation,
+      isRolePermissionEditEnabled: state.isRolePermissionEditEnabled,
       canManageStaff,
       canManageRoles,
       canAssignRoles,
       screenError: state.screenError,
       screenSuccess: state.screenSuccess,
-      onChangeSearchQuery,
       onSelectRoleFilter,
       onReload: load,
       onStartCreateMember,
@@ -1023,6 +1160,8 @@ export const useUserManagementViewModel = (
       onChangeMemberEmail,
       onChangeMemberPassword,
       onChangeMemberRole,
+      onStartCreateCustomRoleForMember,
+      onManageSelectedMemberRolePermissions,
       onSaveMember,
       onToggleMemberStatus,
       onDeleteMember,
@@ -1031,6 +1170,8 @@ export const useUserManagementViewModel = (
       onDeleteRole,
       onCancelRoleEditor,
       onChangeRoleName,
+      onEnableRolePermissionEdit,
+      onDoneRolePermissionManager,
       onToggleRolePermission,
       onSaveRole,
       onBack,
@@ -1041,6 +1182,7 @@ export const useUserManagementViewModel = (
       canManageStaff,
       load,
       memberListItems,
+      memberRoleOptions,
       roleListItems,
       onBack,
       onCancelMemberEditor,
@@ -1052,12 +1194,15 @@ export const useUserManagementViewModel = (
       onChangeMemberPhone,
       onChangeMemberRole,
       onChangeRoleName,
-      onChangeSearchQuery,
       onDeleteMember,
       onDeleteRole,
+      onDoneRolePermissionManager,
+      onEnableRolePermissionEdit,
+      onManageSelectedMemberRolePermissions,
       onSaveMember,
       onSaveRole,
       onSelectRoleFilter,
+      onStartCreateCustomRoleForMember,
       onStartCreateMember,
       onStartCreateRole,
       onStartEditMember,
@@ -1072,15 +1217,16 @@ export const useUserManagementViewModel = (
       state.isLoading,
       state.isSavingMember,
       state.isSavingRole,
+      state.isRolePermissionEditEnabled,
       state.isUpdatingMemberStatus,
       state.memberEditor,
       state.members,
       state.permissions,
       state.roleEditor,
+      state.roleEditorPresentation,
       state.roles,
       state.screenError,
       state.screenSuccess,
-      state.searchQuery,
       state.selectedRoleFilterKey,
       summaryCards,
     ],

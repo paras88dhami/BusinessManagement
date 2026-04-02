@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { ChevronDown, Check, Globe } from "lucide-react-native";
 import { colors } from "@/shared/components/theme/colors";
-import { radius } from "@/shared/components/theme/spacing";
+import { radius, spacing } from "@/shared/components/theme/spacing";
 
 export type DropdownOption = {
   label: string;
@@ -35,7 +35,7 @@ export function Dropdown({
   value,
   options,
   onChange,
-  placeholder = "Select language",
+  placeholder = "Select option",
   disabled = false,
   modalTitle = "Choose option",
   showLeadingIcon = true,
@@ -58,12 +58,16 @@ export function Dropdown({
       <Pressable
         style={[styles.trigger, triggerStyle, disabled && styles.triggerDisabled]}
         onPress={() => {
-          if (!disabled) setVisible(true);
+          if (!disabled) {
+            setVisible(true);
+          }
         }}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
       >
         <View style={styles.leftContent}>
           {showLeadingIcon ? <Globe size={14} color={colors.primary} /> : null}
-          <Text style={[styles.triggerText, triggerTextStyle]}>
+          <Text style={[styles.triggerText, triggerTextStyle]} numberOfLines={1}>
             {selectedOption?.label ?? placeholder}
           </Text>
         </View>
@@ -73,7 +77,7 @@ export function Dropdown({
 
       <Modal
         visible={visible}
-        transparent
+        transparent={true}
         animationType="fade"
         onRequestClose={() => setVisible(false)}
       >
@@ -82,6 +86,7 @@ export function Dropdown({
             style={styles.backdropDismissArea}
             onPress={() => setVisible(false)}
           />
+
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>{modalTitle}</Text>
 
@@ -95,26 +100,27 @@ export function Dropdown({
                   <Pressable
                     style={[
                       styles.optionRow,
-                      isSelected && styles.optionRowSelected,
+                      isSelected ? styles.optionRowSelected : null,
                     ]}
                     onPress={() => handleSelect(item.value)}
+                    accessibilityRole="button"
                   >
                     <Text
                       style={[
                         styles.optionText,
-                        isSelected && styles.optionTextSelected,
+                        isSelected ? styles.optionTextSelected : null,
                       ]}
+                      numberOfLines={1}
                     >
                       {item.label}
                     </Text>
 
-                    {isSelected ? (
-                      <Check size={16} color={colors.primary} />
-                    ) : null}
+                    {isSelected ? <Check size={16} color={colors.primary} /> : null}
                   </Pressable>
                 );
               }}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
+              showsVerticalScrollIndicator={false}
             />
           </View>
         </View>
@@ -125,16 +131,16 @@ export function Dropdown({
 
 const styles = StyleSheet.create({
   trigger: {
-    minHeight: 40,
-    paddingHorizontal: 12,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
+    minHeight: 50,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
+    gap: spacing.sm,
   },
   triggerDisabled: {
     opacity: 0.6,
@@ -143,52 +149,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flexShrink: 1,
+    flex: 1,
   },
   triggerText: {
     color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
+    fontSize: 14,
+    lineHeight: 18,
+    fontFamily: "InterMedium",
+    flexShrink: 1,
   },
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.24)",
+    backgroundColor: colors.overlay,
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
   },
   backdropDismissArea: {
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
     backgroundColor: colors.card,
-    borderRadius: radius.xl ?? 20,
-    padding: 16,
+    borderRadius: radius.xl,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    maxHeight: "70%",
+    maxHeight: "72%",
     zIndex: 1,
   },
   sheetTitle: {
     color: colors.cardForeground,
     fontSize: 16,
+    lineHeight: 20,
     fontFamily: "InterBold",
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   optionRow: {
     minHeight: 44,
     borderRadius: radius.md,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.sm,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: spacing.sm,
   },
   optionRowSelected: {
-    backgroundColor: colors.muted,
+    backgroundColor: colors.accent,
   },
   optionText: {
     color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterSemiBold",
+    flex: 1,
   },
   optionTextSelected: {
     color: colors.primary,
@@ -198,4 +209,3 @@ const styles = StyleSheet.create({
     height: 8,
   },
 });
-

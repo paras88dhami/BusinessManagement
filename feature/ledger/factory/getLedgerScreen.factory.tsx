@@ -150,10 +150,17 @@ export function GetLedgerScreenFactory({
   const handleReload = useCallback(() => {
     setReloadSignal((currentSignal) => currentSignal + 1);
   }, []);
+  const activeBusinessAccount = useMemo(
+    () =>
+      accounts.find((account) => account.remoteId === activeBusinessAccountRemoteId) ??
+      null,
+    [accounts, activeBusinessAccountRemoteId],
+  );
 
   const editorViewModel = useLedgerEditorViewModel({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     activeBusinessAccountRemoteId,
+    activeBusinessCurrencyCode: activeBusinessAccount?.currencyCode ?? "NPR",
     accounts,
     getLedgerEntryByRemoteIdUseCase,
     addLedgerEntryUseCase,
@@ -176,6 +183,7 @@ export function GetLedgerScreenFactory({
 
   const listViewModel = useLedgerListViewModel({
     businessAccountRemoteId: activeBusinessAccountRemoteId ?? "",
+    businessAccountCurrencyCode: activeBusinessAccount?.currencyCode ?? "NPR",
     getLedgerEntriesUseCase,
     onOpenCreate: editorViewModel.openCreate,
     onOpenPartyDetail: partyDetailViewModel.openPartyDetail,

@@ -44,6 +44,9 @@ export const useProfileAccountSwitchViewModel = (
           ...previousData,
           activeAccountRemoteId: selectedAccount.remoteId,
           activeAccountType: selectedAccount.accountType,
+          isActiveAccountOwner:
+            selectedAccount.ownerUserRemoteId ===
+            previousData.loadedAuthUser?.remoteId,
           activeAccountDisplayName: selectedAccount.displayName,
         }));
         setIsSwitchExpanded(false);

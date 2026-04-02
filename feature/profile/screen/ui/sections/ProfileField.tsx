@@ -1,7 +1,7 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
 import { colors } from "@/shared/components/theme/colors";
-import { radius, spacing } from "@/shared/components/theme/spacing";
+import { spacing } from "@/shared/components/theme/spacing";
 
 type ProfileFieldProps = {
   label: string;
@@ -15,6 +15,8 @@ type ProfileFieldProps = {
   numberOfLines?: number;
   autoComplete?: TextInputProps["autoComplete"];
   textContentType?: TextInputProps["textContentType"];
+  icon?: ReactNode;
+  isLast?: boolean;
 };
 
 export function ProfileField({
@@ -29,63 +31,82 @@ export function ProfileField({
   numberOfLines = 1,
   autoComplete,
   textContentType,
+  icon,
+  isLast = false,
 }: ProfileFieldProps) {
   return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {editable ? (
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.mutedForeground}
-          style={[styles.inputField, multiline ? styles.multilineField : undefined]}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          keyboardType={keyboardType}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
-          autoComplete={autoComplete}
-          textContentType={textContentType}
-          textAlignVertical={multiline ? "top" : "center"}
-        />
-      ) : (
-        <Text style={styles.fieldValue}>{value || "-"}</Text>
-      )}
+    <View style={[styles.row, !isLast ? styles.rowDivider : null]}>
+      {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
+      <View style={styles.contentWrap}>
+        <Text style={styles.label}>{label}</Text>
+        {editable ? (
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            autoCapitalize={autoCapitalize}
+            autoCorrect={false}
+            keyboardType={keyboardType}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            autoComplete={autoComplete}
+            textContentType={textContentType}
+            placeholderTextColor={colors.mutedForeground}
+            style={[styles.input, multiline ? styles.inputMultiline : null]}
+            textAlignVertical={multiline ? "top" : "center"}
+          />
+        ) : (
+          <Text style={styles.value}>{value || "-"}</Text>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fieldWrap: {
-    gap: 6,
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    backgroundColor: colors.card,
   },
-  fieldLabel: {
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  iconWrap: {
+    marginTop: 3,
+    width: 20,
+    alignItems: "center",
+  },
+  contentWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  label: {
     color: colors.mutedForeground,
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontFamily: "InterBold",
+    fontSize: 12,
+    fontFamily: "InterMedium",
   },
-  fieldValue: {
+  value: {
     color: colors.cardForeground,
     fontSize: 14,
+    lineHeight: 20,
     fontFamily: "InterSemiBold",
   },
-  inputField: {
-    minHeight: 42,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
+  input: {
+    marginTop: -1,
     color: colors.cardForeground,
     fontSize: 14,
-    backgroundColor: colors.background,
+    lineHeight: 20,
+    fontFamily: "InterSemiBold",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
-  multilineField: {
-    minHeight: 88,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+  inputMultiline: {
+    minHeight: 68,
+    paddingTop: 2,
   },
 });
-

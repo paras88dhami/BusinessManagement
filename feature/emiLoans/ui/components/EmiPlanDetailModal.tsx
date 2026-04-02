@@ -23,6 +23,8 @@ type EmiPlanDetailModalProps = {
 export function EmiPlanDetailModal({
   viewModel,
 }: EmiPlanDetailModalProps) {
+  const detailState = viewModel.state;
+
   return (
     <Modal
       visible={viewModel.visible}
@@ -38,9 +40,9 @@ export function EmiPlanDetailModal({
 
           <View style={styles.headerRow}>
             <View style={styles.headerTextWrap}>
-              <Text style={styles.title}>{viewModel.state?.title ?? "Plan Detail"}</Text>
+              <Text style={styles.title}>{detailState?.title ?? "Plan Detail"}</Text>
               <Text style={styles.subtitle}>
-                {viewModel.state?.subtitle ?? "Installment schedule"}
+                {detailState?.subtitle ?? "Installment schedule"}
               </Text>
             </View>
 
@@ -57,52 +59,52 @@ export function EmiPlanDetailModal({
             <View style={styles.centerState}>
               <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
             </View>
-          ) : viewModel.state ? (
+          ) : detailState ? (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
               <View style={styles.summaryGrid}>
                 <Card style={styles.summaryCard}>
                   <Text style={styles.summaryLabel}>Total</Text>
-                  <Text style={styles.summaryValue}>{viewModel.state.totalAmountLabel}</Text>
+                  <Text style={styles.summaryValue}>{detailState.totalAmountLabel}</Text>
                 </Card>
                 <Card style={styles.summaryCard}>
                   <Text style={styles.summaryLabel}>Remaining</Text>
-                  <Text style={styles.summaryValue}>{viewModel.state.remainingAmountLabel}</Text>
+                  <Text style={styles.summaryValue}>{detailState.remainingAmountLabel}</Text>
                 </Card>
                 <Card style={styles.summaryCard}>
                   <Text style={styles.summaryLabel}>Due</Text>
-                  <Text style={styles.summaryValue}>{viewModel.state.dueTodayLabel}</Text>
+                  <Text style={styles.summaryValue}>{detailState.dueTodayLabel}</Text>
                 </Card>
                 <Card style={styles.summaryCard}>
                   <Text style={styles.summaryLabel}>Overdue</Text>
-                  <Text style={styles.summaryValue}>{viewModel.state.overdueLabel}</Text>
+                  <Text style={styles.summaryValue}>{detailState.overdueLabel}</Text>
                 </Card>
               </View>
 
               <Card style={styles.infoCard}>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Progress</Text>
-                  <Text style={styles.infoValue}>{viewModel.state.progressLabel}</Text>
+                  <Text style={styles.infoValue}>{detailState.progressLabel}</Text>
                 </View>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Next Due</Text>
-                  <Text style={styles.infoValue}>{viewModel.state.nextDueLabel}</Text>
+                  <Text style={styles.infoValue}>{detailState.nextDueLabel}</Text>
                 </View>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Status</Text>
-                  <Text style={styles.infoValue}>{viewModel.state.statusLabel}</Text>
+                  <Text style={styles.infoValue}>{detailState.statusLabel}</Text>
                 </View>
-                {viewModel.state.counterpartyName ? (
+                {detailState.counterpartyName ? (
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Linked With</Text>
-                    <Text style={styles.infoValue}>{viewModel.state.counterpartyName}</Text>
+                    <Text style={styles.infoValue}>{detailState.counterpartyName}</Text>
                   </View>
                 ) : null}
-                {viewModel.state.counterpartyPhone ? (
+                {detailState.counterpartyPhone ? (
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Phone</Text>
                     <View style={styles.phoneWrap}>
                       <Phone size={14} color={colors.mutedForeground} />
-                      <Text style={styles.infoValue}>{viewModel.state.counterpartyPhone}</Text>
+                      <Text style={styles.infoValue}>{detailState.counterpartyPhone}</Text>
                     </View>
                   </View>
                 ) : null}
@@ -110,14 +112,14 @@ export function EmiPlanDetailModal({
                   <Text style={styles.infoLabel}>Reminder</Text>
                   <View style={styles.phoneWrap}>
                     <BellRing size={14} color={colors.mutedForeground} />
-                    <Text style={styles.infoValue}>{viewModel.state.reminderLabel}</Text>
+                    <Text style={styles.infoValue}>{detailState.reminderLabel}</Text>
                   </View>
                 </View>
               </Card>
 
               <Text style={styles.sectionTitle}>Schedule</Text>
 
-              {viewModel.state.installmentItems.map((installment) => (
+              {detailState.installmentItems.map((installment) => (
                 <Card key={installment.remoteId} style={styles.installmentCard}>
                   <View style={styles.installmentTopRow}>
                     <View style={styles.installmentTextWrap}>
@@ -145,12 +147,12 @@ export function EmiPlanDetailModal({
                     <View style={styles.installmentActionRow}>
                       <AppButton
                         label={
-                          viewModel.state.paymentDirection === EmiPaymentDirection.Collect
+                          detailState.paymentDirection === EmiPaymentDirection.Collect
                             ? "Collect"
                             : "Pay Now"
                         }
                         variant={
-                          viewModel.state.paymentDirection === EmiPaymentDirection.Collect
+                          detailState.paymentDirection === EmiPaymentDirection.Collect
                             ? "primary"
                             : "secondary"
                         }

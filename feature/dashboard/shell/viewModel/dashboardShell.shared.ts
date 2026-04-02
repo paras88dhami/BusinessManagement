@@ -24,7 +24,6 @@ const PERSONAL_ONLY_ROUTES = new Set<DashboardRouteKey>([
 ]);
 const SLOT_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "profile",
-  "business-details",
   "user-management",
 ]);
 
@@ -35,7 +34,6 @@ export const resolveDashboardRouteKey = (
 
   switch (routeKey) {
     case "business":
-    case "business-details":
     case "personal":
     case "ledger":
     case "pos":
@@ -52,42 +50,68 @@ export const resolveDashboardRouteKey = (
 };
 
 export const resolveDashboardHeaderConfig = (
-  routeKey: DashboardRouteKey,
+  params: {
+    routeKey: DashboardRouteKey;
+    activeAccountDisplayName: string;
+    profileName: string;
+  },
 ): DashboardHeaderConfig => {
+  const { routeKey, activeAccountDisplayName, profileName } = params;
+
   switch (routeKey) {
     case "business":
       return {
-        title: "My Business",
+        title: activeAccountDisplayName.trim() || "Business",
         subtitle: "Good Evening",
         showBell: true,
         showProfile: true,
       };
     case "personal":
       return {
-        title: "Personal Dashboard",
+        title: profileName.trim() || "Personal",
         subtitle: "Good Evening",
         showBell: true,
         showProfile: true,
       };
     case "ledger":
-      return { title: "Ledger", subtitle: undefined, showBell: false, showProfile: false };
+      return {
+        title: "Ledger",
+        subtitle: undefined,
+        showBell: false,
+        showProfile: false,
+        showBack: false,
+      };
     case "pos":
-      return { title: "POS", subtitle: undefined, showBell: false, showProfile: false };
+      return {
+        title: "POS",
+        subtitle: undefined,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
     case "emi-loans":
       return {
         title: "EMI and Loans",
         subtitle: undefined,
         showBell: false,
         showProfile: false,
+        showBack: false,
       };
     case "more":
-      return { title: "More", subtitle: undefined, showBell: false, showProfile: false };
+      return {
+        title: "More",
+        subtitle: undefined,
+        showBell: false,
+        showProfile: false,
+        showBack: false,
+      };
     case "user-management":
       return {
         title: "User Management",
         subtitle: undefined,
         showBell: false,
         showProfile: false,
+        showBack: false,
       };
     case "personal-transactions":
       return {
@@ -95,15 +119,23 @@ export const resolveDashboardHeaderConfig = (
         subtitle: undefined,
         showBell: false,
         showProfile: false,
+        showBack: false,
       };
     case "personal-budget":
-      return { title: "Budget", subtitle: undefined, showBell: false, showProfile: false };
+      return {
+        title: "Budget",
+        subtitle: undefined,
+        showBell: false,
+        showProfile: false,
+        showBack: false,
+      };
     default:
       return {
         title: "Dashboard",
         subtitle: undefined,
         showBell: false,
         showProfile: false,
+        showBack: false,
       };
   }
 };

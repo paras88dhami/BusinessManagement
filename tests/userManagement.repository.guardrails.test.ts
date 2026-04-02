@@ -430,4 +430,194 @@ describe("userManagement.repository guardrails", () => {
     expect(localDatasource.deleteRolePermissionsByRoleRemoteId).not.toHaveBeenCalled();
     expect(localDatasource.deleteUserRoleAssignmentsByRoleRemoteId).not.toHaveBeenCalled();
   });
+
+  it("ignores assignment-only users when building member list with roles", async () => {
+    const localDatasource = createLocalDatasourceStub();
+    localDatasource.getRolesByAccountRemoteId.mockResolvedValue({
+      success: true as const,
+      value: [
+        {
+          remoteId: "owner-account-1",
+          accountRemoteId: "account-1",
+          name: "Owner",
+          isSystem: true,
+          isDefault: true,
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+        {
+          remoteId: "role-staff",
+          accountRemoteId: "account-1",
+          name: "Staff",
+          isSystem: false,
+          isDefault: false,
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+      ],
+    });
+    localDatasource.getMembersByAccountRemoteId.mockResolvedValue({
+      success: true as const,
+      value: [
+        {
+          remoteId: "member-1",
+          accountRemoteId: "account-1",
+          userRemoteId: "staff-1",
+          status: AccountMemberStatus.Active,
+          invitedByUserRemoteId: "owner-1",
+          joinedAt: 1,
+          lastActiveAt: 1,
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+      ],
+    });
+    localDatasource.getUserRoleAssignmentsByAccountRemoteId.mockResolvedValue({
+      success: true as const,
+      value: [
+        {
+          accountRemoteId: "account-1",
+          userRemoteId: "staff-1",
+          roleRemoteId: "role-staff",
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+        {
+          accountRemoteId: "account-1",
+          userRemoteId: "ghost-1",
+          roleRemoteId: "role-staff",
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+      ],
+    });
+
+    const accountRepository = {
+      getAccountByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: { ownerUserRemoteId: "owner-1" },
+      })),
+    };
+    const authUserRepository = {
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          { remoteId: "owner-1", fullName: "Owner User", email: null, phone: null },
+          { remoteId: "staff-1", fullName: "Staff User", email: null, phone: null },
+          { remoteId: "ghost-1", fullName: "Ghost User", email: null, phone: null },
+        ],
+      })),
+      getAuthUserByRemoteId: vi.fn(async () => ({ success: true as const, value: null })),
+    };
+
+    const repository = createUserManagementRepository({
+      localDatasource: localDatasource as any,
+      accountRepository: accountRepository as any,
+      authUserRepository: authUserRepository as any,
+    });
+
+    const result = await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    const listedUserRemoteIds = result.value.map((member) => member.userRemoteId);
+    expect(listedUserRemoteIds).toContain("owner-1");
+    expect(listedUserRemoteIds).toContain("staff-1");
+    expect(listedUserRemoteIds).not.toContain("ghost-1");
+  });
+
+  it("sanitizes stale owner-role assignment for non-owner members", async () => {
+    const localDatasource = createLocalDatasourceStub();
+    localDatasource.getRolesByAccountRemoteId.mockResolvedValue({
+      success: true as const,
+      value: [
+        {
+          remoteId: "owner-account-1",
+          accountRemoteId: "account-1",
+          name: "Owner",
+          isSystem: true,
+          isDefault: true,
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+      ],
+    });
+    localDatasource.getMembersByAccountRemoteId.mockResolvedValue({
+      success: true as const,
+      value: [
+        {
+          remoteId: "member-1",
+          accountRemoteId: "account-1",
+          userRemoteId: "staff-1",
+          status: AccountMemberStatus.Active,
+          invitedByUserRemoteId: "owner-1",
+          joinedAt: 1,
+          lastActiveAt: 1,
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+      ],
+    });
+    localDatasource.getUserRoleAssignmentsByAccountRemoteId.mockResolvedValue({
+      success: true as const,
+      value: [
+        {
+          accountRemoteId: "account-1",
+          userRemoteId: "owner-1",
+          roleRemoteId: "owner-account-1",
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+        {
+          accountRemoteId: "account-1",
+          userRemoteId: "staff-1",
+          roleRemoteId: "owner-account-1",
+          createdAt: new Date(1),
+          updatedAt: new Date(1),
+        },
+      ],
+    });
+
+    const accountRepository = {
+      getAccountByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: { ownerUserRemoteId: "owner-1" },
+      })),
+    };
+    const authUserRepository = {
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          { remoteId: "owner-1", fullName: "Owner User", email: null, phone: null },
+          { remoteId: "staff-1", fullName: "Staff User", email: null, phone: null },
+        ],
+      })),
+      getAuthUserByRemoteId: vi.fn(async () => ({ success: true as const, value: null })),
+    };
+
+    const repository = createUserManagementRepository({
+      localDatasource: localDatasource as any,
+      accountRepository: accountRepository as any,
+      authUserRepository: authUserRepository as any,
+    });
+
+    const result = await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    const ownerMember = result.value.find((member) => member.userRemoteId === "owner-1");
+    const staffMember = result.value.find((member) => member.userRemoteId === "staff-1");
+
+    expect(ownerMember?.isAccountOwner).toBe(true);
+    expect(ownerMember?.roleName).toBe("Owner");
+    expect(staffMember?.isAccountOwner).toBe(false);
+    expect(staffMember?.roleRemoteId).toBeNull();
+    expect(staffMember?.roleName).toBeNull();
+  });
 });

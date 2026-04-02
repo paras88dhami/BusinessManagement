@@ -269,15 +269,26 @@ export const createLocalEmiDatasource = (
       const [plans, installments] = await Promise.all([
         plansCollection.query(Q.where("remote_id", payload.planRemoteId)).fetch(),
         installmentsCollection
-          .query(Q.where("remote_id", payload.installmentRemoteId))
+          .query(
+            Q.where("remote_id", payload.installmentRemoteId),
+            Q.where("plan_remote_id", payload.planRemoteId),
+          )
           .fetch(),
       ]);
 
       const plan = plans[0] ?? null;
       const installment = installments[0] ?? null;
 
-      if (!plan || plan.deletedAt !== null || !installment) {
-        return { success: true, value: false };
+      if (!plan || plan.deletedAt !== null) {
+        throw new Error("Plan not found.");
+      }
+
+      if (!installment) {
+        throw new Error("Installment not found.");
+      }
+
+      if (installment.status === EmiInstallmentStatus.Paid) {
+        throw new Error("Installment already paid.");
       }
 
       await database.write(async () => {

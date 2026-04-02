@@ -14,7 +14,7 @@ export const createEmptyPersonalProfile = (): EditablePersonalProfile => ({
 
 export const createDefaultBusinessProfileForm = (): EditableBusinessProfile => ({
   legalBusinessName: "",
-  businessType: "Other",
+  businessType: "Retail Store",
   businessLogoUrl: "",
   businessPhone: "",
   businessEmail: "",
@@ -47,7 +47,10 @@ export const mapAccountOptionToFallbackBusinessForm = (
 ): EditableBusinessProfile => ({
   ...createDefaultBusinessProfileForm(),
   legalBusinessName: accountOption.displayName,
-  businessType: accountOption.businessType ?? "Other",
+  businessType:
+    accountOption.businessType && accountOption.businessType !== "Other"
+      ? accountOption.businessType
+      : "Retail Store",
   country: accountOption.countryCode ?? "Nepal",
   currencyCode: accountOption.currencyCode ?? "NPR",
   city: accountOption.cityOrLocation ?? "",
@@ -59,7 +62,9 @@ export const createInitialProfileScreenData = (): ProfileScreenData => ({
   accountOptions: [],
   activeAccountRemoteId: null,
   activeAccountType: null,
+  isActiveAccountOwner: false,
   activeAccountDisplayName: "",
+  activeBusinessEstablishedYear: "",
   activeAccountRoleLabel: "",
   grantedPermissionCodes: [],
   personalProfile: createEmptyPersonalProfile(),

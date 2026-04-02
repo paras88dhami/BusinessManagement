@@ -16,6 +16,7 @@ import {
 
 type UseLedgerListViewModelParams = {
   businessAccountRemoteId: string;
+  businessAccountCurrencyCode: string | null;
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
   onOpenCreate: (entryType?: LedgerEntryTypeValue) => void;
   onOpenPartyDetail: (partyId: string, partyName: string) => Promise<void> | void;
@@ -24,6 +25,7 @@ type UseLedgerListViewModelParams = {
 
 export const useLedgerListViewModel = ({
   businessAccountRemoteId,
+  businessAccountCurrencyCode,
   getLedgerEntriesUseCase,
   onOpenCreate,
   onOpenPartyDetail,
@@ -112,29 +114,29 @@ export const useLedgerListViewModel = ({
       {
         id: "to-receive",
         label: "To Receive",
-        value: formatCurrency(receiveAmount, "NPR"),
+        value: formatCurrency(receiveAmount, businessAccountCurrencyCode),
         tone: "receive",
       },
       {
         id: "to-pay",
         label: "To Pay",
-        value: formatCurrency(payAmount, "NPR"),
+        value: formatCurrency(payAmount, businessAccountCurrencyCode),
         tone: "pay",
       },
       {
         id: "due-today",
         label: "Due Today",
-        value: formatCurrency(dueTodayAmount, "NPR"),
+        value: formatCurrency(dueTodayAmount, businessAccountCurrencyCode),
         tone: "neutral",
       },
       {
         id: "overdue",
         label: "Overdue",
-        value: formatCurrency(overdueAmount, "NPR"),
+        value: formatCurrency(overdueAmount, businessAccountCurrencyCode),
         tone: "neutral",
       },
     ] as const;
-  }, [partyBalances]);
+  }, [businessAccountCurrencyCode, partyBalances]);
 
   const partyItems = useMemo<readonly LedgerPartyListItemState[]>(() => {
     return filteredPartyBalances.map((partyBalance) => {

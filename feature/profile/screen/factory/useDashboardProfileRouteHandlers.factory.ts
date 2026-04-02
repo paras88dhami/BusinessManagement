@@ -22,7 +22,6 @@ export const useDashboardProfileRouteHandlers =
           activeAccountRemoteId: dashboardContext.activeAccountRemoteId,
           activeAccountType: dashboardContext.activeAccountType,
           navigateReplace: navigation.replace,
-          navigatePush: navigation.push,
           clearUserSession: () => clearActiveUserSession(appDatabase),
           refreshSession,
           onLogoutError: (error) => {
@@ -33,7 +32,6 @@ export const useDashboardProfileRouteHandlers =
         dashboardContext.activeAccountRemoteId,
         dashboardContext.activeAccountType,
         dashboardContext.activeUserRemoteId,
-        navigation.push,
         navigation.replace,
         refreshSession,
       ],

@@ -686,6 +686,7 @@ export const createUserManagementRepository = ({
       }
 
       const ownerUserRemoteId = ownerUserResult.value;
+      const ownerRoleRemoteId = getOwnerRoleRemoteId(normalizedAccountRemoteId);
       const roleNameByRemoteId = new Map(
         rolesResult.value.map((role) => [role.remoteId, role.name]),
       );
@@ -707,7 +708,6 @@ export const createUserManagementRepository = ({
       const candidateUserRemoteIds = new Set<string>([
         ownerUserRemoteId,
         ...memberByUserRemoteId.keys(),
-        ...assignmentByUserRemoteId.keys(),
       ]);
 
       const membersWithRole: AccountMemberWithRole[] = [];
@@ -715,9 +715,14 @@ export const createUserManagementRepository = ({
       for (const userRemoteId of candidateUserRemoteIds) {
         const isAccountOwner = userRemoteId === ownerUserRemoteId;
         const member = memberByUserRemoteId.get(userRemoteId);
-        const assignedRoleRemoteId =
-          assignmentByUserRemoteId.get(userRemoteId) ??
-          (isAccountOwner ? getOwnerRoleRemoteId(normalizedAccountRemoteId) : null);
+        const storedRoleRemoteId = assignmentByUserRemoteId.get(userRemoteId) ?? null;
+        const assignedRoleRemoteId = isAccountOwner
+          ? ownerRoleRemoteId
+          : storedRoleRemoteId === ownerRoleRemoteId
+            ? null
+            : storedRoleRemoteId && roleNameByRemoteId.has(storedRoleRemoteId)
+              ? storedRoleRemoteId
+              : null;
         const profile = authUserByRemoteId.get(userRemoteId);
 
         membersWithRole.push({
@@ -738,7 +743,7 @@ export const createUserManagementRepository = ({
           roleRemoteId: assignedRoleRemoteId,
           roleName: assignedRoleRemoteId
             ? roleNameByRemoteId.get(assignedRoleRemoteId) ??
-              (assignedRoleRemoteId === getOwnerRoleRemoteId(normalizedAccountRemoteId)
+              (assignedRoleRemoteId === ownerRoleRemoteId
                 ? USER_MANAGEMENT_OWNER_ROLE_NAME
                 : null)
             : null,

@@ -1,29 +1,26 @@
 import React, { useMemo } from "react";
 import {
   Alert,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import {
   CircleCheck,
   CircleDashed,
-  ChevronRight,
   Pencil,
   Power,
   Plus,
-  Search,
   Shield,
   Trash2,
   Users,
 } from "lucide-react-native";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
-import { ActionCardButton } from "@/shared/components/reusable/Cards/ActionCardButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
+import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
+import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
@@ -35,6 +32,7 @@ import {
   RoleEditorModal,
   RoleEditorPermissionGroup,
 } from "./components/RoleEditorModal";
+import { RolePermissionManagerModal } from "./components/RolePermissionManagerModal";
 import {
   StaffMemberEditorModal,
   StaffMemberRoleOption,
@@ -90,22 +88,27 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
   );
   const roleOptions = useMemo<StaffMemberRoleOption[]>(
     () =>
-      viewModel.roles
-        .filter((role) => !(role.isSystem && role.name.toLowerCase() === "owner"))
-        .map((role) => ({
-          remoteId: role.remoteId,
-          label: role.name,
+      viewModel.memberRoleOptions.map((roleOption) => ({
+          remoteId: roleOption.remoteId,
+          label: roleOption.label,
+          category: roleOption.isBusinessDefault ? "default" : "custom",
         })),
-    [viewModel.roles],
+    [viewModel.memberRoleOptions],
+  );
+  const roleFilterOptions = useMemo(
+    () => viewModel.roleFilters.map((roleFilter) => ({
+      label: roleFilter.label,
+      value: roleFilter.key,
+    })),
+    [viewModel.roleFilters],
   );
 
   const isRoleEditorOpen = Boolean(viewModel.roleEditor.mode);
-  const isMemberEditorOpen = Boolean(viewModel.memberEditor.mode);
 
   return (
     <ScreenContainer
       showDivider={true}
-      baseBottomPadding={spacing.xxl}
+      baseBottomPadding={140}
       header={
         <PrimaryHeader
           title="User Management"
@@ -114,6 +117,20 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           showProfile={false}
           onBack={viewModel.onBack}
         />
+      }
+      footer={
+        viewModel.canManageStaff ? (
+          <BottomTabAwareFooter reserveTabBarClearance={false}>
+            <AppButton
+              label="Add Staff Member"
+              variant="primary"
+              size="lg"
+              style={styles.primaryActionButton}
+              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              onPress={() => viewModel.onStartCreateMember()}
+            />
+          </BottomTabAwareFooter>
+        ) : undefined
       }
       contentContainerStyle={styles.contentContainer}
     >
@@ -138,6 +155,7 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
               return (
                 <StatCard
                   key={summaryCard.id}
+                  size="dashboard"
                   icon={
                     summaryCard.id === "total" ? (
                       <Users size={16} color={toneColor} />
@@ -155,58 +173,23 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
             })}
           </View>
 
-          <View style={styles.searchWrap}>
-            <Search size={16} color={colors.mutedForeground} />
-            <TextInput
-              value={viewModel.searchQuery}
-              onChangeText={viewModel.onChangeSearchQuery}
-              placeholder="Search staff..."
-              placeholderTextColor={colors.mutedForeground}
-              style={styles.searchInput}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <ScrollView
-            horizontal={true}
-            style={styles.filterScroll}
-            showsHorizontalScrollIndicator={false}
+          <FilterChipGroup
+            options={roleFilterOptions}
+            selectedValue={viewModel.selectedRoleFilterKey}
+            onSelect={viewModel.onSelectRoleFilter}
+            scrollStyle={styles.filterScroll}
             contentContainerStyle={styles.filterRow}
-            alwaysBounceVertical={false}
-          >
-            {viewModel.roleFilters.map((roleFilter) => {
-              const isSelected =
-                roleFilter.key === viewModel.selectedRoleFilterKey;
-
-              return (
-                <Pressable
-                  key={roleFilter.key}
-                  style={[
-                    styles.filterChip,
-                    isSelected ? styles.filterChipActive : null,
-                  ]}
-                  onPress={() => viewModel.onSelectRoleFilter(roleFilter.key)}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      isSelected ? styles.filterChipTextActive : null,
-                    ]}
-                  >
-                    {roleFilter.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+            chipStyle={styles.filterChip}
+            selectedChipStyle={styles.filterChipActive}
+            chipTextStyle={styles.filterChipText}
+            selectedChipTextStyle={styles.filterChipTextActive}
+          />
 
           <Card style={styles.listCard}>
             {viewModel.memberListItems.length === 0 ? (
               <View style={styles.emptyStateWrap}>
                 <Text style={styles.emptyStateText}>
-                  No staff members matched your search or filter.
+                  No staff members matched the selected filter.
                 </Text>
               </View>
             ) : (
@@ -466,28 +449,6 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
             </Card>
           ) : null}
 
-          {viewModel.canManageStaff ? (
-            <ActionCardButton
-              title="Add Staff Member"
-              subtitle="Create a new staff login and assign access."
-              style={styles.addButton}
-              leadingIcon={<Plus size={16} color={colors.primaryForeground} />}
-              trailingIcon={<ChevronRight size={16} color={colors.mutedForeground} />}
-              onPress={() => viewModel.onStartCreateMember()}
-            />
-          ) : null}
-
-          {viewModel.canManageRoles ? (
-            <ActionCardButton
-              title="Create Role"
-              subtitle="Define a reusable permission set."
-              style={styles.secondaryButton}
-              leadingIcon={<Shield size={16} color={colors.primary} />}
-              trailingIcon={<ChevronRight size={16} color={colors.mutedForeground} />}
-              onPress={() => viewModel.onStartCreateRole()}
-            />
-          ) : null}
-
           {!viewModel.canManageStaff ? (
             <Text style={styles.permissionWarningText}>
               You do not have permission to manage staff.
@@ -508,9 +469,9 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
         </>
       )}
 
-      {viewModel.memberEditor.mode ? (
+      {viewModel.memberEditor.mode && !isRoleEditorOpen ? (
         <StaffMemberEditorModal
-          visible={isMemberEditorOpen}
+          visible={true}
           mode={viewModel.memberEditor.mode}
           fullName={viewModel.memberEditor.fullName}
           phoneCountryCode={viewModel.memberEditor.phoneCountryCode}
@@ -521,13 +482,17 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
           roleRemoteId={viewModel.memberEditor.roleRemoteId}
           roleOptions={roleOptions}
           canAssignRoles={viewModel.canAssignRoles}
+          canManageRolePermissions={viewModel.canManageRoles}
           isSaving={viewModel.isSavingMember}
+          isSavingRole={viewModel.isSavingRole}
           onChangeFullName={viewModel.onChangeMemberFullName}
           onChangeSelectedPhoneCountry={viewModel.onChangeMemberSelectedPhoneCountry}
           onChangePhone={viewModel.onChangeMemberPhone}
           onChangeEmail={viewModel.onChangeMemberEmail}
           onChangePassword={viewModel.onChangeMemberPassword}
           onChangeRole={viewModel.onChangeMemberRole}
+          onStartCreateCustomRole={viewModel.onStartCreateCustomRoleForMember}
+          onManageRolePermissions={viewModel.onManageSelectedMemberRolePermissions}
           onCancel={viewModel.onCancelMemberEditor}
           onSave={() => {
             void viewModel.onSaveMember();
@@ -535,7 +500,27 @@ export function UserManagementScreen({ viewModel }: UserManagementScreenProps) {
         />
       ) : null}
 
-      {viewModel.roleEditor.mode ? (
+      {viewModel.roleEditor.mode &&
+      viewModel.roleEditorPresentation === "permission_manager" ? (
+        <RolePermissionManagerModal
+          visible={isRoleEditorOpen}
+          roleName={viewModel.roleEditor.roleName}
+          selectedPermissionCodes={viewModel.roleEditor.selectedPermissionCodes}
+          permissionGroups={permissionGroups}
+          canEditPermissions={viewModel.canManageRoles}
+          isPermissionEditing={viewModel.isRolePermissionEditEnabled}
+          isSaving={viewModel.isSavingRole}
+          onEnablePermissionEdit={viewModel.onEnableRolePermissionEdit}
+          onTogglePermission={viewModel.onToggleRolePermission}
+          onCancel={viewModel.onCancelRoleEditor}
+          onDone={() => {
+            void viewModel.onDoneRolePermissionManager();
+          }}
+        />
+      ) : null}
+
+      {viewModel.roleEditor.mode &&
+      viewModel.roleEditorPresentation === "role_form" ? (
         <RoleEditorModal
           visible={isRoleEditorOpen}
           mode={viewModel.roleEditor.mode}
@@ -561,43 +546,29 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.sm,
   },
+  primaryActionButton: {
+    width: "100%",
+  },
   summaryRow: {
     flexDirection: "row",
     gap: spacing.sm,
   },
-  searchWrap: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  searchInput: {
-    flex: 1,
-    minHeight: 42,
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterMedium",
-  },
   filterRow: {
     gap: spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: 4,
     paddingRight: spacing.md,
     alignItems: "center",
   },
   filterScroll: {
-    minHeight: 34,
-    maxHeight: 34,
+    minHeight: 42,
+    maxHeight: 42,
     flexGrow: 0,
     flexShrink: 0,
   },
   filterChip: {
-    height: 30,
+    minHeight: 34,
     paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     backgroundColor: colors.secondary,
     alignItems: "center",
@@ -609,7 +580,7 @@ const styles = StyleSheet.create({
   filterChipText: {
     color: colors.mutedForeground,
     fontSize: 12,
-    lineHeight: 14,
+    lineHeight: 16,
     fontFamily: "InterSemiBold",
   },
   filterChipTextActive: {
@@ -796,12 +767,6 @@ const styles = StyleSheet.create({
   },
   iconButtonDisabled: {
     opacity: 0.45,
-  },
-  addButton: {
-    marginTop: spacing.xs,
-  },
-  secondaryButton: {
-    marginTop: spacing.xs,
   },
   permissionWarningText: {
     color: colors.warning,

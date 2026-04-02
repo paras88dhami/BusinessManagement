@@ -1,8 +1,17 @@
-import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Edit3, Save, X } from "lucide-react-native";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Building2,
+  CalendarDays,
+  Mail,
+  MapPin,
+  PencilLine,
+  Phone,
+  Save,
+  Shield,
+  Store,
+  X,
+} from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
@@ -12,6 +21,7 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 
 type BusinessProfileSectionProps = {
   activeBusinessProfileForm: EditableBusinessProfile;
+  activeBusinessEstablishedYear: string;
   hasActiveBusinessProfile: boolean;
   canEditBusinessProfile: boolean;
   isBusinessEditing: boolean;
@@ -28,6 +38,7 @@ type BusinessProfileSectionProps = {
 
 export function BusinessProfileSection({
   activeBusinessProfileForm,
+  activeBusinessEstablishedYear,
   hasActiveBusinessProfile,
   canEditBusinessProfile,
   isBusinessEditing,
@@ -38,97 +49,153 @@ export function BusinessProfileSection({
   onUpdateBusinessProfileField,
   onSaveBusinessProfile,
 }: BusinessProfileSectionProps) {
-  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
-
-  const businessTypeDropdownOptions = useMemo<DropdownOption[]>(
-    () => businessTypeOptions.map((option) => ({
+  const businessTypeDropdownOptions = useMemo<DropdownOption[]>(() => {
+    const mappedOptions = businessTypeOptions.map((option) => ({
       value: option.value,
       label: option.label,
-    })),
-    [businessTypeOptions],
-  );
+    }));
+
+    if (
+      activeBusinessProfileForm.businessType &&
+      !mappedOptions.some(
+        (option) => option.value === activeBusinessProfileForm.businessType,
+      )
+    ) {
+      mappedOptions.unshift({
+        value: activeBusinessProfileForm.businessType,
+        label: activeBusinessProfileForm.businessType,
+      });
+    }
+
+    return mappedOptions;
+  }, [activeBusinessProfileForm.businessType, businessTypeOptions]);
 
   return (
-    <Card style={styles.sectionCard}>
+    <View style={styles.sectionWrap}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Active Business Profile</Text>
+        <Text style={styles.sectionTitle}>Business Information</Text>
         {!isBusinessEditing && canEditBusinessProfile ? (
-          <AppButton
+          <Pressable
             onPress={onStartBusinessEdit}
-            label={hasActiveBusinessProfile ? "Edit" : "Set up"}
-            variant="accent"
-            size="sm"
-            leadingIcon={<Edit3 size={14} color={colors.primary} />}
-          />
+            style={styles.editTrigger}
+            accessibilityRole="button"
+          >
+            <PencilLine size={14} color={colors.primary} />
+            <Text style={styles.editLabel}>
+              {hasActiveBusinessProfile ? "Edit" : "Set up"}
+            </Text>
+          </Pressable>
         ) : isBusinessEditing ? (
-          <View style={styles.inlineActionsWrap}>
-            <AppIconButton
+          <View style={styles.editingActions}>
+            <Pressable
               onPress={onCancelBusinessEdit}
+              style={styles.actionTrigger}
+              accessibilityRole="button"
             >
               <X size={14} color={colors.destructive} />
-            </AppIconButton>
-            <AppIconButton
+              <Text style={styles.cancelLabel}>Cancel</Text>
+            </Pressable>
+            <Pressable
               onPress={() => {
                 void onSaveBusinessProfile();
               }}
+              style={styles.actionTrigger}
+              accessibilityRole="button"
             >
               <Save size={14} color={colors.success} />
-            </AppIconButton>
+              <Text style={styles.saveLabel}>Save</Text>
+            </Pressable>
           </View>
         ) : (
           <Text style={styles.readOnlyBadge}>Read only</Text>
         )}
       </View>
 
-      <ProfileField
-        label="Legal Business Name"
-        value={activeBusinessProfileForm.legalBusinessName}
-        editable={isBusinessEditing}
-        onChangeText={(nextValue) => {
-          onUpdateBusinessProfileField("legalBusinessName", nextValue);
-        }}
-        placeholder="Registered legal business name"
-        autoCapitalize="words"
-      />
+      <Card style={styles.sectionCard}>
+        <ProfileField
+          label="Business Name"
+          value={activeBusinessProfileForm.legalBusinessName}
+          editable={isBusinessEditing}
+          onChangeText={(nextValue) => {
+            onUpdateBusinessProfileField("legalBusinessName", nextValue);
+          }}
+          placeholder="Legal business name"
+          autoCapitalize="words"
+          icon={<Building2 size={16} color={colors.mutedForeground} />}
+        />
 
-      <ProfileField
-        label="Business Phone"
-        value={activeBusinessProfileForm.businessPhone}
-        editable={isBusinessEditing}
-        onChangeText={(nextValue) => {
-          onUpdateBusinessProfileField("businessPhone", nextValue);
-        }}
-        placeholder="+977..."
-        autoCapitalize="none"
-        keyboardType="phone-pad"
-      />
+        <ProfileField
+          label="Business Phone"
+          value={activeBusinessProfileForm.businessPhone}
+          editable={isBusinessEditing}
+          onChangeText={(nextValue) => {
+            onUpdateBusinessProfileField("businessPhone", nextValue);
+          }}
+          placeholder="+977..."
+          autoCapitalize="none"
+          keyboardType="phone-pad"
+          icon={<Phone size={16} color={colors.mutedForeground} />}
+        />
 
-      <ProfileField
-        label="Registered / Operating Address"
-        value={activeBusinessProfileForm.registeredAddress}
-        editable={isBusinessEditing}
-        onChangeText={(nextValue) => {
-          onUpdateBusinessProfileField("registeredAddress", nextValue);
-        }}
-        placeholder="Street, ward, landmark"
-        autoCapitalize="sentences"
-        multiline
-      />
+        <ProfileField
+          label="Email"
+          value={activeBusinessProfileForm.businessEmail}
+          editable={isBusinessEditing}
+          onChangeText={(nextValue) => {
+            onUpdateBusinessProfileField("businessEmail", nextValue);
+          }}
+          placeholder="business@example.com"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
+          icon={<Mail size={16} color={colors.mutedForeground} />}
+        />
 
-      <AppButton
-        label={isAdvancedExpanded ? "Show less" : "Show more"}
-        variant="accent"
-        size="sm"
-        style={styles.showMoreButton}
-        onPress={() => {
-          setIsAdvancedExpanded((previousValue) => !previousValue);
-        }}
-      />
+        <ProfileField
+          label="Address"
+          value={activeBusinessProfileForm.city}
+          editable={isBusinessEditing}
+          onChangeText={(nextValue) => {
+            onUpdateBusinessProfileField("city", nextValue);
+          }}
+          placeholder="City / location"
+          autoCapitalize="words"
+          icon={<MapPin size={16} color={colors.mutedForeground} />}
+        />
 
-      {isAdvancedExpanded ? (
-        <View style={styles.advancedFieldsWrap}>
-          <View style={styles.dropdownWrap}>
-            <Text style={styles.dropdownLabel}>Business Type / Industry</Text>
+        <ProfileField
+          label="Street address"
+          value={activeBusinessProfileForm.registeredAddress}
+          editable={isBusinessEditing}
+          onChangeText={(nextValue) => {
+            onUpdateBusinessProfileField("registeredAddress", nextValue);
+          }}
+          placeholder="Street, ward, landmark"
+          autoCapitalize="sentences"
+          multiline
+          numberOfLines={2}
+          icon={<MapPin size={16} color={colors.mutedForeground} />}
+        />
+
+        <ProfileField
+          label="PAN / Tax ID"
+          value={activeBusinessProfileForm.taxRegistrationId}
+          editable={isBusinessEditing}
+          onChangeText={(nextValue) => {
+            onUpdateBusinessProfileField("taxRegistrationId", nextValue);
+          }}
+          placeholder="Tax registration number"
+          autoCapitalize="characters"
+          icon={<Shield size={16} color={colors.mutedForeground} />}
+        />
+
+        <View style={styles.businessTypeRow}>
+          <View style={styles.rowIconWrap}>
+            <Store size={16} color={colors.mutedForeground} />
+          </View>
+          <View style={styles.rowContent}>
+            <Text style={styles.rowLabel}>Business Type</Text>
             {isBusinessEditing ? (
               <Dropdown
                 value={activeBusinessProfileForm.businessType}
@@ -143,105 +210,36 @@ export function BusinessProfileSection({
                 triggerTextStyle={styles.dropdownTriggerText}
               />
             ) : (
-              <Text style={styles.readOnlyValue}>
+              <Text style={styles.rowValue}>
                 {activeBusinessProfileForm.businessType || "-"}
               </Text>
             )}
           </View>
-
-          <ProfileField
-            label="Business Logo URL"
-            value={activeBusinessProfileForm.businessLogoUrl}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("businessLogoUrl", nextValue);
-            }}
-            placeholder="https://..."
-            autoCapitalize="none"
-            keyboardType="url"
-          />
-
-          <ProfileField
-            label="Business Email"
-            value={activeBusinessProfileForm.businessEmail}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("businessEmail", nextValue);
-            }}
-            placeholder="business@example.com"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
-          />
-
-          <ProfileField
-            label="Currency"
-            value={activeBusinessProfileForm.currencyCode}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("currencyCode", nextValue);
-            }}
-            placeholder="NPR"
-            autoCapitalize="characters"
-          />
-
-          <ProfileField
-            label="Country"
-            value={activeBusinessProfileForm.country}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("country", nextValue);
-            }}
-            placeholder="Nepal"
-            autoCapitalize="words"
-          />
-
-          <ProfileField
-            label="City"
-            value={activeBusinessProfileForm.city}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("city", nextValue);
-            }}
-            placeholder="Kathmandu"
-            autoCapitalize="words"
-          />
-
-          <ProfileField
-            label="District / State"
-            value={activeBusinessProfileForm.stateOrDistrict}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("stateOrDistrict", nextValue);
-            }}
-            placeholder="Bagmati"
-            autoCapitalize="words"
-          />
-
-          <ProfileField
-            label="PAN / VAT / GSTIN"
-            value={activeBusinessProfileForm.taxRegistrationId}
-            editable={isBusinessEditing}
-            onChangeText={(nextValue) => {
-              onUpdateBusinessProfileField("taxRegistrationId", nextValue);
-            }}
-            placeholder="Tax registration identifier"
-            autoCapitalize="characters"
-          />
         </View>
-      ) : null}
+
+        <View style={[styles.businessTypeRow, styles.lastRow]}>
+          <View style={styles.rowIconWrap}>
+            <CalendarDays size={16} color={colors.mutedForeground} />
+          </View>
+          <View style={styles.rowContent}>
+            <Text style={styles.rowLabel}>Established</Text>
+            <Text style={styles.rowValue}>
+              {activeBusinessEstablishedYear || "-"}
+            </Text>
+          </View>
+        </View>
+      </Card>
 
       {isSavingBusinessProfile ? (
         <Text style={styles.pendingText}>Saving business profile...</Text>
       ) : null}
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionCard: {
-    padding: spacing.md,
+  sectionWrap: {
+    marginTop: spacing.xs,
     gap: spacing.sm,
   },
   sectionHeader: {
@@ -251,9 +249,41 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: colors.mutedForeground,
+    fontSize: 12,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
     fontFamily: "InterBold",
+  },
+  editTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  editLabel: {
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  editingActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  actionTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  cancelLabel: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
+  },
+  saveLabel: {
+    color: colors.success,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
   },
   readOnlyBadge: {
     color: colors.mutedForeground,
@@ -262,44 +292,53 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
-  inlineActionsWrap: {
+  sectionCard: {
+    padding: 0,
+  },
+  businessTypeRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  showMoreButton: {
-    alignSelf: "flex-start",
-  },
-  advancedFieldsWrap: {
+    alignItems: "flex-start",
     gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  dropdownWrap: {
-    gap: 6,
+  rowIconWrap: {
+    marginTop: 3,
+    width: 20,
+    alignItems: "center",
   },
-  dropdownLabel: {
+  rowContent: {
+    flex: 1,
+    gap: 2,
+  },
+  rowLabel: {
     color: colors.mutedForeground,
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontFamily: "InterBold",
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  rowValue: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "InterSemiBold",
   },
   dropdownTrigger: {
-    minHeight: 42,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.sm,
+    minHeight: 34,
+    borderWidth: 0,
+    borderRadius: radius.sm,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   dropdownTriggerText: {
+    color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterSemiBold",
-    color: colors.cardForeground,
   },
-  readOnlyValue: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-    minHeight: 42,
-    textAlignVertical: "center",
+  lastRow: {
+    borderBottomWidth: 0,
   },
   pendingText: {
     color: colors.mutedForeground,
@@ -307,4 +346,3 @@ const styles = StyleSheet.create({
     fontFamily: "InterSemiBold",
   },
 });
-

@@ -136,7 +136,7 @@ export const createPayEmiInstallmentUseCase = (
       }
     }
 
-    return emiRepository.completeInstallmentPayment({
+    const completePaymentResult = await emiRepository.completeInstallmentPayment({
       linkRemoteId: createLocalRemoteId("installment_link"),
       planRemoteId: normalizedPlanRemoteId,
       installmentRemoteId: normalizedInstallmentRemoteId,
@@ -146,5 +146,43 @@ export const createPayEmiInstallmentUseCase = (
       amount: installment.amount,
       paidAt,
     });
+
+    if (completePaymentResult.success && completePaymentResult.value) {
+      return completePaymentResult;
+    }
+
+    const rollbackResult =
+      paymentRecordType === InstallmentPaymentRecordType.Transaction
+        ? await transactionRepository.deleteTransactionByRemoteId(paymentRecordRemoteId)
+        : await ledgerRepository.deleteLedgerEntryByRemoteId(paymentRecordRemoteId);
+
+    const rollbackErrorMessage = !rollbackResult.success
+      ? rollbackResult.error.message
+      : !rollbackResult.value
+        ? "Payment record rollback was not confirmed."
+        : null;
+
+    if (!completePaymentResult.success) {
+      if (!rollbackErrorMessage) {
+        return completePaymentResult;
+      }
+
+      return {
+        success: false,
+        error: {
+          type: "UNKNOWN_ERROR",
+          message: `${completePaymentResult.error.message} Rollback failed: ${rollbackErrorMessage}`,
+        },
+      };
+    }
+
+    return {
+      success: false,
+      error: EmiValidationError(
+        rollbackErrorMessage
+          ? `Unable to complete EMI payment. Rollback failed: ${rollbackErrorMessage}`
+          : "Unable to complete EMI payment.",
+      ),
+    };
   },
 });

@@ -20,9 +20,21 @@ describe("dashboardShell.shared", () => {
   });
 
   it("maps header and active tab configuration", () => {
-    const businessHeader = resolveDashboardHeaderConfig("business");
-    expect(businessHeader.title).toBe("My Business");
+    const businessHeader = resolveDashboardHeaderConfig({
+      routeKey: "business",
+      activeAccountDisplayName: "Dhami Suppliers",
+      profileName: "Kapil Dhami",
+    });
+    expect(businessHeader.title).toBe("Dhami Suppliers");
     expect(businessHeader.showProfile).toBe(true);
+
+    const personalHeader = resolveDashboardHeaderConfig({
+      routeKey: "personal",
+      activeAccountDisplayName: "Dhami Suppliers",
+      profileName: "Kapil Dhami",
+    });
+    expect(personalHeader.title).toBe("Kapil Dhami");
+
     expect(resolveDashboardActiveTab("business")).toBe(DashboardTab.Home);
     expect(resolveDashboardActiveTab("personal-budget")).toBe(DashboardTab.Budget);
   });
@@ -47,7 +59,6 @@ describe("dashboardShell.shared", () => {
 
   it("marks slot-only routes correctly", () => {
     expect(isSlotOnlyDashboardRoute("profile")).toBe(true);
-    expect(isSlotOnlyDashboardRoute("business-details")).toBe(true);
     expect(isSlotOnlyDashboardRoute("user-management")).toBe(true);
     expect(isSlotOnlyDashboardRoute("business")).toBe(false);
   });

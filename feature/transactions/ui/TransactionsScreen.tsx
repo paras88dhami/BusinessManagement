@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -33,6 +34,13 @@ type TransactionsScreenProps = {
   editorViewModel: TransactionEditorViewModel;
   deleteViewModel: TransactionDeleteViewModel;
 };
+
+const FILTER_OPTIONS = [
+  { label: "All", value: TransactionListFilter.All },
+  { label: "Income", value: TransactionListFilter.Income },
+  { label: "Expense", value: TransactionListFilter.Expense },
+  { label: "Transfer", value: TransactionListFilter.Transfer },
+] as const;
 
 export function TransactionsScreen({
   listViewModel,
@@ -128,36 +136,17 @@ export function TransactionsScreen({
           </View>
         </View>
 
-        <View style={styles.filterRow}>
-          {[
-            { label: "All", value: TransactionListFilter.All },
-            { label: "Income", value: TransactionListFilter.Income },
-            { label: "Expense", value: TransactionListFilter.Expense },
-            { label: "Transfer", value: TransactionListFilter.Transfer },
-          ].map((filterOption) => {
-            const isSelected = listViewModel.selectedFilter === filterOption.value;
-
-            return (
-              <Pressable
-                key={filterOption.value}
-                style={[
-                  styles.filterChip,
-                  isSelected ? styles.filterChipSelected : null,
-                ]}
-                onPress={() => listViewModel.onChangeFilter(filterOption.value)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isSelected ? styles.filterChipTextSelected : null,
-                  ]}
-                >
-                  {filterOption.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <FilterChipGroup
+          options={FILTER_OPTIONS}
+          selectedValue={listViewModel.selectedFilter}
+          onSelect={listViewModel.onChangeFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
 
         {listViewModel.errorMessage ? (
           <Card style={styles.messageCard}>
@@ -256,7 +245,7 @@ export function TransactionsScreen({
 
 const styles = StyleSheet.create({
   content: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   summaryRow: {
     flexDirection: "row",
@@ -329,10 +318,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  filterScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   filterRow: {
-    flexDirection: "row",
-    gap: spacing.xs,
-    flexWrap: "wrap",
+    paddingRight: spacing.md,
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -374,6 +365,7 @@ const styles = StyleSheet.create({
   listCard: {
     paddingHorizontal: 0,
     paddingVertical: 0,
+    overflow: "hidden",
   },
   transactionRow: {
     borderBottomWidth: 1,

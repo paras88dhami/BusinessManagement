@@ -48,6 +48,12 @@ export type UserManagementRoleListItem = {
   canDelete: boolean;
 };
 
+export type UserManagementMemberRoleOption = {
+  remoteId: string;
+  label: string;
+  isBusinessDefault: boolean;
+};
+
 export interface UserManagementViewModel {
   isLoading: boolean;
   isSavingMember: boolean;
@@ -60,20 +66,21 @@ export interface UserManagementViewModel {
   permissions: readonly UserManagementPermission[];
   assignedRoleRemoteId: string | null;
   grantedPermissionCodes: readonly string[];
-  searchQuery: string;
   selectedRoleFilterKey: string;
   summaryCards: readonly UserManagementSummaryCard[];
   roleFilters: readonly UserManagementRoleFilter[];
   memberListItems: readonly UserManagementMemberListItem[];
   roleListItems: readonly UserManagementRoleListItem[];
+  memberRoleOptions: readonly UserManagementMemberRoleOption[];
   memberEditor: UserManagementMemberEditorState;
   roleEditor: UserManagementRoleEditorState;
+  roleEditorPresentation: "role_form" | "permission_manager";
+  isRolePermissionEditEnabled: boolean;
   canManageStaff: boolean;
   canManageRoles: boolean;
   canAssignRoles: boolean;
   screenError?: string;
   screenSuccess?: string;
-  onChangeSearchQuery: (searchQuery: string) => void;
   onSelectRoleFilter: (filterKey: string) => void;
   onReload: () => Promise<void>;
   onStartCreateMember: () => void;
@@ -85,6 +92,8 @@ export interface UserManagementViewModel {
   onChangeMemberEmail: (email: string) => void;
   onChangeMemberPassword: (password: string) => void;
   onChangeMemberRole: (roleRemoteId: string) => void;
+  onStartCreateCustomRoleForMember: () => void;
+  onManageSelectedMemberRolePermissions: () => void;
   onSaveMember: () => Promise<void>;
   onToggleMemberStatus: (
     memberRemoteId: string,
@@ -96,6 +105,8 @@ export interface UserManagementViewModel {
   onDeleteRole: (roleRemoteId: string) => Promise<void>;
   onCancelRoleEditor: () => void;
   onChangeRoleName: (roleName: string) => void;
+  onEnableRolePermissionEdit: () => void;
+  onDoneRolePermissionManager: () => Promise<void>;
   onToggleRolePermission: (permissionCode: string) => void;
   onSaveRole: () => Promise<void>;
   onBack: () => void;

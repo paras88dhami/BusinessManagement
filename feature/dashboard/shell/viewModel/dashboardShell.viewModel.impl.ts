@@ -51,6 +51,8 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountDisplayName,
+    profileName,
     profileInitials,
   } = useAppRouteSession();
 
@@ -70,6 +72,10 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   const onProfilePress = useCallback(() => {
     navigation.push("/(dashboard)/profile");
   }, [navigation]);
+
+  const onHeaderBack = useCallback(() => {
+    navigation.replace(homePath);
+  }, [homePath, navigation]);
 
   const onTabPress = useCallback(
     (tab: DashboardTabValue) => {
@@ -145,8 +151,13 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   );
 
   const headerConfig = useMemo(
-    () => resolveDashboardHeaderConfig(routeKey),
-    [routeKey],
+    () =>
+      resolveDashboardHeaderConfig({
+        routeKey,
+        activeAccountDisplayName,
+        profileName,
+      }),
+    [activeAccountDisplayName, profileName, routeKey],
   );
 
   const tabItems = useMemo(
@@ -175,12 +186,14 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
       activeTab,
       profileInitials,
       onProfilePress,
+      onHeaderBack,
       onTabPress,
     }),
     [
       activeTab,
       headerConfig,
       isLoading,
+      onHeaderBack,
       onProfilePress,
       onTabPress,
       profileInitials,

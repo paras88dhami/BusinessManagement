@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Plus } from "lucide-react-native";
+import React, { useMemo } from "react";
+import { ChevronDown, Plus, Store, CalendarDays, MapPin, Phone, Mail, Building2, Shield } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
@@ -31,128 +31,75 @@ export function CreateBusinessProfileSection({
   onUpdateCreateBusinessProfileField,
   onCreateBusinessProfile,
 }: CreateBusinessProfileSectionProps) {
-  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
+  const establishedYear = useMemo(
+    () => String(new Date().getFullYear()),
+    [],
+  );
 
   const businessTypeDropdownOptions = useMemo<DropdownOption[]>(
-    () => businessTypeOptions.map((option) => ({
-      value: option.value,
-      label: option.label,
-    })),
+    () =>
+      businessTypeOptions.map((option) => ({
+        value: option.value,
+        label: option.label,
+      })),
     [businessTypeOptions],
   );
 
-  useEffect(() => {
-    if (!isCreateBusinessExpanded) {
-      setIsAdvancedExpanded(false);
-    }
-  }, [isCreateBusinessExpanded]);
-
   return (
-    <Card style={styles.sectionCard}>
-      <Pressable
-        style={styles.createHeaderButton}
-        onPress={onToggleCreateBusinessExpanded}
-        accessibilityRole="button"
-      >
-        <View style={styles.createHeaderLeft}>
-          <View style={styles.createIconWrap}>
-            <Plus size={16} color={colors.primary} />
+    <View style={styles.sectionWrap}>
+      <Text style={styles.sectionTitle}>More</Text>
+      <Card style={styles.sectionCard}>
+        <Pressable
+          style={styles.createTriggerRow}
+          onPress={onToggleCreateBusinessExpanded}
+          accessibilityRole="button"
+        >
+          <View style={styles.triggerLeft}>
+            <View style={styles.triggerIconWrap}>
+              <Plus size={16} color={colors.primary} />
+            </View>
+            <View style={styles.triggerCopy}>
+              <Text style={styles.triggerTitle}>Create New Business</Text>
+              <Text style={styles.triggerSubtitle}>Add another workspace</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.sectionTitle}>Create New Business Profile</Text>
-            <Text style={styles.sectionSubtitle}>
-              Add another business workspace from profile
-            </Text>
-          </View>
-        </View>
-
-        <ChevronDown
-          size={16}
-          color={colors.mutedForeground}
-          style={isCreateBusinessExpanded ? styles.chevronOpen : undefined}
-        />
-      </Pressable>
-
-      {isCreateBusinessExpanded ? (
-        <View style={styles.createFormWrap}>
-          <ProfileField
-            label="Legal Business Name"
-            value={createBusinessProfileForm.legalBusinessName}
-            editable={!isCreatingBusinessProfile}
-            onChangeText={(nextValue) => {
-              onUpdateCreateBusinessProfileField("legalBusinessName", nextValue);
-            }}
-            placeholder="Registered legal business name"
-            autoCapitalize="words"
+          <ChevronDown
+            size={16}
+            color={colors.mutedForeground}
+            style={isCreateBusinessExpanded ? styles.chevronOpen : undefined}
           />
+        </Pressable>
 
-          <ProfileField
-            label="Business Phone"
-            value={createBusinessProfileForm.businessPhone}
-            editable={!isCreatingBusinessProfile}
-            onChangeText={(nextValue) => {
-              onUpdateCreateBusinessProfileField("businessPhone", nextValue);
-            }}
-            placeholder="+977..."
-            autoCapitalize="none"
-            keyboardType="phone-pad"
-          />
-
-          <ProfileField
-            label="Registered / Operating Address"
-            value={createBusinessProfileForm.registeredAddress}
-            editable={!isCreatingBusinessProfile}
-            onChangeText={(nextValue) => {
-              onUpdateCreateBusinessProfileField("registeredAddress", nextValue);
-            }}
-            placeholder="Street, ward, landmark"
-            autoCapitalize="sentences"
-            multiline
-          />
-
-          <AppButton
-            label={isAdvancedExpanded ? "Show less" : "Show more"}
-            variant="accent"
-            size="sm"
-            style={styles.showMoreButton}
-            onPress={() => {
-              setIsAdvancedExpanded((previousValue) => !previousValue);
-            }}
-          />
-
-          {isAdvancedExpanded ? (
-            <View style={styles.advancedFieldsWrap}>
-              <View style={styles.dropdownWrap}>
-                <Text style={styles.dropdownLabel}>Business Type / Industry</Text>
-                <Dropdown
-                  value={createBusinessProfileForm.businessType}
-                  options={businessTypeDropdownOptions}
-                  onChange={(nextValue) => {
-                    onUpdateCreateBusinessProfileField("businessType", nextValue);
-                  }}
-                  placeholder="Select business type"
-                  modalTitle="Choose Business Type"
-                  showLeadingIcon={false}
-                  disabled={isCreatingBusinessProfile}
-                  triggerStyle={styles.dropdownTrigger}
-                  triggerTextStyle={styles.dropdownTriggerText}
-                />
-              </View>
-
+        {isCreateBusinessExpanded ? (
+          <View style={styles.expandedWrap}>
+            <Card style={styles.formCard}>
               <ProfileField
-                label="Business Logo URL"
-                value={createBusinessProfileForm.businessLogoUrl}
+                label="Business Name"
+                value={createBusinessProfileForm.legalBusinessName}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("businessLogoUrl", nextValue);
+                  onUpdateCreateBusinessProfileField("legalBusinessName", nextValue);
                 }}
-                placeholder="https://..."
-                autoCapitalize="none"
-                keyboardType="url"
+                placeholder="Legal business name"
+                autoCapitalize="words"
+                icon={<Building2 size={16} color={colors.mutedForeground} />}
               />
 
               <ProfileField
-                label="Business Email"
+                label="Business Phone"
+                value={createBusinessProfileForm.businessPhone}
+                editable={!isCreatingBusinessProfile}
+                onChangeText={(nextValue) => {
+                  onUpdateCreateBusinessProfileField("businessPhone", nextValue);
+                }}
+                placeholder="+977..."
+                autoCapitalize="none"
+                keyboardType="phone-pad"
+                icon={<Phone size={16} color={colors.mutedForeground} />}
+              />
+
+              <ProfileField
+                label="Email"
                 value={createBusinessProfileForm.businessEmail}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
@@ -163,106 +110,128 @@ export function CreateBusinessProfileSection({
                 keyboardType="email-address"
                 autoComplete="email"
                 textContentType="emailAddress"
+                icon={<Mail size={16} color={colors.mutedForeground} />}
               />
 
               <ProfileField
-                label="Currency"
-                value={createBusinessProfileForm.currencyCode}
-                editable={!isCreatingBusinessProfile}
-                onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("currencyCode", nextValue);
-                }}
-                placeholder="NPR"
-                autoCapitalize="characters"
-              />
-
-              <ProfileField
-                label="Country"
-                value={createBusinessProfileForm.country}
-                editable={!isCreatingBusinessProfile}
-                onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("country", nextValue);
-                }}
-                placeholder="Nepal"
-                autoCapitalize="words"
-              />
-
-              <ProfileField
-                label="City"
+                label="Address"
                 value={createBusinessProfileForm.city}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
                   onUpdateCreateBusinessProfileField("city", nextValue);
                 }}
-                placeholder="Kathmandu"
+                placeholder="City / location"
                 autoCapitalize="words"
+                icon={<MapPin size={16} color={colors.mutedForeground} />}
               />
 
               <ProfileField
-                label="District / State"
-                value={createBusinessProfileForm.stateOrDistrict}
+                label="Street address"
+                value={createBusinessProfileForm.registeredAddress}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField("stateOrDistrict", nextValue);
+                  onUpdateCreateBusinessProfileField("registeredAddress", nextValue);
                 }}
-                placeholder="Bagmati"
-                autoCapitalize="words"
+                placeholder="Street, ward, landmark"
+                autoCapitalize="sentences"
+                multiline
+                numberOfLines={2}
+                icon={<MapPin size={16} color={colors.mutedForeground} />}
               />
 
               <ProfileField
-                label="PAN / VAT / GSTIN"
+                label="PAN / Tax ID"
                 value={createBusinessProfileForm.taxRegistrationId}
                 editable={!isCreatingBusinessProfile}
                 onChangeText={(nextValue) => {
-                  onUpdateCreateBusinessProfileField(
-                    "taxRegistrationId",
-                    nextValue,
-                  );
+                  onUpdateCreateBusinessProfileField("taxRegistrationId", nextValue);
                 }}
-                placeholder="Tax registration identifier"
+                placeholder="Tax registration number"
                 autoCapitalize="characters"
+                icon={<Shield size={16} color={colors.mutedForeground} />}
               />
-            </View>
-          ) : null}
 
-          <AppButton
-            label={
-              isCreatingBusinessProfile
-                ? "Creating..."
-                : "Create Business Profile"
-            }
-            variant="primary"
-            size="md"
-            style={styles.primaryButton}
-            onPress={() => {
-              void onCreateBusinessProfile();
-            }}
-            disabled={isCreatingBusinessProfile}
-            accessibilityState={{ busy: isCreatingBusinessProfile }}
-          />
-        </View>
-      ) : null}
-    </Card>
+              <View style={styles.businessTypeRow}>
+                <View style={styles.rowIconWrap}>
+                  <Store size={16} color={colors.mutedForeground} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowLabel}>Business Type</Text>
+                  <Dropdown
+                    value={createBusinessProfileForm.businessType}
+                    options={businessTypeDropdownOptions}
+                    onChange={(nextValue) => {
+                      onUpdateCreateBusinessProfileField("businessType", nextValue);
+                    }}
+                    placeholder="Select business type"
+                    modalTitle="Choose Business Type"
+                    showLeadingIcon={false}
+                    disabled={isCreatingBusinessProfile}
+                    triggerStyle={styles.dropdownTrigger}
+                    triggerTextStyle={styles.dropdownTriggerText}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.businessTypeRow, styles.lastRow]}>
+                <View style={styles.rowIconWrap}>
+                  <CalendarDays size={16} color={colors.mutedForeground} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowLabel}>Established</Text>
+                  <Text style={styles.rowValue}>{establishedYear}</Text>
+                </View>
+              </View>
+            </Card>
+
+            <AppButton
+              label={isCreatingBusinessProfile ? "Creating..." : "Create Business"}
+              variant="primary"
+              size="lg"
+              style={styles.createButton}
+              onPress={() => {
+                void onCreateBusinessProfile();
+              }}
+              disabled={isCreatingBusinessProfile}
+              accessibilityState={{ busy: isCreatingBusinessProfile }}
+            />
+          </View>
+        ) : null}
+      </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionCard: {
-    padding: spacing.md,
+  sectionWrap: {
+    marginTop: spacing.xs,
     gap: spacing.sm,
   },
-  createHeaderButton: {
+  sectionTitle: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    fontFamily: "InterBold",
+  },
+  sectionCard: {
+    padding: 0,
+  },
+  createTriggerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
-  createHeaderLeft: {
+  triggerLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
     flex: 1,
   },
-  createIconWrap: {
+  triggerIconWrap: {
     width: 34,
     height: 34,
     borderRadius: radius.pill,
@@ -270,52 +239,78 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionTitle: {
+  triggerCopy: {
+    flex: 1,
+  },
+  triggerTitle: {
     color: colors.cardForeground,
     fontSize: 14,
-    fontFamily: "InterBold",
+    fontFamily: "InterSemiBold",
   },
-  sectionSubtitle: {
+  triggerSubtitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 1,
+    fontFamily: "InterMedium",
   },
   chevronOpen: {
     transform: [{ rotate: "180deg" }],
   },
-  createFormWrap: {
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  showMoreButton: {
-    alignSelf: "flex-start",
-  },
-  advancedFieldsWrap: {
+  expandedWrap: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    padding: spacing.md,
     gap: spacing.sm,
   },
-  dropdownWrap: {
-    gap: 6,
+  formCard: {
+    padding: 0,
   },
-  dropdownLabel: {
+  businessTypeRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  rowIconWrap: {
+    marginTop: 3,
+    width: 20,
+    alignItems: "center",
+  },
+  rowContent: {
+    flex: 1,
+    gap: 2,
+  },
+  rowLabel: {
     color: colors.mutedForeground,
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontFamily: "InterBold",
+    fontSize: 12,
+    fontFamily: "InterMedium",
+  },
+  rowValue: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "InterSemiBold",
   },
   dropdownTrigger: {
-    minHeight: 42,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.sm,
+    minHeight: 34,
+    borderWidth: 0,
+    borderRadius: radius.sm,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   dropdownTriggerText: {
+    color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterSemiBold",
-    color: colors.cardForeground,
   },
-  primaryButton: {
+  lastRow: {
+    borderBottomWidth: 0,
+  },
+  createButton: {
     marginTop: spacing.xs,
   },
 });
-

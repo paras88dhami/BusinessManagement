@@ -1,5 +1,13 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 
@@ -15,6 +23,8 @@ type ChipSelectorFieldProps<TValue extends string> = {
   onSelect: (value: TValue) => void;
   disabled?: boolean;
   isOptionDisabled?: (value: TValue) => boolean;
+  scrollStyle?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
 export function ChipSelectorField<TValue extends string>({
@@ -24,14 +34,18 @@ export function ChipSelectorField<TValue extends string>({
   onSelect,
   disabled,
   isOptionDisabled,
+  scrollStyle,
+  contentContainerStyle,
 }: ChipSelectorFieldProps<TValue>) {
   return (
-    <View>
+    <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
       <ScrollView
         horizontal={true}
+        style={scrollStyle}
+        alwaysBounceVertical={false}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.optionsRow}
+        contentContainerStyle={[styles.optionsRow, contentContainerStyle]}
       >
         {options.map((option) => {
           const isSelected = option.value === selectedValue;
@@ -66,19 +80,25 @@ export function ChipSelectorField<TValue extends string>({
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    gap: spacing.xs,
+  },
   label: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: colors.mutedForeground,
+    fontSize: 11,
     fontFamily: "InterBold",
-    marginBottom: spacing.xs,
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
   optionsRow: {
     gap: spacing.xs,
-    paddingBottom: spacing.sm,
+    alignItems: "center",
+    paddingVertical: 2,
+    paddingRight: spacing.md,
   },
   chip: {
-    minHeight: 30,
-    paddingHorizontal: 12,
+    minHeight: 36,
+    paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -94,9 +114,9 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   chipText: {
-    color: colors.mutedForeground,
+    color: colors.foreground,
     fontSize: 12,
-    lineHeight: 14,
+    lineHeight: 16,
     fontFamily: "InterSemiBold",
   },
   chipTextSelected: {
