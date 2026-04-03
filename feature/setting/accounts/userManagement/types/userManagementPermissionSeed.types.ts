@@ -44,6 +44,30 @@ export const USER_MANAGEMENT_PERMISSION_SEED: readonly UserManagementPermissionS
       description: "Create and complete POS sales.",
     },
     {
+      code: "products.view",
+      module: "Products",
+      label: "View Products",
+      description: "Access business product and service catalog.",
+    },
+    {
+      code: "products.manage",
+      module: "Products",
+      label: "Manage Products",
+      description: "Create, update, and delete products and services.",
+    },
+    {
+      code: "inventory.view",
+      module: "Inventory",
+      label: "View Inventory",
+      description: "Open inventory levels and movement history.",
+    },
+    {
+      code: "inventory.manage",
+      module: "Inventory",
+      label: "Manage Inventory",
+      description: "Record stock-in and stock-adjustment movements.",
+    },
+    {
       code: "emi.view",
       module: "EMI & Loans",
       label: "View EMI & Loans",

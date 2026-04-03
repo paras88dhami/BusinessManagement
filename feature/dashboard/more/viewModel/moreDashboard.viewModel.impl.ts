@@ -37,6 +37,16 @@ const businessSections: readonly MoreDashboardSection[] = [
         subtitle: "Point of sale checkout",
       },
       {
+        id: "products",
+        title: "Products",
+        subtitle: "Catalog for items and services",
+      },
+      {
+        id: "inventory",
+        title: "Inventory",
+        subtitle: "Stock levels and movements",
+      },
+      {
         id: "emi",
         title: "EMI and Loans",
         subtitle: "Installment and loan tracking",
@@ -88,6 +98,8 @@ export const useMoreDashboardViewModel = (
     onOpenProfile,
     onOpenLedger,
     onOpenPos,
+    onOpenProducts,
+    onOpenInventory,
     onOpenEmi,
     onOpenTransactions,
     onOpenBudget,
@@ -106,6 +118,12 @@ export const useMoreDashboardViewModel = (
           return;
         case "pos":
           onOpenPos();
+          return;
+        case "products":
+          onOpenProducts();
+          return;
+        case "inventory":
+          onOpenInventory();
           return;
         case "emi":
           onOpenEmi();
@@ -127,7 +145,9 @@ export const useMoreDashboardViewModel = (
       onOpenBudget,
       onOpenEmi,
       onOpenLedger,
+      onOpenInventory,
       onOpenPos,
+      onOpenProducts,
       onOpenProfile,
       onOpenTransactions,
       onOpenUserManagement,

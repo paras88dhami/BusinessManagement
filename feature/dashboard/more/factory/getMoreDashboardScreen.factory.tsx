@@ -8,6 +8,8 @@ type GetMoreDashboardScreenFactoryProps = {
   onOpenProfile: () => void;
   onOpenLedger: () => void;
   onOpenPos: () => void;
+  onOpenProducts: () => void;
+  onOpenInventory: () => void;
   onOpenEmi: () => void;
   onOpenTransactions: () => void;
   onOpenBudget: () => void;
@@ -20,6 +22,8 @@ export function GetMoreDashboardScreenFactory({
   onOpenProfile,
   onOpenLedger,
   onOpenPos,
+  onOpenProducts,
+  onOpenInventory,
   onOpenEmi,
   onOpenTransactions,
   onOpenBudget,
@@ -31,6 +35,8 @@ export function GetMoreDashboardScreenFactory({
     onOpenProfile,
     onOpenLedger,
     onOpenPos,
+    onOpenProducts,
+    onOpenInventory,
     onOpenEmi,
     onOpenTransactions,
     onOpenBudget,

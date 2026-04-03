@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   ArrowLeftRight,
   BookOpen,
+  Boxes,
+  Box,
   ChevronRight,
   CreditCard,
   PiggyBank,
@@ -59,6 +61,10 @@ const getItemIcon = (itemId: string) => {
       return <BookOpen size={18} color={colors.primary} />;
     case "pos":
       return <ShoppingCart size={18} color={colors.primary} />;
+    case "products":
+      return <Box size={18} color={colors.primary} />;
+    case "inventory":
+      return <Boxes size={18} color={colors.primary} />;
     case "emi":
       return <CreditCard size={18} color={colors.primary} />;
     case "transactions":

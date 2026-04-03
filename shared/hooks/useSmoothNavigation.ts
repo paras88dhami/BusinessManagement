@@ -1,8 +1,8 @@
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-type SmoothHref = Parameters<ReturnType<typeof useRouter>["replace"]>[0];
-type NormalizableHref = SmoothHref | string;
+type RouterHref = Parameters<ReturnType<typeof useRouter>["replace"]>[0];
+type NormalizableHref = RouterHref | string;
 
 const stripRouteGroups = (path: string): string => {
   const withoutGroups = path.replace(/\/\([^/]+\)/g, "");
@@ -40,8 +40,8 @@ export const useSmoothNavigation = () => {
 
   const navigate = useCallback(
     (
-      action: (targetPath: SmoothHref) => void,
-      targetPath: SmoothHref,
+      action: (targetPath: RouterHref) => void,
+      targetPath: NormalizableHref,
     ): void => {
       const normalizedCurrentPath = normalizePath(pathname);
       const normalizedTargetPath = normalizePath(targetPath);
@@ -60,7 +60,7 @@ export const useSmoothNavigation = () => {
       pendingPathRef.current = normalizedTargetPath;
 
       try {
-        action(targetPath);
+        action(targetPath as RouterHref);
       } catch (error) {
         if (pendingPathRef.current === normalizedTargetPath) {
           pendingPathRef.current = null;
@@ -73,23 +73,23 @@ export const useSmoothNavigation = () => {
   );
 
   const replace = useCallback(
-    (targetPath: SmoothHref): void => {
+    (targetPath: NormalizableHref): void => {
       navigate(router.replace, targetPath);
     },
     [navigate, router.replace],
   );
 
   const push = useCallback(
-    (targetPath: SmoothHref): void => {
+    (targetPath: NormalizableHref): void => {
       navigate(router.push, targetPath);
     },
     [navigate, router.push],
   );
 
   const prefetch = useCallback(
-    (targetPath: SmoothHref): void => {
+    (targetPath: NormalizableHref): void => {
       try {
-        void router.prefetch(targetPath);
+        void router.prefetch(targetPath as RouterHref);
       } catch (error) {
         console.error("Failed to prefetch route.", error);
       }

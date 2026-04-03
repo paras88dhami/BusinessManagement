@@ -7,6 +7,7 @@ import { createAuthUserRepository } from "@/feature/session/data/repository/auth
 import { createLocalUserManagementDatasource } from "../data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "../data/repository/userManagement.repository.impl";
 import { createResolveAccountPermissionCodesUseCase } from "../useCase/resolveAccountPermissionCodes.useCase.impl";
+import { hasAccountPermissionWithAliases } from "../types/userManagementPermissionAlias.constants";
 
 type UseAccountPermissionAccessParams = {
   database: Database;
@@ -116,7 +117,8 @@ export const useAccountPermissionAccess = (
   }, [reload]);
 
   const hasPermission = useCallback(
-    (permissionCode: string): boolean => permissionCodes.includes(permissionCode),
+    (permissionCode: string): boolean =>
+      hasAccountPermissionWithAliases(permissionCodes, permissionCode),
     [permissionCodes],
   );
 

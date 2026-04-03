@@ -13,6 +13,8 @@ describe("dashboardShell.shared", () => {
   it("resolves dashboard route keys from route segments", () => {
     expect(resolveDashboardRouteKey(["(dashboard)", "business"])).toBe("business");
     expect(resolveDashboardRouteKey(["(dashboard)", "profile"])).toBe("profile");
+    expect(resolveDashboardRouteKey(["(dashboard)", "products"])).toBe("products");
+    expect(resolveDashboardRouteKey(["(dashboard)", "inventory"])).toBe("inventory");
     expect(resolveDashboardRouteKey(["(dashboard)", "user-management"])).toBe(
       "user-management",
     );
@@ -36,12 +38,18 @@ describe("dashboardShell.shared", () => {
     expect(personalHeader.title).toBe("Kapil Dhami");
 
     expect(resolveDashboardActiveTab("business")).toBe(DashboardTab.Home);
+    expect(resolveDashboardActiveTab("products")).toBe(DashboardTab.More);
+    expect(resolveDashboardActiveTab("inventory")).toBe(DashboardTab.More);
     expect(resolveDashboardActiveTab("personal-budget")).toBe(DashboardTab.Budget);
   });
 
   it("applies account-type route guards", () => {
     expect(isDashboardRouteAllowed("ledger", AccountType.Business)).toBe(true);
     expect(isDashboardRouteAllowed("ledger", AccountType.Personal)).toBe(false);
+    expect(isDashboardRouteAllowed("products", AccountType.Business)).toBe(true);
+    expect(isDashboardRouteAllowed("products", AccountType.Personal)).toBe(false);
+    expect(isDashboardRouteAllowed("inventory", AccountType.Business)).toBe(true);
+    expect(isDashboardRouteAllowed("inventory", AccountType.Personal)).toBe(false);
     expect(isDashboardRouteAllowed("personal-transactions", AccountType.Personal)).toBe(
       true,
     );

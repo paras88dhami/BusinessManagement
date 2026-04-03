@@ -33,6 +33,14 @@ export default function MoreDashboardRoute() {
     navigation.replace("/(dashboard)/pos");
   }, [navigation]);
 
+  const handleOpenProducts = useCallback(() => {
+    navigation.push("/(dashboard)/products");
+  }, [navigation]);
+
+  const handleOpenInventory = useCallback(() => {
+    navigation.push("/(dashboard)/inventory");
+  }, [navigation]);
+
   const handleOpenEmi = useCallback(() => {
     navigation.replace("/(dashboard)/emi-loans");
   }, [navigation]);
@@ -76,6 +84,8 @@ export default function MoreDashboardRoute() {
       onOpenProfile={handleOpenProfile}
       onOpenLedger={handleOpenLedger}
       onOpenPos={handleOpenPos}
+      onOpenProducts={handleOpenProducts}
+      onOpenInventory={handleOpenInventory}
       onOpenEmi={handleOpenEmi}
       onOpenTransactions={handleOpenTransactions}
       onOpenBudget={handleOpenBudget}

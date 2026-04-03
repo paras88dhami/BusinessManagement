@@ -4,6 +4,7 @@ import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDa
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import appDatabase from "@/shared/database/appDatabase";
 
 export default function PosDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -25,6 +26,7 @@ export default function PosDashboardRoute() {
 
   return (
     <GetPosScreenFactory
+      database={appDatabase}
       activeBusinessRemoteId={activeUserRemoteId}
       activeSettlementAccountRemoteId={activeAccountRemoteId}
     />

@@ -14,11 +14,13 @@ import {
 import { appSchema } from "@nozbe/watermelondb";
 import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
 import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
+import { productDbConfig } from "@/feature/products/data/dataSource/db/productDbConfig";
+import { inventoryMovementDbConfig } from "@/feature/inventory/data/dataSource/db/inventoryMovementDbConfig";
 
 const APP_SETTINGS_TABLE = "app_settings";
 
 const schema = appSchema({
-  version: 21,
+  version: 22,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -28,7 +30,9 @@ const schema = appSchema({
     ...userManagementDbConfig.tables,
     ...transactionDbConfig.tables,
     ...ledgerDbConfig.tables,
-      ...emiDbConfig.tables,
+    ...emiDbConfig.tables,
+    ...productDbConfig.tables,
+    ...inventoryMovementDbConfig.tables,
   ],
 });
 
@@ -43,7 +47,9 @@ export const database = createDatabase({
     ...userManagementDbConfig.models,
     ...transactionDbConfig.models,
     ...ledgerDbConfig.models,
-     ...emiDbConfig.models,
+    ...emiDbConfig.models,
+    ...productDbConfig.models,
+    ...inventoryMovementDbConfig.models,
   ],
   migrations,
 });

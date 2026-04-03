@@ -1,5 +1,6 @@
 import React from "react";
-import { createMemoryPosDatasource } from "../data/dataSource/memory.pos.datasource.impl";
+import { Database } from "@nozbe/watermelondb";
+import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
 import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
 import { createApplyDiscountUseCase } from "../useCase/applyDiscount.useCase.impl";
@@ -15,15 +16,20 @@ import { PosScreen } from "../ui/PosScreen";
 import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
 
 type GetPosScreenFactoryProps = {
+  database: Database;
   activeBusinessRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
 };
 
 export function GetPosScreenFactory({
+  database,
   activeBusinessRemoteId,
   activeSettlementAccountRemoteId,
 }: GetPosScreenFactoryProps) {
-  const datasource = React.useMemo(() => createMemoryPosDatasource(), []);
+  const datasource = React.useMemo(
+    () => createLocalPosDatasource({ database }),
+    [database],
+  );
   const repository = React.useMemo(() => createPosRepository(datasource), [datasource]);
 
   const getPosBootstrapUseCase = React.useMemo(
