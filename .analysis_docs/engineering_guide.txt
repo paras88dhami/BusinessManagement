@@ -1,0 +1,623 @@
+eLekha Engineering Companion
+Implementation tasks, target architecture, APIs, entities, acceptance criteria, and test gates for the current UI routes and v2.1 locked product decisions.
+Prepared for engineering handoff
+Date: March 30, 2026
+
+How to use this document
+This companion document is intentionally implementation-facing. It converts the master product document into developer work packages. It is aligned to the current UI route map, the v2.1 lock list, and the current product direction of one app with two working worlds: Personal and Business.
+
+Source
+How it is used in this companion
+v2.1 lock list
+Non-negotiable product and data rules.
+Master development document
+Domain boundaries, product scope, and phased roadmap.
+Current web UI routes and shared shell
+Real screens, mixed flows, and implementation corrections needed before production.
+
+1. Executive engineering summary
+The current UI prototype already shows most of the product surface area: auth, account setup, home, ledger, transactions, EMI & loans, profile, accounts, products, inventory, reports, categories, settings, POS, contacts, billing, user management, and subscription. For production, however, the app must stop treating those as one flat mixed set of pages. The implementation must resolve context first and then load the correct Personal or Business experience.
+• Current risk: the home shell and profile flow are business-heavy while the app is intended to support both Personal and Business worlds.
+• Current risk: the auth UI still exposes email input and social auth options, while the lock list fixes v2.1 auth to phone number + password and explicitly keeps social auth out of launch scope.
+• Current risk: subscription naming and entitlement packaging are inconsistent across existing materials. Billing logic must use entitlement keys rather than hard-coded marketing strings until the final pricing sheet is locked.
+• Production requirement: every persistent record must carry explicit ownership scope. No silent fallback to a random business, random account, or last-seen state is allowed.
+
+Core implementation stance
+The engineering team should treat the current repo as a UI prototype and interaction map, not as the final architecture. The implementation target is a production app whose routing, storage, domain boundaries, and APIs are built around explicit context resolution and domain ownership.
+
+2. Locked product decisions that must shape implementation
+Locked decision
+Engineering consequence
+Auth is phone + password
+Remove email-first login from launch flow. Store and validate phone identity as the primary credential path.
+Signup is fullName + phone + password
+Do not add OTP-only signup or social-first onboarding in v2.1.
+Forgot password hidden until ready
+Route and button may exist behind feature flag, but the public UI must not expose a dead action.
+No Google/Apple auth in launch scope
+Do not keep visible buttons in auth screens. Keep provider interfaces internal only if future-ready hooks are needed.
+Context order: activeProfile -> mode -> activeBusiness -> activeAccount -> route
+Bootstrap must resolve state in this order before rendering any mode-specific screen.
+No silent fallback
+Incomplete context routes to selector screens. Never invent a business or account selection in code.
+Data ownership required
+Every domain table and API payload must include owner context and businessId where applicable.
+Transactions, Ledger, EMI remain separate domains
+Do not collapse them into one finance table or one mega repository.
+Testing gate is required
+Shipped modules must have unit, repository, view model/service, UI, and migration coverage.
+Tokens and secrets live in secure storage only
+Do not keep access tokens or refresh tokens in WatermelonDB or general-purpose persistent tables.
+
+3. Current UI route audit and target ownership
+The current route map is useful, but it needs stronger ownership boundaries and a context-aware shell.
+Current route / screen
+Current behavior
+Target owner domain
+/auth
+Login/signup screen still mixes email input, forgot password, and social buttons.
+Auth / bootstrap
+/account-setup
+Mixed chooser plus create personal/business account modal.
+Context selector + profile/business creation
+/
+Business-centric home dashboard.
+Mode-aware shell: personal home or business home
+/ledger
+Receivable/payable list and entry form.
+Business Ledger
+/transactions
+Income / expense / transfer list and modal form.
+Personal Transactions; optional cross-context shared transaction engine
+/emi-loans
+Plan list and edit/create modal.
+EMI & Loans
+/profile
+Personal identity, business info, account switcher mixed in one screen.
+Profile + business workspace split
+/accounts
+Cash/bank/wallet list and edit form.
+Shared Accounts
+/products
+Items and services catalog.
+Products
+/inventory
+Stock on hand and stock movement.
+Inventory
+/reports
+Business-heavy charts and report menu.
+Reports with personal/business scopes
+/categories
+Mixed income, expense, business, product categories.
+Shared Categories
+/settings
+Business, language, security, notes, tax tools, import/export mixed together.
+Settings + business settings + tools
+/pos
+Slot-based checkout and cart.
+POS workflow
+/contacts
+Customers, suppliers, others.
+Contacts / parties
+/billing
+Invoices, templates, PDF/print actions.
+Billing / invoice
+/user-management
+Staff roles and status.
+User management / permissions
+/subscription
+Plan selection and billing history.
+Subscription / entitlements
+
+Shell correction
+The bottom navigation is currently fixed to Home, Ledger, POS, EMI, and More. In production, the shell must be mode-aware. Personal mode should not foreground Ledger and POS in the main navigation. Business mode can.
+
+4. Final routing and context resolution flow
+• Startup gate: load language, app settings, secure session, active profile, current mode, active business, and active account in order.
+• No session: route to auth.
+• Session but no profile: route to profile selector or profile creation.
+• Session and profile but no mode: route to mode selector.
+• Business mode without business context: route to business selector or business creation.
+• Resolved personal context: route to personal home.
+• Resolved business context: route to business home.
+• Context change: switching profile, mode, business, or account must refresh the active shell, invalidate scoped caches, and reload dashboard widgets.
+
+Resolver step
+Stored key / state
+Failure path
+1
+session
+auth
+2
+activeProfileId
+profile selector
+3
+mode
+mode selector
+4
+activeBusinessId when mode=business
+business selector
+5
+activeAccountId in current scope
+account selector or guided account creation
+6
+route entry
+render matching shell
+
+5. Profile architecture and exact content model
+The current profile screen mixes user identity, business identity, monthly statistics, and account switching. In production, the app needs a cleaner separation between profile data and workspace data.
+Surface
+What it contains
+What it must not contain
+Personal profile
+Full name, display name, phone, email, avatar, preferred language, preferred currency, timezone, security settings.
+Business tax fields, business address, business logo, staff list.
+Business profile
+Business name, legal name, logo, phone, email, address, PAN/VAT/GST identifiers, invoice format settings, country tax profile.
+Personal-only avatar or personal identity preferences.
+Workspace switcher
+Active profile, current mode, active business, active settlement account.
+Editable profile content or full account forms.
+Profile analytics
+Small personal or business stats based on current mode.
+Mixed personal plus business metrics in the same block.
+
+Recommended profile surfaces
+• Profile screen: user identity, security, language, app preferences, active context summary, and shortcut links.
+• Business profile screen: business identity, tax IDs, business address, invoice and print setup, tax region, and branding assets.
+• Workspace switcher modal: switch personal vs business, choose business, choose active account.
+• Accounts screen: list, create, edit, archive, mark primary within scope.
+
+6. Recommended implementation folder blueprint
+Use feature ownership instead of page ownership. Page files should be thin route wrappers over feature screens.
+Frontend folder
+Purpose
+app/bootstrap
+session restore, language bootstrap, context resolver, guarded routing
+features/auth
+login, signup, session, credential validation, secure token storage
+features/context
+profile selector, mode selector, business selector, active account selector
+features/profile
+personal profile and business profile surfaces
+features/accounts
+cash, bank, wallet, clearing accounts
+features/transactions
+personal money events and recurring transactions
+features/ledger
+business receivables, payables, party balances, settlement
+features/emiLoans
+plans, schedules, dues, installment payments
+features/contacts
+customers, suppliers, lender/borrower records
+features/categories
+personal, business, and product/service categories
+features/products
+items, services, pricing, units, tax mapping
+features/inventory
+stock movements, adjustments, thresholds
+features/pos
+cart, checkout, payment capture, receipt trigger
+features/billing
+invoice, receipt, credit note, print/export
+features/reports
+dashboards, statements, exports
+features/settings
+preferences, security, tools, import/export entry points
+features/userManagement
+staff, roles, permissions
+features/subscription
+plans, entitlements, billing history
+shared
+design system, utilities, validation, date/currency, feature flags
+
+Route rule
+The route file should not own business logic. Keep route-level code limited to dependency injection, guard checks, and rendering the appropriate feature screen.
+
+7. Backend/API principles
+• Every request must be scope-aware. The backend should never infer business scope from a route string alone.
+• Use entitlement keys, not plan names. Example keys: can_use_pos, can_export_reports, max_staff_count.
+• Keep Transactions, Ledger, and EMI separate. Reports may consume a read-model that unifies them, but write APIs stay separate.
+• Audit trail is mandatory for destructive operations. Edits, deletes, reversals, voids, and forced closures require actor, time, and reason.
+• Support offline-safe sync design. Conflicts should resolve by entity versioning and scoped ownership, not by last-write blind overwrite.
+
+8. Auth and startup bootstrap
+Field
+Implementation detail
+Primary entities
+UserSession, AuthIdentity, Profile, AppSettings
+UI routes
+/auth, app startup gate
+Suggested APIs
+POST /auth/login-phonePOST /auth/signup-phonePOST /auth/refreshPOST /auth/logoutGET /me/bootstrap
+
+Core implementation tasks
+• Replace email input with phone-first login.
+• Hide social auth buttons and forgot-password CTA until feature flag and backend are ready.
+• Move token persistence to secure storage only.
+• Implement bootstrap endpoint or composite bootstrap orchestration that returns session, profiles, mode options, and active selections.
+
+Acceptance criteria
+• Unauthenticated users always land on auth.
+• Successful login routes to selector flow when context is incomplete.
+• No dead buttons for unsupported auth methods are visible in production.
+
+Test focus
+• credential validation, session restore, expired token refresh, logout cleanup, hidden feature gating
+
+9. Context selector flow
+Field
+Implementation detail
+Primary entities
+Profile, Account, BusinessProfile, ActiveContext
+UI routes
+/account-setup replacement, mode selector, business selector, account selector
+Suggested APIs
+GET /profilesPOST /profilesGET /businessesPOST /businessesPOST /context/activate
+
+Core implementation tasks
+• Split current account-setup screen into profile selection, mode choice, business selection, and active account selection.
+• Keep personal account creation lightweight and business creation country-aware.
+• Persist activeProfileId, mode, activeBusinessId, and activeAccountId separately.
+
+Acceptance criteria
+• Business mode cannot open without an active business.
+• Switching context refreshes shell navigation and scoped dashboard data.
+• No context is auto-picked when required data is missing.
+
+Test focus
+• selector happy path, incomplete context routing, storage restore, cache invalidation after switching
+
+10. Personal transactions
+Field
+Implementation detail
+Primary entities
+Transaction, TransactionAttachment, RecurringTransaction, Category, Account
+UI routes
+/transactions in personal mode
+Suggested APIs
+GET /transactionsPOST /transactionsPATCH /transactions/:idDELETE /transactions/:idGET /transactions/summary
+
+Core implementation tasks
+• Support income, expense, transfer, borrow, lend, repayment, and recurring entries.
+• Use scoped filters by account, category, contact, date, tag, and status.
+• Separate personal flows from business ledger entries even if the form shells look similar.
+
+Acceptance criteria
+• Transfers require fromAccount and toAccount.
+• Editing a transaction updates summaries and any linked installment state if applicable.
+• Deleted transactions leave an audit record or reversible tombstone depending on policy.
+
+Test focus
+• amount validation, transfer balancing, recurring creation, summary recomputation, attachment links
+
+11. Business ledger
+Field
+Implementation detail
+Primary entities
+LedgerEntry, PartyBalance, Settlement, InvoiceLink
+UI routes
+/ledger
+Suggested APIs
+GET /ledger/summaryGET /ledger/partiesGET /ledger/parties/:id/statementPOST /ledger/entriesPOST /ledger/settlements
+
+Core implementation tasks
+• Treat ledger as a business due system, not as a re-labeled transaction list.
+• Support sale, purchase, collection, payment-out, refund, advance, and adjustment entries.
+• Maintain receivable/payable balances per party.
+
+Acceptance criteria
+• Customer and supplier statements show running balances.
+• Partial settlements update outstanding amounts correctly.
+• Optional invoice or inventory links do not break core ledger posting.
+
+Test focus
+• party balance math, partial settlement, overdue buckets, statement export, role-based action control
+
+12. EMI & loans
+Field
+Implementation detail
+Primary entities
+LoanPlan, Installment, InstallmentPaymentLink, PenaltyRule
+UI routes
+/emi-loans
+Suggested APIs
+GET /loan-plansPOST /loan-plansGET /loan-plans/:idPOST /loan-plans/:id/paymentsPOST /loan-plans/:id/close
+
+Core implementation tasks
+• Generate installment schedules from principal, rate, tenure, and due rules.
+• Use InstallmentPaymentLink as the source of truth between schedules and paid transactions.
+• Support in-app due cards even without device notification permission.
+
+Acceptance criteria
+• One plan has many installments.
+• An installment can map to one or many payment links.
+• Plan closure is blocked while outstanding money remains unless an audited force-close path is used.
+
+Test focus
+• schedule generation, partial payment linking, overdue status, close validation, payment reversal recomputation
+
+13. Shared accounts and contacts
+Field
+Implementation detail
+Primary entities
+Account, Contact, BusinessContactTag, OpeningBalance
+UI routes
+/accounts, /contacts
+Suggested APIs
+GET /accountsPOST /accountsPATCH /accounts/:idGET /contactsPOST /contactsPATCH /contacts/:id
+
+Core implementation tasks
+• Keep accounts scoped and type-safe: cash, bank, wallet, card, qr_settlement, petty_cash, clearing_account.
+• Keep contacts reusable across transactions, ledger, billing, and EMI.
+• Allow opening balance and starting due direction where business workflows need it.
+
+Acceptance criteria
+• Primary account is scoped to personal profile or active business.
+• Contact deletion is blocked or soft-deleted when linked history exists.
+• Changing a contact name updates rendered labels without corrupting historical financial postings.
+
+Test focus
+• scope filters, archive/delete policy, opening balance behavior, contact search
+
+14. Categories
+Field
+Implementation detail
+Primary entities
+Category, CategoryGroup, CategoryScope
+UI routes
+/categories
+Suggested APIs
+GET /categoriesPOST /categoriesPATCH /categories/:idDELETE /categories/:id
+
+Core implementation tasks
+• Split category groups by purpose: personal transaction, business ledger mapping, product/service classification, EMI-related tags.
+• Protect system categories from destructive edits unless migrated by admin tooling.
+• Allow custom categories per scope.
+
+Acceptance criteria
+• The same display name can exist in different scopes when explicitly allowed.
+• System categories remain available for reports even after label changes.
+
+Test focus
+• system lock, custom category creation, scope filtering, report lookup stability
+
+15. Products and inventory
+Field
+Implementation detail
+Primary entities
+Product, ProductKind, Unit, TaxRuleLink, InventoryMovement, StockThreshold
+UI routes
+/products, /inventory
+Suggested APIs
+GET /productsPOST /productsPATCH /products/:idGET /inventory/movementsPOST /inventory/movementsGET /inventory/summary
+
+Core implementation tasks
+• Support item and service product kinds.
+• Track stock only for stockable items.
+• Make every stock change an explicit movement: purchase in, sale out, return, damage, correction, transfer later.
+
+Acceptance criteria
+• Service products never create stock rows.
+• Low-stock status is threshold-driven and not manually toggled.
+• Editing stockable product pricing does not rewrite historical inventory valuation events blindly.
+
+Test focus
+• item vs service behavior, movement math, low-stock alerting, product search, tax mapping
+
+16. POS checkout
+Field
+Implementation detail
+Primary entities
+Cart, CartLine, SalePosting, Receipt, PaymentCapture
+UI routes
+/pos
+Suggested APIs
+GET /pos/bootstrapPOST /pos/salesPOST /pos/holdsPOST /pos/voidsPOST /pos/refunds
+
+Core implementation tasks
+• Keep POS as a workflow, not the owner of products or stock.
+• Resolve active business and active settlement account before loading POS.
+• When a sale is not fully paid, create the correct ledger effect for due balance.
+
+Acceptance criteria
+• Adding or removing slot products updates cart state deterministically.
+• Pay action posts sale, payment split, stock movement, receipt, and optional ledger due in one transaction boundary.
+• Void and clear actions are role-controlled and audited.
+
+Test focus
+• cart totals, discount and surcharge math, partial payment flow, stock decrement, receipt rendering
+
+17. Billing and invoicing
+Field
+Implementation detail
+Primary entities
+Invoice, InvoiceLine, ReceiptDocument, CreditNote, PrintTemplate
+UI routes
+/billing
+Suggested APIs
+GET /invoicesPOST /invoicesPATCH /invoices/:idPOST /invoices/:id/sendPOST /invoices/:id/pdf
+
+Core implementation tasks
+• Keep billing documents country-aware and tax-aware.
+• Support invoice, receipt, and later credit/debit notes.
+• Use templates as render configurations, not as duplicate domain models.
+
+Acceptance criteria
+• Document number generation is unique within business scope and configured series.
+• Paid, pending, and overdue status transitions are consistent with payments.
+• PDF and print previews use the same document snapshot data.
+
+Test focus
+• template switch, total/tax math, status transitions, export/print parity
+
+18. Reports
+Field
+Implementation detail
+Primary entities
+DashboardWidget, ReportQuery, StatementExport, AnalyticsSnapshot
+UI routes
+/reports and dashboard widgets
+Suggested APIs
+GET /reports/overviewGET /reports/cash-flowGET /reports/category-summaryGET /reports/party-balancesPOST /reports/export
+
+Core implementation tasks
+• Support both personal and business report scopes.
+• Do not compute all metrics inside UI code. Use read-model endpoints or dedicated report services.
+• Keep charts and exports tied to the same filtered query model.
+
+Acceptance criteria
+• Changing date range updates visible widgets and export results consistently.
+• Business-only reports do not appear in personal mode.
+• Report exports are entitlement-aware.
+
+Test focus
+• filter integrity, chart dataset correctness, export parity, scope gating
+
+19. Profile, settings, tools, and import/export
+Field
+Implementation detail
+Primary entities
+Preference, SecuritySetting, TaxToolPreset, ImportJob, ExportJob
+UI routes
+/profile, /settings
+Suggested APIs
+GET /profilePATCH /profileGET /business-profilePATCH /business-profilePOST /importsPOST /exports
+
+Core implementation tasks
+• Split personal preferences from business setup.
+• Treat tax calculator and notes as helper tools, not core finance records.
+• Move import/export into asynchronous jobs for large payloads.
+
+Acceptance criteria
+• Language change applies across the shell immediately after persistence.
+• Business settings are hidden in personal mode.
+• Import jobs report errors without partial silent corruption.
+
+Test focus
+• preference persistence, business profile validation, import schema validation, export authorization
+
+20. User management, roles, permissions, and subscription
+Field
+Implementation detail
+Primary entities
+StaffUser, Role, PermissionKey, Subscription, EntitlementSnapshot
+UI routes
+/user-management, /subscription
+Suggested APIs
+GET /staffPOST /staffPATCH /staff/:idGET /rolesGET /subscriptionPOST /subscription/change-plan
+
+Core implementation tasks
+• Keep role definitions data-driven and checked at the application/service layer.
+• Do not spread plan-name checks across UI components.
+• Lock one public plan naming system before public release; until then use entitlement keys internally.
+
+Acceptance criteria
+• A user without permission cannot invoke protected actions even if UI state is manipulated.
+• Plan changes update entitlements and UI availability consistently.
+• Billing history remains readable after plan name changes because snapshots are stored.
+
+Test focus
+• permission gating, entitlement refresh, inactive staff access block, staff invite/edit/deactivate paths
+
+21. Definition of done for each shipped feature
+Gate
+Minimum requirement before release
+Architecture
+Feature has clear owner domain, scoped entities, and no hidden cross-feature writes.
+Security
+Secrets in secure storage only; role and entitlement checks enforced outside the UI.
+Data
+Every record includes required owner context and businessId where applicable.
+UX
+No dead buttons, no hidden unsupported flows, and clear empty/loading/error states.
+Testing
+Unit, repository/service, UI, and migration coverage for shipped paths.
+Observability
+Meaningful error messages, analytics events, and audit events for destructive actions.
+Offline/Sync
+Retry and conflict behavior defined for write paths that can operate offline.
+Exports/Docs
+PDF/print/export paths verified where the feature exposes them.
+
+22. Suggested delivery order
+• Foundation: bootstrap, auth, secure session, language, context resolver.
+• Selectors: profile, mode, business, active account.
+• Shared modules: accounts, contacts, categories, validation, permissions shell.
+• Personal Transactions.
+• Business Ledger.
+• EMI & Loans core.
+• Products and Inventory.
+• POS and Billing.
+• Reports and export flows.
+• Profile/settings hardening, then user management and subscription integration.
+
+Appendix A. Compact API summary
+Feature
+Representative endpoint
+Auth and startup bootstrap
+POST /auth/login-phone
+Auth and startup bootstrap
+POST /auth/signup-phone
+Auth and startup bootstrap
+POST /auth/refresh
+Context selector flow
+GET /profiles
+Context selector flow
+POST /profiles
+Context selector flow
+GET /businesses
+Personal transactions
+GET /transactions
+Personal transactions
+POST /transactions
+Personal transactions
+PATCH /transactions/:id
+Business ledger
+GET /ledger/summary
+Business ledger
+GET /ledger/parties
+Business ledger
+GET /ledger/parties/:id/statement
+EMI & loans
+GET /loan-plans
+EMI & loans
+POST /loan-plans
+EMI & loans
+GET /loan-plans/:id
+Shared accounts and contacts
+GET /accounts
+Shared accounts and contacts
+POST /accounts
+Shared accounts and contacts
+PATCH /accounts/:id
+Categories
+GET /categories
+Categories
+POST /categories
+Categories
+PATCH /categories/:id
+Products and inventory
+GET /products
+Products and inventory
+POST /products
+Products and inventory
+PATCH /products/:id
+
+Appendix B. Implementation warnings discovered from the current UI prototype
+Finding
+Production response
+Auth screen still shows email input.
+Replace with phone-only credential fields for v2.1.
+Google and Apple buttons are visible.
+Remove from public build until provider auth is in scope and tested.
+Forgot password CTA is visible.
+Hide or feature-flag until route and backend are ready.
+Root home page is business-heavy.
+Make home shell mode-aware; do not default personal users into business widgets.
+Profile screen mixes user profile and business profile.
+Split into personal profile, business profile, and workspace switcher.
+Bottom nav is fixed and business-first.
+Use mode-aware navigation sets.
+Subscription tiers differ across current materials.
+Use internal entitlement keys until product locks public plan names.

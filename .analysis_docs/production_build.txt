@@ -1,0 +1,737 @@
+eLekha
+
+Production Master Build Document
+UI-aligned product, architecture, flow, data, security, and phased delivery specification
+Version 3.0  |  Prepared from the current Bizflow UI repository review, the eLekha v2.1 lock list, and the prior master development document  |  March 30, 2026
+What this document does
+Converts the current mixed UI into a production-ready product specification with clean Personal and Business boundaries.
+Uses a strict source-of-truth order: v2.1 lock decisions first, current UI flow second, previous master doc third, and country/regulatory appendices last.
+Defines what ships in v2.1, what remains future scope, and how every visible screen should evolve into a real feature.
+
+Document lens
+Locked production decision
+Primary markets
+Nepal, India, and global expansion-ready
+Current codebase shape
+Vite + React web UI prototype with page-level route coverage
+Launch-critical domains
+Foundations, Transactions, Ledger, EMI & Loans core
+Major correction needed
+Separate Personal and Business flows; current UI still mixes them
+
+Document Map
+ 
+• 1. Source precedence and executive summary
+• 2. Current repository UI audit
+• 3. Production corrections required before build
+• 4. Final product architecture: Personal vs Business
+• 5. Canonical auth, onboarding, account, and context flow
+• 6. Profile architecture and exact profile contents
+• 7. Shared platform modules
+• 8. Personal domain build specification
+• 9. Business domain build specification
+• 10. POS, products, inventory, billing, reports, and admin modules
+• 11. Subscription, localization, tax, and market strategy
+• 12. Data model, ownership, and relationship rules
+• 13. Engineering, testing, security, analytics, and release quality gates
+• 14. Delivery roadmap and implementation priorities
+• Appendices: page-by-page UI mapping, profile field matrix, route matrix, compliance checkpoints
+1. Source Precedence and Executive Summary
+ 
+Source-of-truth order
+1) eLekha v2.1 lock list
+2) current Bizflow UI repository flow and visible routes
+3) previous eLekha master development document
+4) country and tax appendices for Nepal, India, and global readiness
+
+This document replaces the older mixed specification with a UI-aligned production build guide. The current repository already contains nearly all major surfaces needed for the app, but those surfaces behave as a demo shell with local state and mixed concerns rather than as final production modules. The main architectural problem is not missing screens - it is that Personal, Business, Admin, and future features are still blended together in shared pages and menus.
+The production target remains one eLekha app with two top-level operating modes: Personal and Business. The user should feel like they are inside one coherent product, but the codebase, data ownership, routing, permissions, summaries, reports, and profile surfaces must stay context-aware and intentionally separated.
+Decision area
+Production decision
+Auth
+Phone number + password only in v2.1. Signup = full name + phone + password. Forgot-password remains hidden until complete. Social auth is out of launch scope.
+Mode model
+One app, two operating worlds: Personal and Business. Shared shell is allowed; shared data ownership is not.
+Launch domains
+Foundations + Transactions + Ledger + EMI & Loans core are launch-critical. POS, Products, Inventory, Billing, Reports, User Management, and Subscription can be fully documented now but shipped in later phases.
+Routing
+Resolve context in this order: activeProfile -> mode -> activeBusiness (if business) -> activeAccount -> route outcome.
+Security
+Tokens and secrets stay in secure storage only. WatermelonDB or local DB equivalents must not hold secret session values.
+Data integrity
+Transactions, Ledger, and EMI remain separate domains. InstallmentPaymentLink remains the installment source-of-truth.
+
+2. Current Repository UI Audit
+ 
+The current codebase provides a strong route inventory and a consistent visual language, but most pages still rely on local component state, mock values, and page-level form handling. That is acceptable for prototyping the UI, but it is not yet a reliable production feature implementation strategy.
+2.1 Confirmed route inventory
+Route
+Owner area
+Current purpose
+/auth
+Auth
+Login / sign-up prototype with language picker
+/account-setup
+Foundation
+Select or create Personal / Business account
+/
+Home
+Currently business-heavy home dashboard
+/ledger
+Business
+Party balances and ledger entry flow
+/transactions
+Mixed
+Income / expense / transfer flow; currently mixes personal and business examples
+/emi-loans
+Shared
+Plan cards, outstanding summary, create / edit plan modal
+/more
+Mixed
+Catch-all menu for business tools, management, and account surfaces
+/profile
+Mixed
+User profile + business info + account switcher + monthly stats in one page
+/accounts
+Shared
+Cash / bank / wallet management
+/products
+Business
+Item/service catalog
+/inventory
+Business
+Stock on hand and movement shell
+/reports
+Mixed
+Charts + business report shortcuts
+/categories
+Shared
+Income / expense / business / product category list
+/settings
+Mixed/Admin
+Business profile, language, data, tools, support, subscription links
+/pos
+Business
+Slot-based POS cart and product picker shell
+/contacts
+Shared/Business-heavy
+Customers, suppliers, others, opening balance
+/billing
+Business
+Invoice / receipt creation and template selection
+/user-management
+Admin
+Staff list, roles, permission preview
+/subscription
+Platform
+Current plan, plan cards, billing history
+
+2.2 What is good in the current UI
+• The route map is broad enough to define the full product surface without guessing missing modules.
+• A consistent mobile-first visual system already exists: shared shell, section headers, list rows, cards, and modal patterns.
+• Products, inventory, billing, EMI, ledger, contacts, reports, and settings already have clear first-pass UI affordances.
+• The account setup page already exposes the key Personal vs Business creation choice, which is useful for final onboarding design.
+• The visual language fits Nepal and India SMB use cases well: compact cards, quick actions, obvious money summaries, and accessible list-first workflows.
+2.3 Production mismatches identified from the current UI
+Surface
+Current issue
+Production correction
+Auth screen
+Current UI still shows email, Google, Apple, and visible forgot-password action.
+Replace with phone + password only for v2.1. Keep forgot-password hidden until route + API are ready.
+Home shell
+Current home is effectively a business dashboard only.
+Create separate Personal Home and Business Home outcomes after context resolution.
+Transactions
+Current transaction examples include sale, purchase, and collection language from business workflows.
+Personal Transactions must stay personal. Business due flows belong in Ledger.
+Profile
+User identity, business identity, account switching, account balances, and monthly business stats are all mixed in one page.
+Split profile into profile identity, workspace / business profile, account switcher, and mode-aware stats.
+More menu
+Acts as a catch-all mixed menu.
+Use mode-aware menu groups so Personal users do not see irrelevant business-admin clutter.
+Settings
+Mixes business admin, tools, language, subscription, and support in one stack.
+Move business profile, user management, and subscription to dedicated areas; keep Settings for preferences, security, and data controls.
+Subscription
+Current plan names are Free / Silver / Gold / Platinum.
+Lock final subscription taxonomy once; do not ship conflicting plan names across docs and UI.
+
+3. Production Corrections Required Before Build
+ 
+The product is not missing a design system or a route map. It is missing a reliable production contract between mode, ownership, routing, domain boundaries, and launch scope. The corrections below turn the current UI prototype into a scalable application specification.
+Correction A - lock the two-mode model
+Personal mode owns personal transactions, personal accounts, personal contacts, personal recurring money flows, and personal EMI / loans.
+Business mode owns ledger, products, inventory, POS, billing, business reports, staff, roles, subscription entitlements, and business EMI / loans.
+Shared modules such as Accounts, Categories, Contacts, Attachments, Reminders, and Notifications must always carry owner context.
+
+Correction B - separate launch-critical vs later modules
+Document the full app now, but treat v2.1 shipping scope as foundations + Transactions + Ledger + EMI core.
+Products, Inventory, POS, Billing, Reports, User Management, and Subscription remain fully specified but should not destabilize the launch path.
+
+Correction C - replace mixed screens with context-aware screens
+Home, Profile, More, Settings, Reports, and Categories must behave differently by mode.
+Do not hide architectural mixing under one generic screen title; use explicit context resolution.
+
+Correction D - move from demo state to domain state
+Current page-local arrays and local form state are good for design exploration but must be replaced by repositories, use cases, view models, and persistence layers.
+No money, due, stock, or invoice values should remain hardcoded in production UI.
+
+4. Final Product Architecture: Personal vs Business
+ 
+4.1 Top-level product model
+Mode
+Primary landing
+Core domains
+Typical user intent
+Personal
+Personal Home
+Transactions, personal Accounts, personal Contacts, personal EMI / Loans, personal Reports
+Track income, expense, savings, transfers, borrow/lend, repayments, reminders, and personal plans
+Business
+Business Home
+Ledger, Products, Inventory, POS, Billing, business Accounts, Contacts, Reports, User Management, Subscription, business EMI / Loans
+Run store operations, collect dues, manage stock, bill customers, settle payments, and control staff access
+
+4.2 Shared shell principle
+• One visual shell is allowed; one giant mixed domain is not.
+• Top bar, bottom navigation, profile access, notifications, and language handling can be shared.
+• Screen content, widgets, quick actions, reports, permissions, and defaults must change by resolved mode.
+• No silent fallback to a random business, random account, or last unseen workspace.
+4.3 Canonical navigation by mode
+Navigation slot
+Personal mode
+Business mode
+Home
+Personal Home
+Business Home
+Money
+Transactions
+Ledger
+Center action
+Add Transaction
+POS Checkout
+Plans
+EMI & Loans
+EMI & Loans
+More
+Accounts, Categories, Reports, Profile, Settings
+Products, Inventory, Billing, Reports, Contacts, Accounts, Admin, Profile, Settings
+
+5. Canonical Auth, Onboarding, Account, and Context Flow
+ 
+5.1 Final auth contract
+• Login fields: phone number + password only.
+• Signup fields: full name + phone number + password.
+• OTP is not part of v2.1 auth unless the lock list changes.
+• Forgot-password remains planned and hidden until both route and backend contract are ready.
+• Google and Apple sign-in remain out of v2.1 launch scope.
+Important build note
+The current Auth UI must be reduced, not expanded. Production quality here comes from correctness and contract discipline, not from adding more auth buttons.
+
+5.2 Startup and context resolution
+Flow stage
+Required outcome
+Startup gate
+Read stored app settings, session, active profile, saved mode, active business if any, and active account.
+No session
+Route to Auth.
+Session but missing profile/context
+Route to selector flow.
+Personal context resolved
+Route to Personal Home.
+Business context resolved
+Route to Business Home.
+Context incomplete or invalid
+Route to explicit recovery / chooser screen. Never guess.
+
+5.3 Post-auth selector flow
+• After successful auth, show a context-safe selector if the user has multiple accounts or workspaces.
+• If the user has no account yet, show Create Personal Account and Create Business Account as the first explicit split.
+• Business account creation captures workspace metadata such as business name, business type, tax identity, address, currency, and settlement defaults.
+• Personal account creation stays lean: display name, city/location, base currency, and optional personal finance defaults.
+6. Profile Architecture and Exact Profile Contents
+ 
+The current Profile page is the most visibly mixed screen in the repository. In production, profile must not serve as a dumping ground for identity, workspace, account balances, subscription, and monthly KPIs. Instead, profile becomes a mode-aware hub built from four deliberate sections.
+6.1 Final profile structure
+Profile layer
+Purpose
+Must contain
+Identity Profile
+Who the signed-in user is
+Photo/avatar, full name, display name, phone, email, preferred language, preferred country, default currency, timezone, security entry points
+Workspace Switcher
+Which context the user is operating in
+Active mode, active account, active business if any, switch action, status chips, role in current workspace
+Business Profile
+How the selected business is represented
+Business display name, legal name, type, PAN/VAT/GSTIN, address, phones, emails, logo, invoice prefix, tax defaults, receipt/footer text
+Mode-aware Summary
+What matters in the current context
+Personal: income/expense/savings/plan summary. Business: to receive / to pay / today in / today out / overdue / staff / active products / open invoices
+
+6.2 Exact fields for the signed-in user profile
+• Avatar or initials fallback
+• Full name
+• Preferred display name
+• Primary phone number
+• Primary email address
+• Preferred language
+• Preferred country / market profile
+• Preferred base currency
+• Timezone
+• Notification preferences summary
+• Security links: change password, device sessions, biometrics / passcode later, 2FA later
+6.3 Exact fields for the business profile
+• Business display name
+• Legal business name
+• Business type / industry
+• Business logo
+• phone 
+•  email
+• Registered or operating address
+• City, district/state, country
+• PAN / VAT / GSTIN or other tax registration identifier
+• Invoice prefix / numbering policy
+• Default tax regime and tax-inclusive / exclusive flag
+• Default settlement accounts
+• Receipt footer text, thank-you text, and print defaults
+6.4 What must move out of Profile
+• Full account ledger tables should move to Accounts.
+• Business staff administration should move to User Management.
+• Subscription purchase and billing history should move to Subscription.
+• Large report dashboards belong in Reports, not Profile.
+• Tools like tax calculator and notes belong in utilities or settings, not inside the identity surface.
+6.5 Final profile UI sections by mode
+Mode
+Top card
+Middle sections
+Bottom actions
+Personal
+Identity card + active personal account card
+Personal finance summary, personal account balances, linked personal plans, reminder preferences
+Edit profile, switch mode, security, settings
+Business
+Identity card + active business/workspace card + role chip
+Business profile card, settlement accounts, business KPI summary, staff count, subscription snapshot
+Edit business profile, switch workspace, user management, subscription, settings
+
+7. Shared Platform Modules
+ 
+The modules below are shared because they are reused across both modes or across multiple business flows. Shared does not mean ownership-free. Every record still needs a clear owner context.
+Shared module
+Responsibility
+Accounts
+Cash, bank, wallet, QR, petty cash, settlement defaults
+Contacts
+Personal contacts, customers, suppliers, lenders, borrowers, institutions
+Categories
+Personal, business, and product category structures with owner scope
+Attachments
+Bill images, contracts, proof documents, notes, scans
+Reminders
+Reminder rules for dues, plans, stock, renewals, and custom follow-up
+Notifications
+In-app, push, and send logs; convenience layer only
+Currency / Date / Locale
+Formatting, exchange display policy, timezone-safe dates, locale wording
+Validation
+Field rules, business rules, country-aware validations
+Tax engine
+Country-aware invoice and line-tax calculations
+Print / Export
+PDF, print preview, statement export, receipt rendering
+
+8. Personal Domain Build Specification
+ 
+8.1 Personal Home
+• Show income, expense, net movement, savings trend, upcoming reminders, and personal EMI due cards.
+• Quick actions: Add Income, Add Expense, Transfer, Add Borrow / Lend, Pay EMI, View Reports.
+• Do not show business receivable/payable widgets in Personal Home.
+8.2 Personal Transactions
+Micro-feature
+Production requirement
+List and filters
+Date, type, category, account, contact, status, recurrence, search
+Entry types
+Income, expense, transfer, borrow, lend, repayment, recurring entry
+Entry form
+Account, category, amount, date, note, tags, attachment, reminder, contact
+Detail screen
+Audit trail, linked account, linked contact, linked installment if applicable
+Recurring support
+Template + next due logic; never duplicate silently
+
+8.3 Personal accounts and contacts
+• Personal accounts can include wallet, bank, cash, card, and savings-style holders.
+• Personal contacts can include friend, family, borrower, lender, landlord, service provider, or institution.
+• Opening balances and directionality must be explicit and never inferred from labels.
+8.4 Personal EMI & Loans
+• Use cases: phone EMI, laptop EMI, furniture EMI, scooter finance, personal bank loan, credit-card converted plan.
+• Required views: plan list, plan detail, schedule, due card, pay installment, overdue state, closure state.
+• All actual installment settlement must flow through InstallmentPaymentLink instead of ad hoc plan math.
+9. Business Domain Build Specification
+ 
+9.1 Business Home
+Widget
+Business requirement
+Receivable / payable summary
+Top-level amount to receive and amount to pay
+Daily movement
+Today in, today out, open invoices, overdue count
+Quick actions
+Ledger entry, POS, New invoice, Add product, Stock in, Add contact
+Due cards
+Due today, overdue, and near-due collections / payments
+Recent activity
+Latest ledger updates, recent invoices, recent stock movements, latest plan payments
+
+9.2 Ledger
+Micro-feature
+Production requirement
+Ledger Home
+To Receive, To Pay, due today, due this week, overdue, recently settled
+Party Ledger Detail
+Running balance, statements, reminders, collector history, payment links
+Entry types
+Sale, purchase, collection, payment out, refund, advance, adjustment
+Settlement
+Full or partial settlement with account selection and proof support
+Business rule
+Ledger balances stay separate from personal transactions and separate from EMI schedule state
+
+9.3 Business contacts
+• Customer and supplier are first-class business party types.
+• A contact may hold balance direction, opening balance, tax identity, address, collector notes, and document links.
+• Customer/supplier balances should be derived from ledger entries and settlements, not hand-edited summary labels.
+9.4 Business EMI & Loans
+• Use cases: equipment finance, asset loans, installment sales, business bank loans, structured collection plans.
+• Business EMI can link to customer collections or business asset repayment depending on plan type.
+• Plan type must stay explicit because the reporting, due wording, and linked documents differ.
+10. POS, Products, Inventory, Billing, Reports, and Admin Modules
+ 
+10.1 Products
+Product area
+Production requirement
+Kinds
+Item and Service only
+Core fields
+Name, kind, category, sale price, cost price, unit, tax mapping, active flag, SKU/barcode, image
+Item rules
+Can track inventory, cost, threshold, stock movement
+Service rules
+Never tracks stock; may still be taxable and billable
+Ownership rule
+Products belong to business context, not personal context
+
+10.2 Inventory
+• Inventory owns stock on hand, stock movement, purchase in, sale out, return, adjustment, damaged/lost stock, and threshold alerts.
+• Low-stock is an inventory rule. Notification delivery is shared infrastructure.
+• Stock counts must be changed through explicit movement records, never only by editing a number on the UI.
+10.3 POS
+• The current slot-based POS shell is usable as a quick-sell prototype, but production POS must resolve active business and active settlement account before opening.
+• POS needs cart, item search, category shortcuts, quantity change, discount, surcharge, tax, tender selection, partial payment, hold/void behavior, and receipt output.
+• If the customer leaves unpaid balance, POS must create the correct ledger effect instead of silently treating every sale as paid.
+10.4 Billing & Invoice
+Billing area
+Production requirement
+Document types
+Invoice, receipt, and credit note in the first business document layer
+Document fields
+Party, items/services, quantity, rates, tax snapshot, subtotal, total, status, notes, numbering
+Outputs
+Preview, print, PDF export, statement attachment, later share links
+Rule
+Billing owns document rendering; it should not own stock totals or customer balance truth by itself
+
+10.5 Reports
+• Reports must be mode-aware. Personal reports differ fundamentally from business operations reports.
+• Business reports include ledger balances, sales, collections, payments, invoices, stock valuation, low stock, and plan exposure.
+• Charts should use real query-backed read models; no production chart should depend on hardcoded month arrays.
+10.6 Settings, User Management, and Subscription
+Admin area
+Final home
+Settings
+Language, currency, appearance, security, data controls, reminder preferences, support
+User Management
+Staff, roles, permissions, active/inactive status, access by workspace
+Subscription
+Tier, billing cycle, renewal status, entitlements, limits, upgrade path
+
+11. Subscription, Localization, Tax, and Market Strategy
+ 
+11.1 Market orientation
+• Nepal-first and India-ready should remain the product design baseline for launch thinking.
+• Global support should come from configuration and localization patterns, not from hardcoded Nepal-only or India-only assumptions.
+• Language, currency, tax profile, numbering, and address format must be data-driven.
+11.2 Language and locale policy
+Layer
+Requirement
+Language
+Support English, Nepali, and Hindi first. Bengali and additional languages can remain extension-ready if not launch-critical.
+Currency
+Base currency per account / business. Display support for NPR, INR, and global currencies.
+Date/time
+Use timezone-safe storage and locale formatting at presentation layer.
+Text rules
+Avoid business-only terminology in Personal mode. Avoid personal-finance wording in business-admin screens.
+
+11.3 Subscription taxonomy
+The current UI and the previous master document use conflicting subscription names. Production must choose one plan taxonomy and remove all duplicates. For consistency with the earlier master document, the recommended final stack is Platinum, Diamond, and Crown with entitlements stored in data, not hardcoded across screens.
+Tier
+Positioning
+Indicative entitlements
+Platinum
+Starter / personal-heavy entry tier
+Transactions, basic accounts, reminders, and basic reports
+Diamond
+Growth business tier
+Ledger, POS, Products, Inventory, Billing, exports, and richer reminders
+Crown
+Advanced operations tier
+EMI & Loans depth, advanced reports, advanced tax, richer permissions, later multi-branch
+
+11.4 Country tax and document policy
+• Nepal profile needs PAN/VAT-aware invoice identity, configurable rates, invoice numbering policy, and e-billing readiness.
+• India profile needs GSTIN support and configuration for GST invoice behavior including CGST / SGST / IGST routing.
+• Global profile should default to a tax-profile abstraction rather than pretending one Nepal or India rule can fit every market.
+12. Data Model, Ownership, and Relationship Rules
+ 
+Ownership rule
+Every record must carry a clear scope. Use owner context and businessId where applicable. Shared modules are shared in implementation, not unowned in data.
+
+Entity
+Purpose
+Profile
+Selected user identity driving app context
+Account
+Money holder; personal or business scoped
+BusinessProfile
+Business workspace identity linked to business account
+Contact
+Customer, supplier, lender, borrower, institution, or general contact
+Category
+Personal, business, or product classification with owner scope
+Transaction
+Single money movement in personal or shared finance context
+LedgerEntry
+Business due/settlement record
+LoanPlan / EmiPlan
+Long-running finance plan
+Installment
+One due row under a plan
+InstallmentPaymentLink
+Mandatory settlement link between installment and transaction
+Product
+Business item or service
+InventoryMovement
+Explicit stock movement
+Invoice
+Business billing document
+Role / Permission
+Admin access control
+Subscription
+Entitlements and plan status
+
+12.1 Locked relationship rules
+• Profile 1:N Accounts.
+• Account (business) 1:0..1 BusinessProfile.
+• LoanPlan 1:N Installments.
+• Installment 1:N InstallmentPaymentLinks.
+• Transaction 1:0..1 InstallmentPaymentLink by unique transactionId.
+• InstallmentPaymentLink remains the source-of-truth for installment settlement status.
+• Transactions, Ledger, and EMI remain separate domains even if reports combine them into read models.
+12.2 Minimum field direction
+Entity
+Suggested minimum fields
+Account
+id, ownerContext, businessId?, name, type, currency, openingBalance, currentBalance, status
+Contact
+id, ownerContext, businessId?, name, type, phone, email, address, taxId?, openingBalance, direction, notes
+Transaction
+id, ownerContext, type, direction, amount, accountId, categoryId, contactId?, date, note, tags, status
+LedgerEntry
+id, businessId, partyId, entryType, amount, dueDirection, dueDelta, accountId?, invoiceId?, date, status
+LoanPlan
+id, ownerContext, planType, principal, financedAmount, interestRate, tenure, firstDueDate, penaltyRule, status
+Product
+id, businessId, kind, name, categoryId, salePrice, costPrice?, unitId?, trackInventory, taxRuleId?, status
+
+13. Engineering, Testing, Security, Analytics, and Release Quality Gates
+ 
+13.1 Architecture rules
+• UI components stay dumb and mode-aware; they render state and dispatch callbacks.
+• Page-local demo arrays must be replaced with repositories, use cases, and view models or equivalent application services.
+• Do not let one mega screen own business logic across unrelated domains.
+• Use shared modules for reusable capabilities, but keep domain ownership explicit.
+• Plan naming, auth contract, and mode model must be centrally locked to avoid screen-by-screen drift.
+13.2 Security rules
+• Secrets, access tokens, and refresh tokens belong in secure storage only.
+• No silent fallback to a random workspace, account, or settlement context.
+• Permissions must be enforced at the application/service layer and not only hidden in the UI.
+• Tax support is configurable product functionality, not legal advice.
+• Financial edits and deletions that affect balances or plan links must be auditable.
+13.3 Test gates
+Test layer
+Required coverage
+Unit tests
+Tax selection logic, plan schedule logic, overdue logic, threshold logic, entitlement checks
+Repository tests
+Mapping, null handling, relationship links, ownership scope, secure storage behavior
+View model tests
+Loading, form validation, happy path, edit path, delete path, denied path, mode switch path
+UI tests
+Auth, account setup, transaction form, ledger entry flow, plan payment, POS checkout, invoice save
+Migration tests
+Old records remain readable when ownership or link fields are introduced
+
+13.4 Release gates
+• No launch module ships without unit, repository, view model, UI, and migration coverage where applicable.
+• No mixed-plan naming across UI and billing rules.
+• No auth UI element may be visible if the route/API/backend contract is not launch-ready.
+• No mock financial balances or chart data in production release builds.
+• No layout should depend on hidden assumptions about the current mode.
+14. Delivery Roadmap and Implementation Priorities
+ 
+Phase
+Goal
+Deliverables
+Phase 0
+Foundations and context
+Startup gate, auth correction, account selector, mode resolution, active business/account handling
+Phase 1
+Shared support
+Accounts, Contacts, Categories, reminder preferences, validation, locale, tax shell
+Phase 2
+Personal
+Personal Home, Personal Transactions, personal reports baseline, personal EMI integration
+Phase 3
+Business core
+Business Home, Ledger, contacts balances, settlement flows
+Phase 4
+EMI core
+Plan create, schedule, due cards, payment link integrity, closure rules
+Phase 5
+Operations
+Products, Inventory, POS, Billing / Invoice
+Phase 6
+Reporting and exchange
+Reports, exports, imports, statement and PDF/print flows
+Phase 7
+Admin and monetization
+User management, permissions, subscription entitlements
+Phase 8
+Country polish and scaling
+Nepal / India tax deepening, global profiles, advanced analytics, later multi-branch
+
+14.1 Immediate priority order for this codebase
+• First: strip Auth down to the locked v2.1 contract.
+• Second: make context resolution real and route to separate Personal Home vs Business Home.
+• Third: split the current mixed Profile, More, Settings, and Reports behavior by mode.
+• Fourth: promote Transactions, Ledger, and EMI into real persisted domains before deepening operations modules.
+• Fifth: keep Products, Inventory, POS, Billing, User Management, and Subscription fully designed but phase them deliberately.
+
+Appendix A. Page-by-Page UI Mapping
+ 
+Current page
+Final owner
+Production action
+AuthPage
+Foundation
+Replace email/social/final forgot-password UI with locked phone + password contract
+AccountSetupPage
+Foundation
+Keep Personal vs Business selector; add real context creation and validation
+Index/Home
+Split
+Create separate Personal Home and Business Home implementations
+LedgerPage
+Business
+Use as foundation for real ledger list/detail/create/settlement flow
+TransactionsPage
+Split
+Keep transaction shell but remove business-specific semantics from personal mode
+EmiLoansPage
+Shared
+Keep plan list/detail shell and replace local state with real schedule + payment link logic
+MorePage
+Split
+Replace with mode-aware discovery menu
+ProfilePage
+Split
+Refactor into identity, workspace, business profile, and mode summary surfaces
+AccountsPage
+Shared
+Promote to reusable accounts module with owner scope
+ProductsPage
+Business
+Use as catalog module for item/service management
+InventoryPage
+Business
+Promote to movement-driven stock module
+ReportsPage
+Split
+Separate personal finance reports from business operations reports
+CategoriesPage
+Shared
+Preserve shared module, but scope category groups and mode visibility
+SettingsPage
+Split
+Keep preferences/security/data here; move business admin elsewhere
+PosPage
+Business
+Keep cart UI, add real payments, ledger impact, and receipt actions
+ContactsPage
+Shared
+Promote to scoped contacts / parties module
+BillingPage
+Business
+Keep invoice shell, add real template, print, tax, and status workflows
+UserManagementPage
+Admin
+Promote to real workspace-role management
+SubscriptionPage
+Platform
+Standardize final plan naming and entitlements
+
+Appendix B. Profile Field Matrix
+ 
+Profile block
+Fields
+User identity
+fullName, displayName, avatar, phone, email, preferredLanguage, preferredCountry, timezone
+Personal account card
+accountName, accountType, currency, openingBalance, currentBalance, defaultFlag
+Business workspace card
+businessName, legalName, role, businessType, status, activeFlag
+Business profile details
+taxId, PAN/VAT/GSTIN, address, city, state, country, invoicePrefix, logoRef
+Summary KPIs
+personal: income/expense/savings/dues; business: receive/pay/todayIn/todayOut/overdue/openInvoices
+Admin snapshot
+current plan, next renewal, staff count, permission role, notification state
+
+Appendix C. Route Outcome Matrix
+ 
+Condition
+Route outcome
+No session
+Auth
+Session + no account
+Account setup
+Session + account exists + no active context
+Selector flow
+Session + personal context resolved
+Personal Home
+Session + business context resolved
+Business Home
+Invalid stored business/account
+Context recovery chooser
+
+Appendix D. Compliance and Market Readiness Checkpoints
+ 
+• Validate Nepal invoice behavior, PAN/VAT data requirements, and e-billing readiness before public release.
+• Validate India GST document behavior, tax routing, and numbering requirements before enabling India-specific production billing logic.
+• Keep country tax logic versioned so new rules can be introduced without rewriting unrelated modules.
+• Treat this section as an implementation checkpoint and not as a substitute for local legal or tax advice.
