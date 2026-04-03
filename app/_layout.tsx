@@ -2,19 +2,22 @@ import React from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import appDatabase, { ensureDatabaseReady } from "@/shared/database/appDatabase";
-import { ensureUserManagementReady } from "@/feature/setting/accounts/userManagement/factory/userManagementBootstrap.factory";
+import appDatabase from "@/shared/database/appDatabase";
 import {
   AppRouteSessionStatus,
   AppRouteSessionProvider,
   useAppRouteSession,
 } from "@/feature/session/ui/AppRouteSessionProvider";
 import { colors } from "@/shared/components/theme/colors";
-import { bootstrapSelectedLanguage } from "@/shared/i18n/resources/bootstrapSelectedLanguage";
 import { useCurrentLanguageCode } from "@/shared/i18n/resources";
-import { applyGlobalTypographyDefaults, fontFamily } from "@/shared/components/theme/typography";
+import { applyGlobalTypographyDefaults } from "@/shared/components/theme/typography";
+import { StartupBootstrapStatus } from "@/feature/startup/types/startup.types";
+import { useStartupBootstrapFactory } from "@/feature/startup/factory/useStartupBootstrap.factory";
+import { useStartupSplashGateViewModel } from "@/feature/startup/viewModel/startupSplashGate.viewModel.impl";
+import { AnimatedSplashScreen } from "@/feature/startup/ui/AnimatedSplashScreen";
+import { StartupErrorScreen } from "@/feature/startup/ui/StartupErrorScreen";
 
 applyGlobalTypographyDefaults();
 
@@ -22,64 +25,67 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
   console.warn("Failed to lock splash screen visibility.");
 });
 
+type StartupOverlayControllerProps = {
+  fontsLoaded: boolean;
+  startupStatus: StartupBootstrapStatusValue;
+};
+
+type StartupBootstrapStatusValue =
+  (typeof StartupBootstrapStatus)[keyof typeof StartupBootstrapStatus];
+
 type RootNavigatorProps = {
   languageCode: string;
-  startupStatus: "loading" | "ready" | "failed";
-  startupError?: string;
+  startupStatus: StartupBootstrapStatusValue;
+  startupErrorMessage: string | null;
   fontsLoaded: boolean;
+  onRetryStartup?: () => Promise<void>;
 };
 
-type SplashScreenControllerProps = {
-  startupStatus: "loading" | "ready" | "failed";
-  fontsLoaded: boolean;
-};
-
-function SplashScreenController({
-  startupStatus,
+function StartupOverlayController({
   fontsLoaded,
-}: SplashScreenControllerProps) {
+  startupStatus,
+}: StartupOverlayControllerProps) {
   const { isLoading } = useAppRouteSession();
-  const isStartupReady = startupStatus === "ready";
-  const isStartupFailed = startupStatus === "failed";
 
-  React.useEffect(() => {
-    if (startupStatus === "loading" || !fontsLoaded) {
-      return;
-    }
+  const splashGateViewModel = useStartupSplashGateViewModel({
+    fontsLoaded,
+    startupStatus,
+    isSessionLoading: isLoading,
+  });
 
-    if (!isStartupFailed && (!isStartupReady || isLoading)) {
-      return;
-    }
+  if (!splashGateViewModel.shouldShowAnimatedSplash) {
+    return null;
+  }
 
-    void SplashScreen.hideAsync().catch(() => {
-      console.warn("Failed to hide splash screen.");
-    });
-  }, [fontsLoaded, isLoading, isStartupFailed, isStartupReady, startupStatus]);
-
-  return null;
+  return (
+    <View style={styles.startupOverlay} pointerEvents="auto">
+      <AnimatedSplashScreen
+        onFinish={splashGateViewModel.onAnimatedSplashFinish}
+      />
+    </View>
+  );
 }
 
 function RootNavigator({
   languageCode,
   startupStatus,
-  startupError,
+  startupErrorMessage,
   fontsLoaded,
+  onRetryStartup,
 }: RootNavigatorProps) {
   const { isLoading, hasActiveSession, hasActiveAccount, sessionStatus } =
     useAppRouteSession();
 
-  if (startupStatus === "failed") {
+  if (startupStatus === StartupBootstrapStatus.Failed) {
     return (
-      <View style={styles.startupErrorContainer}>
-        <Text style={styles.startupErrorTitle}>Startup failed</Text>
-        <Text style={styles.startupErrorMessage}>
-          {startupError ?? "Unable to initialize local database."}
-        </Text>
-      </View>
+      <StartupErrorScreen
+        message={startupErrorMessage ?? "Unable to initialize app startup."}
+        onRetry={onRetryStartup}
+      />
     );
   }
 
-  if (!fontsLoaded || startupStatus !== "ready" || isLoading) {
+  if (!fontsLoaded || startupStatus !== StartupBootstrapStatus.Ready || isLoading) {
     return null;
   }
 
@@ -121,10 +127,10 @@ export default function RootLayout() {
     InterBold: require("../assets/fonts/Inter_18pt-Bold.ttf"),
   });
 
-  const [startupStatus, setStartupStatus] = React.useState<
-    "loading" | "ready" | "failed"
-  >("loading");
-  const [startupError, setStartupError] = React.useState<string>();
+  const startupBootstrapViewModel = useStartupBootstrapFactory({
+    database: appDatabase,
+  });
+
   const languageCode = useCurrentLanguageCode();
 
   React.useEffect(() => {
@@ -132,91 +138,69 @@ export default function RootLayout() {
       return;
     }
 
-    const resolvedError =
-      fontsError instanceof Error
-        ? fontsError.message
-        : "Unable to load app fonts.";
-
     console.error("App font loading failed.", fontsError);
-    setStartupError(resolvedError);
-    setStartupStatus("failed");
   }, [fontsError]);
 
-  React.useEffect(() => {
-    let isMounted = true;
+  const fontErrorMessage = React.useMemo(() => {
+    if (!fontsError) {
+      return null;
+    }
 
-    const bootstrapApp = async (): Promise<void> => {
-      try {
-        await ensureDatabaseReady();
-        await ensureUserManagementReady(appDatabase);
-        await bootstrapSelectedLanguage();
+    if (fontsError instanceof Error) {
+      return fontsError.message;
+    }
 
-        if (!isMounted) {
-          return;
-        }
+    return "Unable to load app fonts.";
+  }, [fontsError]);
 
-        setStartupStatus("ready");
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
+  const startupStatus: StartupBootstrapStatusValue = fontErrorMessage
+    ? StartupBootstrapStatus.Failed
+    : startupBootstrapViewModel.status;
 
-        const resolvedError =
-          error instanceof Error
-            ? error.message
-            : "Unable to initialize local database.";
+  const startupErrorMessage =
+    fontErrorMessage ?? startupBootstrapViewModel.errorMessage;
 
-        console.error("App startup failed.", error);
-        setStartupError(resolvedError);
-        setStartupStatus("failed");
-      }
-    };
+  const onRetryStartup = React.useMemo(() => {
+    if (fontErrorMessage) {
+      return undefined;
+    }
 
-    void bootstrapApp();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    return startupBootstrapViewModel.retry;
+  }, [fontErrorMessage, startupBootstrapViewModel.retry]);
 
   return (
-    <SafeAreaProvider style={{ flex: 1 }}>
+    <SafeAreaProvider style={styles.rootSafeArea}>
       <AppRouteSessionProvider database={appDatabase}>
-        <SplashScreenController
-          startupStatus={startupStatus}
-          fontsLoaded={fontsLoaded}
-        />
-        <RootNavigator
-          languageCode={languageCode}
-          startupStatus={startupStatus}
-          startupError={startupError}
-          fontsLoaded={fontsLoaded}
-        />
+        <View style={styles.rootContainer}>
+          <RootNavigator
+            languageCode={languageCode}
+            startupStatus={startupStatus}
+            startupErrorMessage={startupErrorMessage}
+            fontsLoaded={fontsLoaded}
+            onRetryStartup={onRetryStartup}
+          />
+
+          <StartupOverlayController
+            fontsLoaded={fontsLoaded}
+            startupStatus={startupStatus}
+          />
+        </View>
       </AppRouteSessionProvider>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  startupErrorContainer: {
+  rootSafeArea: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  },
+  rootContainer: {
+    flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 24,
   },
-  startupErrorTitle: {
-    color: colors.destructive,
-    fontFamily: fontFamily.bold,
-    fontSize: 20,
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  startupErrorMessage: {
-    color: colors.foreground,
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
+  startupOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
   },
 });
