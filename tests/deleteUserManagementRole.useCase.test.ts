@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { createDeleteUserManagementRoleUseCase } from "@/feature/setting/accounts/userManagement/useCase/deleteUserManagementRole.useCase.impl";
-import { UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { createDeleteUserManagementRoleUseCase } from "@/feature/userManagement/useCase/deleteUserManagementRole.useCase.impl";
+import { UserManagementErrorType } from "@/feature/userManagement/types/userManagement.types";
 
 describe("deleteUserManagementRole.useCase", () => {
   it("deletes role when actor has manage-role permission", async () => {

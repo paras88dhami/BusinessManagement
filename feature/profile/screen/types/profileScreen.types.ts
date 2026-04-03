@@ -1,5 +1,5 @@
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { AuthUser } from "@/feature/session/types/authSession.types";
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
 
 export type ProfileAccountOption = {

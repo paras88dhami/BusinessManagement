@@ -1,11 +1,11 @@
-import React, { useCallback } from "react";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { GetMoreDashboardScreenFactory } from "@/feature/dashboard/more/factory/getMoreDashboardScreen.factory";
-import { MORE_DASHBOARD_MENU_PERMISSION_CODE } from "@/feature/dashboard/more/types/moreDashboardPermission.constants";
 import { MoreDashboardMenuItemId } from "@/feature/dashboard/more/types/moreDashboard.types";
+import { MORE_DASHBOARD_MENU_PERMISSION_CODE } from "@/feature/dashboard/more/types/moreDashboardPermission.constants";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
+import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import React, { useCallback } from "react";
 
 export default function MoreDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -71,7 +71,8 @@ export default function MoreDashboardRoute() {
         return true;
       }
 
-      const requiredPermissionCode = MORE_DASHBOARD_MENU_PERMISSION_CODE[itemId];
+      const requiredPermissionCode =
+        MORE_DASHBOARD_MENU_PERMISSION_CODE[itemId];
 
       if (!requiredPermissionCode || isPermissionLoading) {
         return true;

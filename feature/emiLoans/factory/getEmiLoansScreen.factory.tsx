@@ -1,32 +1,32 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
-import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
-import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
-import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
-  Account,
-  AccountType,
-  AccountTypeValue,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+    Account,
+    AccountType,
+    AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalEmiDatasource } from "@/feature/emiLoans/data/dataSource/local.emi.datasource.impl";
 import { createEmiRepository } from "@/feature/emiLoans/data/repository/emi.repository.impl";
-import { createGetEmiPlansUseCase } from "@/feature/emiLoans/useCase/getEmiPlans.useCase.impl";
-import { createAddEmiPlanUseCase } from "@/feature/emiLoans/useCase/addEmiPlan.useCase.impl";
-import { createGetEmiPlanByRemoteIdUseCase } from "@/feature/emiLoans/useCase/getEmiPlanByRemoteId.useCase.impl";
-import { createPayEmiInstallmentUseCase } from "@/feature/emiLoans/useCase/payEmiInstallment.useCase.impl";
-import { useEmiListViewModel } from "@/feature/emiLoans/viewModel/emiList.viewModel.impl";
-import { useEmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel.impl";
-import { useEmiPlanDetailViewModel } from "@/feature/emiLoans/viewModel/emiPlanDetail.viewModel.impl";
 import { EmiPlanMode } from "@/feature/emiLoans/types/emi.entity.types";
 import { EmiLoansScreen } from "@/feature/emiLoans/ui/EmiLoansScreen";
-import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
-import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
+import { createAddEmiPlanUseCase } from "@/feature/emiLoans/useCase/addEmiPlan.useCase.impl";
+import { createGetEmiPlanByRemoteIdUseCase } from "@/feature/emiLoans/useCase/getEmiPlanByRemoteId.useCase.impl";
+import { createGetEmiPlansUseCase } from "@/feature/emiLoans/useCase/getEmiPlans.useCase.impl";
+import { createPayEmiInstallmentUseCase } from "@/feature/emiLoans/useCase/payEmiInstallment.useCase.impl";
+import { useEmiListViewModel } from "@/feature/emiLoans/viewModel/emiList.viewModel.impl";
+import { useEmiPlanDetailViewModel } from "@/feature/emiLoans/viewModel/emiPlanDetail.viewModel.impl";
+import { useEmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
+import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
+import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
+import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
+import React, { useCallback, useMemo, useState } from "react";
 
 export type GetEmiLoansScreenFactoryProps = {
   activeAccountType: AccountTypeValue | null;
@@ -83,7 +83,10 @@ export function GetEmiLoansScreenFactory({
     () => createLocalEmiDatasource(appDatabase),
     [],
   );
-  const emiRepository = useMemo(() => createEmiRepository(emiDatasource), [emiDatasource]);
+  const emiRepository = useMemo(
+    () => createEmiRepository(emiDatasource),
+    [emiDatasource],
+  );
   const getEmiPlansUseCase = useMemo(
     () => createGetEmiPlansUseCase(emiRepository),
     [emiRepository],
@@ -136,9 +139,10 @@ export function GetEmiLoansScreenFactory({
         return;
       }
 
-      const result = await getAccessibleAccountsByUserRemoteIdUseCase.execute(
-        activeUserRemoteId,
-      );
+      const result =
+        await getAccessibleAccountsByUserRemoteIdUseCase.execute(
+          activeUserRemoteId,
+        );
 
       if (!isMounted) {
         return;
@@ -165,10 +169,16 @@ export function GetEmiLoansScreenFactory({
     return () => {
       isMounted = false;
     };
-  }, [activeAccountType, activeUserRemoteId, getAccessibleAccountsByUserRemoteIdUseCase]);
+  }, [
+    activeAccountType,
+    activeUserRemoteId,
+    getAccessibleAccountsByUserRemoteIdUseCase,
+  ]);
 
   const activeAccount = useMemo(
-    () => accounts.find((account) => account.remoteId === activeAccountRemoteId) ?? null,
+    () =>
+      accounts.find((account) => account.remoteId === activeAccountRemoteId) ??
+      null,
     [accounts, activeAccountRemoteId],
   );
 
@@ -193,8 +203,7 @@ export function GetEmiLoansScreenFactory({
     businessAccountRemoteId:
       activeAccountType === AccountType.Business ? activeAccountRemoteId : null,
     linkedAccountRemoteId: activeAccountRemoteId,
-    linkedAccountDisplayName:
-      activeAccount?.displayName ?? "Active account",
+    linkedAccountDisplayName: activeAccount?.displayName ?? "Active account",
     currencyCode: activeAccount?.currencyCode ?? "NPR",
     addEmiPlanUseCase,
     onSaved: handleReload,

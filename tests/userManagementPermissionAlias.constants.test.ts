@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasAccountPermissionWithAliases } from "@/feature/setting/accounts/userManagement/types/userManagementPermissionAlias.constants";
+import { hasAccountPermissionWithAliases } from "@/feature/userManagement/types/userManagementPermissionAlias.constants";
 
 describe("userManagementPermissionAlias.constants", () => {
   it("grants direct permissions when code is present", () => {

@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { createGetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
-import { USER_MANAGEMENT_PERMISSION_SEED } from "@/feature/setting/accounts/userManagement/types/userManagementPermissionSeed.types";
-import { USER_MANAGEMENT_DEFAULT_ROLE_TEMPLATES } from "@/feature/setting/accounts/userManagement/types/userManagementDefaultRoles.shared";
+import { createGetUserManagementSnapshotUseCase } from "@/feature/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
+import { USER_MANAGEMENT_PERMISSION_SEED } from "@/feature/userManagement/types/userManagementPermissionSeed.types";
+import { USER_MANAGEMENT_DEFAULT_ROLE_TEMPLATES } from "@/feature/userManagement/types/userManagementDefaultRoles.shared";
 import {
   AccountMemberStatus,
   SaveUserManagementRolePayload,
   UserManagementErrorType,
   UserManagementRole,
-} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
+} from "@/feature/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
 
 const buildPermissionCatalog = () =>
   USER_MANAGEMENT_PERMISSION_SEED.map((permissionSeed) => ({

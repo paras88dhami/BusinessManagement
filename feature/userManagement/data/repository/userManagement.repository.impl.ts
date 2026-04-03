@@ -1,53 +1,53 @@
-import { AccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository";
+import { AccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository";
 import { AuthUserRepository } from "@/feature/session/data/repository/authUser.repository";
 import {
-  SaveAuthCredentialPayload,
-  SaveAuthUserPayload,
+    SaveAuthCredentialPayload,
+    SaveAuthUserPayload,
 } from "@/feature/session/types/authSession.types";
 import {
-  USER_MANAGEMENT_OWNER_ROLE_NAME,
-  USER_MANAGEMENT_PERMISSION_SEED,
-} from "../../types/userManagementPermissionSeed.types";
-import {
-  AccountMember,
-  AccountMemberResult,
-  AccountMembersResult,
-  AccountMembersWithRoleResult,
-  AccountMemberWithRole,
-  AccountMemberStatus,
-  AccountRemoteIdsResult,
-  AccountPermissionCodesResult,
-  AccountUserRoleAssignmentResult,
-  AssignUserManagementRolePayload,
-  ResolveAccountPermissionCodesPayload,
-  SaveAccountMemberPayload,
-  SaveUserManagementRolePayload,
-  UserManagementConflictError,
-  UserManagementDatabaseError,
-  UserManagementError,
-  UserManagementForbiddenError,
-  UserManagementNotFoundError,
-  UserManagementOperationResult,
-  UserManagementPermissionResult,
-  UserManagementPermissionsResult,
-  UserManagementRoleResult,
-  UserManagementRolesResult,
-  UserManagementUnknownError,
-  UserManagementValidationError,
+    AccountMember,
+    AccountMemberResult,
+    AccountMembersResult,
+    AccountMemberStatus,
+    AccountMembersWithRoleResult,
+    AccountMemberWithRole,
+    AccountPermissionCodesResult,
+    AccountRemoteIdsResult,
+    AccountUserRoleAssignmentResult,
+    AssignUserManagementRolePayload,
+    ResolveAccountPermissionCodesPayload,
+    SaveAccountMemberPayload,
+    SaveUserManagementRolePayload,
+    UserManagementConflictError,
+    UserManagementDatabaseError,
+    UserManagementError,
+    UserManagementForbiddenError,
+    UserManagementNotFoundError,
+    UserManagementOperationResult,
+    UserManagementPermissionResult,
+    UserManagementPermissionsResult,
+    UserManagementRoleResult,
+    UserManagementRolesResult,
+    UserManagementUnknownError,
+    UserManagementValidationError,
 } from "../../types/userManagement.types";
 import {
-  AssignAccountUserRoleRecordPayload,
-  SaveAccountRoleRecordPayload,
-  UserManagementDatasource,
-} from "../dataSource/userManagement.datasource";
+    USER_MANAGEMENT_OWNER_ROLE_NAME,
+    USER_MANAGEMENT_PERMISSION_SEED,
+} from "../../types/userManagementPermissionSeed.types";
 import { AccountRoleModel } from "../dataSource/db/accountRole.model";
-import { UserManagementRepository } from "./userManagement.repository";
 import {
-  mapAccountMemberModelToDomain,
-  mapAccountUserRoleModelToDomain,
-  mapPermissionModelToDomain,
-  mapRoleModelToDomain,
+    AssignAccountUserRoleRecordPayload,
+    SaveAccountRoleRecordPayload,
+    UserManagementDatasource,
+} from "../dataSource/userManagement.datasource";
+import {
+    mapAccountMemberModelToDomain,
+    mapAccountUserRoleModelToDomain,
+    mapPermissionModelToDomain,
+    mapRoleModelToDomain,
 } from "./mapper/userManagement.mapper";
+import { UserManagementRepository } from "./userManagement.repository";
 
 export type CreateUserManagementRepositoryParams = {
   localDatasource: UserManagementDatasource;
@@ -69,9 +69,15 @@ const createMemberRemoteId = (): string => {
 
 const normalizeRequired = (value: string): string => value.trim();
 
-const normalizePermissionCodes = (permissionCodes: readonly string[]): string[] => {
+const normalizePermissionCodes = (
+  permissionCodes: readonly string[],
+): string[] => {
   return Array.from(
-    new Set(permissionCodes.map((permissionCode) => permissionCode.trim()).filter(Boolean)),
+    new Set(
+      permissionCodes
+        .map((permissionCode) => permissionCode.trim())
+        .filter(Boolean),
+    ),
   ).sort((left, right) => left.localeCompare(right));
 };
 
@@ -87,7 +93,9 @@ const sortPermissions = <TPermission extends { module: string; label: string }>(
   });
 };
 
-const sortRoles = <TRole extends { isDefault: boolean; isSystem: boolean; name: string }>(
+const sortRoles = <
+  TRole extends { isDefault: boolean; isSystem: boolean; name: string },
+>(
   roles: readonly TRole[],
 ): TRole[] => {
   return [...roles].sort((left, right) => {
@@ -231,7 +239,8 @@ export const createUserManagementRepository = ({
     accountRemoteId: string,
     exceptRoleRemoteId: string,
   ): Promise<UserManagementOperationResult> => {
-    const rolesResult = await localDatasource.getRolesByAccountRemoteId(accountRemoteId);
+    const rolesResult =
+      await localDatasource.getRolesByAccountRemoteId(accountRemoteId);
 
     if (!rolesResult.success) {
       return {
@@ -308,7 +317,9 @@ export const createUserManagementRepository = ({
       }
     | { success: false; error: UserManagementError }
   > => {
-    const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+    const normalizedAccountRemoteId = normalizeRequired(
+      payload.accountRemoteId,
+    );
     const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
     const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
     const normalizedActorUserRemoteId = payload.actorUserRemoteId
@@ -336,7 +347,9 @@ export const createUserManagementRepository = ({
       };
     }
 
-    const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+    const ownerUserResult = await getOwnerUserRemoteIdResult(
+      normalizedAccountRemoteId,
+    );
 
     if (!ownerUserResult.success) {
       return ownerUserResult;
@@ -377,7 +390,9 @@ export const createUserManagementRepository = ({
       };
     }
 
-    const roleResult = await localDatasource.getRoleByRemoteId(normalizedRoleRemoteId);
+    const roleResult = await localDatasource.getRoleByRemoteId(
+      normalizedRoleRemoteId,
+    );
 
     if (!roleResult.success) {
       return {
@@ -439,11 +454,15 @@ export const createUserManagementRepository = ({
 
       return {
         success: true,
-        value: sortPermissions(result.value.map((model) => mapPermissionModelToDomain(model))),
+        value: sortPermissions(
+          result.value.map((model) => mapPermissionModelToDomain(model)),
+        ),
       };
     },
 
-    async getPermissionByCode(code: string): Promise<UserManagementPermissionResult> {
+    async getPermissionByCode(
+      code: string,
+    ): Promise<UserManagementPermissionResult> {
       const normalizedCode = normalizeRequired(code);
 
       if (!normalizedCode) {
@@ -484,7 +503,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -525,7 +546,9 @@ export const createUserManagementRepository = ({
       return getOwnerUserRemoteIdResult(accountRemoteId);
     },
 
-    async getAccountMemberByRemoteId(memberRemoteId: string): Promise<AccountMemberResult> {
+    async getAccountMemberByRemoteId(
+      memberRemoteId: string,
+    ): Promise<AccountMemberResult> {
       const normalizedMemberRemoteId = normalizeRequired(memberRemoteId);
 
       if (!normalizedMemberRemoteId) {
@@ -535,7 +558,9 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const memberResult = await localDatasource.getMemberByRemoteId(normalizedMemberRemoteId);
+      const memberResult = await localDatasource.getMemberByRemoteId(
+        normalizedMemberRemoteId,
+      );
 
       if (!memberResult.success) {
         return {
@@ -567,7 +592,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -611,7 +638,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -628,7 +657,9 @@ export const createUserManagementRepository = ({
 
       return {
         success: true,
-        value: membersResult.value.map((member) => mapAccountMemberModelToDomain(member)),
+        value: membersResult.value.map((member) =>
+          mapAccountMemberModelToDomain(member),
+        ),
       };
     },
 
@@ -640,11 +671,15 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
-      const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+      const ownerUserResult = await getOwnerUserRemoteIdResult(
+        normalizedAccountRemoteId,
+      );
 
       if (!ownerUserResult.success) {
         return ownerUserResult;
@@ -652,7 +687,9 @@ export const createUserManagementRepository = ({
 
       const [membersResult, assignmentsResult, rolesResult, authUsersResult] =
         await Promise.all([
-          localDatasource.getMembersByAccountRemoteId(normalizedAccountRemoteId),
+          localDatasource.getMembersByAccountRemoteId(
+            normalizedAccountRemoteId,
+          ),
           localDatasource.getUserRoleAssignmentsByAccountRemoteId(
             normalizedAccountRemoteId,
           ),
@@ -715,7 +752,8 @@ export const createUserManagementRepository = ({
       for (const userRemoteId of candidateUserRemoteIds) {
         const isAccountOwner = userRemoteId === ownerUserRemoteId;
         const member = memberByUserRemoteId.get(userRemoteId);
-        const storedRoleRemoteId = assignmentByUserRemoteId.get(userRemoteId) ?? null;
+        const storedRoleRemoteId =
+          assignmentByUserRemoteId.get(userRemoteId) ?? null;
         const assignedRoleRemoteId = isAccountOwner
           ? ownerRoleRemoteId
           : storedRoleRemoteId === ownerRoleRemoteId
@@ -726,7 +764,9 @@ export const createUserManagementRepository = ({
         const profile = authUserByRemoteId.get(userRemoteId);
 
         membersWithRole.push({
-          remoteId: member?.remoteId ?? `member-${normalizedAccountRemoteId}-${userRemoteId}`,
+          remoteId:
+            member?.remoteId ??
+            `member-${normalizedAccountRemoteId}-${userRemoteId}`,
           accountRemoteId: normalizedAccountRemoteId,
           userRemoteId,
           status: member?.status ?? AccountMemberStatus.Active,
@@ -742,10 +782,10 @@ export const createUserManagementRepository = ({
           phone: profile?.phone ?? null,
           roleRemoteId: assignedRoleRemoteId,
           roleName: assignedRoleRemoteId
-            ? roleNameByRemoteId.get(assignedRoleRemoteId) ??
+            ? (roleNameByRemoteId.get(assignedRoleRemoteId) ??
               (assignedRoleRemoteId === ownerRoleRemoteId
                 ? USER_MANAGEMENT_OWNER_ROLE_NAME
-                : null)
+                : null))
             : null,
           isAccountOwner,
         });
@@ -760,7 +800,9 @@ export const createUserManagementRepository = ({
     async saveAccountMember(
       payload: SaveAccountMemberPayload,
     ): Promise<AccountMemberResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
       const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
       const normalizedRemoteId = payload.remoteId
         ? normalizeRequired(payload.remoteId)
@@ -769,7 +811,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -787,11 +831,15 @@ export const createUserManagementRepository = ({
       ) {
         return {
           success: false,
-          error: UserManagementValidationError("Invalid account member status."),
+          error: UserManagementValidationError(
+            "Invalid account member status.",
+          ),
         };
       }
 
-      const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+      const ownerUserResult = await getOwnerUserRemoteIdResult(
+        normalizedAccountRemoteId,
+      );
 
       if (!ownerUserResult.success) {
         return ownerUserResult;
@@ -803,7 +851,9 @@ export const createUserManagementRepository = ({
       ) {
         return {
           success: false,
-          error: UserManagementForbiddenError("Account owner cannot be deactivated."),
+          error: UserManagementForbiddenError(
+            "Account owner cannot be deactivated.",
+          ),
         };
       }
 
@@ -838,12 +888,15 @@ export const createUserManagementRepository = ({
       if (!existingMemberByAccountAndUserResult.success) {
         return {
           success: false,
-          error: mapUserManagementError(existingMemberByAccountAndUserResult.error),
+          error: mapUserManagementError(
+            existingMemberByAccountAndUserResult.error,
+          ),
         };
       }
 
       const existingMemberByRemote = existingMemberByRemoteResult.value;
-      const existingMemberByAccountAndUser = existingMemberByAccountAndUserResult.value;
+      const existingMemberByAccountAndUser =
+        existingMemberByAccountAndUserResult.value;
       const resolvedRemoteId =
         normalizedRemoteId ||
         existingMemberByAccountAndUser?.remoteId ||
@@ -873,14 +926,15 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const existingMember = existingMemberByRemote ?? existingMemberByAccountAndUser;
+      const existingMember =
+        existingMemberByRemote ?? existingMemberByAccountAndUser;
       const now = Date.now();
       const joinedAt =
         payload.status === AccountMemberStatus.Invited
           ? null
-          : payload.joinedAt ??
+          : (payload.joinedAt ??
             existingMember?.joinedAt ??
-            (payload.status === AccountMemberStatus.Active ? now : null);
+            (payload.status === AccountMemberStatus.Active ? now : null));
 
       const saveResult = await localDatasource.saveMember({
         remoteId: resolvedRemoteId,
@@ -917,9 +971,15 @@ export const createUserManagementRepository = ({
       member: SaveAccountMemberPayload;
       roleRemoteId: string;
     }): Promise<UserManagementOperationResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.member.accountRemoteId);
-      const normalizedMemberUserRemoteId = normalizeRequired(payload.member.userRemoteId);
-      const normalizedAuthUserRemoteId = normalizeRequired(payload.authUser.remoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.member.accountRemoteId,
+      );
+      const normalizedMemberUserRemoteId = normalizeRequired(
+        payload.member.userRemoteId,
+      );
+      const normalizedAuthUserRemoteId = normalizeRequired(
+        payload.authUser.remoteId,
+      );
       const normalizedCredentialUserRemoteId = normalizeRequired(
         payload.authCredential.userRemoteId,
       );
@@ -928,7 +988,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -942,7 +1004,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAuthUserRemoteId || !normalizedCredentialUserRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Auth user context is required."),
+          error: UserManagementValidationError(
+            "Auth user context is required.",
+          ),
         };
       }
 
@@ -1010,7 +1074,9 @@ export const createUserManagementRepository = ({
       authCredential: SaveAuthCredentialPayload;
       roleAssignment: AssignUserManagementRolePayload | null;
     }): Promise<UserManagementOperationResult> {
-      const normalizedAuthUserRemoteId = normalizeRequired(payload.authUser.remoteId);
+      const normalizedAuthUserRemoteId = normalizeRequired(
+        payload.authUser.remoteId,
+      );
       const normalizedCredentialUserRemoteId = normalizeRequired(
         payload.authCredential.userRemoteId,
       );
@@ -1018,7 +1084,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAuthUserRemoteId || !normalizedCredentialUserRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Auth user context is required."),
+          error: UserManagementValidationError(
+            "Auth user context is required.",
+          ),
         };
       }
 
@@ -1033,9 +1101,15 @@ export const createUserManagementRepository = ({
 
       const normalizedRoleAssignmentPayload = payload.roleAssignment
         ? {
-            accountRemoteId: normalizeRequired(payload.roleAssignment.accountRemoteId),
-            userRemoteId: normalizeRequired(payload.roleAssignment.userRemoteId),
-            roleRemoteId: normalizeRequired(payload.roleAssignment.roleRemoteId),
+            accountRemoteId: normalizeRequired(
+              payload.roleAssignment.accountRemoteId,
+            ),
+            userRemoteId: normalizeRequired(
+              payload.roleAssignment.userRemoteId,
+            ),
+            roleRemoteId: normalizeRequired(
+              payload.roleAssignment.roleRemoteId,
+            ),
             actorUserRemoteId: payload.roleAssignment.actorUserRemoteId
               ? normalizeRequired(payload.roleAssignment.actorUserRemoteId)
               : null,
@@ -1050,11 +1124,16 @@ export const createUserManagementRepository = ({
         ) {
           return {
             success: false,
-            error: UserManagementValidationError("Role assignment payload is invalid."),
+            error: UserManagementValidationError(
+              "Role assignment payload is invalid.",
+            ),
           };
         }
 
-        if (normalizedRoleAssignmentPayload.userRemoteId !== normalizedAuthUserRemoteId) {
+        if (
+          normalizedRoleAssignmentPayload.userRemoteId !==
+          normalizedAuthUserRemoteId
+        ) {
           return {
             success: false,
             error: UserManagementValidationError(
@@ -1109,7 +1188,9 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const memberResult = await localDatasource.getMemberByRemoteId(normalizedMemberRemoteId);
+      const memberResult = await localDatasource.getMemberByRemoteId(
+        normalizedMemberRemoteId,
+      );
 
       if (!memberResult.success) {
         return {
@@ -1133,7 +1214,9 @@ export const createUserManagementRepository = ({
       if (memberResult.value.userRemoteId === ownerUserResult.value) {
         return {
           success: false,
-          error: UserManagementForbiddenError("Account owner cannot be removed."),
+          error: UserManagementForbiddenError(
+            "Account owner cannot be removed.",
+          ),
         };
       }
 
@@ -1163,9 +1246,10 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const result = await localDatasource.getActiveMemberAccountRemoteIdsByUserRemoteId(
-        normalizedUserRemoteId,
-      );
+      const result =
+        await localDatasource.getActiveMemberAccountRemoteIdsByUserRemoteId(
+          normalizedUserRemoteId,
+        );
 
       if (!result.success) {
         return {
@@ -1180,15 +1264,23 @@ export const createUserManagementRepository = ({
       };
     },
 
-    async saveRole(payload: SaveUserManagementRolePayload): Promise<UserManagementRoleResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+    async saveRole(
+      payload: SaveUserManagementRolePayload,
+    ): Promise<UserManagementRoleResult> {
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
       const normalizedName = normalizeRequired(payload.name);
-      const normalizedPermissionCodes = normalizePermissionCodes(payload.permissionCodes);
+      const normalizedPermissionCodes = normalizePermissionCodes(
+        payload.permissionCodes,
+      );
 
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -1208,7 +1300,8 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const ensurePermissionsResult = await repository.ensurePermissionCatalogSeeded();
+      const ensurePermissionsResult =
+        await repository.ensurePermissionCatalogSeeded();
 
       if (!ensurePermissionsResult.success) {
         return ensurePermissionsResult;
@@ -1240,7 +1333,8 @@ export const createUserManagementRepository = ({
         ? normalizeRequired(payload.remoteId)
         : createRoleRemoteId();
       const ownerRoleRemoteId = getOwnerRoleRemoteId(normalizedAccountRemoteId);
-      const existingRoleResult = await localDatasource.getRoleByRemoteId(normalizedRemoteId);
+      const existingRoleResult =
+        await localDatasource.getRoleByRemoteId(normalizedRemoteId);
 
       if (!existingRoleResult.success) {
         return {
@@ -1260,7 +1354,10 @@ export const createUserManagementRepository = ({
         };
       }
 
-      if (existingRole && existingRole.accountRemoteId !== normalizedAccountRemoteId) {
+      if (
+        existingRole &&
+        existingRole.accountRemoteId !== normalizedAccountRemoteId
+      ) {
         return {
           success: false,
           error: UserManagementValidationError(
@@ -1272,13 +1369,16 @@ export const createUserManagementRepository = ({
       if (existingRole?.isSystem) {
         return {
           success: false,
-          error: UserManagementValidationError("System roles cannot be edited."),
+          error: UserManagementValidationError(
+            "System roles cannot be edited.",
+          ),
         };
       }
 
-      const rolesForAccountResult = await localDatasource.getRolesByAccountRemoteId(
-        normalizedAccountRemoteId,
-      );
+      const rolesForAccountResult =
+        await localDatasource.getRolesByAccountRemoteId(
+          normalizedAccountRemoteId,
+        );
 
       if (!rolesForAccountResult.success) {
         return {
@@ -1297,7 +1397,9 @@ export const createUserManagementRepository = ({
       if (roleNameConflict) {
         return {
           success: false,
-          error: UserManagementConflictError("Role name already exists in this account."),
+          error: UserManagementConflictError(
+            "Role name already exists in this account.",
+          ),
         };
       }
 
@@ -1318,10 +1420,11 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const replaceRolePermissionsResult = await localDatasource.replaceRolePermissions(
-        rolePayload.remoteId,
-        normalizedPermissionCodes,
-      );
+      const replaceRolePermissionsResult =
+        await localDatasource.replaceRolePermissions(
+          rolePayload.remoteId,
+          normalizedPermissionCodes,
+        );
 
       if (!replaceRolePermissionsResult.success) {
         return {
@@ -1343,11 +1446,16 @@ export const createUserManagementRepository = ({
 
       return {
         success: true,
-        value: mapRoleModelToDomain(saveRoleResult.value, normalizedPermissionCodes),
+        value: mapRoleModelToDomain(
+          saveRoleResult.value,
+          normalizedPermissionCodes,
+        ),
       };
     },
 
-    async deleteRoleByRemoteId(roleRemoteId: string): Promise<UserManagementOperationResult> {
+    async deleteRoleByRemoteId(
+      roleRemoteId: string,
+    ): Promise<UserManagementOperationResult> {
       const normalizedRoleRemoteId = normalizeRequired(roleRemoteId);
 
       if (!normalizedRoleRemoteId) {
@@ -1357,7 +1465,9 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const roleResult = await localDatasource.getRoleByRemoteId(normalizedRoleRemoteId);
+      const roleResult = await localDatasource.getRoleByRemoteId(
+        normalizedRoleRemoteId,
+      );
 
       if (!roleResult.success) {
         return {
@@ -1375,13 +1485,16 @@ export const createUserManagementRepository = ({
       if (role.isSystem || role.isDefault) {
         return {
           success: false,
-          error: UserManagementForbiddenError("Default or system roles cannot be deleted."),
+          error: UserManagementForbiddenError(
+            "Default or system roles cannot be deleted.",
+          ),
         };
       }
 
-      const assignmentsResult = await localDatasource.getUserRoleAssignmentsByAccountRemoteId(
-        role.accountRemoteId,
-      );
+      const assignmentsResult =
+        await localDatasource.getUserRoleAssignmentsByAccountRemoteId(
+          role.accountRemoteId,
+        );
 
       if (!assignmentsResult.success) {
         return {
@@ -1420,7 +1533,9 @@ export const createUserManagementRepository = ({
     async assignUserRole(
       payload: AssignUserManagementRolePayload,
     ): Promise<AccountUserRoleAssignmentResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
       const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
       const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
       const normalizedActorUserRemoteId = payload.actorUserRemoteId
@@ -1430,7 +1545,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -1459,10 +1576,11 @@ export const createUserManagementRepository = ({
         return roleAssignmentValidationResult;
       }
 
-      const existingMemberResult = await localDatasource.getMemberByAccountAndUser(
-        normalizedAccountRemoteId,
-        normalizedUserRemoteId,
-      );
+      const existingMemberResult =
+        await localDatasource.getMemberByAccountAndUser(
+          normalizedAccountRemoteId,
+          normalizedUserRemoteId,
+        );
 
       if (!existingMemberResult.success) {
         return {
@@ -1473,21 +1591,24 @@ export const createUserManagementRepository = ({
 
       const now = Date.now();
       const existingMember = existingMemberResult.value;
-      const resolvedStatus = existingMember?.status ?? AccountMemberStatus.Active;
+      const resolvedStatus =
+        existingMember?.status ?? AccountMemberStatus.Active;
       const saveMemberResult = await localDatasource.saveMember({
         remoteId: existingMember?.remoteId ?? createMemberRemoteId(),
         accountRemoteId: normalizedAccountRemoteId,
         userRemoteId: normalizedUserRemoteId,
         status: resolvedStatus,
         invitedByUserRemoteId:
-          normalizedActorUserRemoteId ?? existingMember?.invitedByUserRemoteId ?? null,
+          normalizedActorUserRemoteId ??
+          existingMember?.invitedByUserRemoteId ??
+          null,
         joinedAt:
           existingMember?.joinedAt ??
           (resolvedStatus === AccountMemberStatus.Active ? now : null),
         lastActiveAt:
           resolvedStatus === AccountMemberStatus.Active
             ? now
-            : existingMember?.lastActiveAt ?? null,
+            : (existingMember?.lastActiveAt ?? null),
       });
 
       if (!saveMemberResult.success) {
@@ -1502,7 +1623,8 @@ export const createUserManagementRepository = ({
         userRemoteId: normalizedUserRemoteId,
         roleRemoteId: normalizedRoleRemoteId,
       };
-      const assignmentResult = await localDatasource.assignUserRole(assignmentPayload);
+      const assignmentResult =
+        await localDatasource.assignUserRole(assignmentPayload);
 
       if (!assignmentResult.success) {
         return {
@@ -1527,7 +1649,9 @@ export const createUserManagementRepository = ({
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -1566,13 +1690,17 @@ export const createUserManagementRepository = ({
     async ensureDefaultOwnerRoleForAccountUser(
       payload: ResolveAccountPermissionCodesPayload,
     ): Promise<UserManagementRoleResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
       const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
 
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -1583,13 +1711,16 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+      const ownerUserResult = await getOwnerUserRemoteIdResult(
+        normalizedAccountRemoteId,
+      );
 
       if (!ownerUserResult.success) {
         return ownerUserResult;
       }
 
-      const ensurePermissionsResult = await repository.ensurePermissionCatalogSeeded();
+      const ensurePermissionsResult =
+        await repository.ensurePermissionCatalogSeeded();
 
       if (!ensurePermissionsResult.success) {
         return ensurePermissionsResult;
@@ -1605,7 +1736,8 @@ export const createUserManagementRepository = ({
       const ownerPermissionCodes = permissionCatalogResult.value.map(
         (permission) => permission.code,
       );
-      const ownerRoleResult = await localDatasource.getRoleByRemoteId(ownerRoleRemoteId);
+      const ownerRoleResult =
+        await localDatasource.getRoleByRemoteId(ownerRoleRemoteId);
 
       if (!ownerRoleResult.success) {
         return {
@@ -1637,7 +1769,7 @@ export const createUserManagementRepository = ({
             success: false,
             error: mapUserManagementError(ownerRoleSaveResult.error),
           };
-        };
+        }
 
         ownerRoleModel = ownerRoleSaveResult.value;
       }
@@ -1651,9 +1783,10 @@ export const createUserManagementRepository = ({
         return clearDefaultRoleResult;
       }
 
-      const ownerRolePermissionsResult = await localDatasource.getRolePermissionsByRoleRemoteIds(
-        [ownerRoleRemoteId],
-      );
+      const ownerRolePermissionsResult =
+        await localDatasource.getRolePermissionsByRoleRemoteIds([
+          ownerRoleRemoteId,
+        ]);
 
       if (!ownerRolePermissionsResult.success) {
         return {
@@ -1663,35 +1796,40 @@ export const createUserManagementRepository = ({
       }
 
       const existingOwnerPermissionCodes = normalizePermissionCodes(
-        ownerRolePermissionsResult.value.map((rolePermission) => rolePermission.permissionCode),
+        ownerRolePermissionsResult.value.map(
+          (rolePermission) => rolePermission.permissionCode,
+        ),
       );
       const shouldReplaceOwnerPermissions =
         existingOwnerPermissionCodes.length !== ownerPermissionCodes.length ||
         existingOwnerPermissionCodes.some(
-          (existingPermissionCode) => !ownerPermissionCodes.includes(existingPermissionCode),
+          (existingPermissionCode) =>
+            !ownerPermissionCodes.includes(existingPermissionCode),
         );
 
       if (shouldReplaceOwnerPermissions) {
-        const ownerPermissionsReplaceResult = await localDatasource.replaceRolePermissions(
-          ownerRoleRemoteId,
-          ownerPermissionCodes,
-        );
+        const ownerPermissionsReplaceResult =
+          await localDatasource.replaceRolePermissions(
+            ownerRoleRemoteId,
+            ownerPermissionCodes,
+          );
 
         if (!ownerPermissionsReplaceResult.success) {
           return {
             success: false,
             error: mapUserManagementError(ownerPermissionsReplaceResult.error),
           };
-        };
+        }
       }
 
       const ownerUserRemoteId = ownerUserResult.value;
 
       if (normalizedUserRemoteId === ownerUserRemoteId) {
-        const ownerMemberResult = await localDatasource.getMemberByAccountAndUser(
-          normalizedAccountRemoteId,
-          ownerUserRemoteId,
-        );
+        const ownerMemberResult =
+          await localDatasource.getMemberByAccountAndUser(
+            normalizedAccountRemoteId,
+            ownerUserRemoteId,
+          );
 
         if (!ownerMemberResult.success) {
           return {
@@ -1727,10 +1865,11 @@ export const createUserManagementRepository = ({
           }
         }
 
-        const ownerAssignmentResult = await localDatasource.getUserRoleAssignment(
-          normalizedAccountRemoteId,
-          ownerUserRemoteId,
-        );
+        const ownerAssignmentResult =
+          await localDatasource.getUserRoleAssignment(
+            normalizedAccountRemoteId,
+            ownerUserRemoteId,
+          );
 
         if (!ownerAssignmentResult.success) {
           return {
@@ -1772,13 +1911,17 @@ export const createUserManagementRepository = ({
     async getPermissionCodesByAccountUser(
       payload: ResolveAccountPermissionCodesPayload,
     ): Promise<AccountPermissionCodesResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
       const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
 
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
@@ -1789,7 +1932,9 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const ownerUserResult = await getOwnerUserRemoteIdResult(normalizedAccountRemoteId);
+      const ownerUserResult = await getOwnerUserRemoteIdResult(
+        normalizedAccountRemoteId,
+      );
 
       if (!ownerUserResult.success) {
         return ownerUserResult;
@@ -1822,10 +1967,11 @@ export const createUserManagementRepository = ({
           };
         }
       } else {
-        const ensureOwnerResult = await repository.ensureDefaultOwnerRoleForAccountUser({
-          accountRemoteId: normalizedAccountRemoteId,
-          userRemoteId: normalizedUserRemoteId,
-        });
+        const ensureOwnerResult =
+          await repository.ensureDefaultOwnerRoleForAccountUser({
+            accountRemoteId: normalizedAccountRemoteId,
+            userRemoteId: normalizedUserRemoteId,
+          });
 
         if (!ensureOwnerResult.success) {
           return ensureOwnerResult;
@@ -1876,9 +2022,10 @@ export const createUserManagementRepository = ({
         };
       }
 
-      const rolePermissionsResult = await localDatasource.getRolePermissionsByRoleRemoteIds([
-        assignmentResult.value.roleRemoteId,
-      ]);
+      const rolePermissionsResult =
+        await localDatasource.getRolePermissionsByRoleRemoteIds([
+          assignmentResult.value.roleRemoteId,
+        ]);
 
       if (!rolePermissionsResult.success) {
         return {
@@ -1890,7 +2037,9 @@ export const createUserManagementRepository = ({
       return {
         success: true,
         value: normalizePermissionCodes(
-          rolePermissionsResult.value.map((rolePermission) => rolePermission.permissionCode),
+          rolePermissionsResult.value.map(
+            (rolePermission) => rolePermission.permissionCode,
+          ),
         ),
       };
     },

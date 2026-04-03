@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect } from "react";
-import { GetUserManagementScreenFactory } from "@/feature/setting/accounts/userManagement/factory/getUserManagementScreen.factory";
-import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { GetUserManagementScreenFactory } from "@/feature/userManagement/factory/getUserManagementScreen.factory";
+import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
+import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import React, { useCallback, useEffect } from "react";
 
 const USER_MANAGEMENT_VIEW_PERMISSION_CODE = "user_management.view";
 
@@ -48,7 +48,10 @@ export default function UserManagementRoute() {
       return;
     }
 
-    if (activeAccountType !== AccountType.Business || permissionAccess.isLoading) {
+    if (
+      activeAccountType !== AccountType.Business ||
+      permissionAccess.isLoading
+    ) {
       return;
     }
 

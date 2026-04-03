@@ -1,25 +1,25 @@
-import { Database } from "@nozbe/watermelondb";
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import { getAppSessionState } from "@/feature/appSettings/data/appSettings.store";
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
-import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
-import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
-import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { buildInitials } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
-import { buildInitials } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
+import { Database } from "@nozbe/watermelondb";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
 export const AppRouteSessionStatus = {
   Loading: "loading",
@@ -71,17 +71,17 @@ type AppRouteSessionProviderProps = {
   children: React.ReactNode;
 };
 
-const AppRouteSessionContext =
-  createContext<AppRouteSessionValue>({
-    ...INITIAL_CONTEXT,
-    refreshSession: noopRefreshSession,
-  });
+const AppRouteSessionContext = createContext<AppRouteSessionValue>({
+  ...INITIAL_CONTEXT,
+  refreshSession: noopRefreshSession,
+});
 
 export function AppRouteSessionProvider({
   database,
   children,
 }: AppRouteSessionProviderProps) {
-  const [context, setContext] = useState<DashboardRouteContext>(INITIAL_CONTEXT);
+  const [context, setContext] =
+    useState<DashboardRouteContext>(INITIAL_CONTEXT);
   const isMountedRef = useRef(false);
   const activeRequestIdRef = useRef(0);
   const lastKnownGoodContextRef = useRef<DashboardRouteContext | null>(null);
@@ -167,7 +167,9 @@ export function AppRouteSessionProvider({
         }
 
         const accountsResult =
-          await getAccessibleAccountsByUserRemoteIdUseCase.execute(activeUserRemoteId);
+          await getAccessibleAccountsByUserRemoteIdUseCase.execute(
+            activeUserRemoteId,
+          );
 
         if (accountsResult.success) {
           if (accountsResult.value.length === 0) {

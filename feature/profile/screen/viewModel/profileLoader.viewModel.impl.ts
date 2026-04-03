@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  createDefaultBusinessProfileForm,
-  createEmptyPersonalProfile,
-  mapAccountOptionToFallbackBusinessForm,
-  mapBusinessProfileToForm,
+    createDefaultBusinessProfileForm,
+    createEmptyPersonalProfile,
+    mapAccountOptionToFallbackBusinessForm,
+    mapBusinessProfileToForm,
 } from "@/feature/profile/screen/viewModel/profileScreen.shared";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ProfileLoaderViewModel,
-  UseProfileLoaderViewModelParams,
+    ProfileLoaderViewModel,
+    UseProfileLoaderViewModelParams,
 } from "./profileLoader.viewModel";
 
-const resolveEstablishedYear = (timestamp: number | null | undefined): string => {
+const resolveEstablishedYear = (
+  timestamp: number | null | undefined,
+): string => {
   if (!timestamp) {
     return "";
   }
@@ -112,7 +114,9 @@ export const useProfileLoaderViewModel = (
             hasActiveBusinessProfile: false,
           });
 
-          setLoadError("Active account not found. Please select account again.");
+          setLoadError(
+            "Active account not found. Please select account again.",
+          );
         }
         return;
       }
@@ -129,13 +133,16 @@ export const useProfileLoaderViewModel = (
       let grantedPermissionCodes: string[] = [];
 
       if (activeAccount.accountType === AccountType.Business) {
-        const [businessProfileResult, userManagementSnapshotResult] = await Promise.all([
-          getBusinessProfileByAccountRemoteIdUseCase.execute(activeAccount.remoteId),
-          getUserManagementSnapshotUseCase.execute({
-            accountRemoteId: activeAccount.remoteId,
-            userRemoteId: activeUserRemoteId,
-          }),
-        ]);
+        const [businessProfileResult, userManagementSnapshotResult] =
+          await Promise.all([
+            getBusinessProfileByAccountRemoteIdUseCase.execute(
+              activeAccount.remoteId,
+            ),
+            getUserManagementSnapshotUseCase.execute({
+              accountRemoteId: activeAccount.remoteId,
+              userRemoteId: activeUserRemoteId,
+            }),
+          ]);
 
         if (businessProfileResult.success) {
           activeBusinessProfile = mapBusinessProfileToForm(
@@ -146,9 +153,8 @@ export const useProfileLoaderViewModel = (
             businessProfileResult.value.createdAt,
           );
         } else {
-          activeBusinessProfile = mapAccountOptionToFallbackBusinessForm(
-            activeAccount,
-          );
+          activeBusinessProfile =
+            mapAccountOptionToFallbackBusinessForm(activeAccount);
         }
 
         if (userManagementSnapshotResult.success) {
@@ -156,8 +162,11 @@ export const useProfileLoaderViewModel = (
             (member) => member.userRemoteId === activeUserRemoteId,
           );
 
-          activeAccountRoleLabel = activeMember?.roleName ?? activeAccountRoleLabel;
-          grantedPermissionCodes = [...userManagementSnapshotResult.value.grantedPermissionCodes];
+          activeAccountRoleLabel =
+            activeMember?.roleName ?? activeAccountRoleLabel;
+          grantedPermissionCodes = [
+            ...userManagementSnapshotResult.value.grantedPermissionCodes,
+          ];
         }
       }
 

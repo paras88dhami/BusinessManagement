@@ -1,13 +1,9 @@
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { useCallback, useEffect, useState } from "react";
 import {
-  AccountType,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import {
-  EditableBusinessProfile,
-} from "@/feature/profile/screen/types/profileScreen.types";
-import {
-  ProfileBusinessEditorViewModel,
-  UseProfileBusinessEditorViewModelParams,
+    ProfileBusinessEditorViewModel,
+    UseProfileBusinessEditorViewModelParams,
 } from "./profileBusinessEditor.viewModel";
 
 const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
@@ -69,7 +65,12 @@ export const useProfileBusinessEditorViewModel = (
     setIsBusinessEditing(true);
     setLoadError(null);
     setSuccessMessage(null);
-  }, [data.activeAccountType, data.grantedPermissionCodes, setLoadError, setSuccessMessage]);
+  }, [
+    data.activeAccountType,
+    data.grantedPermissionCodes,
+    setLoadError,
+    setSuccessMessage,
+  ]);
 
   const onCancelBusinessEdit = useCallback(() => {
     setActiveBusinessProfileForm(baseBusinessProfileForm);
@@ -99,7 +100,9 @@ export const useProfileBusinessEditorViewModel = (
     }
 
     if (data.activeAccountType !== AccountType.Business) {
-      setLoadError("Business profile can only be updated for business accounts.");
+      setLoadError(
+        "Business profile can only be updated for business accounts.",
+      );
       return;
     }
 
@@ -143,22 +146,24 @@ export const useProfileBusinessEditorViewModel = (
         return;
       }
 
-      const saveBusinessProfileResult = await saveBusinessProfileUseCase.execute({
-        accountRemoteId: data.activeAccountRemoteId,
-        ownerUserRemoteId: activeAccountOption.ownerUserRemoteId,
-        legalBusinessName: activeBusinessProfileForm.legalBusinessName,
-        businessType: activeBusinessProfileForm.businessType,
-        businessLogoUrl: activeBusinessProfileForm.businessLogoUrl.trim() || null,
-        businessPhone: activeBusinessProfileForm.businessPhone,
-        businessEmail: activeBusinessProfileForm.businessEmail,
-        registeredAddress: activeBusinessProfileForm.registeredAddress,
-        currencyCode: activeBusinessProfileForm.currencyCode,
-        country: activeBusinessProfileForm.country,
-        city: activeBusinessProfileForm.city,
-        stateOrDistrict: activeBusinessProfileForm.stateOrDistrict,
-        taxRegistrationId: activeBusinessProfileForm.taxRegistrationId,
-        isActive: true,
-      });
+      const saveBusinessProfileResult =
+        await saveBusinessProfileUseCase.execute({
+          accountRemoteId: data.activeAccountRemoteId,
+          ownerUserRemoteId: activeAccountOption.ownerUserRemoteId,
+          legalBusinessName: activeBusinessProfileForm.legalBusinessName,
+          businessType: activeBusinessProfileForm.businessType,
+          businessLogoUrl:
+            activeBusinessProfileForm.businessLogoUrl.trim() || null,
+          businessPhone: activeBusinessProfileForm.businessPhone,
+          businessEmail: activeBusinessProfileForm.businessEmail,
+          registeredAddress: activeBusinessProfileForm.registeredAddress,
+          currencyCode: activeBusinessProfileForm.currencyCode,
+          country: activeBusinessProfileForm.country,
+          city: activeBusinessProfileForm.city,
+          stateOrDistrict: activeBusinessProfileForm.stateOrDistrict,
+          taxRegistrationId: activeBusinessProfileForm.taxRegistrationId,
+          isActive: true,
+        });
 
       if (!saveBusinessProfileResult.success) {
         setLoadError(saveBusinessProfileResult.error.message);

@@ -1,9 +1,9 @@
-import React from "react";
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
-import { BusinessDetailsScreen } from "@/feature/profile/screen/ui/BusinessDetailsScreen";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useProfileScreenDependencies } from "@/feature/profile/screen/factory/useProfileScreenDependencies.factory";
+import { BusinessDetailsScreen } from "@/feature/profile/screen/ui/BusinessDetailsScreen";
+import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
 import appDatabase from "@/shared/database/appDatabase";
+import React from "react";
 
 type GetBusinessDetailsScreenFactoryProps = {
   activeUserRemoteId: string | null;

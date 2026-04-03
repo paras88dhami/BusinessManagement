@@ -1,17 +1,17 @@
-import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
-import { AccountSelectionErrorType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountSelectionErrorType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
 import { AuthSessionErrorType } from "@/feature/session/types/authSession.types";
 import { UserManagementRepository } from "../data/repository/userManagement.repository";
 import {
-  DeleteAccountMemberPayload,
-  UserManagementDatabaseError,
-  UserManagementError,
-  UserManagementErrorType,
-  UserManagementForbiddenError,
-  UserManagementUnknownError,
-  UserManagementOperationResult,
-  UserManagementValidationError,
+    DeleteAccountMemberPayload,
+    UserManagementDatabaseError,
+    UserManagementError,
+    UserManagementErrorType,
+    UserManagementForbiddenError,
+    UserManagementOperationResult,
+    UserManagementUnknownError,
+    UserManagementValidationError,
 } from "../types/userManagement.types";
 import { DeleteAccountMemberUseCase } from "./deleteAccountMember.useCase";
 
@@ -19,7 +19,10 @@ const MANAGE_STAFF_PERMISSION_CODE = "user_management.manage_staff";
 
 const normalizeRequired = (value: string): string => value.trim();
 
-const mapAccessibleAccountsError = (error: { type: string; message: string }) => {
+const mapAccessibleAccountsError = (error: {
+  type: string;
+  message: string;
+}) => {
   if (error.type === AccountSelectionErrorType.ValidationError) {
     return UserManagementValidationError(error.message);
   }
@@ -51,13 +54,11 @@ const mapAuthCredentialError = (error: { type: string; message: string }) => {
   };
 };
 
-export const createDeleteAccountMemberUseCase = (
-  params: {
-    userManagementRepository: UserManagementRepository;
-    getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
-    authCredentialRepository: AuthCredentialRepository;
-  },
-): DeleteAccountMemberUseCase => ({
+export const createDeleteAccountMemberUseCase = (params: {
+  userManagementRepository: UserManagementRepository;
+  getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
+  authCredentialRepository: AuthCredentialRepository;
+}): DeleteAccountMemberUseCase => ({
   async execute(
     payload: DeleteAccountMemberPayload,
   ): Promise<UserManagementOperationResult> {
@@ -66,8 +67,12 @@ export const createDeleteAccountMemberUseCase = (
       getAccessibleAccountsByUserRemoteIdUseCase,
       authCredentialRepository,
     } = params;
-    const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
-    const normalizedActorUserRemoteId = normalizeRequired(payload.actorUserRemoteId);
+    const normalizedAccountRemoteId = normalizeRequired(
+      payload.accountRemoteId,
+    );
+    const normalizedActorUserRemoteId = normalizeRequired(
+      payload.actorUserRemoteId,
+    );
     const normalizedMemberRemoteId = normalizeRequired(payload.memberRemoteId);
 
     if (!normalizedAccountRemoteId) {
@@ -80,7 +85,9 @@ export const createDeleteAccountMemberUseCase = (
     if (!normalizedActorUserRemoteId) {
       return {
         success: false,
-        error: UserManagementValidationError("Actor user remote id is required."),
+        error: UserManagementValidationError(
+          "Actor user remote id is required.",
+        ),
       };
     }
 
@@ -91,12 +98,11 @@ export const createDeleteAccountMemberUseCase = (
       };
     }
 
-    const permissionCodesResult = await userManagementRepository.getPermissionCodesByAccountUser(
-      {
+    const permissionCodesResult =
+      await userManagementRepository.getPermissionCodesByAccountUser({
         accountRemoteId: normalizedAccountRemoteId,
         userRemoteId: normalizedActorUserRemoteId,
-      },
-    );
+      });
 
     if (!permissionCodesResult.success) {
       return permissionCodesResult;
@@ -111,9 +117,10 @@ export const createDeleteAccountMemberUseCase = (
       };
     }
 
-    const memberResult = await userManagementRepository.getAccountMemberByRemoteId(
-      normalizedMemberRemoteId,
-    );
+    const memberResult =
+      await userManagementRepository.getAccountMemberByRemoteId(
+        normalizedMemberRemoteId,
+      );
 
     if (!memberResult.success) {
       return memberResult;
@@ -148,14 +155,17 @@ export const createDeleteAccountMemberUseCase = (
     let previousRoleRemoteId: string | null = null;
 
     if (shouldDeactivateCredential) {
-      const assignmentResult = await userManagementRepository.getUserRoleAssignment(
-        normalizedAccountRemoteId,
-        targetMember.userRemoteId,
-      );
+      const assignmentResult =
+        await userManagementRepository.getUserRoleAssignment(
+          normalizedAccountRemoteId,
+          targetMember.userRemoteId,
+        );
 
       if (assignmentResult.success) {
         previousRoleRemoteId = assignmentResult.value.roleRemoteId;
-      } else if (assignmentResult.error.type !== UserManagementErrorType.NotFound) {
+      } else if (
+        assignmentResult.error.type !== UserManagementErrorType.NotFound
+      ) {
         return assignmentResult;
       }
     }
@@ -163,15 +173,16 @@ export const createDeleteAccountMemberUseCase = (
     const rollbackMemberDeletion = async (
       operationError: UserManagementError,
     ): Promise<UserManagementOperationResult> => {
-      const restoreMemberResult = await userManagementRepository.saveAccountMember({
-        remoteId: targetMember.remoteId,
-        accountRemoteId: targetMember.accountRemoteId,
-        userRemoteId: targetMember.userRemoteId,
-        status: targetMember.status,
-        invitedByUserRemoteId: targetMember.invitedByUserRemoteId,
-        joinedAt: targetMember.joinedAt,
-        lastActiveAt: targetMember.lastActiveAt,
-      });
+      const restoreMemberResult =
+        await userManagementRepository.saveAccountMember({
+          remoteId: targetMember.remoteId,
+          accountRemoteId: targetMember.accountRemoteId,
+          userRemoteId: targetMember.userRemoteId,
+          status: targetMember.status,
+          invitedByUserRemoteId: targetMember.invitedByUserRemoteId,
+          joinedAt: targetMember.joinedAt,
+          lastActiveAt: targetMember.lastActiveAt,
+        });
 
       if (!restoreMemberResult.success) {
         return {
@@ -184,12 +195,13 @@ export const createDeleteAccountMemberUseCase = (
       }
 
       if (previousRoleRemoteId) {
-        const restoreAssignmentResult = await userManagementRepository.assignUserRole({
-          accountRemoteId: normalizedAccountRemoteId,
-          actorUserRemoteId: normalizedActorUserRemoteId,
-          userRemoteId: targetMember.userRemoteId,
-          roleRemoteId: previousRoleRemoteId,
-        });
+        const restoreAssignmentResult =
+          await userManagementRepository.assignUserRole({
+            accountRemoteId: normalizedAccountRemoteId,
+            actorUserRemoteId: normalizedActorUserRemoteId,
+            userRemoteId: targetMember.userRemoteId,
+            roleRemoteId: previousRoleRemoteId,
+          });
 
         if (!restoreAssignmentResult.success) {
           return {
@@ -208,9 +220,10 @@ export const createDeleteAccountMemberUseCase = (
       };
     };
 
-    const deleteResult = await userManagementRepository.deleteAccountMemberByRemoteId(
-      normalizedMemberRemoteId,
-    );
+    const deleteResult =
+      await userManagementRepository.deleteAccountMemberByRemoteId(
+        normalizedMemberRemoteId,
+      );
 
     if (!deleteResult.success) {
       return deleteResult;
@@ -232,10 +245,17 @@ export const createDeleteAccountMemberUseCase = (
         );
 
       if (!deactivateResult.success) {
-        return rollbackMemberDeletion(mapAuthCredentialError(deactivateResult.error));
+        return rollbackMemberDeletion(
+          mapAuthCredentialError(deactivateResult.error),
+        );
       }
-    } else if (credentialResult.error.type !== AuthSessionErrorType.AuthCredentialNotFound) {
-      return rollbackMemberDeletion(mapAuthCredentialError(credentialResult.error));
+    } else if (
+      credentialResult.error.type !==
+      AuthSessionErrorType.AuthCredentialNotFound
+    ) {
+      return rollbackMemberDeletion(
+        mapAuthCredentialError(credentialResult.error),
+      );
     }
 
     return deleteResult;

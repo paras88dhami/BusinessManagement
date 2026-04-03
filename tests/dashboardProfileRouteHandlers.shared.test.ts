@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createDashboardProfileRouteHandlers } from "@/feature/profile/screen/factory/dashboardProfileRouteHandlers.shared";
+import { describe, expect, it, vi } from "vitest";
 
 describe("dashboardProfileRouteHandlers.shared", () => {
   it("navigates to account-specific home routes", () => {

@@ -1,11 +1,11 @@
-import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
-import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
+import React from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { resolveActiveAccountType } from "./profileScreen.util";
 import { BusinessProfileSection } from "./sections/BusinessProfileSection";
 import { CreateBusinessProfileSection } from "./sections/CreateBusinessProfileSection";
@@ -14,7 +14,9 @@ type BusinessDetailsScreenProps = {
   viewModel: ProfileScreenViewModel;
 };
 
-export function BusinessDetailsScreen({ viewModel }: BusinessDetailsScreenProps) {
+export function BusinessDetailsScreen({
+  viewModel,
+}: BusinessDetailsScreenProps) {
   const isBusinessAccount =
     resolveActiveAccountType(
       viewModel.activeAccountTypeLabel,
@@ -59,7 +61,9 @@ export function BusinessDetailsScreen({ viewModel }: BusinessDetailsScreenProps)
       {!viewModel.isLoading && isBusinessAccount ? (
         <BusinessProfileSection
           activeBusinessProfileForm={viewModel.activeBusinessProfileForm}
-          activeBusinessEstablishedYear={viewModel.activeBusinessEstablishedYear}
+          activeBusinessEstablishedYear={
+            viewModel.activeBusinessEstablishedYear
+          }
           hasActiveBusinessProfile={viewModel.hasActiveBusinessProfile}
           canEditBusinessProfile={viewModel.canEditBusinessProfile}
           isBusinessEditing={viewModel.isBusinessEditing}
@@ -78,7 +82,9 @@ export function BusinessDetailsScreen({ viewModel }: BusinessDetailsScreenProps)
           isCreateBusinessExpanded={viewModel.isCreateBusinessExpanded}
           isCreatingBusinessProfile={viewModel.isCreatingBusinessProfile}
           businessTypeOptions={viewModel.businessTypeOptions}
-          onToggleCreateBusinessExpanded={viewModel.onToggleCreateBusinessExpanded}
+          onToggleCreateBusinessExpanded={
+            viewModel.onToggleCreateBusinessExpanded
+          }
           onUpdateCreateBusinessProfileField={
             viewModel.onUpdateCreateBusinessProfileField
           }

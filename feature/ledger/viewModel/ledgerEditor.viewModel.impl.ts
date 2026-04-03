@@ -1,29 +1,32 @@
-import { useCallback, useMemo, useState } from "react";
-import { Account, AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import {
+    Account,
+    AccountType,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+    LedgerBalanceDirection,
+    LedgerBalanceDirectionValue,
+    LedgerEntryType,
+    LedgerEntryTypeValue,
+    SaveLedgerEntryPayload,
+} from "@/feature/ledger/types/ledger.entity.types";
+import {
+    LedgerAccountOptionState,
+    LedgerDirectionOptionState,
+    LedgerEditorFormState,
+    LedgerEntryTypeOptionState,
+} from "@/feature/ledger/types/ledger.state.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { GetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
+import { useCallback, useMemo, useState } from "react";
 import {
-  LedgerBalanceDirection,
-  LedgerBalanceDirectionValue,
-  LedgerEntryType,
-  LedgerEntryTypeValue,
-  SaveLedgerEntryPayload,
-} from "@/feature/ledger/types/ledger.entity.types";
-import {
-  LedgerAccountOptionState,
-  LedgerDirectionOptionState,
-  LedgerEditorFormState,
-  LedgerEntryTypeOptionState,
-} from "@/feature/ledger/types/ledger.state.types";
-import { LedgerEditorViewModel } from "./ledgerEditor.viewModel";
-import {
-  formatDateInput,
-  getLedgerEntryTypeLabel,
-  parseDateInput,
-  resolveDefaultDirectionForEntryType,
-  shouldShowDirectionSelector,
+    formatDateInput,
+    getLedgerEntryTypeLabel,
+    parseDateInput,
+    resolveDefaultDirectionForEntryType,
+    shouldShowDirectionSelector,
 } from "./ledger.shared";
+import { LedgerEditorViewModel } from "./ledgerEditor.viewModel";
 
 const DEFAULT_LEDGER_STATE: LedgerEditorFormState = {
   visible: false,
@@ -83,11 +86,15 @@ export const useLedgerEditorViewModel = ({
   updateLedgerEntryUseCase,
   onSaved,
 }: UseLedgerEditorViewModelParams): LedgerEditorViewModel => {
-  const [state, setState] = useState<LedgerEditorFormState>(DEFAULT_LEDGER_STATE);
+  const [state, setState] =
+    useState<LedgerEditorFormState>(DEFAULT_LEDGER_STATE);
 
   const accountOptions = useMemo<readonly LedgerAccountOptionState[]>(() => {
     return accounts
-      .filter((account) => account.accountType === AccountType.Business && account.isActive)
+      .filter(
+        (account) =>
+          account.accountType === AccountType.Business && account.isActive,
+      )
       .map((account) => ({
         remoteId: account.remoteId,
         label: account.displayName,
@@ -180,21 +187,24 @@ export const useLedgerEditorViewModel = ({
     setState(DEFAULT_LEDGER_STATE);
   }, []);
 
-  const handleChangeEntryType = useCallback((entryType: LedgerEntryTypeValue) => {
-    setState((currentState) => ({
-      ...currentState,
-      entryType,
-      balanceDirection: shouldShowDirectionSelector(entryType)
-        ? currentState.balanceDirection
-        : resolveDefaultDirectionForEntryType(entryType),
-      title:
-        currentState.title.trim().length === 0 ||
-        currentState.title === getLedgerEntryTypeLabel(currentState.entryType)
-          ? getLedgerEntryTypeLabel(entryType)
-          : currentState.title,
-      errorMessage: null,
-    }));
-  }, []);
+  const handleChangeEntryType = useCallback(
+    (entryType: LedgerEntryTypeValue) => {
+      setState((currentState) => ({
+        ...currentState,
+        entryType,
+        balanceDirection: shouldShowDirectionSelector(entryType)
+          ? currentState.balanceDirection
+          : resolveDefaultDirectionForEntryType(entryType),
+        title:
+          currentState.title.trim().length === 0 ||
+          currentState.title === getLedgerEntryTypeLabel(currentState.entryType)
+            ? getLedgerEntryTypeLabel(entryType)
+            : currentState.title,
+        errorMessage: null,
+      }));
+    },
+    [],
+  );
 
   const handleSubmit = useCallback(async () => {
     const normalizedPartyName = state.partyName.trim();
@@ -247,7 +257,9 @@ export const useLedgerEditorViewModel = ({
     }
 
     const businessAccountRemoteId =
-      activeBusinessAccountRemoteId ?? normalizedSettlementAccountRemoteId ?? "";
+      activeBusinessAccountRemoteId ??
+      normalizedSettlementAccountRemoteId ??
+      "";
 
     if (!businessAccountRemoteId) {
       setState((currentState) => ({
@@ -268,7 +280,10 @@ export const useLedgerEditorViewModel = ({
     );
 
     const payload: SaveLedgerEntryPayload = {
-      remoteId: state.mode === "create" ? createLedgerRemoteId() : state.editingRemoteId ?? "",
+      remoteId:
+        state.mode === "create"
+          ? createLedgerRemoteId()
+          : (state.editingRemoteId ?? ""),
       businessAccountRemoteId,
       ownerUserRemoteId,
       partyName: normalizedPartyName,
@@ -279,7 +294,8 @@ export const useLedgerEditorViewModel = ({
         : resolveDefaultDirectionForEntryType(state.entryType),
       title: normalizedTitle,
       amount,
-      currencyCode: selectedAccount?.currencyCode ?? activeBusinessCurrencyCode ?? "NPR",
+      currencyCode:
+        selectedAccount?.currencyCode ?? activeBusinessCurrencyCode ?? "NPR",
       note: state.note.trim() || null,
       happenedAt,
       dueAt: state.dueAt.trim().length === 0 ? null : dueAt,
@@ -337,7 +353,9 @@ export const useLedgerEditorViewModel = ({
       openEdit,
       close,
       onChangeEntryType: handleChangeEntryType,
-      onChangeBalanceDirection: (balanceDirection: LedgerBalanceDirectionValue) =>
+      onChangeBalanceDirection: (
+        balanceDirection: LedgerBalanceDirectionValue,
+      ) =>
         setState((currentState) => ({
           ...currentState,
           balanceDirection,

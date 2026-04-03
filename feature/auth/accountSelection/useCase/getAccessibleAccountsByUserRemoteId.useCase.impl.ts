@@ -1,5 +1,5 @@
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { UserManagementErrorType } from "@/feature/userManagement/types/userManagement.types";
 import { sortAccountsByDefaultAndUpdatedAt } from "@/shared/utils/account/accountSorting.util";
 import { AccountRepository } from "../data/repository/account.repository";
 import {

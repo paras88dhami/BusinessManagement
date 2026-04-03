@@ -1,21 +1,21 @@
-import { migrations } from "@/shared/database/migration";
+import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import { appSettingsDbConfig } from "@/feature/appSettings/data/dataSource/db/appSettingsDbConfig";
+import { accountDbConfig } from "@/feature/auth/accountSelection/data/dataSource/db/accountDbConfig";
+import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
+import { inventoryMovementDbConfig } from "@/feature/inventory/data/dataSource/db/inventoryMovementDbConfig";
+import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
+import { productDbConfig } from "@/feature/products/data/dataSource/db/productDbConfig";
+import { businessProfileDbConfig } from "@/feature/profile/business/data/dataSource/db/businessProfileDbConfig";
 import { authCredentialDbConfig } from "@/feature/session/data/dataSource/db/authCredentialDbConfig";
 import { authUserDbConfig } from "@/feature/session/data/dataSource/db/authUserDbConfig";
-import { accountDbConfig } from "@/feature/setting/accounts/accountSelection/data/dataSource/db/accountDbConfig";
-import { businessProfileDbConfig } from "@/feature/profile/business/data/dataSource/db/businessProfileDbConfig";
-import { userManagementDbConfig } from "@/feature/setting/accounts/userManagement/data/dataSource/db/userManagementDbConfig";
+import { userManagementDbConfig } from "@/feature/userManagement/data/dataSource/db/userManagementDbConfig";
 import { transactionDbConfig } from "@/feature/transactions/data/dataSource/db/transactionDbConfig";
-import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import {
-  assertDatabaseSetupHealthy,
-  createDatabase,
+    assertDatabaseSetupHealthy,
+    createDatabase,
 } from "@/shared/database/createDatabase";
+import { migrations } from "@/shared/database/migration";
 import { appSchema } from "@nozbe/watermelondb";
-import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
-import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
-import { productDbConfig } from "@/feature/products/data/dataSource/db/productDbConfig";
-import { inventoryMovementDbConfig } from "@/feature/inventory/data/dataSource/db/inventoryMovementDbConfig";
 
 const APP_SETTINGS_TABLE = "app_settings";
 

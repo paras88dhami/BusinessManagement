@@ -1,8 +1,8 @@
 import React from "react";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import { SelectedAccountContext } from "../types/accountSelection.types";
 import { createLocalAccountDatasource } from "../data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "../data/repository/account.repository.impl";

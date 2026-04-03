@@ -3,7 +3,7 @@ import {
   AccountUserRoleAssignment,
   UserManagementPermission,
   UserManagementRole,
-} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+} from "@/feature/userManagement/types/userManagement.types";
 import { AccountMemberModel } from "../../dataSource/db/accountMember.model";
 import { AccountRoleModel } from "../../dataSource/db/accountRole.model";
 import { AccountUserRoleModel } from "../../dataSource/db/accountUserRole.model";

@@ -1,22 +1,15 @@
-import React, { useCallback, useEffect } from "react";
-import appDatabase from "@/shared/database/appDatabase";
-import {
-  clearActiveUserSession,
-} from "@/feature/appSettings/data/appSettings.store";
-import {
-  SelectedAccountContext,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { clearActiveUserSession } from "@/feature/appSettings/data/appSettings.store";
+import { GetAccountSelectionScreenFactory } from "@/feature/auth/accountSelection/factory/getAccountSelectionScreen.factory";
+import { SelectedAccountContext } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
+import appDatabase from "@/shared/database/appDatabase";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
-import { GetAccountSelectionScreenFactory } from "@/feature/setting/accounts/accountSelection/factory/getAccountSelectionScreen.factory";
+import React, { useCallback, useEffect } from "react";
 
 export default function SelectAccountRoute() {
   const navigation = useSmoothNavigation();
-  const {
-    refreshSession,
-    activeUserRemoteId,
-    activeAccountRemoteId,
-  } = useAppRouteSession();
+  const { refreshSession, activeUserRemoteId, activeAccountRemoteId } =
+    useAppRouteSession();
 
   const refreshSessionSafely = useCallback(async (): Promise<void> => {
     try {
@@ -52,4 +45,3 @@ export default function SelectAccountRoute() {
     />
   );
 }
-

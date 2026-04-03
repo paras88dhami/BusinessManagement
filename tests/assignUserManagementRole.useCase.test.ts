@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { createAssignUserManagementRoleUseCase } from "@/feature/setting/accounts/userManagement/useCase/assignUserManagementRole.useCase.impl";
-import { UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { createAssignUserManagementRoleUseCase } from "@/feature/userManagement/useCase/assignUserManagementRole.useCase.impl";
+import { UserManagementErrorType } from "@/feature/userManagement/types/userManagement.types";
 
 describe("assignUserManagementRole.useCase", () => {
   it("requires actor user context", async () => {

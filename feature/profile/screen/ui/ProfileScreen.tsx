@@ -1,12 +1,12 @@
-import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { Building2, UserRound } from "lucide-react-native";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
+import { Building2, UserRound } from "lucide-react-native";
+import React from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { resolveActiveAccountType } from "./profileScreen.util";
 import { AccountSwitchSection } from "./sections/AccountSwitchSection";
 import { BusinessProfileSection } from "./sections/BusinessProfileSection";
@@ -108,7 +108,9 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
       {!viewModel.isLoading && isBusinessAccount ? (
         <BusinessProfileSection
           activeBusinessProfileForm={viewModel.activeBusinessProfileForm}
-          activeBusinessEstablishedYear={viewModel.activeBusinessEstablishedYear}
+          activeBusinessEstablishedYear={
+            viewModel.activeBusinessEstablishedYear
+          }
           hasActiveBusinessProfile={viewModel.hasActiveBusinessProfile}
           canEditBusinessProfile={viewModel.canEditBusinessProfile}
           isBusinessEditing={viewModel.isBusinessEditing}
@@ -218,4 +220,3 @@ const styles = StyleSheet.create({
     fontFamily: "InterSemiBold",
   },
 });
-

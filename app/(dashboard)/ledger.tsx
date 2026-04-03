@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
-import { GetLedgerScreenFactory } from "@/feature/ledger/factory/getLedgerScreen.factory";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { GetLedgerScreenFactory } from "@/feature/ledger/factory/getLedgerScreen.factory";
+import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import React, { useEffect } from "react";
 
 export default function LedgerDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -24,7 +24,13 @@ export default function LedgerDashboardRoute() {
     if (activeAccountType !== AccountType.Business) {
       navigation.replace(getDashboardHomePath(activeAccountType));
     }
-  }, [activeAccountType, hasActiveAccount, hasActiveSession, isLoading, navigation]);
+  }, [
+    activeAccountType,
+    hasActiveAccount,
+    hasActiveSession,
+    isLoading,
+    navigation,
+  ]);
 
   if (isLoading || !hasActiveSession || !hasActiveAccount) {
     return null;

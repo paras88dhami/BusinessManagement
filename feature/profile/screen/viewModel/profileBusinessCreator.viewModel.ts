@@ -1,10 +1,8 @@
-import {
-  AccountTypeValue,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { CreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase";
 import {
-  EditableBusinessProfile,
-  ProfileScreenData,
+    EditableBusinessProfile,
+    ProfileScreenData,
 } from "@/feature/profile/screen/types/profileScreen.types";
 
 export type UseProfileBusinessCreatorViewModelParams = {

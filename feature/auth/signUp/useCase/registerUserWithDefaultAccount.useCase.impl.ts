@@ -1,25 +1,25 @@
-import * as Crypto from "expo-crypto";
-import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
-import { GetActiveAuthCredentialByLoginIdUseCase } from "@/feature/session/useCase/getActiveAuthCredentialByLoginId.useCase";
-import { SaveAuthCredentialUseCase } from "@/feature/session/useCase/saveAuthCredential.useCase";
-import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
+import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
 import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
 import { AuthUserRepository } from "@/feature/session/data/repository/authUser.repository";
 import {
-  AuthSessionErrorType,
-  CredentialType,
-  VerifiedLocalCredential,
+    AuthSessionErrorType,
+    CredentialType,
+    VerifiedLocalCredential,
 } from "@/feature/session/types/authSession.types";
-import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
+import { GetActiveAuthCredentialByLoginIdUseCase } from "@/feature/session/useCase/getActiveAuthCredentialByLoginId.useCase";
+import { SaveAuthCredentialUseCase } from "@/feature/session/useCase/saveAuthCredential.useCase";
+import { SaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase";
+import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
+import * as Crypto from "expo-crypto";
 import {
-  DatabaseError,
-  PhoneNumberAlreadyInUseError,
-  SignUpError,
-  SignUpInput,
-  SignUpResult,
-  SignUpProfileType,
-  ValidationError,
-  UnknownError,
+    DatabaseError,
+    PhoneNumberAlreadyInUseError,
+    SignUpError,
+    SignUpInput,
+    SignUpProfileType,
+    SignUpResult,
+    UnknownError,
+    ValidationError,
 } from "../types/signUp.types";
 import { RegisterUserWithDefaultAccountUseCase } from "./registerUserWithDefaultAccount.useCase";
 
@@ -145,7 +145,9 @@ export const createRegisterUserWithDefaultAccountUseCase = (
       ) {
         return {
           success: false,
-          error: mapAuthSessionErrorToSignUpError(existingCredentialResult.error),
+          error: mapAuthSessionErrorToSignUpError(
+            existingCredentialResult.error,
+          ),
         };
       }
 
@@ -224,7 +226,9 @@ export const createRegisterUserWithDefaultAccountUseCase = (
 
         return {
           success: false,
-          error: mapAuthSessionErrorToSignUpError(saveAuthCredentialResult.error),
+          error: mapAuthSessionErrorToSignUpError(
+            saveAuthCredentialResult.error,
+          ),
         };
       }
 

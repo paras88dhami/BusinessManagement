@@ -1,10 +1,10 @@
-import { Account } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
+import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  BusinessProfile,
-  BusinessProfileError,
-  BusinessProfileValidationError,
+    BusinessProfile,
+    BusinessProfileError,
+    BusinessProfileValidationError,
 } from "@/feature/profile/business/types/businessProfile.types";
+import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
 
 export type CreateBusinessWorkspaceInput = {
   ownerUserRemoteId: string;
@@ -30,9 +30,13 @@ export type CreatedBusinessWorkspaceResult =
   | { success: true; value: CreatedBusinessWorkspace }
   | {
       success: false;
-      error: ReturnType<typeof BusinessProfileValidationError> | BusinessProfileError;
+      error:
+        | ReturnType<typeof BusinessProfileValidationError>
+        | BusinessProfileError;
     };
 
 export interface CreateBusinessWorkspaceUseCase {
-  execute(payload: CreateBusinessWorkspaceInput): Promise<CreatedBusinessWorkspaceResult>;
+  execute(
+    payload: CreateBusinessWorkspaceInput,
+  ): Promise<CreatedBusinessWorkspaceResult>;
 }

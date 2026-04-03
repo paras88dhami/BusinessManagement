@@ -5,13 +5,13 @@ import {
   CredentialType,
 } from "@/feature/session/types/authSession.types";
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { createUpdateAccountMemberUseCase } from "@/feature/setting/accounts/userManagement/useCase/updateAccountMember.useCase.impl";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { createUpdateAccountMemberUseCase } from "@/feature/userManagement/useCase/updateAccountMember.useCase.impl";
 import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import {
   AccountMemberStatus,
   UserManagementErrorType,
-} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+} from "@/feature/userManagement/types/userManagement.types";
 
 describe("updateAccountMember.useCase", () => {
   it("blocks update when actor lacks manage-staff permission", async () => {

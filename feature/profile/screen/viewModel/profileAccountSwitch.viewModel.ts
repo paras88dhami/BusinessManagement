@@ -1,5 +1,5 @@
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 
 export type UseProfileAccountSwitchViewModelParams = {
   setActiveAccountSession: (accountRemoteId: string) => Promise<void>;

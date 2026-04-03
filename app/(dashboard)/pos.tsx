@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
-import { GetPosScreenFactory } from "@/feature/pos/factory/getPosScreen.factory";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { GetPosScreenFactory } from "@/feature/pos/factory/getPosScreen.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import React, { useEffect } from "react";
 
 export default function PosDashboardRoute() {
   const navigation = useSmoothNavigation();

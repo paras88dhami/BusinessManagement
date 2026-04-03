@@ -1,14 +1,16 @@
 import {
-  AccountType,
-  AccountTypeValue,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+    AccountType,
+    AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  DashboardTab,
-  DashboardTabItems,
-  DashboardTabValue,
+    DashboardTab,
+    DashboardTabItems,
+    DashboardTabValue,
 } from "../types/dashboardNavigation.types";
 
-export type DashboardHomePath = "/(dashboard)/business" | "/(dashboard)/personal";
+export type DashboardHomePath =
+  | "/(dashboard)/business"
+  | "/(dashboard)/personal";
 
 export type DashboardTabPath =
   | DashboardHomePath

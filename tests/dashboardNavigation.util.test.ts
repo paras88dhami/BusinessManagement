@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { DashboardTab } from "@/feature/dashboard/shared/types/dashboardNavigation.types";
 import {
-  buildInitials,
-  getDashboardHomePath,
-  getDashboardTabPath,
+    buildInitials,
+    getDashboardHomePath,
+    getDashboardTabPath,
 } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { describe, expect, it } from "vitest";
 
 describe("dashboardNavigation.util", () => {
   it("returns account-specific home paths", () => {

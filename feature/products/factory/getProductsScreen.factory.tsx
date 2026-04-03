@@ -5,7 +5,7 @@ import { createDeleteProductUseCase } from "@/feature/products/useCase/deletePro
 import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
 import { useProductsViewModel } from "@/feature/products/viewModel/products.viewModel.impl";
-import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
+import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
 

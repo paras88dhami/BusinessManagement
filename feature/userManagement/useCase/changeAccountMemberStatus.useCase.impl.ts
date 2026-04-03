@@ -1,17 +1,17 @@
-import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
-import { AccountSelectionErrorType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountSelectionErrorType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { GetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase";
 import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
 import { AuthSessionErrorType } from "@/feature/session/types/authSession.types";
 import { UserManagementRepository } from "../data/repository/userManagement.repository";
 import {
-  AccountMemberStatus,
-  ChangeAccountMemberStatusPayload,
-  UserManagementDatabaseError,
-  UserManagementError,
-  UserManagementForbiddenError,
-  UserManagementOperationResult,
-  UserManagementUnknownError,
-  UserManagementValidationError,
+    AccountMemberStatus,
+    ChangeAccountMemberStatusPayload,
+    UserManagementDatabaseError,
+    UserManagementError,
+    UserManagementForbiddenError,
+    UserManagementOperationResult,
+    UserManagementUnknownError,
+    UserManagementValidationError,
 } from "../types/userManagement.types";
 import { ChangeAccountMemberStatusUseCase } from "./changeAccountMemberStatus.useCase";
 
@@ -25,8 +25,15 @@ type ChangeAccountMemberStatusUseCaseParams = {
 
 const normalizeRequired = (value: string): string => value.trim();
 
-const mapAuthSessionError = (error: { type: string; message: string } | unknown) => {
-  if (error && typeof error === "object" && "type" in error && "message" in error) {
+const mapAuthSessionError = (
+  error: { type: string; message: string } | unknown,
+) => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "type" in error &&
+    "message" in error
+  ) {
     const typedError = error as { type: string; message: string };
 
     if (typedError.type === AuthSessionErrorType.DatabaseError) {
@@ -45,7 +52,10 @@ const mapAuthSessionError = (error: { type: string; message: string } | unknown)
   return UserManagementUnknownError;
 };
 
-const mapAccessibleAccountsError = (error: { type: string; message: string }) => {
+const mapAccessibleAccountsError = (error: {
+  type: string;
+  message: string;
+}) => {
   if (error.type === AccountSelectionErrorType.ValidationError) {
     return UserManagementValidationError(error.message);
   }
@@ -76,21 +86,31 @@ export const createChangeAccountMemberStatusUseCase = (
     async execute(
       payload: ChangeAccountMemberStatusPayload,
     ): Promise<UserManagementOperationResult> {
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
-      const normalizedActorUserRemoteId = normalizeRequired(payload.actorUserRemoteId);
-      const normalizedMemberRemoteId = normalizeRequired(payload.memberRemoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
+      const normalizedActorUserRemoteId = normalizeRequired(
+        payload.actorUserRemoteId,
+      );
+      const normalizedMemberRemoteId = normalizeRequired(
+        payload.memberRemoteId,
+      );
 
       if (!normalizedAccountRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Account remote id is required."),
+          error: UserManagementValidationError(
+            "Account remote id is required.",
+          ),
         };
       }
 
       if (!normalizedActorUserRemoteId) {
         return {
           success: false,
-          error: UserManagementValidationError("Actor user remote id is required."),
+          error: UserManagementValidationError(
+            "Actor user remote id is required.",
+          ),
         };
       }
 
@@ -112,12 +132,11 @@ export const createChangeAccountMemberStatusUseCase = (
         };
       }
 
-      const permissionCodesResult = await userManagementRepository.getPermissionCodesByAccountUser(
-        {
+      const permissionCodesResult =
+        await userManagementRepository.getPermissionCodesByAccountUser({
           accountRemoteId: normalizedAccountRemoteId,
           userRemoteId: normalizedActorUserRemoteId,
-        },
-      );
+        });
 
       if (!permissionCodesResult.success) {
         return permissionCodesResult;
@@ -132,17 +151,19 @@ export const createChangeAccountMemberStatusUseCase = (
         };
       }
 
-      const ownerUserResult = await userManagementRepository.getAccountOwnerUserRemoteId(
-        normalizedAccountRemoteId,
-      );
+      const ownerUserResult =
+        await userManagementRepository.getAccountOwnerUserRemoteId(
+          normalizedAccountRemoteId,
+        );
 
       if (!ownerUserResult.success) {
         return ownerUserResult;
       }
 
-      const memberResult = await userManagementRepository.getAccountMemberByRemoteId(
-        normalizedMemberRemoteId,
-      );
+      const memberResult =
+        await userManagementRepository.getAccountMemberByRemoteId(
+          normalizedMemberRemoteId,
+        );
 
       if (!memberResult.success) {
         return memberResult;
@@ -163,7 +184,9 @@ export const createChangeAccountMemberStatusUseCase = (
       ) {
         return {
           success: false,
-          error: UserManagementForbiddenError("Account owner cannot be deactivated."),
+          error: UserManagementForbiddenError(
+            "Account owner cannot be deactivated.",
+          ),
         };
       }
 
@@ -184,24 +207,27 @@ export const createChangeAccountMemberStatusUseCase = (
           };
         }
 
-        const remainingAccessibleAccounts = accessibleAccountsResult.value.filter(
-          (account) => account.remoteId !== normalizedAccountRemoteId,
-        );
+        const remainingAccessibleAccounts =
+          accessibleAccountsResult.value.filter(
+            (account) => account.remoteId !== normalizedAccountRemoteId,
+          );
         shouldDeactivateCredential = remainingAccessibleAccounts.length === 0;
       }
 
       const rollbackMemberStatus = async (
         operationError: UserManagementError,
       ): Promise<UserManagementOperationResult> => {
-        const rollbackResult = await userManagementRepository.saveAccountMember({
-          remoteId: targetMember.remoteId,
-          accountRemoteId: targetMember.accountRemoteId,
-          userRemoteId: targetMember.userRemoteId,
-          status: targetMember.status,
-          invitedByUserRemoteId: targetMember.invitedByUserRemoteId,
-          joinedAt: targetMember.joinedAt,
-          lastActiveAt: targetMember.lastActiveAt,
-        });
+        const rollbackResult = await userManagementRepository.saveAccountMember(
+          {
+            remoteId: targetMember.remoteId,
+            accountRemoteId: targetMember.accountRemoteId,
+            userRemoteId: targetMember.userRemoteId,
+            status: targetMember.status,
+            invitedByUserRemoteId: targetMember.invitedByUserRemoteId,
+            joinedAt: targetMember.joinedAt,
+            lastActiveAt: targetMember.lastActiveAt,
+          },
+        );
 
         if (rollbackResult.success) {
           return {
@@ -219,25 +245,28 @@ export const createChangeAccountMemberStatusUseCase = (
         };
       };
 
-      const saveMemberResult = await userManagementRepository.saveAccountMember({
-        remoteId: targetMember.remoteId,
-        accountRemoteId: normalizedAccountRemoteId,
-        userRemoteId: targetMember.userRemoteId,
-        status: payload.status,
-        invitedByUserRemoteId: targetMember.invitedByUserRemoteId,
-        joinedAt: targetMember.joinedAt,
-        lastActiveAt:
-          payload.status === AccountMemberStatus.Active
-            ? Date.now()
-            : targetMember.lastActiveAt,
-      });
+      const saveMemberResult = await userManagementRepository.saveAccountMember(
+        {
+          remoteId: targetMember.remoteId,
+          accountRemoteId: normalizedAccountRemoteId,
+          userRemoteId: targetMember.userRemoteId,
+          status: payload.status,
+          invitedByUserRemoteId: targetMember.invitedByUserRemoteId,
+          joinedAt: targetMember.joinedAt,
+          lastActiveAt:
+            payload.status === AccountMemberStatus.Active
+              ? Date.now()
+              : targetMember.lastActiveAt,
+        },
+      );
 
       if (!saveMemberResult.success) {
         return saveMemberResult;
       }
 
       const shouldReadCredential =
-        payload.status === AccountMemberStatus.Active || shouldDeactivateCredential;
+        payload.status === AccountMemberStatus.Active ||
+        shouldDeactivateCredential;
 
       if (!shouldReadCredential) {
         return { success: true, value: true };
@@ -256,28 +285,41 @@ export const createChangeAccountMemberStatusUseCase = (
             );
 
           if (!deactivateResult.success) {
-            return rollbackMemberStatus(mapAuthSessionError(deactivateResult.error));
+            return rollbackMemberStatus(
+              mapAuthSessionError(deactivateResult.error),
+            );
           }
         }
 
-        if (payload.status === AccountMemberStatus.Active && !credentialResult.value.isActive) {
-          const activateResult = await authCredentialRepository.saveAuthCredential({
-            remoteId: credentialResult.value.remoteId,
-            userRemoteId: credentialResult.value.userRemoteId,
-            loginId: credentialResult.value.loginId,
-            credentialType: credentialResult.value.credentialType,
-            passwordHash: credentialResult.value.passwordHash,
-            passwordSalt: credentialResult.value.passwordSalt,
-            hint: credentialResult.value.hint,
-            isActive: true,
+        if (
+          payload.status === AccountMemberStatus.Active &&
+          !credentialResult.value.isActive
+        ) {
+          const activateResult =
+            await authCredentialRepository.saveAuthCredential({
+              remoteId: credentialResult.value.remoteId,
+              userRemoteId: credentialResult.value.userRemoteId,
+              loginId: credentialResult.value.loginId,
+              credentialType: credentialResult.value.credentialType,
+              passwordHash: credentialResult.value.passwordHash,
+              passwordSalt: credentialResult.value.passwordSalt,
+              hint: credentialResult.value.hint,
+              isActive: true,
             });
 
           if (!activateResult.success) {
-            return rollbackMemberStatus(mapAuthSessionError(activateResult.error));
+            return rollbackMemberStatus(
+              mapAuthSessionError(activateResult.error),
+            );
           }
         }
-      } else if (credentialResult.error.type !== AuthSessionErrorType.AuthCredentialNotFound) {
-        return rollbackMemberStatus(mapAuthSessionError(credentialResult.error));
+      } else if (
+        credentialResult.error.type !==
+        AuthSessionErrorType.AuthCredentialNotFound
+      ) {
+        return rollbackMemberStatus(
+          mapAuthSessionError(credentialResult.error),
+        );
       }
 
       return { success: true, value: true };

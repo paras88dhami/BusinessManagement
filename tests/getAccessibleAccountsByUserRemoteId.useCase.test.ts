@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { AccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { AccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository";
 import {
-  AccountSelectionErrorType,
-  AccountType,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+    AccountSelectionErrorType,
+    AccountType,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { UserManagementErrorType } from "@/feature/userManagement/types/userManagement.types";
+import { describe, expect, it, vi } from "vitest";
 
 const createAccount = (
   remoteId: string,
@@ -42,7 +42,10 @@ describe("getAccessibleAccountsByUserRemoteId.useCase", () => {
       getAccountsByOwnerUserRemoteId: vi.fn(async () => ({
         success: true as const,
         value: [
-          createAccount("account-owner-default", { isDefault: true, updatedAt: 2 }),
+          createAccount("account-owner-default", {
+            isDefault: true,
+            updatedAt: 2,
+          }),
           createAccount("account-shared", { updatedAt: 1 }),
         ],
       })),

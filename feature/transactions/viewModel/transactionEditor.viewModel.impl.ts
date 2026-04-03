@@ -1,21 +1,19 @@
-import { useCallback, useMemo, useState } from "react";
-import { Account } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  AddTransactionUseCase,
-} from "@/feature/transactions/useCase/addTransaction.useCase";
-import { GetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase";
-import { UpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase";
-import {
-  SaveTransactionPayload,
-  TransactionDirection,
-  TransactionDirectionValue,
-  TransactionType,
-  TransactionTypeValue,
+    SaveTransactionPayload,
+    TransactionDirection,
+    TransactionDirectionValue,
+    TransactionType,
+    TransactionTypeValue,
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
-  TransactionAccountOption,
-  TransactionEditorState,
+    TransactionAccountOption,
+    TransactionEditorState,
 } from "@/feature/transactions/types/transaction.state.types";
+import { AddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase";
+import { GetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase";
+import { UpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase";
+import { useCallback, useMemo, useState } from "react";
 import { TransactionEditorViewModel } from "./transactionEditor.viewModel";
 
 const DEFAULT_EDITOR_STATE: TransactionEditorState = {
@@ -92,7 +90,8 @@ export const useTransactionEditorViewModel = ({
   updateTransactionUseCase,
   onSaved,
 }: UseTransactionEditorViewModelParams): TransactionEditorViewModel => {
-  const [state, setState] = useState<TransactionEditorState>(DEFAULT_EDITOR_STATE);
+  const [state, setState] =
+    useState<TransactionEditorState>(DEFAULT_EDITOR_STATE);
 
   const accountOptions = useMemo<readonly TransactionAccountOption[]>(() => {
     return accounts.map((account) => ({
@@ -112,7 +111,10 @@ export const useTransactionEditorViewModel = ({
         visible: true,
         mode: "create",
         type,
-        direction: deriveDirectionFromType(type, DEFAULT_EDITOR_STATE.direction),
+        direction: deriveDirectionFromType(
+          type,
+          DEFAULT_EDITOR_STATE.direction,
+        ),
         accountRemoteId: preferredAccountRemoteId,
         happenedAt: new Date().toISOString().slice(0, 10),
       });
@@ -167,13 +169,16 @@ export const useTransactionEditorViewModel = ({
     }));
   }, []);
 
-  const handleChangeDirection = useCallback((direction: TransactionDirectionValue) => {
-    setState((currentState) => ({
-      ...currentState,
-      direction,
-      errorMessage: null,
-    }));
-  }, []);
+  const handleChangeDirection = useCallback(
+    (direction: TransactionDirectionValue) => {
+      setState((currentState) => ({
+        ...currentState,
+        direction,
+        errorMessage: null,
+      }));
+    },
+    [],
+  );
 
   const handleChangeTitle = useCallback((title: string) => {
     setState((currentState) => ({
@@ -312,20 +317,22 @@ export const useTransactionEditorViewModel = ({
   ]);
 
   const availableTypes = useMemo(
-    () => [
-      { value: TransactionType.Income, label: "Income" },
-      { value: TransactionType.Expense, label: "Expense" },
-      { value: TransactionType.Transfer, label: "Transfer" },
-      { value: TransactionType.Refund, label: "Refund" },
-    ] as const,
+    () =>
+      [
+        { value: TransactionType.Income, label: "Income" },
+        { value: TransactionType.Expense, label: "Expense" },
+        { value: TransactionType.Transfer, label: "Transfer" },
+        { value: TransactionType.Refund, label: "Refund" },
+      ] as const,
     [],
   );
 
   const availableDirections = useMemo(
-    () => [
-      { value: TransactionDirection.In, label: "Money In" },
-      { value: TransactionDirection.Out, label: "Money Out" },
-    ] as const,
+    () =>
+      [
+        { value: TransactionDirection.In, label: "Money In" },
+        { value: TransactionDirection.Out, label: "Money Out" },
+      ] as const,
     [],
   );
 

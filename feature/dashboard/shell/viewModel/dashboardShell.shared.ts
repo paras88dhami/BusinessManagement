@@ -1,14 +1,14 @@
 import {
-  DashboardTab,
-  DashboardTabValue,
+    AccountType,
+    AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+    DashboardTab,
+    DashboardTabValue,
 } from "@/feature/dashboard/shared/types/dashboardNavigation.types";
 import {
-  AccountType,
-  AccountTypeValue,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import {
-  DashboardHeaderConfig,
-  DashboardRouteKey,
+    DashboardHeaderConfig,
+    DashboardRouteKey,
 } from "@/feature/dashboard/shell/types/dashboardShell.types";
 
 const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>([
@@ -55,13 +55,11 @@ export const resolveDashboardRouteKey = (
   }
 };
 
-export const resolveDashboardHeaderConfig = (
-  params: {
-    routeKey: DashboardRouteKey;
-    activeAccountDisplayName: string;
-    profileName: string;
-  },
-): DashboardHeaderConfig => {
+export const resolveDashboardHeaderConfig = (params: {
+  routeKey: DashboardRouteKey;
+  activeAccountDisplayName: string;
+  profileName: string;
+}): DashboardHeaderConfig => {
   const { routeKey, activeAccountDisplayName, profileName } = params;
 
   switch (routeKey) {

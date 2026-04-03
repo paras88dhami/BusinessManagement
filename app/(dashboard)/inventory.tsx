@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
-import { GetInventoryScreenFactory } from "@/feature/inventory/factory/getInventoryScreen.factory";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { GetInventoryScreenFactory } from "@/feature/inventory/factory/getInventoryScreen.factory";
+import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import React, { useEffect } from "react";
 
 export default function InventoryDashboardRoute() {
   const navigation = useSmoothNavigation();

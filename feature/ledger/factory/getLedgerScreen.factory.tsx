@@ -1,29 +1,29 @@
-import React, { useCallback, useMemo, useState } from "react";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
   Account,
   AccountType,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
-import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
-import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
-import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
-import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
-import { createGetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase.impl";
-import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
-import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase.impl";
-import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
-import { createGetLedgerEntriesByPartyUseCase } from "@/feature/ledger/useCase/getLedgerEntriesByParty.useCase.impl";
-import { useLedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.viewModel.impl";
-import { useLedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel.impl";
-import { useLedgerDeleteViewModel } from "@/feature/ledger/viewModel/ledgerDelete.viewModel.impl";
-import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
 import { LedgerScreen } from "@/feature/ledger/ui/LedgerScreen";
+import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
+import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
+import { createGetLedgerEntriesByPartyUseCase } from "@/feature/ledger/useCase/getLedgerEntriesByParty.useCase.impl";
+import { createGetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase.impl";
+import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase.impl";
+import { useLedgerDeleteViewModel } from "@/feature/ledger/viewModel/ledgerDelete.viewModel.impl";
+import { useLedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel.impl";
+import { useLedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.viewModel.impl";
+import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
+import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
+import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
+import React, { useCallback, useMemo, useState } from "react";
 
 export type GetLedgerScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -120,9 +120,10 @@ export function GetLedgerScreenFactory({
         return;
       }
 
-      const result = await getAccessibleAccountsByUserRemoteIdUseCase.execute(
-        activeUserRemoteId,
-      );
+      const result =
+        await getAccessibleAccountsByUserRemoteIdUseCase.execute(
+          activeUserRemoteId,
+        );
 
       if (!isMounted) {
         return;
@@ -134,7 +135,9 @@ export function GetLedgerScreenFactory({
       }
 
       setAccounts(
-        result.value.filter((account) => account.accountType === AccountType.Business),
+        result.value.filter(
+          (account) => account.accountType === AccountType.Business,
+        ),
       );
     };
 
@@ -150,8 +153,9 @@ export function GetLedgerScreenFactory({
   }, []);
   const activeBusinessAccount = useMemo(
     () =>
-      accounts.find((account) => account.remoteId === activeBusinessAccountRemoteId) ??
-      null,
+      accounts.find(
+        (account) => account.remoteId === activeBusinessAccountRemoteId,
+      ) ?? null,
     [accounts, activeBusinessAccountRemoteId],
   );
 

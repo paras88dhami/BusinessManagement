@@ -1,5 +1,8 @@
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { DashboardHomePath, getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+    DashboardHomePath,
+    getDashboardHomePath,
+} from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 
 export type EntryRouteDecision =
   | null
@@ -17,12 +20,8 @@ type ResolveEntryRouteParams = {
 export const resolveEntryRoute = (
   params: ResolveEntryRouteParams,
 ): EntryRouteDecision => {
-  const {
-    isLoading,
-    hasActiveSession,
-    hasActiveAccount,
-    activeAccountType,
-  } = params;
+  const { isLoading, hasActiveSession, hasActiveAccount, activeAccountType } =
+    params;
 
   if (isLoading) {
     return null;

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { resolveEntryRoute } from "@/feature/session/ui/entryRouteDecision.util";
+import { describe, expect, it } from "vitest";
 
 describe("entryRouteDecision.util", () => {
   it("returns null while loading", () => {

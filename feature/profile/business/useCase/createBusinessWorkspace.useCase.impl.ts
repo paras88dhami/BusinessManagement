@@ -1,16 +1,16 @@
-import * as Crypto from "expo-crypto";
-import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
 import {
-  BusinessProfileDatabaseError,
-  BusinessProfileValidationError,
+    BusinessProfileDatabaseError,
+    BusinessProfileValidationError,
 } from "@/feature/profile/business/types/businessProfile.types";
-import { SaveBusinessProfileUseCase } from "./saveBusinessProfile.useCase";
+import * as Crypto from "expo-crypto";
 import {
-  CreateBusinessWorkspaceUseCase,
-  CreateBusinessWorkspaceInput,
-  CreatedBusinessWorkspaceResult,
+    CreateBusinessWorkspaceInput,
+    CreateBusinessWorkspaceUseCase,
+    CreatedBusinessWorkspaceResult,
 } from "./createBusinessWorkspace.useCase";
+import { SaveBusinessProfileUseCase } from "./saveBusinessProfile.useCase";
 
 type CreateBusinessWorkspaceUseCaseParams = {
   saveAccountUseCase: SaveAccountUseCase;
@@ -36,7 +36,8 @@ const buildAccountLocation = (
   stateOrDistrict: string,
 ): string | null => {
   const normalizedCity = normalizeOptionalFromRequired(city);
-  const normalizedStateOrDistrict = normalizeOptionalFromRequired(stateOrDistrict);
+  const normalizedStateOrDistrict =
+    normalizeOptionalFromRequired(stateOrDistrict);
 
   if (!normalizedCity && !normalizedStateOrDistrict) {
     return null;
@@ -61,7 +62,9 @@ export const createCreateBusinessWorkspaceUseCase = (
       const normalizedOwnerUserRemoteId = normalizeRequired(
         payload.ownerUserRemoteId,
       );
-      const normalizedLegalBusinessName = normalizeRequired(payload.legalBusinessName);
+      const normalizedLegalBusinessName = normalizeRequired(
+        payload.legalBusinessName,
+      );
       const normalizedCurrencyCode = normalizeRequired(
         payload.currencyCode,
       ).toUpperCase();
@@ -74,14 +77,18 @@ export const createCreateBusinessWorkspaceUseCase = (
       if (!normalizedOwnerUserRemoteId) {
         return {
           success: false,
-          error: BusinessProfileValidationError("Owner user remote id is required."),
+          error: BusinessProfileValidationError(
+            "Owner user remote id is required.",
+          ),
         };
       }
 
       if (!normalizedLegalBusinessName) {
         return {
           success: false,
-          error: BusinessProfileValidationError("Legal business name is required."),
+          error: BusinessProfileValidationError(
+            "Legal business name is required.",
+          ),
         };
       }
 
@@ -108,7 +115,10 @@ export const createCreateBusinessWorkspaceUseCase = (
         businessType: payload.businessType,
         displayName: normalizedLegalBusinessName,
         currencyCode: normalizedCurrencyCode,
-        cityOrLocation: buildAccountLocation(payload.city, payload.stateOrDistrict),
+        cityOrLocation: buildAccountLocation(
+          payload.city,
+          payload.stateOrDistrict,
+        ),
         countryCode: normalizedCountry,
         isActive: true,
         isDefault: false,
@@ -117,26 +127,29 @@ export const createCreateBusinessWorkspaceUseCase = (
       if (!saveAccountResult.success) {
         return {
           success: false,
-          error: BusinessProfileValidationError(saveAccountResult.error.message),
+          error: BusinessProfileValidationError(
+            saveAccountResult.error.message,
+          ),
         };
       }
 
-      const saveBusinessProfileResult = await saveBusinessProfileUseCase.execute({
-        accountRemoteId,
-        ownerUserRemoteId: normalizedOwnerUserRemoteId,
-        legalBusinessName: normalizedLegalBusinessName,
-        businessType: payload.businessType,
-        businessLogoUrl: normalizeOptional(payload.businessLogoUrl),
-        businessPhone: payload.businessPhone,
-        businessEmail: payload.businessEmail,
-        registeredAddress: payload.registeredAddress,
-        currencyCode: normalizedCurrencyCode,
-        country: normalizedCountry,
-        city: normalizedCity ?? "",
-        stateOrDistrict: normalizedStateOrDistrict ?? "",
-        taxRegistrationId: payload.taxRegistrationId,
-        isActive: true,
-      });
+      const saveBusinessProfileResult =
+        await saveBusinessProfileUseCase.execute({
+          accountRemoteId,
+          ownerUserRemoteId: normalizedOwnerUserRemoteId,
+          legalBusinessName: normalizedLegalBusinessName,
+          businessType: payload.businessType,
+          businessLogoUrl: normalizeOptional(payload.businessLogoUrl),
+          businessPhone: payload.businessPhone,
+          businessEmail: payload.businessEmail,
+          registeredAddress: payload.registeredAddress,
+          currencyCode: normalizedCurrencyCode,
+          country: normalizedCountry,
+          city: normalizedCity ?? "",
+          stateOrDistrict: normalizedStateOrDistrict ?? "",
+          taxRegistrationId: payload.taxRegistrationId,
+          isActive: true,
+        });
 
       if (!saveBusinessProfileResult.success) {
         const rollbackResult = await saveAccountUseCase.execute({

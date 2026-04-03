@@ -1,9 +1,9 @@
-import React from "react";
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
-import { ProfileScreen } from "@/feature/profile/screen/ui/ProfileScreen";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useProfileScreenDependencies } from "@/feature/profile/screen/factory/useProfileScreenDependencies.factory";
+import { ProfileScreen } from "@/feature/profile/screen/ui/ProfileScreen";
+import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
 import appDatabase from "@/shared/database/appDatabase";
+import React from "react";
 
 type GetProfileScreenFactoryProps = {
   activeUserRemoteId: string | null;

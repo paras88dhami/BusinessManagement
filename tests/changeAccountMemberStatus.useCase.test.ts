@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { createChangeAccountMemberStatusUseCase } from "@/feature/setting/accounts/userManagement/useCase/changeAccountMemberStatus.useCase.impl";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
 import {
-  AccountMemberStatus,
-  UserManagementErrorType,
-} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+    AccountMemberStatus,
+    UserManagementErrorType,
+} from "@/feature/userManagement/types/userManagement.types";
+import { createChangeAccountMemberStatusUseCase } from "@/feature/userManagement/useCase/changeAccountMemberStatus.useCase.impl";
+import { describe, expect, it, vi } from "vitest";
 
 describe("changeAccountMemberStatus.useCase", () => {
   it("blocks status change when actor lacks manage-staff permission", async () => {
@@ -70,7 +70,9 @@ describe("changeAccountMemberStatus.useCase", () => {
     }
 
     expect(result.error.type).toBe(UserManagementErrorType.Forbidden);
-    expect(userManagementRepository.getAccountOwnerUserRemoteId).not.toHaveBeenCalled();
+    expect(
+      userManagementRepository.getAccountOwnerUserRemoteId,
+    ).not.toHaveBeenCalled();
   });
 
   it("updates status when actor has manage-staff permission", async () => {
@@ -179,9 +181,9 @@ describe("changeAccountMemberStatus.useCase", () => {
 
     expect(result.success).toBe(true);
     expect(userManagementRepository.saveAccountMember).toHaveBeenCalledTimes(1);
-    expect(authCredentialRepository.deactivateAuthCredentialByRemoteId).toHaveBeenCalledWith(
-      "cred-1",
-    );
+    expect(
+      authCredentialRepository.deactivateAuthCredentialByRemoteId,
+    ).toHaveBeenCalledWith("cred-1");
   });
 
   it("keeps credential active when user still has access to another account", async () => {
@@ -290,7 +292,9 @@ describe("changeAccountMemberStatus.useCase", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(authCredentialRepository.deactivateAuthCredentialByRemoteId).not.toHaveBeenCalled();
+    expect(
+      authCredentialRepository.deactivateAuthCredentialByRemoteId,
+    ).not.toHaveBeenCalled();
   });
 
   it("rolls back member status when credential update fails", async () => {

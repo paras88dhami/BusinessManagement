@@ -1,7 +1,7 @@
-import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  DashboardHomePath,
-  getDashboardHomePath,
+    DashboardHomePath,
+    getDashboardHomePath,
 } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 
 type DashboardProfileReplacePath = DashboardHomePath | "/(dashboard)/profile";

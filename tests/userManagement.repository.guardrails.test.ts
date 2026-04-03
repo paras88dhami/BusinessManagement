@@ -1,33 +1,75 @@
-import { describe, expect, it, vi } from "vitest";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
-import { AccountMemberStatus, UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
-import { UserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/userManagement.datasource";
-import { AccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository";
+import { AccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository";
 import { AuthUserRepository } from "@/feature/session/data/repository/authUser.repository";
+import { UserManagementDatasource } from "@/feature/userManagement/data/dataSource/userManagement.datasource";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
+import {
+    AccountMemberStatus,
+    UserManagementErrorType,
+} from "@/feature/userManagement/types/userManagement.types";
+import { describe, expect, it, vi } from "vitest";
 
 const createLocalDatasourceStub = () => ({
-  ensurePermissionCatalogSeeded: vi.fn(async () => ({ success: true as const, value: true })),
-  getPermissionCatalog: vi.fn(async () => ({ success: true as const, value: [] as unknown[] })),
-  getRoleByRemoteId: vi.fn(async () => ({ success: true as const, value: null as unknown })),
-  getRolesByAccountRemoteId: vi.fn(async () => ({ success: true as const, value: [] as unknown[] })),
-  getMemberByRemoteId: vi.fn(async () => ({ success: true as const, value: null as unknown })),
-  getMembersByAccountRemoteId: vi.fn(async () => ({ success: true as const, value: [] as unknown[] })),
-  getMemberByAccountAndUser: vi.fn(async () => ({ success: true as const, value: null as unknown })),
-  createMemberAccessRecord: vi.fn(async () => ({ success: true as const, value: true })),
-  updateMemberAccessRecord: vi.fn(async () => ({ success: true as const, value: true })),
-  saveMember: vi.fn(async () => ({ success: true as const, value: { remoteId: "member-1" } })),
-  deleteMemberByRemoteId: vi.fn(async () => ({ success: true as const, value: true })),
+  ensurePermissionCatalogSeeded: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
+  getPermissionCatalog: vi.fn(async () => ({
+    success: true as const,
+    value: [] as unknown[],
+  })),
+  getRoleByRemoteId: vi.fn(async () => ({
+    success: true as const,
+    value: null as unknown,
+  })),
+  getRolesByAccountRemoteId: vi.fn(async () => ({
+    success: true as const,
+    value: [] as unknown[],
+  })),
+  getMemberByRemoteId: vi.fn(async () => ({
+    success: true as const,
+    value: null as unknown,
+  })),
+  getMembersByAccountRemoteId: vi.fn(async () => ({
+    success: true as const,
+    value: [] as unknown[],
+  })),
+  getMemberByAccountAndUser: vi.fn(async () => ({
+    success: true as const,
+    value: null as unknown,
+  })),
+  createMemberAccessRecord: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
+  updateMemberAccessRecord: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
+  saveMember: vi.fn(async () => ({
+    success: true as const,
+    value: { remoteId: "member-1" },
+  })),
+  deleteMemberByRemoteId: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
   getActiveMemberAccountRemoteIdsByUserRemoteId: vi.fn(async () => ({
     success: true as const,
     value: [],
   })),
   saveRole: vi.fn(async () => ({ success: true as const, value: {} })),
-  deleteRoleByRemoteId: vi.fn(async () => ({ success: true as const, value: true })),
+  deleteRoleByRemoteId: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
   deleteRolePermissionsByRoleRemoteId: vi.fn(async () => ({
     success: true as const,
     value: true,
   })),
-  replaceRolePermissions: vi.fn(async () => ({ success: true as const, value: true })),
+  replaceRolePermissions: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
   getRolePermissionsByRoleRemoteIds: vi.fn(async () => ({
     success: true as const,
     value: [] as unknown[],
@@ -42,12 +84,18 @@ const createLocalDatasourceStub = () => ({
       updatedAt: new Date(1),
     },
   })),
-  getUserRoleAssignment: vi.fn(async () => ({ success: true as const, value: null as unknown })),
+  getUserRoleAssignment: vi.fn(async () => ({
+    success: true as const,
+    value: null as unknown,
+  })),
   getUserRoleAssignmentsByAccountRemoteId: vi.fn(async () => ({
     success: true as const,
     value: [] as unknown[],
   })),
-  deleteUserRoleAssignment: vi.fn(async () => ({ success: true as const, value: true })),
+  deleteUserRoleAssignment: vi.fn(async () => ({
+    success: true as const,
+    value: true,
+  })),
   deleteUserRoleAssignmentsByRoleRemoteId: vi.fn(async () => ({
     success: true as const,
     value: true,
@@ -64,7 +112,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -109,7 +160,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -173,7 +227,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -263,7 +320,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -282,7 +342,9 @@ describe("userManagement.repository guardrails", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(localDatasource.getRolePermissionsByRoleRemoteIds).not.toHaveBeenCalled();
+    expect(
+      localDatasource.getRolePermissionsByRoleRemoteIds,
+    ).not.toHaveBeenCalled();
 
     if (!result.success) {
       expect(result.error.type).toBe(UserManagementErrorType.Forbidden);
@@ -318,7 +380,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -370,7 +435,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -413,7 +481,10 @@ describe("userManagement.repository guardrails", () => {
       })),
     };
     const authUserRepository = {
-      getAllAuthUsers: vi.fn(async () => ({ success: true as const, value: [] })),
+      getAllAuthUsers: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
       getAuthUserByRemoteId: vi.fn(async () => ({
         success: true as const,
         value: { remoteId: "staff-1" },
@@ -430,8 +501,12 @@ describe("userManagement.repository guardrails", () => {
 
     expect(result.success).toBe(true);
     expect(localDatasource.deleteRoleByRemoteId).toHaveBeenCalledTimes(1);
-    expect(localDatasource.deleteRolePermissionsByRoleRemoteId).not.toHaveBeenCalled();
-    expect(localDatasource.deleteUserRoleAssignmentsByRoleRemoteId).not.toHaveBeenCalled();
+    expect(
+      localDatasource.deleteRolePermissionsByRoleRemoteId,
+    ).not.toHaveBeenCalled();
+    expect(
+      localDatasource.deleteUserRoleAssignmentsByRoleRemoteId,
+    ).not.toHaveBeenCalled();
   });
 
   it("ignores assignment-only users when building member list with roles", async () => {
@@ -505,12 +580,30 @@ describe("userManagement.repository guardrails", () => {
       getAllAuthUsers: vi.fn(async () => ({
         success: true as const,
         value: [
-          { remoteId: "owner-1", fullName: "Owner User", email: null, phone: null },
-          { remoteId: "staff-1", fullName: "Staff User", email: null, phone: null },
-          { remoteId: "ghost-1", fullName: "Ghost User", email: null, phone: null },
+          {
+            remoteId: "owner-1",
+            fullName: "Owner User",
+            email: null,
+            phone: null,
+          },
+          {
+            remoteId: "staff-1",
+            fullName: "Staff User",
+            email: null,
+            phone: null,
+          },
+          {
+            remoteId: "ghost-1",
+            fullName: "Ghost User",
+            email: null,
+            phone: null,
+          },
         ],
       })),
-      getAuthUserByRemoteId: vi.fn(async () => ({ success: true as const, value: null })),
+      getAuthUserByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: null,
+      })),
     };
 
     const repository = createUserManagementRepository({
@@ -519,14 +612,17 @@ describe("userManagement.repository guardrails", () => {
       authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
-    const result = await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
+    const result =
+      await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
 
     expect(result.success).toBe(true);
     if (!result.success) {
       return;
     }
 
-    const listedUserRemoteIds = result.value.map((member) => member.userRemoteId);
+    const listedUserRemoteIds = result.value.map(
+      (member) => member.userRemoteId,
+    );
     expect(listedUserRemoteIds).toContain("owner-1");
     expect(listedUserRemoteIds).toContain("staff-1");
     expect(listedUserRemoteIds).not.toContain("ghost-1");
@@ -594,11 +690,24 @@ describe("userManagement.repository guardrails", () => {
       getAllAuthUsers: vi.fn(async () => ({
         success: true as const,
         value: [
-          { remoteId: "owner-1", fullName: "Owner User", email: null, phone: null },
-          { remoteId: "staff-1", fullName: "Staff User", email: null, phone: null },
+          {
+            remoteId: "owner-1",
+            fullName: "Owner User",
+            email: null,
+            phone: null,
+          },
+          {
+            remoteId: "staff-1",
+            fullName: "Staff User",
+            email: null,
+            phone: null,
+          },
         ],
       })),
-      getAuthUserByRemoteId: vi.fn(async () => ({ success: true as const, value: null })),
+      getAuthUserByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: null,
+      })),
     };
 
     const repository = createUserManagementRepository({
@@ -607,15 +716,20 @@ describe("userManagement.repository guardrails", () => {
       authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
-    const result = await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
+    const result =
+      await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
 
     expect(result.success).toBe(true);
     if (!result.success) {
       return;
     }
 
-    const ownerMember = result.value.find((member) => member.userRemoteId === "owner-1");
-    const staffMember = result.value.find((member) => member.userRemoteId === "staff-1");
+    const ownerMember = result.value.find(
+      (member) => member.userRemoteId === "owner-1",
+    );
+    const staffMember = result.value.find(
+      (member) => member.userRemoteId === "staff-1",
+    );
 
     expect(ownerMember?.isAccountOwner).toBe(true);
     expect(ownerMember?.roleName).toBe("Owner");
@@ -624,4 +738,3 @@ describe("userManagement.repository guardrails", () => {
     expect(staffMember?.roleName).toBeNull();
   });
 });
-

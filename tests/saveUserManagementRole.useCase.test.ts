@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { createSaveUserManagementRoleUseCase } from "@/feature/setting/accounts/userManagement/useCase/saveUserManagementRole.useCase.impl";
-import { UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { createSaveUserManagementRoleUseCase } from "@/feature/userManagement/useCase/saveUserManagementRole.useCase.impl";
+import { UserManagementErrorType } from "@/feature/userManagement/types/userManagement.types";
 
 describe("saveUserManagementRole.useCase", () => {
   it("saves role when actor has manage-roles permission", async () => {

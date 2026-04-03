@@ -1,4 +1,4 @@
-import { Account } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
 
 export const sortAccountsByDefaultAndUpdatedAt = (
   accounts: Account[],

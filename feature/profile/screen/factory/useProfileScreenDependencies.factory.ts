@@ -1,23 +1,23 @@
-import { Database } from "@nozbe/watermelondb";
-import { useCallback, useMemo } from "react";
 import { setActiveAccountSession } from "@/feature/appSettings/data/appSettings.store";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { createSaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase.impl";
 import { createLocalBusinessProfileDatasource } from "@/feature/profile/business/data/dataSource/local.businessProfile.datasource.impl";
 import { createBusinessProfileRepository } from "@/feature/profile/business/data/repository/businessProfile.repository.impl";
 import { createCreateBusinessWorkspaceUseCase } from "@/feature/profile/business/useCase/createBusinessWorkspace.useCase.impl";
 import { createGetBusinessProfileByAccountRemoteIdUseCase } from "@/feature/profile/business/useCase/getBusinessProfileByAccountRemoteId.useCase.impl";
 import { createSaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase.impl";
-import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
-import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
-import { createSaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase.impl";
-import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
-import { createGetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
+import { ProfileScreenDependencies } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
 import { createSaveAuthUserUseCase } from "@/feature/session/useCase/saveAuthUser.useCase.impl";
-import { ProfileScreenDependencies } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
+import { createGetUserManagementSnapshotUseCase } from "@/feature/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
+import { Database } from "@nozbe/watermelondb";
+import { useCallback, useMemo } from "react";
 
 export const useProfileScreenDependencies = (
   database: Database,

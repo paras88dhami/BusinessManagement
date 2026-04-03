@@ -1,24 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  buildInitials,
-  getAccountRoleLabel,
-  getAccountTypeLabel,
+    buildInitials,
+    getAccountRoleLabel,
+    getAccountTypeLabel,
 } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import {
-  ProfileScreenViewModel,
-  PROFILE_BUSINESS_TYPE_OPTIONS,
-  UseProfileScreenViewModelParams,
-} from "./profileScreen.viewModel";
-import {
-  createInitialProfileScreenData,
-} from "./profileScreen.shared";
+import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
+import { useCallback, useMemo, useState } from "react";
+import { useProfileAccountSwitchViewModel } from "./profileAccountSwitch.viewModel.impl";
 import { useProfileBusinessCreatorViewModel } from "./profileBusinessCreator.viewModel.impl";
 import { useProfileBusinessEditorViewModel } from "./profileBusinessEditor.viewModel.impl";
-import { useProfilePersonalEditorViewModel } from "./profilePersonalEditor.viewModel.impl";
-import { useProfileAccountSwitchViewModel } from "./profileAccountSwitch.viewModel.impl";
 import { useProfileLoaderViewModel } from "./profileLoader.viewModel.impl";
-import { ProfileScreenData } from "@/feature/profile/screen/types/profileScreen.types";
+import { useProfilePersonalEditorViewModel } from "./profilePersonalEditor.viewModel.impl";
+import { createInitialProfileScreenData } from "./profileScreen.shared";
+import {
+    PROFILE_BUSINESS_TYPE_OPTIONS,
+    ProfileScreenViewModel,
+    UseProfileScreenViewModelParams,
+} from "./profileScreen.viewModel";
 
 const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
 
@@ -106,10 +104,15 @@ export const useProfileScreenViewModel = (
     setSuccessMessage,
   });
 
-  const initials = useMemo(() => buildInitials(data.profileName), [data.profileName]);
+  const initials = useMemo(
+    () => buildInitials(data.profileName),
+    [data.profileName],
+  );
 
   const roleLabel = useMemo(
-    () => data.activeAccountRoleLabel || getAccountRoleLabel(data.activeAccountType),
+    () =>
+      data.activeAccountRoleLabel ||
+      getAccountRoleLabel(data.activeAccountType),
     [data.activeAccountRoleLabel, data.activeAccountType],
   );
 
@@ -123,7 +126,8 @@ export const useProfileScreenViewModel = (
   );
   const isActiveBusinessStaff = useMemo(
     () =>
-      data.activeAccountType === AccountType.Business && !data.isActiveAccountOwner,
+      data.activeAccountType === AccountType.Business &&
+      !data.isActiveAccountOwner,
     [data.activeAccountType, data.isActiveAccountOwner],
   );
 

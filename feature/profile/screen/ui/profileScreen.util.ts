@@ -1,7 +1,7 @@
 import {
-  AccountType,
-  AccountTypeValue,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+    AccountType,
+    AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { ProfileAccountOption } from "@/feature/profile/screen/types/profileScreen.types";
 
 export const resolveActiveAccountType = (

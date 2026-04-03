@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Database } from "@nozbe/watermelondb";
 import { bootstrapSelectedLanguage } from "@/shared/i18n/resources/bootstrapSelectedLanguage";
 import { ensureDatabaseReady } from "@/shared/database/appDatabase";
-import { ensureUserManagementReady } from "@/feature/setting/accounts/userManagement/factory/userManagementBootstrap.factory";
+import { ensureUserManagementReady } from "@/feature/userManagement/factory/userManagementBootstrap.factory";
 import { StartupBootstrapTask } from "@/feature/startup/types/startup.types";
 import { createBootstrapStartupUseCase } from "@/feature/startup/useCase/bootstrapStartup.useCase.impl";
 import { useStartupBootstrapViewModel } from "@/feature/startup/viewModel/startupBootstrap.viewModel.impl";

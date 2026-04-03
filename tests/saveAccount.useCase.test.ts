@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { createSaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase.impl";
-import { AccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository";
+import { AccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository";
 import {
-  AccountSelectionErrorType,
-  AccountType,
-  SaveAccountPayload,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+    AccountSelectionErrorType,
+    AccountType,
+    SaveAccountPayload,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createSaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase.impl";
+import { describe, expect, it, vi } from "vitest";
 
 const createAccount = (
   payload: SaveAccountPayload,

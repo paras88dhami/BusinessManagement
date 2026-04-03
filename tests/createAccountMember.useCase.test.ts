@@ -4,13 +4,13 @@ import {
   AuthSessionErrorType,
   CredentialType,
 } from "@/feature/session/types/authSession.types";
-import { createCreateAccountMemberUseCase } from "@/feature/setting/accounts/userManagement/useCase/createAccountMember.useCase.impl";
+import { createCreateAccountMemberUseCase } from "@/feature/userManagement/useCase/createAccountMember.useCase.impl";
 import {
   AccountMemberStatus,
   UserManagementErrorType,
   UserManagementForbiddenError,
-} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
+} from "@/feature/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
 import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 
 vi.mock("expo-crypto", () => ({

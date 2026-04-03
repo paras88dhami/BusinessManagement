@@ -1,8 +1,8 @@
-import { SaveAccountUseCase } from "@/feature/setting/accounts/accountSelection/useCase/saveAccount.useCase";
+import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
 import { SaveBusinessProfileUseCase } from "@/feature/profile/business/useCase/saveBusinessProfile.useCase";
 import {
-  EditableBusinessProfile,
-  ProfileScreenData,
+    EditableBusinessProfile,
+    ProfileScreenData,
 } from "@/feature/profile/screen/types/profileScreen.types";
 
 export type UseProfileBusinessEditorViewModelParams = {

@@ -1,27 +1,27 @@
-import React, { useCallback, useMemo, useState } from "react";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
   Account,
   AccountType,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
-import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
-import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
+import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
-import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
-import { createGetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase.impl";
-import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
-import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
-import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
-import { useTransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel.impl";
-import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
-import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
 import { TransactionsScreen } from "@/feature/transactions/ui/TransactionsScreen";
+import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
+import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
+import { createGetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase.impl";
+import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
+import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
+import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
+import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
+import { useTransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel.impl";
 import appDatabase from "@/shared/database/appDatabase";
+import React, { useCallback, useMemo, useState } from "react";
 
 export type GetTransactionsScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -114,9 +114,10 @@ export function GetTransactionsScreenFactory({
         return;
       }
 
-      const result = await getAccessibleAccountsByUserRemoteIdUseCase.execute(
-        activeUserRemoteId,
-      );
+      const result =
+        await getAccessibleAccountsByUserRemoteIdUseCase.execute(
+          activeUserRemoteId,
+        );
 
       if (!isMounted) {
         return;
@@ -128,7 +129,9 @@ export function GetTransactionsScreenFactory({
       }
 
       setAccounts(
-        result.value.filter((account) => account.accountType === AccountType.Personal),
+        result.value.filter(
+          (account) => account.accountType === AccountType.Personal,
+        ),
       );
     };
 

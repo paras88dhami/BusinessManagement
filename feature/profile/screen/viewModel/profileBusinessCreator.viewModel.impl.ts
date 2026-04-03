@@ -1,14 +1,10 @@
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
+import { createDefaultBusinessProfileForm } from "@/feature/profile/screen/viewModel/profileScreen.shared";
 import { useCallback, useState } from "react";
 import {
-  AccountType,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import {
-  EditableBusinessProfile,
-} from "@/feature/profile/screen/types/profileScreen.types";
-import { createDefaultBusinessProfileForm } from "@/feature/profile/screen/viewModel/profileScreen.shared";
-import {
-  ProfileBusinessCreatorViewModel,
-  UseProfileBusinessCreatorViewModelParams,
+    ProfileBusinessCreatorViewModel,
+    UseProfileBusinessCreatorViewModelParams,
 } from "./profileBusinessCreator.viewModel";
 
 export const useProfileBusinessCreatorViewModel = (
@@ -65,7 +61,8 @@ export const useProfileBusinessCreatorViewModel = (
         ownerUserRemoteId: activeUserRemoteId,
         legalBusinessName: createBusinessProfileForm.legalBusinessName,
         businessType: createBusinessProfileForm.businessType,
-        businessLogoUrl: createBusinessProfileForm.businessLogoUrl.trim() || null,
+        businessLogoUrl:
+          createBusinessProfileForm.businessLogoUrl.trim() || null,
         businessPhone: createBusinessProfileForm.businessPhone,
         businessEmail: createBusinessProfileForm.businessEmail,
         registeredAddress: createBusinessProfileForm.registeredAddress,
@@ -110,17 +107,21 @@ export const useProfileBusinessCreatorViewModel = (
         activeAccountRoleLabel: "Owner",
         grantedPermissionCodes: [],
         activeBusinessProfile: {
-          legalBusinessName: createResult.value.businessProfile.legalBusinessName,
+          legalBusinessName:
+            createResult.value.businessProfile.legalBusinessName,
           businessType: createResult.value.businessProfile.businessType,
-          businessLogoUrl: createResult.value.businessProfile.businessLogoUrl ?? "",
+          businessLogoUrl:
+            createResult.value.businessProfile.businessLogoUrl ?? "",
           businessPhone: createResult.value.businessProfile.businessPhone,
           businessEmail: createResult.value.businessProfile.businessEmail,
-          registeredAddress: createResult.value.businessProfile.registeredAddress,
+          registeredAddress:
+            createResult.value.businessProfile.registeredAddress,
           currencyCode: createResult.value.businessProfile.currencyCode,
           country: createResult.value.businessProfile.country,
           city: createResult.value.businessProfile.city,
           stateOrDistrict: createResult.value.businessProfile.stateOrDistrict,
-          taxRegistrationId: createResult.value.businessProfile.taxRegistrationId,
+          taxRegistrationId:
+            createResult.value.businessProfile.taxRegistrationId,
         },
         hasActiveBusinessProfile: true,
       }));

@@ -1,29 +1,31 @@
-import { useCallback, useEffect, useMemo } from "react";
-import { useSegments } from "expo-router";
-import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
-import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import {
-  getDashboardHomePath,
-  getDashboardTabItems,
-  getDashboardTabPath,
-} from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { DashboardTabValue } from "@/feature/dashboard/shared/types/dashboardNavigation.types";
-import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import {
-  DashboardShellViewModel,
-  DashboardRouteKey,
+    getDashboardHomePath,
+    getDashboardTabItems,
+    getDashboardTabPath,
+} from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
+import {
+    DashboardRouteKey,
+    DashboardShellViewModel,
 } from "@/feature/dashboard/shell/types/dashboardShell.types";
 import {
-  isBusinessOnlyDashboardRoute,
-  isPersonalOnlyDashboardRoute,
-  isSlotOnlyDashboardRoute,
-  resolveDashboardActiveTab,
-  resolveDashboardHeaderConfig,
-  resolveDashboardRouteKey,
+    isBusinessOnlyDashboardRoute,
+    isPersonalOnlyDashboardRoute,
+    isSlotOnlyDashboardRoute,
+    resolveDashboardActiveTab,
+    resolveDashboardHeaderConfig,
+    resolveDashboardRouteKey,
 } from "@/feature/dashboard/shell/viewModel/dashboardShell.shared";
+import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
+import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
+import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import { useSegments } from "expo-router";
+import { useCallback, useEffect, useMemo } from "react";
 
-const DASHBOARD_TAB_PERMISSION_CODE: Partial<Record<DashboardTabValue, string>> = {
+const DASHBOARD_TAB_PERMISSION_CODE: Partial<
+  Record<DashboardTabValue, string>
+> = {
   ledger: "ledger.view",
   pos: "pos.view",
   emi: "emi.view",
@@ -65,7 +67,10 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
     activeAccountRemoteId,
   });
 
-  const routeKey = useMemo(() => resolveDashboardRouteKey(segments), [segments]);
+  const routeKey = useMemo(
+    () => resolveDashboardRouteKey(segments),
+    [segments],
+  );
 
   const homePath = useMemo(
     () => getDashboardHomePath(activeAccountType),
@@ -171,7 +176,8 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   const tabItems = useMemo(
     () =>
       getDashboardTabItems(activeAccountType).filter((tabItem) => {
-        const requiredPermissionCode = DASHBOARD_TAB_PERMISSION_CODE[tabItem.key];
+        const requiredPermissionCode =
+          DASHBOARD_TAB_PERMISSION_CODE[tabItem.key];
 
         if (!requiredPermissionCode || permissionAccess.isLoading) {
           return true;
@@ -182,7 +188,10 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
     [activeAccountType, permissionAccess],
   );
 
-  const activeTab = useMemo(() => resolveDashboardActiveTab(routeKey), [routeKey]);
+  const activeTab = useMemo(
+    () => resolveDashboardActiveTab(routeKey),
+    [routeKey],
+  );
 
   return useMemo(
     () => ({

@@ -1,15 +1,17 @@
-import React from "react";
-import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
-import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
-import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
+import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
+import appDatabase from "@/shared/database/appDatabase";
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
+import React from "react";
 import { createLocalUserManagementDatasource } from "../data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "../data/repository/userManagement.repository.impl";
+import { UserManagementScreen } from "../ui/UserManagementScreen";
 import { createChangeAccountMemberStatusUseCase } from "../useCase/changeAccountMemberStatus.useCase.impl";
 import { createCreateAccountMemberUseCase } from "../useCase/createAccountMember.useCase.impl";
 import { createDeleteAccountMemberUseCase } from "../useCase/deleteAccountMember.useCase.impl";
@@ -17,9 +19,7 @@ import { createDeleteUserManagementRoleUseCase } from "../useCase/deleteUserMana
 import { createGetUserManagementSnapshotUseCase } from "../useCase/getUserManagementSnapshot.useCase.impl";
 import { createSaveUserManagementRoleUseCase } from "../useCase/saveUserManagementRole.useCase.impl";
 import { createUpdateAccountMemberUseCase } from "../useCase/updateAccountMember.useCase.impl";
-import { UserManagementScreen } from "../ui/UserManagementScreen";
 import { useUserManagementViewModel } from "../viewModel/userManagement.viewModel.impl";
-import appDatabase from "@/shared/database/appDatabase";
 
 type GetUserManagementScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -92,7 +92,10 @@ export function GetUserManagementScreenFactory({
     [authUserRepository],
   );
 
-  const passwordHashService = React.useMemo(() => createPasswordHashService(), []);
+  const passwordHashService = React.useMemo(
+    () => createPasswordHashService(),
+    [],
+  );
 
   const createAccountMemberUseCase = React.useMemo(
     () =>

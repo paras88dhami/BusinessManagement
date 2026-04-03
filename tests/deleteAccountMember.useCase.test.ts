@@ -1,13 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { AuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository";
 import { AuthSessionErrorType } from "@/feature/session/types/authSession.types";
-import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { createDeleteAccountMemberUseCase } from "@/feature/setting/accounts/userManagement/useCase/deleteAccountMember.useCase.impl";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
 import {
-  AccountMemberStatus,
-  UserManagementErrorType,
-} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+    AccountMemberStatus,
+    UserManagementErrorType,
+} from "@/feature/userManagement/types/userManagement.types";
+import { createDeleteAccountMemberUseCase } from "@/feature/userManagement/useCase/deleteAccountMember.useCase.impl";
+import { describe, expect, it, vi } from "vitest";
 
 const createAccessibleAccount = (remoteId: string) => ({
   remoteId,
@@ -107,12 +107,12 @@ describe("deleteAccountMember.useCase", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(userManagementRepository.deleteAccountMemberByRemoteId).toHaveBeenCalledWith(
-      "member-1",
-    );
-    expect(authCredentialRepository.deactivateAuthCredentialByRemoteId).toHaveBeenCalledWith(
-      "cred-1",
-    );
+    expect(
+      userManagementRepository.deleteAccountMemberByRemoteId,
+    ).toHaveBeenCalledWith("member-1");
+    expect(
+      authCredentialRepository.deactivateAuthCredentialByRemoteId,
+    ).toHaveBeenCalledWith("cred-1");
   });
 
   it("does not deactivate credential when user still has other account access", async () => {
@@ -178,8 +178,12 @@ describe("deleteAccountMember.useCase", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(authCredentialRepository.getAuthCredentialByUserRemoteId).not.toHaveBeenCalled();
-    expect(authCredentialRepository.deactivateAuthCredentialByRemoteId).not.toHaveBeenCalled();
+    expect(
+      authCredentialRepository.getAuthCredentialByUserRemoteId,
+    ).not.toHaveBeenCalled();
+    expect(
+      authCredentialRepository.deactivateAuthCredentialByRemoteId,
+    ).not.toHaveBeenCalled();
   });
 
   it("blocks delete when actor lacks manage-staff permission", async () => {
@@ -236,7 +240,9 @@ describe("deleteAccountMember.useCase", () => {
     }
 
     expect(result.error.type).toBe(UserManagementErrorType.Forbidden);
-    expect(userManagementRepository.getAccountMemberByRemoteId).not.toHaveBeenCalled();
+    expect(
+      userManagementRepository.getAccountMemberByRemoteId,
+    ).not.toHaveBeenCalled();
   });
 
   it("rolls back member deletion when credential deactivation fails", async () => {

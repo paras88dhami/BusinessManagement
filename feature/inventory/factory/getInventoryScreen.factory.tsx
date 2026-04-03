@@ -5,7 +5,7 @@ import { createGetInventorySnapshotUseCase } from "@/feature/inventory/useCase/g
 import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
 import { useInventoryViewModel } from "@/feature/inventory/viewModel/inventory.viewModel.impl";
 import { InventoryScreen } from "@/feature/inventory/ui/InventoryScreen";
-import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
+import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import appDatabase from "@/shared/database/appDatabase";
 
 const INVENTORY_MANAGE_PERMISSION_CODE = "inventory.manage";

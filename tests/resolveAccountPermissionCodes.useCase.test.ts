@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { createResolveAccountPermissionCodesUseCase } from "@/feature/setting/accounts/userManagement/useCase/resolveAccountPermissionCodes.useCase.impl";
-import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
-import { UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { createResolveAccountPermissionCodesUseCase } from "@/feature/userManagement/useCase/resolveAccountPermissionCodes.useCase.impl";
+import { UserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository";
+import { UserManagementErrorType } from "@/feature/userManagement/types/userManagement.types";
 
 describe("resolveAccountPermissionCodes.useCase", () => {
   it("ensures owner role before resolving permission codes", async () => {

@@ -1,14 +1,14 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Building2, Check, ChevronDown, User } from "lucide-react-native";
 import {
-  AccountType,
-  AccountTypeValue,
-} from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
+    AccountType,
+    AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { ProfileAccountOption } from "@/feature/profile/screen/types/profileScreen.types";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { Building2, Check, ChevronDown, User } from "lucide-react-native";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type AccountSwitchSectionProps = {
   activeAccountTypeLabel: string;
@@ -78,7 +78,9 @@ export function AccountSwitchSection({
           </View>
 
           <View>
-            <Text style={styles.accountTitle}>{activeAccountTypeLabel} Account</Text>
+            <Text style={styles.accountTitle}>
+              {activeAccountTypeLabel} Account
+            </Text>
             <Text style={styles.accountSubtitle}>
               {activeAccountDisplayName || "No active account"}
             </Text>
@@ -193,4 +195,3 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-
