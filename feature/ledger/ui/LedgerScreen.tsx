@@ -24,6 +24,7 @@ import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerListFilter } from "@/feature/ledger/types/ledger.state.types";
 import { LedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.viewModel";
 import { LedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel";
@@ -82,7 +83,7 @@ export function LedgerScreen({
               size="lg"
               style={styles.primaryActionButton}
               leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
-              onPress={() => listViewModel.onOpenCreate()}
+              onPress={() => listViewModel.onOpenCreate(LedgerEntryType.Sale)}
             />
           </BottomTabAwareFooter>
         }

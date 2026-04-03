@@ -21,7 +21,7 @@ export interface SignUpViewModel {
   selectedProfileType: SignUpProfileTypeValue;
   selectedBusinessType: string;
   businessTypeOptions: readonly BusinessTypeOption[];
-  businessTypeError?: string;
+  businessTypeError: string | null;
   onChangeSelectedPhoneCountry: (
     countryCode: SignUpPhoneCountryCode,
   ) => void;
@@ -34,5 +34,5 @@ export interface SignUpViewModel {
 }
 
 export type UseSignUpViewModelOptions = {
-  onSuccess?: () => void;
+  onSuccess: () => void;
 };

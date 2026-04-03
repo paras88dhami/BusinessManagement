@@ -1,10 +1,8 @@
 import {
-  PosBootstrap,
   PosCartLine,
   PosProduct,
   PosReceipt,
   PosSlot,
-  PosTotals,
 } from "../../types/pos.entity.types";
 import {
   PosApplyAmountAdjustmentParams,

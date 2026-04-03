@@ -104,9 +104,7 @@ const mapAuthUserModel = async (
   try {
     const mappedAuthUser = await mapAuthUserModelToDomain(model);
 
-    await migrateAuthUserModelIfNeeded(localDatasource, model).catch((error) => {
-      console.error("Failed to migrate auth user encryption state.", error);
-    });
+    await migrateAuthUserModelIfNeeded(localDatasource, model).catch(() => undefined);
 
     return {
       success: true,
@@ -168,9 +166,9 @@ export const createAuthUserRepository = (
 
         await Promise.all(
           result.value.map((model) =>
-            migrateAuthUserModelIfNeeded(localDatasource, model).catch((error) => {
-              console.error("Failed to migrate auth user encryption state.", error);
-            }),
+            migrateAuthUserModelIfNeeded(localDatasource, model).catch(
+              () => undefined,
+            ),
           ),
         );
 

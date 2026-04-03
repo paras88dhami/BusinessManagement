@@ -38,13 +38,13 @@ export const useProfileLoaderViewModel = (
   } = params;
 
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string>();
+  const [loadError, setLoadError] = useState<string | null>(null);
   const activeRequestIdRef = useRef(0);
 
   const reload = useCallback(async (): Promise<void> => {
     const requestId = ++activeRequestIdRef.current;
     setIsLoading(true);
-    setLoadError(undefined);
+    setLoadError(null);
 
     try {
       if (!activeUserRemoteId) {
@@ -180,8 +180,7 @@ export const useProfileLoaderViewModel = (
           hasActiveBusinessProfile,
         });
       }
-    } catch (error) {
-      console.error("Failed to load profile context.", error);
+    } catch {
       if (requestId === activeRequestIdRef.current) {
         setLoadError("Unable to load profile details. Please try again.");
       }

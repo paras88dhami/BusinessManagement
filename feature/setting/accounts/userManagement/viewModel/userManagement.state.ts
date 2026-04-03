@@ -54,8 +54,8 @@ export type UserManagementState = {
   roleEditor: UserManagementRoleEditorState;
   roleEditorPresentation: UserManagementRoleEditorPresentation;
   isRolePermissionEditEnabled: boolean;
-  screenError?: string;
-  screenSuccess?: string;
+  screenError: string | null;
+  screenSuccess: string | null;
 };
 
 export type UserManagementStateActions = {
@@ -77,8 +77,8 @@ export type UserManagementStateActions = {
     SetStateAction<UserManagementRoleEditorPresentation>
   >;
   setIsRolePermissionEditEnabled: Dispatch<SetStateAction<boolean>>;
-  setScreenError: Dispatch<SetStateAction<string | undefined>>;
-  setScreenSuccess: Dispatch<SetStateAction<string | undefined>>;
+  setScreenError: Dispatch<SetStateAction<string | null>>;
+  setScreenSuccess: Dispatch<SetStateAction<string | null>>;
   clearFeedback: () => void;
 };
 
@@ -134,12 +134,12 @@ export const useUserManagementState = (): {
     );
   const [isRolePermissionEditEnabled, setIsRolePermissionEditEnabled] =
     useState(false);
-  const [screenError, setScreenError] = useState<string>();
-  const [screenSuccess, setScreenSuccess] = useState<string>();
+  const [screenError, setScreenError] = useState<string | null>(null);
+  const [screenSuccess, setScreenSuccess] = useState<string | null>(null);
 
   const clearFeedback = useCallback(() => {
-    setScreenError(undefined);
-    setScreenSuccess(undefined);
+    setScreenError(null);
+    setScreenSuccess(null);
   }, []);
 
   const state = useMemo<UserManagementState>(

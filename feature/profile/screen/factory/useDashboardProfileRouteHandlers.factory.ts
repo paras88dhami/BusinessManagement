@@ -24,9 +24,6 @@ export const useDashboardProfileRouteHandlers =
           navigateReplace: navigation.replace,
           clearUserSession: () => clearActiveUserSession(appDatabase),
           refreshSession,
-          onLogoutError: (error) => {
-            console.error("Failed to clear session during logout.", error);
-          },
         }),
       [
         dashboardContext.activeAccountRemoteId,

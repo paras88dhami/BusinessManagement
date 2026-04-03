@@ -20,7 +20,7 @@ export const createSaveUserManagementRoleUseCase = (
   ): Promise<UserManagementRoleResult> {
     const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
     const normalizedActorUserRemoteId = normalizeRequired(
-      payload.actorUserRemoteId ?? "",
+      payload.actorUserRemoteId,
     );
 
     if (!normalizedAccountRemoteId) {

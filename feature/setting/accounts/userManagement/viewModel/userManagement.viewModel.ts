@@ -79,8 +79,8 @@ export interface UserManagementViewModel {
   canManageStaff: boolean;
   canManageRoles: boolean;
   canAssignRoles: boolean;
-  screenError?: string;
-  screenSuccess?: string;
+  screenError: string | null;
+  screenSuccess: string | null;
   onSelectRoleFilter: (filterKey: string) => void;
   onReload: () => Promise<void>;
   onStartCreateMember: () => void;

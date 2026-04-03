@@ -158,8 +158,7 @@ export const createRegisterUserWithDefaultAccountUseCase = (
           payload.password,
           passwordSalt,
         );
-      } catch (error) {
-        console.error("Failed to hash password during registration.", error);
+      } catch {
         return {
           success: false,
           error: UnknownError,

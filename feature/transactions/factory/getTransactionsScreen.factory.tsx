@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Database } from "@nozbe/watermelondb";
 import {
   Account,
   AccountType,
@@ -22,39 +21,38 @@ import { useTransactionsListViewModel } from "@/feature/transactions/viewModel/t
 import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
 import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
 import { TransactionsScreen } from "@/feature/transactions/ui/TransactionsScreen";
+import appDatabase from "@/shared/database/appDatabase";
 
 export type GetTransactionsScreenFactoryProps = {
-  database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
 };
 
 export function GetTransactionsScreenFactory({
-  database,
   activeUserRemoteId,
   activeAccountRemoteId,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
   const accountDatasource = useMemo(
-    () => createLocalAccountDatasource(database),
-    [database],
+    () => createLocalAccountDatasource(appDatabase),
+    [],
   );
   const accountRepository = useMemo(
     () => createAccountRepository(accountDatasource),
     [accountDatasource],
   );
   const authUserDatasource = useMemo(
-    () => createLocalAuthUserDatasource(database),
-    [database],
+    () => createLocalAuthUserDatasource(appDatabase),
+    [],
   );
   const authUserRepository = useMemo(
     () => createAuthUserRepository(authUserDatasource),
     [authUserDatasource],
   );
   const userManagementDatasource = useMemo(
-    () => createLocalUserManagementDatasource(database),
-    [database],
+    () => createLocalUserManagementDatasource(appDatabase),
+    [],
   );
   const userManagementRepository = useMemo(
     () =>
@@ -75,8 +73,8 @@ export function GetTransactionsScreenFactory({
   );
 
   const transactionDatasource = useMemo(
-    () => createLocalTransactionDatasource(database),
-    [database],
+    () => createLocalTransactionDatasource(appDatabase),
+    [],
   );
   const transactionRepository = useMemo(
     () => createTransactionRepository(transactionDatasource),

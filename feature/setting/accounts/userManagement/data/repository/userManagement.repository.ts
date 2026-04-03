@@ -55,7 +55,7 @@ export interface UserManagementRepository {
   updateMemberAccessTransaction(payload: {
     authUser: SaveAuthUserPayload;
     authCredential: SaveAuthCredentialPayload;
-    roleAssignment?: AssignUserManagementRolePayload | null;
+    roleAssignment: AssignUserManagementRolePayload | null;
   }): Promise<UserManagementOperationResult>;
   deleteAccountMemberByRemoteId(
     memberRemoteId: string,

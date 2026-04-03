@@ -26,9 +26,10 @@ export const createGetTransactionsUseCase = (
       return result;
     }
 
-    const normalizedAccountRemoteId = params.accountRemoteId?.trim();
+    const normalizedAccountRemoteId =
+      params.accountRemoteId === null ? null : params.accountRemoteId.trim();
 
-    if (!normalizedAccountRemoteId) {
+    if (normalizedAccountRemoteId === null || normalizedAccountRemoteId.length === 0) {
       return result;
     }
 

@@ -69,6 +69,7 @@ export const resolveDashboardHeaderConfig = (
         subtitle: "Good Evening",
         showBell: true,
         showProfile: true,
+        showBack: false,
       };
     case "personal":
       return {
@@ -76,11 +77,12 @@ export const resolveDashboardHeaderConfig = (
         subtitle: "Good Evening",
         showBell: true,
         showProfile: true,
+        showBack: false,
       };
     case "ledger":
       return {
         title: "Ledger",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -88,7 +90,7 @@ export const resolveDashboardHeaderConfig = (
     case "pos":
       return {
         title: "POS",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: true,
@@ -96,7 +98,7 @@ export const resolveDashboardHeaderConfig = (
     case "products":
       return {
         title: "Products",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -104,7 +106,7 @@ export const resolveDashboardHeaderConfig = (
     case "inventory":
       return {
         title: "Inventory",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -112,7 +114,7 @@ export const resolveDashboardHeaderConfig = (
     case "emi-loans":
       return {
         title: "EMI and Loans",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -120,7 +122,7 @@ export const resolveDashboardHeaderConfig = (
     case "more":
       return {
         title: "More",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -128,7 +130,7 @@ export const resolveDashboardHeaderConfig = (
     case "user-management":
       return {
         title: "User Management",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -136,7 +138,7 @@ export const resolveDashboardHeaderConfig = (
     case "personal-transactions":
       return {
         title: "Transactions",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -144,7 +146,7 @@ export const resolveDashboardHeaderConfig = (
     case "personal-budget":
       return {
         title: "Budget",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,
@@ -152,7 +154,7 @@ export const resolveDashboardHeaderConfig = (
     default:
       return {
         title: "Dashboard",
-        subtitle: undefined,
+        subtitle: null,
         showBell: false,
         showProfile: false,
         showBack: false,

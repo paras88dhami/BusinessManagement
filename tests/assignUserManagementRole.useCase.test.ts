@@ -25,6 +25,7 @@ describe("assignUserManagementRole.useCase", () => {
     const useCase = createAssignUserManagementRoleUseCase(repository);
     const result = await useCase.execute({
       accountRemoteId: "account-1",
+      actorUserRemoteId: " ",
       userRemoteId: "staff-1",
       roleRemoteId: "role-staff",
     });

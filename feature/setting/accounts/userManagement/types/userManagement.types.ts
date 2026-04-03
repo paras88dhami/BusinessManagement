@@ -65,12 +65,12 @@ export type AccountUserRoleAssignment = {
 };
 
 export type SaveUserManagementRolePayload = {
-  remoteId?: string;
+  remoteId: string | null;
   accountRemoteId: string;
   name: string;
   permissionCodes: string[];
-  isSystem?: boolean;
-  isDefault?: boolean;
+  isSystem: boolean | null;
+  isDefault: boolean | null;
 };
 
 export type SaveUserManagementRoleCommandPayload = SaveUserManagementRolePayload & {
@@ -78,18 +78,18 @@ export type SaveUserManagementRoleCommandPayload = SaveUserManagementRolePayload
 };
 
 export type SaveAccountMemberPayload = {
-  remoteId?: string;
+  remoteId: string | null;
   accountRemoteId: string;
   userRemoteId: string;
   status: AccountMemberStatusValue;
-  invitedByUserRemoteId?: string | null;
-  joinedAt?: number | null;
-  lastActiveAt?: number | null;
+  invitedByUserRemoteId: string | null;
+  joinedAt: number | null;
+  lastActiveAt: number | null;
 };
 
 export type AssignUserManagementRolePayload = {
   accountRemoteId: string;
-  actorUserRemoteId?: string;
+  actorUserRemoteId: string;
   userRemoteId: string;
   roleRemoteId: string;
 };
@@ -109,12 +109,12 @@ export type UpdateAccountMemberPayload = {
   accountRemoteId: string;
   actorUserRemoteId: string;
   memberRemoteId: string;
-  fullName?: string;
-  email?: string | null;
-  phoneCountryCode?: SignUpPhoneCountryCode;
-  phone?: string;
-  password?: string;
-  roleRemoteId?: string;
+  fullName: string;
+  email: string | null;
+  phoneCountryCode: SignUpPhoneCountryCode;
+  phone: string;
+  password: string | null;
+  roleRemoteId: string | null;
 };
 
 export type ChangeAccountMemberStatusPayload = {

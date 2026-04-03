@@ -33,8 +33,8 @@ export const useProfileBusinessCreatorViewModel = (
 
   const onToggleCreateBusinessExpanded = useCallback(() => {
     setIsCreateBusinessExpanded((previousValue) => !previousValue);
-    setLoadError(undefined);
-    setSuccessMessage(undefined);
+    setLoadError(null);
+    setSuccessMessage(null);
   }, [setLoadError, setSuccessMessage]);
 
   const onUpdateCreateBusinessProfileField = useCallback(
@@ -43,15 +43,15 @@ export const useProfileBusinessCreatorViewModel = (
         ...previousValue,
         [field]: value,
       }));
-      setLoadError(undefined);
-      setSuccessMessage(undefined);
+      setLoadError(null);
+      setSuccessMessage(null);
     },
     [setLoadError, setSuccessMessage],
   );
 
   const onCreateBusinessProfile = useCallback(async (): Promise<void> => {
-    setLoadError(undefined);
-    setSuccessMessage(undefined);
+    setLoadError(null);
+    setSuccessMessage(null);
 
     if (!activeUserRemoteId) {
       setLoadError("Active user session not found.");
@@ -130,8 +130,7 @@ export const useProfileBusinessCreatorViewModel = (
       setSuccessMessage("New business profile created.");
 
       onNavigateHome(AccountType.Business);
-    } catch (error) {
-      console.error("Failed to create business profile.", error);
+    } catch {
       setLoadError("Unable to create business profile right now.");
     } finally {
       setIsCreatingBusinessProfile(false);

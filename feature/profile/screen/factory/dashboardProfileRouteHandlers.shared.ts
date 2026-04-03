@@ -21,7 +21,6 @@ type DashboardProfileRouteHandlerParams = {
   navigateReplace: (targetPath: DashboardProfileReplacePath) => void;
   clearUserSession: () => Promise<void>;
   refreshSession: () => Promise<void>;
-  onLogoutError?: (error: unknown) => void;
 };
 
 export const createDashboardProfileRouteHandlers = (
@@ -34,7 +33,6 @@ export const createDashboardProfileRouteHandlers = (
     navigateReplace,
     clearUserSession,
     refreshSession,
-    onLogoutError,
   } = params;
 
   return {
@@ -47,10 +45,8 @@ export const createDashboardProfileRouteHandlers = (
       try {
         await clearUserSession();
         await refreshSession();
-      } catch (error) {
-        if (onLogoutError) {
-          onLogoutError(error);
-        }
+      } catch {
+        return;
       }
     },
     onBackToHome: () => {

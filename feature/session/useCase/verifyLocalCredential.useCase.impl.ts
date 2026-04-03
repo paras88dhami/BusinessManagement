@@ -127,8 +127,8 @@ export const createVerifyLocalCredentialUseCase = (
             hint: authCredential.hint,
             isActive: authCredential.isActive,
           });
-        } catch (error) {
-          console.error("Failed to rehash credential in background.", error);
+        } catch {
+          return;
         }
       })();
     }

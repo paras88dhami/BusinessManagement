@@ -1,5 +1,4 @@
 import React from "react";
-import { Database } from "@nozbe/watermelondb";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
@@ -10,27 +9,26 @@ import { createAccountRepository } from "../data/repository/account.repository.i
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "../useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { useAccountSelectionViewModel } from "../viewModel/accountSelection.viewModel.impl";
 import { AccountSelectionScreen } from "../ui/AccountSelectionScreen";
+import appDatabase from "@/shared/database/appDatabase";
 
 type GetAccountSelectionScreenFactoryProps = {
-  database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onBackToLogin: () => void;
-  onAccountSelected?: (
+  onAccountSelected: (
     selectedAccountContext: SelectedAccountContext,
   ) => Promise<void> | void;
 };
 
 export function GetAccountSelectionScreenFactory({
-  database,
   activeUserRemoteId,
   activeAccountRemoteId,
   onBackToLogin,
   onAccountSelected,
 }: GetAccountSelectionScreenFactoryProps) {
   const accountDatasource = React.useMemo(
-    () => createLocalAccountDatasource(database),
-    [database],
+    () => createLocalAccountDatasource(appDatabase),
+    [],
   );
 
   const accountRepository = React.useMemo(
@@ -39,8 +37,8 @@ export function GetAccountSelectionScreenFactory({
   );
 
   const authUserDatasource = React.useMemo(
-    () => createLocalAuthUserDatasource(database),
-    [database],
+    () => createLocalAuthUserDatasource(appDatabase),
+    [],
   );
 
   const authUserRepository = React.useMemo(
@@ -49,8 +47,8 @@ export function GetAccountSelectionScreenFactory({
   );
 
   const userManagementDatasource = React.useMemo(
-    () => createLocalUserManagementDatasource(database),
-    [database],
+    () => createLocalUserManagementDatasource(appDatabase),
+    [],
   );
 
   const userManagementRepository = React.useMemo(
@@ -73,7 +71,7 @@ export function GetAccountSelectionScreenFactory({
   );
 
   const viewModel = useAccountSelectionViewModel({
-    database,
+    database: appDatabase,
     activeUserRemoteId,
     activeAccountRemoteId,
     getAccessibleAccountsByUserRemoteIdUseCase,

@@ -1,5 +1,4 @@
 import {
-  EmiPlanModeValue,
   EmiPlanTypeValue,
 } from "@/feature/emiLoans/types/emi.entity.types";
 import { EmiPlanEditorState } from "@/feature/emiLoans/types/emi.state.types";

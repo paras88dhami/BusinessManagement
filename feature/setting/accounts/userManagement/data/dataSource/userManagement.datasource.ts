@@ -44,7 +44,7 @@ export type CreateMemberAccessRecordPayload = {
 export type UpdateMemberAccessRecordPayload = {
   authUser: SaveAuthUserPayload;
   authCredential: SaveAuthCredentialPayload;
-  roleAssignment?: AssignAccountUserRoleRecordPayload | null;
+  roleAssignment: AssignAccountUserRoleRecordPayload | null;
 };
 
 export interface UserManagementDatasource {

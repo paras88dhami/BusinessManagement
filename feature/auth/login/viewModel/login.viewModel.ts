@@ -21,5 +21,5 @@ export interface LoginViewModel {
 }
 
 export type UseLoginViewModelOptions = {
-  onSuccess?: () => void;
+  onSuccess: () => void;
 };

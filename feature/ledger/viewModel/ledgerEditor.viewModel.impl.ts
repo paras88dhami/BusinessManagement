@@ -123,7 +123,7 @@ export const useLedgerEditorViewModel = ({
   );
 
   const openCreate = useCallback(
-    (entryType: LedgerEntryTypeValue = LedgerEntryType.Sale) => {
+    (entryType: LedgerEntryTypeValue) => {
       setState(buildCreateState(entryType));
     },
     [buildCreateState],

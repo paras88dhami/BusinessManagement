@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Database } from "@nozbe/watermelondb";
 import {
   Account,
   AccountType,
@@ -24,39 +23,38 @@ import { useLedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEdito
 import { useLedgerDeleteViewModel } from "@/feature/ledger/viewModel/ledgerDelete.viewModel.impl";
 import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
 import { LedgerScreen } from "@/feature/ledger/ui/LedgerScreen";
+import appDatabase from "@/shared/database/appDatabase";
 
 export type GetLedgerScreenFactoryProps = {
-  database: Database;
   activeUserRemoteId: string | null;
   activeBusinessAccountRemoteId: string | null;
 };
 
 export function GetLedgerScreenFactory({
-  database,
   activeUserRemoteId,
   activeBusinessAccountRemoteId,
 }: GetLedgerScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
   const accountDatasource = useMemo(
-    () => createLocalAccountDatasource(database),
-    [database],
+    () => createLocalAccountDatasource(appDatabase),
+    [],
   );
   const accountRepository = useMemo(
     () => createAccountRepository(accountDatasource),
     [accountDatasource],
   );
   const authUserDatasource = useMemo(
-    () => createLocalAuthUserDatasource(database),
-    [database],
+    () => createLocalAuthUserDatasource(appDatabase),
+    [],
   );
   const authUserRepository = useMemo(
     () => createAuthUserRepository(authUserDatasource),
     [authUserDatasource],
   );
   const userManagementDatasource = useMemo(
-    () => createLocalUserManagementDatasource(database),
-    [database],
+    () => createLocalUserManagementDatasource(appDatabase),
+    [],
   );
   const userManagementRepository = useMemo(
     () =>
@@ -77,8 +75,8 @@ export function GetLedgerScreenFactory({
   );
 
   const ledgerDatasource = useMemo(
-    () => createLocalLedgerDatasource(database),
-    [database],
+    () => createLocalLedgerDatasource(appDatabase),
+    [],
   );
   const ledgerRepository = useMemo(
     () => createLedgerRepository(ledgerDatasource),

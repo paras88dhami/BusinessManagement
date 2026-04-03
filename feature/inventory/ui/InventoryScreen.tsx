@@ -66,7 +66,7 @@ export function   InventoryScreen({ viewModel }: { viewModel: InventoryViewModel
           valueColor={colors.warning}
         />
         <StatCard
-          icon={<Text style={styles.currencyIcon}>₨</Text>}
+          icon={<Text style={styles.currencyIcon}>Rs</Text>}
           value={formatCurrency(viewModel.summary.stockValue)}
           label="Stock Value"
         />

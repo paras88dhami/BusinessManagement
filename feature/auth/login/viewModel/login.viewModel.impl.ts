@@ -28,7 +28,7 @@ const getCountryOptionByCode = (countryCode: LoginPhoneCountryCode) => {
 
 export const useLoginViewModel = (
   useCase: LoginWithEmailUseCase,
-  options?: UseLoginViewModelOptions,
+  options: UseLoginViewModelOptions,
 ): LoginViewModel => {
   const [state, setState] = useState<LoginState>({ status: Status.Idle });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -129,10 +129,7 @@ export const useLoginViewModel = (
 
         if (result.success) {
           setState({ status: Status.Success });
-
-          if (options?.onSuccess) {
-            options.onSuccess();
-          }
+          options.onSuccess();
 
           return;
         }

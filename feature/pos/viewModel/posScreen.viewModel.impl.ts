@@ -5,13 +5,13 @@ import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
 import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase";
 import { ClearCartUseCase } from "../useCase/clearCart.useCase";
-import { CompletePaymentUseCase } from "../useCase/completePayment.useCase";
+import { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase";
 import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
 import { PrintReceiptUseCase } from "../useCase/printReceipt.useCase";
 import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
-import { PosCartLine, PosProduct, PosTotals } from "../types/pos.entity.types";
+import { PosCartLine, PosSlot, PosTotals } from "../types/pos.entity.types";
 
 const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -84,8 +84,15 @@ const parseAmountInput = (value: string): number => {
   return parsed;
 };
 
+const createEmptySlots = (): readonly PosSlot[] =>
+  Array.from({ length: 16 }, (_, index) => ({
+    slotId: `slot-${index + 1}`,
+    assignedProductId: null,
+  }));
+
 export type UsePosScreenViewModelParams = {
-  activeBusinessRemoteId: string | null;
+  activeBusinessAccountRemoteId: string | null;
+  activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
   getPosBootstrapUseCase: GetPosBootstrapUseCase;
   searchPosProductsUseCase: SearchPosProductsUseCase;
@@ -95,7 +102,7 @@ export type UsePosScreenViewModelParams = {
   applyDiscountUseCase: ApplyDiscountUseCase;
   applySurchargeUseCase: ApplySurchargeUseCase;
   clearCartUseCase: ClearCartUseCase;
-  completePaymentUseCase: CompletePaymentUseCase;
+  completePosCheckoutUseCase: CompletePosCheckoutUseCase;
   printReceiptUseCase: PrintReceiptUseCase;
 };
 
@@ -103,7 +110,8 @@ export function usePosScreenViewModel(
   params: UsePosScreenViewModelParams,
 ): PosScreenViewModel {
   const {
-    activeBusinessRemoteId,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
@@ -113,20 +121,11 @@ export function usePosScreenViewModel(
     applyDiscountUseCase,
     applySurchargeUseCase,
     clearCartUseCase,
-    completePaymentUseCase,
+    completePosCheckoutUseCase,
     printReceiptUseCase,
   } = params;
 
   const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
-
-  const syncProducts = useCallback(async (searchTerm: string) => {
-    const products = await searchPosProductsUseCase.execute(searchTerm);
-    setState((currentState) => ({
-      ...currentState,
-      filteredProducts: products,
-      products: currentState.bootstrap?.products ?? currentState.products,
-    }));
-  }, [searchPosProductsUseCase]);
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -149,7 +148,8 @@ export function usePosScreenViewModel(
     }));
 
     const result = await getPosBootstrapUseCase.execute({
-      activeBusinessRemoteId,
+      activeBusinessAccountRemoteId,
+      activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
     });
 
@@ -182,7 +182,8 @@ export function usePosScreenViewModel(
       errorMessage: null,
     }));
   }, [
-    activeBusinessRemoteId,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
@@ -468,10 +469,7 @@ export function usePosScreenViewModel(
     const products = await searchPosProductsUseCase.execute("");
     setState((currentState) => ({
       ...currentState,
-      slots: Array.from({ length: 16 }, (_, index) => ({
-        slotId: `slot-${index + 1}`,
-        assignedProductId: null,
-      })),
+      slots: createEmptySlots(),
       cartLines: [],
       totals: EMPTY_TOTALS,
       activeModal: "none",
@@ -487,8 +485,10 @@ export function usePosScreenViewModel(
   }, [clearCartUseCase, searchPosProductsUseCase]);
 
   const onCompletePayment = useCallback(async () => {
-    const result = await completePaymentUseCase.execute({
+    const result = await completePosCheckoutUseCase.execute({
       paidAmount: parseAmountInput(state.paymentInput),
+      activeBusinessAccountRemoteId,
+      activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
     });
 
@@ -500,10 +500,7 @@ export function usePosScreenViewModel(
     const products = await searchPosProductsUseCase.execute("");
     setState((currentState) => ({
       ...currentState,
-      slots: Array.from({ length: 16 }, (_, index) => ({
-        slotId: `slot-${index + 1}`,
-        assignedProductId: null,
-      })),
+      slots: createEmptySlots(),
       cartLines: [],
       totals: EMPTY_TOTALS,
       activeModal: "receipt",
@@ -515,12 +512,21 @@ export function usePosScreenViewModel(
       receipt: result.value,
       filteredProducts: products,
       infoMessage:
-        result.value.dueAmount > 0
+        result.value.ledgerEffect.type === "due_balance_created"
           ? `Sale completed. NPR ${result.value.dueAmount.toFixed(2)} was posted as ledger due.`
-          : "Sale completed successfully.",
+          : result.value.ledgerEffect.type === "due_balance_create_failed"
+            ? `Sale completed. NPR ${result.value.dueAmount.toFixed(2)} due could not be posted automatically. Add it from Ledger.`
+            : "Sale completed successfully.",
       errorMessage: null,
     }));
-  }, [activeSettlementAccountRemoteId, completePaymentUseCase, searchPosProductsUseCase, state.paymentInput]);
+  }, [
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
+    activeSettlementAccountRemoteId,
+    completePosCheckoutUseCase,
+    searchPosProductsUseCase,
+    state.paymentInput,
+  ]);
 
   const onPrintReceipt = useCallback(async () => {
     if (!state.receipt) {
@@ -561,7 +567,9 @@ export function usePosScreenViewModel(
       infoMessage: state.infoMessage,
       errorMessage: state.errorMessage,
       isBusinessContextResolved:
-        Boolean(activeBusinessRemoteId) && Boolean(activeSettlementAccountRemoteId),
+        Boolean(activeBusinessAccountRemoteId) &&
+        Boolean(activeOwnerUserRemoteId) &&
+        Boolean(activeSettlementAccountRemoteId),
       load,
       onPressSlot,
       onLongPressSlot,
@@ -587,7 +595,8 @@ export function usePosScreenViewModel(
       onPrintReceipt,
     }),
     [
-      activeBusinessRemoteId,
+      activeBusinessAccountRemoteId,
+      activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
       load,
       onApplyDiscount,

@@ -8,5 +8,6 @@ export interface AuthEntryViewModel {
   mode: AuthEntryModeViewModel;
   login: AuthEntryLoginViewModel;
   signUp: AuthEntrySignUpViewModel;
-  onForgotPasswordPress?: () => void;
+  onForgotPasswordPress: () => void;
+  isForgotPasswordEnabled: boolean;
 }

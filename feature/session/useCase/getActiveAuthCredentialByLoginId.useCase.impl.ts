@@ -2,7 +2,6 @@ import { AuthCredentialRepository } from "../data/repository/authCredential.repo
 import {
   AuthCredentialResult,
   AuthSessionValidationError,
-  CredentialType,
   CredentialTypeValue,
 } from "../types/authSession.types";
 import { GetActiveAuthCredentialByLoginIdUseCase } from "./getActiveAuthCredentialByLoginId.useCase";
@@ -12,7 +11,7 @@ export const createGetActiveAuthCredentialByLoginIdUseCase = (
 ): GetActiveAuthCredentialByLoginIdUseCase => ({
   async execute(
     loginId: string,
-    credentialType: CredentialTypeValue = CredentialType.Password,
+    credentialType: CredentialTypeValue,
   ): Promise<AuthCredentialResult> {
     const normalizedLoginId = loginId.trim();
 

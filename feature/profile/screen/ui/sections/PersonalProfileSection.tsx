@@ -76,7 +76,13 @@ export function PersonalProfileSection({
           }}
           placeholder="Your full name"
           autoCapitalize="words"
+          keyboardType="default"
+          multiline={false}
+          numberOfLines={1}
+          autoComplete={null}
+          textContentType={null}
           icon={<UserRound size={16} color={colors.mutedForeground} />}
+          isLast={false}
         />
 
         <ProfileField
@@ -87,7 +93,14 @@ export function PersonalProfileSection({
             onUpdatePersonalProfileField("phone", nextValue);
           }}
           placeholder="Phone number"
+          autoCapitalize="none"
+          keyboardType="phone-pad"
+          multiline={false}
+          numberOfLines={1}
+          autoComplete={null}
+          textContentType={null}
           icon={<Phone size={16} color={colors.mutedForeground} />}
+          isLast={false}
         />
 
         <ProfileField
@@ -98,8 +111,14 @@ export function PersonalProfileSection({
             onUpdatePersonalProfileField("email", nextValue);
           }}
           placeholder="Email address"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          multiline={false}
+          numberOfLines={1}
+          autoComplete="email"
+          textContentType="emailAddress"
           icon={<Mail size={16} color={colors.mutedForeground} />}
-          isLast
+          isLast={true}
         />
       </Card>
 

@@ -31,7 +31,7 @@ const getCountryOptionByCode = (countryCode: SignUpPhoneCountryCode) => {
 
 export const useSignUpViewModel = (
   useCase: SignUpWithEmailUseCase,
-  options?: UseSignUpViewModelOptions,
+  options: UseSignUpViewModelOptions,
 ): SignUpViewModel => {
   const [state, setState] = useState<SignUpState>({ status: Status.Idle });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -191,10 +191,7 @@ export const useSignUpViewModel = (
 
         if (result.success) {
           setState({ status: Status.Success });
-
-          if (options?.onSuccess) {
-            options.onSuccess();
-          }
+          options.onSuccess();
 
           return;
         }
@@ -234,7 +231,7 @@ export const useSignUpViewModel = (
     businessTypeError:
       typeof errors.businessType?.message === "string"
         ? errors.businessType.message
-        : undefined,
+        : null,
     onChangeSelectedPhoneCountry,
     onChangeSelectedProfileType,
     onChangeSelectedBusinessType,

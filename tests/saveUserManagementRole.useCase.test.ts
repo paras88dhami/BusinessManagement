@@ -28,10 +28,13 @@ describe("saveUserManagementRole.useCase", () => {
     const useCase = createSaveUserManagementRoleUseCase(repository);
 
     const result = await useCase.execute({
+      remoteId: null,
       accountRemoteId: "account-1",
       actorUserRemoteId: "owner-1",
       name: "Manager",
       permissionCodes: ["ledger.view"],
+      isSystem: null,
+      isDefault: null,
     });
 
     expect(result.success).toBe(true);
@@ -52,10 +55,13 @@ describe("saveUserManagementRole.useCase", () => {
     const useCase = createSaveUserManagementRoleUseCase(repository);
 
     const result = await useCase.execute({
+      remoteId: null,
       accountRemoteId: "account-1",
       actorUserRemoteId: "staff-1",
       name: "Manager",
       permissionCodes: ["ledger.view"],
+      isSystem: null,
+      isDefault: null,
     });
 
     expect(result.success).toBe(false);
@@ -82,13 +88,15 @@ describe("saveUserManagementRole.useCase", () => {
 
     const useCase = createSaveUserManagementRoleUseCase(repository);
 
-    const result = await useCase.execute(
-      {
-        accountRemoteId: "account-1",
-        name: "Manager",
-        permissionCodes: ["ledger.view"],
-      } as any,
-    );
+    const result = await useCase.execute({
+      remoteId: null,
+      accountRemoteId: "account-1",
+      actorUserRemoteId: "   ",
+      name: "Manager",
+      permissionCodes: ["ledger.view"],
+      isSystem: null,
+      isDefault: null,
+    });
 
     expect(result.success).toBe(false);
 

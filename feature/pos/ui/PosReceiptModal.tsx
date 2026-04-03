@@ -77,8 +77,13 @@ export function PosReceiptModal({
               <Text style={styles.grandTotalLabel}>Grand Total</Text>
               <Text style={styles.grandTotalValue}>{formatCurrency(receipt.totals.grandTotal)}</Text>
               {receipt.ledgerEffect.type === "due_balance_created" ? (
-                <Text style={styles.ledgerText}>
+                <Text style={styles.ledgerSuccessText}>
                   Ledger due created for {formatCurrency(receipt.ledgerEffect.dueAmount)}.
+                </Text>
+              ) : receipt.ledgerEffect.type === "due_balance_create_failed" ? (
+                <Text style={styles.ledgerWarningText}>
+                  Sale was completed but due posting failed. Add ledger entry manually for{" "}
+                  {formatCurrency(receipt.ledgerEffect.dueAmount)}.
                 </Text>
               ) : null}
             </ScrollView>
@@ -192,7 +197,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "InterBold",
   },
-  ledgerText: {
+  ledgerSuccessText: {
+    color: colors.success,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "InterMedium",
+  },
+  ledgerWarningText: {
     color: colors.warning,
     fontSize: 13,
     lineHeight: 18,

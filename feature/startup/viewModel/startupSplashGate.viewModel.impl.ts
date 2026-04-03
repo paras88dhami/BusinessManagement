@@ -30,9 +30,7 @@ export const useStartupSplashGateViewModel = ({
     isHidingNativeSplashRef.current = true;
 
     void SplashScreen.hideAsync()
-      .catch(() => {
-        console.warn("Failed to hide splash screen.");
-      })
+      .catch(() => undefined)
       .finally(() => {
         setHasNativeSplashHidden(true);
         isHidingNativeSplashRef.current = false;

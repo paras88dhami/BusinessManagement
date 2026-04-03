@@ -82,7 +82,13 @@ export function CreateBusinessProfileSection({
                 }}
                 placeholder="Legal business name"
                 autoCapitalize="words"
+                keyboardType="default"
+                multiline={false}
+                numberOfLines={1}
+                autoComplete={null}
+                textContentType={null}
                 icon={<Building2 size={16} color={colors.mutedForeground} />}
+                isLast={false}
               />
 
               <ProfileField
@@ -95,7 +101,12 @@ export function CreateBusinessProfileSection({
                 placeholder="+977..."
                 autoCapitalize="none"
                 keyboardType="phone-pad"
+                multiline={false}
+                numberOfLines={1}
+                autoComplete={null}
+                textContentType={null}
                 icon={<Phone size={16} color={colors.mutedForeground} />}
+                isLast={false}
               />
 
               <ProfileField
@@ -108,9 +119,12 @@ export function CreateBusinessProfileSection({
                 placeholder="business@example.com"
                 autoCapitalize="none"
                 keyboardType="email-address"
+                multiline={false}
+                numberOfLines={1}
                 autoComplete="email"
                 textContentType="emailAddress"
                 icon={<Mail size={16} color={colors.mutedForeground} />}
+                isLast={false}
               />
 
               <ProfileField
@@ -122,7 +136,13 @@ export function CreateBusinessProfileSection({
                 }}
                 placeholder="City / location"
                 autoCapitalize="words"
+                keyboardType="default"
+                multiline={false}
+                numberOfLines={1}
+                autoComplete={null}
+                textContentType={null}
                 icon={<MapPin size={16} color={colors.mutedForeground} />}
+                isLast={false}
               />
 
               <ProfileField
@@ -134,9 +154,13 @@ export function CreateBusinessProfileSection({
                 }}
                 placeholder="Street, ward, landmark"
                 autoCapitalize="sentences"
-                multiline
+                keyboardType="default"
+                multiline={true}
                 numberOfLines={2}
+                autoComplete={null}
+                textContentType={null}
                 icon={<MapPin size={16} color={colors.mutedForeground} />}
+                isLast={false}
               />
 
               <ProfileField
@@ -148,7 +172,13 @@ export function CreateBusinessProfileSection({
                 }}
                 placeholder="Tax registration number"
                 autoCapitalize="characters"
+                keyboardType="default"
+                multiline={false}
+                numberOfLines={1}
+                autoComplete={null}
+                textContentType={null}
                 icon={<Shield size={16} color={colors.mutedForeground} />}
+                isLast={true}
               />
 
               <View style={styles.businessTypeRow}>

@@ -61,7 +61,7 @@ describe("dashboardProfileRouteHandlers.shared", () => {
   });
 
   it("captures logout errors without throwing", async () => {
-    const onLogoutError = vi.fn();
+    const refreshSessionSpy = vi.fn(async () => {});
 
     const handlers = createDashboardProfileRouteHandlers({
       activeUserRemoteId: "user-1",
@@ -71,11 +71,10 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       clearUserSession: async () => {
         throw new Error("clear-failed");
       },
-      refreshSession: async () => {},
-      onLogoutError,
+      refreshSession: refreshSessionSpy,
     });
 
     await expect(handlers.onLogout()).resolves.toBeUndefined();
-    expect(onLogoutError).toHaveBeenCalledTimes(1);
+    expect(refreshSessionSpy).not.toHaveBeenCalled();
   });
 });

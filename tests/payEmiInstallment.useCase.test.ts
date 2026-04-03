@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { createPayEmiInstallmentUseCase } from "@/feature/emiLoans/useCase/payEmiInstallment.useCase.impl";
+import { EmiRepository } from "@/feature/emiLoans/data/repository/emi.repository";
+import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
+import { LedgerRepository } from "@/feature/ledger/data/repository/ledger.repository";
 import {
   EmiInstallmentStatus,
   EmiPaymentDirection,
@@ -87,9 +90,9 @@ describe("payEmiInstallment.useCase", () => {
     };
 
     const useCase = createPayEmiInstallmentUseCase(
-      emiRepository as any,
-      transactionRepository as any,
-      ledgerRepository as any,
+      emiRepository as unknown as EmiRepository,
+      transactionRepository as unknown as TransactionRepository,
+      ledgerRepository as unknown as LedgerRepository,
     );
 
     const result = await useCase.execute({
@@ -179,9 +182,9 @@ describe("payEmiInstallment.useCase", () => {
     };
 
     const useCase = createPayEmiInstallmentUseCase(
-      emiRepository as any,
-      transactionRepository as any,
-      ledgerRepository as any,
+      emiRepository as unknown as EmiRepository,
+      transactionRepository as unknown as TransactionRepository,
+      ledgerRepository as unknown as LedgerRepository,
     );
 
     const result = await useCase.execute({

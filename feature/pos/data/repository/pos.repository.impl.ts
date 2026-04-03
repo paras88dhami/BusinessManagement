@@ -1,5 +1,4 @@
 import {
-  PosBootstrap,
   PosCartLine,
   PosReceipt,
   PosSlot,

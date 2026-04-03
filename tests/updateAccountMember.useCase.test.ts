@@ -7,6 +7,7 @@ import {
 import { GetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase";
 import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
 import { createUpdateAccountMemberUseCase } from "@/feature/setting/accounts/userManagement/useCase/updateAccountMember.useCase.impl";
+import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import {
   AccountMemberStatus,
   UserManagementErrorType,
@@ -37,7 +38,7 @@ describe("updateAccountMember.useCase", () => {
       }),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -48,7 +49,7 @@ describe("updateAccountMember.useCase", () => {
       userManagementRepository,
       getAuthUserByRemoteIdUseCase,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({
@@ -56,6 +57,11 @@ describe("updateAccountMember.useCase", () => {
       actorUserRemoteId: "staff-1",
       memberRemoteId: "member-1",
       fullName: "Staff User",
+      email: null,
+      phoneCountryCode: "NP",
+      phone: "9800000000",
+      password: null,
+      roleRemoteId: null,
     });
 
     expect(result.success).toBe(false);
@@ -172,7 +178,7 @@ describe("updateAccountMember.useCase", () => {
       })),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -183,7 +189,7 @@ describe("updateAccountMember.useCase", () => {
       userManagementRepository,
       getAuthUserByRemoteIdUseCase,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({
@@ -191,6 +197,10 @@ describe("updateAccountMember.useCase", () => {
       actorUserRemoteId: "manager-1",
       memberRemoteId: "member-1",
       fullName: "Updated Name",
+      email: "staff@elekha.com",
+      phoneCountryCode: "NP",
+      phone: "9800000000",
+      password: null,
       roleRemoteId: "role-staff",
     });
 
@@ -286,7 +296,7 @@ describe("updateAccountMember.useCase", () => {
       })),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -297,13 +307,18 @@ describe("updateAccountMember.useCase", () => {
       userManagementRepository,
       getAuthUserByRemoteIdUseCase,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({
       accountRemoteId: "account-1",
       actorUserRemoteId: "manager-1",
       memberRemoteId: "member-1",
+      fullName: "Staff User",
+      email: "staff@elekha.com",
+      phoneCountryCode: "NP",
+      phone: "9800000000",
+      password: null,
       roleRemoteId: "role-new",
     });
 

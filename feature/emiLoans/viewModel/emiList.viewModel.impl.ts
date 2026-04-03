@@ -15,8 +15,7 @@ import { GetEmiPlansUseCase } from "@/feature/emiLoans/useCase/getEmiPlans.useCa
 import {
   formatCurrency,
   formatDateLabel,
-  getOverdueAmount,
-  getRemainingAmount,
+    getRemainingAmount,
 } from "./emi.shared";
 import { EmiListViewModel } from "./emiList.viewModel";
 
@@ -25,15 +24,35 @@ type UseEmiListViewModelParams = {
   ownerUserRemoteId: string | null;
   businessAccountRemoteId: string | null;
   getEmiPlansUseCase: GetEmiPlansUseCase;
-  getPlanDetailByRemoteId: (remoteId: string) => Promise<{
-    success: boolean;
-    value?: { installments: { amount: number; dueAt: number; status: string }[] };
-    error?: { message: string };
-  }>;
+  getPlanDetailByRemoteId: (remoteId: string) => Promise<EmiPlanDetailLookupResult>;
   onOpenCreate: () => void;
   onOpenDetail: (remoteId: string) => void;
   reloadSignal: number;
 };
+
+type EmiPlanInstallmentLookupItem = {
+  amount: number;
+  dueAt: number;
+  status: string;
+};
+
+type EmiPlanDetailLookupSuccess = {
+  success: true;
+  value: {
+    installments: EmiPlanInstallmentLookupItem[];
+  };
+};
+
+type EmiPlanDetailLookupFailure = {
+  success: false;
+  error: {
+    message: string;
+  };
+};
+
+type EmiPlanDetailLookupResult =
+  | EmiPlanDetailLookupSuccess
+  | EmiPlanDetailLookupFailure;
 
 type PlanSnapshot = EmiPlan & {
   dueTodayAmount: number;
@@ -48,7 +67,7 @@ const buildPlanSnapshot = async (
 ): Promise<PlanSnapshot> => {
   const detailResult = await getPlanDetailByRemoteId(plan.remoteId);
 
-  if (!detailResult.success || !detailResult.value) {
+  if (!detailResult.success) {
     return {
       ...plan,
       dueTodayAmount: 0,
@@ -89,11 +108,11 @@ const buildSubtitle = (plan: PlanSnapshot): string => {
 
   if (plan.planMode === EmiPlanMode.Business) {
     const partyLabel = plan.counterpartyName?.trim() || "No party linked";
-    return `${partyLabel} • Next ${nextDueLabel}`;
+    return `${partyLabel} | Next ${nextDueLabel}`;
   }
 
   const linkedLabel = plan.counterpartyName?.trim() || plan.linkedAccountDisplayNameSnapshot;
-  return `${linkedLabel} • Next ${nextDueLabel}`;
+  return `${linkedLabel} | Next ${nextDueLabel}`;
 };
 
 const buildBadgeLabel = (plan: PlanSnapshot): string => {
@@ -329,3 +348,4 @@ export const useEmiListViewModel = ({
     onOpenDetail,
   };
 };
+

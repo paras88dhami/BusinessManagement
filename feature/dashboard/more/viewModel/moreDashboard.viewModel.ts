@@ -19,5 +19,5 @@ export type UseMoreDashboardViewModelParams = {
   onOpenTransactions: () => void;
   onOpenBudget: () => void;
   onOpenUserManagement: () => void;
-  hasMenuAccess?: MoreDashboardMenuAccessPredicate;
+  hasMenuAccess: MoreDashboardMenuAccessPredicate;
 };

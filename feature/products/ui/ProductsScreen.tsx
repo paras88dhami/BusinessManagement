@@ -27,10 +27,10 @@ export function ProductsScreen({
 }: {
   viewModel: ProductsViewModel;
 }) {
-  const kindOptions: ReadonlyArray<{
+  const kindOptions: readonly {
     label: string;
     value: "all" | ProductKindValue;
-  }> = [
+  }[] = [
     { label: "All", value: "all" },
     { label: "Items", value: ProductKind.Item },
     { label: "Services", value: ProductKind.Service },

@@ -1,7 +1,6 @@
 import { Result } from "@/shared/types/result.types";
 import {
   CompleteInstallmentPaymentPayload,
-  EmiInstallment,
   SaveEmiInstallmentPayload,
   SaveEmiPlanPayload,
 } from "@/feature/emiLoans/types/emi.entity.types";

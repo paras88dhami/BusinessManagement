@@ -12,9 +12,10 @@ type UseAuthEntryViewModelParams = {
   database: Database;
   loginWithEmailUseCase: LoginWithEmailUseCase;
   signUpWithEmailUseCase: SignUpWithEmailUseCase;
-  onLoginSuccess?: () => void;
-  onSignUpSuccess?: () => void;
-  onForgotPasswordPress?: () => void;
+  onLoginSuccess: () => void;
+  onSignUpSuccess: () => void;
+  onForgotPasswordPress: () => void;
+  isForgotPasswordEnabled: boolean;
 };
 
 export const useAuthEntryViewModel = (
@@ -27,6 +28,7 @@ export const useAuthEntryViewModel = (
     onLoginSuccess,
     onSignUpSuccess,
     onForgotPasswordPress,
+    isForgotPasswordEnabled,
   } = params;
 
   const language = useAuthEntryLanguageViewModel({ database });
@@ -39,10 +41,7 @@ export const useAuthEntryViewModel = (
 
   const handleSignUpSuccess = useCallback(() => {
     mode.switchToLogin();
-
-    if (onSignUpSuccess) {
-      onSignUpSuccess();
-    }
+    onSignUpSuccess();
   }, [mode, onSignUpSuccess]);
 
   const signUp = useAuthEntrySignUpViewModel({
@@ -57,7 +56,8 @@ export const useAuthEntryViewModel = (
       login,
       signUp,
       onForgotPasswordPress,
+      isForgotPasswordEnabled,
     }),
-    [language, mode, login, signUp, onForgotPasswordPress],
+    [isForgotPasswordEnabled, language, login, mode, onForgotPasswordPress, signUp],
   );
 };

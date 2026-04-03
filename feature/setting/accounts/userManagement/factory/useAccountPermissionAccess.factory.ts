@@ -1,4 +1,3 @@
-import { Database } from "@nozbe/watermelondb";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
@@ -8,9 +7,9 @@ import { createLocalUserManagementDatasource } from "../data/dataSource/local.us
 import { createUserManagementRepository } from "../data/repository/userManagement.repository.impl";
 import { createResolveAccountPermissionCodesUseCase } from "../useCase/resolveAccountPermissionCodes.useCase.impl";
 import { hasAccountPermissionWithAliases } from "../types/userManagementPermissionAlias.constants";
+import appDatabase from "@/shared/database/appDatabase";
 
 type UseAccountPermissionAccessParams = {
-  database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
 };
@@ -18,7 +17,7 @@ type UseAccountPermissionAccessParams = {
 export type AccountPermissionAccess = {
   isLoading: boolean;
   permissionCodes: readonly string[];
-  error?: string;
+  error: string | null;
   hasPermission: (permissionCode: string) => boolean;
   reload: () => Promise<void>;
 };
@@ -26,11 +25,12 @@ export type AccountPermissionAccess = {
 export const useAccountPermissionAccess = (
   params: UseAccountPermissionAccessParams,
 ): AccountPermissionAccess => {
-  const { database, activeUserRemoteId, activeAccountRemoteId } = params;
+  const { activeUserRemoteId, activeAccountRemoteId } = params;
+  const database = appDatabase;
 
   const [isLoading, setIsLoading] = useState(true);
   const [permissionCodes, setPermissionCodes] = useState<string[]>([]);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | null>(null);
 
   const userManagementDatasource = useMemo(
     () => createLocalUserManagementDatasource(database),
@@ -74,7 +74,7 @@ export const useAccountPermissionAccess = (
 
   const reload = useCallback(async (): Promise<void> => {
     setIsLoading(true);
-    setError(undefined);
+    setError(null);
 
     try {
       if (!activeUserRemoteId || !activeAccountRemoteId) {

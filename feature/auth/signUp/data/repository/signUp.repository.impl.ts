@@ -4,7 +4,7 @@ import { SignUpRepository } from "./signUp.repository";
 import { DatabaseError, SignUpInput, SignUpResult } from "../../types/signUp.types";
 
 type LocalSignUpRepositoryOptions = {
-  onRegistered?: (
+  onRegistered: (
     verifiedCredential: VerifiedLocalCredential,
     payload: SignUpInput,
   ) => Promise<void> | void;
@@ -12,7 +12,7 @@ type LocalSignUpRepositoryOptions = {
 
 export const createLocalSignUpRepository = (
   registerUserWithDefaultAccountUseCase: RegisterUserWithDefaultAccountUseCase,
-  options: LocalSignUpRepositoryOptions = {},
+  options: LocalSignUpRepositoryOptions,
 ): SignUpRepository => ({
   async signUpWithEmail(payload): Promise<SignUpResult> {
     const registrationResult =
@@ -23,11 +23,8 @@ export const createLocalSignUpRepository = (
     }
 
     try {
-      if (options.onRegistered) {
-        await options.onRegistered(registrationResult.value, payload);
-      }
-    } catch (error) {
-      console.error("Failed to finalize post-registration side effects.", error);
+      await options.onRegistered(registrationResult.value, payload);
+    } catch {
       return {
         success: false,
         error: DatabaseError,

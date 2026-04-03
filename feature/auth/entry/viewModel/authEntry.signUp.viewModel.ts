@@ -19,7 +19,7 @@ export interface AuthEntrySignUpViewModel {
   selectedProfileType: SignUpProfileTypeValue;
   selectedBusinessType: string;
   businessTypeOptions: readonly BusinessTypeOption[];
-  businessTypeError?: string;
+  businessTypeError: string | null;
   onChangeSelectedPhoneCountry: (
     countryCode: SignUpPhoneCountryCode,
   ) => void;
@@ -29,6 +29,6 @@ export interface AuthEntrySignUpViewModel {
   isPasswordVisible: boolean;
   togglePasswordVisibility: () => void;
   isSubmitting: boolean;
-  submitError?: string;
+  submitError: string | null;
   submit: () => Promise<void>;
 }

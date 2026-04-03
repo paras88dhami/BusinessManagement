@@ -3,7 +3,6 @@ import {
   PosCartLine,
   PosProduct,
   PosReceipt,
-  PosTotals,
 } from "../../types/pos.entity.types";
 import {
   PosApplyAmountAdjustmentParams,

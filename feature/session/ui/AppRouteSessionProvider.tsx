@@ -41,7 +41,7 @@ export type DashboardRouteContext = {
   activeAccountDisplayName: string;
   profileName: string;
   profileInitials: string;
-  sessionError?: string;
+  sessionError: string | null;
 };
 
 export type AppRouteSessionValue = DashboardRouteContext & {
@@ -59,7 +59,7 @@ const INITIAL_CONTEXT: DashboardRouteContext = {
   activeAccountDisplayName: "",
   profileName: "eLekha User",
   profileInitials: "EL",
-  sessionError: undefined,
+  sessionError: null,
 };
 
 const APP_SETTINGS_TABLE = "app_settings";
@@ -148,7 +148,7 @@ export function AppRouteSessionProvider({
       let hasActiveAccount = Boolean(activeAccountRemoteId);
       let activeAccountType: AccountTypeValue | null = null;
       let activeAccountDisplayName = "";
-      let sessionError: string | undefined;
+      let sessionError: string | null = null;
 
       let profileName = "eLekha User";
       let profileInitials = "EL";
@@ -234,8 +234,6 @@ export function AppRouteSessionProvider({
         error instanceof Error
           ? error.message
           : "Failed to resolve session state.";
-
-      console.error("Failed to resolve app route session.", error);
 
       if (lastKnownGoodContextRef.current?.hasActiveSession) {
         setContext({

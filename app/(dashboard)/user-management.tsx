@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { GetUserManagementScreenFactory } from "@/feature/setting/accounts/userManagement/factory/getUserManagementScreen.factory";
 import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
-import appDatabase from "@/shared/database/appDatabase";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
@@ -12,47 +11,79 @@ const USER_MANAGEMENT_VIEW_PERMISSION_CODE = "user_management.view";
 export default function UserManagementRoute() {
   const navigation = useSmoothNavigation();
   const {
+    isLoading,
+    hasActiveSession,
+    hasActiveAccount,
     activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
-    database: appDatabase,
     activeUserRemoteId,
     activeAccountRemoteId,
   });
+  const canViewUserManagement = permissionAccess.hasPermission(
+    USER_MANAGEMENT_VIEW_PERMISSION_CODE,
+  );
 
   useEffect(() => {
-    if (activeAccountType !== AccountType.Business) {
-      navigation.replace(getDashboardHomePath(activeAccountType));
-    }
-  }, [activeAccountType, navigation]);
-
-  useEffect(() => {
-    if (permissionAccess.isLoading) {
+    if (isLoading || !hasActiveSession || !hasActiveAccount) {
       return;
     }
 
-    if (!permissionAccess.hasPermission(USER_MANAGEMENT_VIEW_PERMISSION_CODE)) {
+    if (activeAccountType !== AccountType.Business) {
       navigation.replace(getDashboardHomePath(activeAccountType));
     }
-  }, [activeAccountType, navigation, permissionAccess]);
+  }, [
+    activeAccountType,
+    hasActiveAccount,
+    hasActiveSession,
+    isLoading,
+    navigation,
+  ]);
+
+  useEffect(() => {
+    if (isLoading || !hasActiveSession || !hasActiveAccount) {
+      return;
+    }
+
+    if (activeAccountType !== AccountType.Business || permissionAccess.isLoading) {
+      return;
+    }
+
+    if (!canViewUserManagement) {
+      navigation.replace(getDashboardHomePath(activeAccountType));
+    }
+  }, [
+    activeAccountType,
+    canViewUserManagement,
+    hasActiveAccount,
+    hasActiveSession,
+    isLoading,
+    navigation,
+    permissionAccess.isLoading,
+  ]);
 
   const handleBack = useCallback(() => {
     navigation.replace("/(dashboard)/more");
   }, [navigation]);
 
   if (
-    activeAccountType !== AccountType.Business ||
-    !permissionAccess.hasPermission(USER_MANAGEMENT_VIEW_PERMISSION_CODE)
+    isLoading ||
+    !hasActiveSession ||
+    !hasActiveAccount ||
+    permissionAccess.isLoading
   ) {
+    return null;
+  }
+
+  if (activeAccountType !== AccountType.Business || !canViewUserManagement) {
     return null;
   }
 
   return (
     <GetUserManagementScreenFactory
-      database={appDatabase}
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
       onBack={handleBack}

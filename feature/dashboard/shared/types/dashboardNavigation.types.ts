@@ -26,7 +26,7 @@ export type DashboardTabItem = {
   key: DashboardTabValue;
   label: string;
   icon: DashboardTabIconName;
-  center?: boolean;
+  center: boolean;
 };
 
 export type DashboardTabItems = readonly DashboardTabItem[];

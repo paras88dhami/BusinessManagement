@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Database } from "@nozbe/watermelondb";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
 import { createLocalUserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/local.userManagement.datasource.impl";
@@ -27,35 +26,40 @@ import { createLocalTransactionDatasource } from "@/feature/transactions/data/da
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import appDatabase from "@/shared/database/appDatabase";
 
 export type GetEmiLoansScreenFactoryProps = {
-  database: Database;
   activeAccountType: AccountTypeValue | null;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
 };
 
 export function GetEmiLoansScreenFactory({
-  database,
   activeAccountType,
   activeUserRemoteId,
   activeAccountRemoteId,
 }: GetEmiLoansScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
-  const accountDatasource = useMemo(() => createLocalAccountDatasource(database), [database]);
+  const accountDatasource = useMemo(
+    () => createLocalAccountDatasource(appDatabase),
+    [],
+  );
   const accountRepository = useMemo(
     () => createAccountRepository(accountDatasource),
     [accountDatasource],
   );
-  const authUserDatasource = useMemo(() => createLocalAuthUserDatasource(database), [database]);
+  const authUserDatasource = useMemo(
+    () => createLocalAuthUserDatasource(appDatabase),
+    [],
+  );
   const authUserRepository = useMemo(
     () => createAuthUserRepository(authUserDatasource),
     [authUserDatasource],
   );
   const userManagementDatasource = useMemo(
-    () => createLocalUserManagementDatasource(database),
-    [database],
+    () => createLocalUserManagementDatasource(appDatabase),
+    [],
   );
   const userManagementRepository = useMemo(
     () =>
@@ -75,7 +79,10 @@ export function GetEmiLoansScreenFactory({
     [accountRepository, userManagementRepository],
   );
 
-  const emiDatasource = useMemo(() => createLocalEmiDatasource(database), [database]);
+  const emiDatasource = useMemo(
+    () => createLocalEmiDatasource(appDatabase),
+    [],
+  );
   const emiRepository = useMemo(() => createEmiRepository(emiDatasource), [emiDatasource]);
   const getEmiPlansUseCase = useMemo(
     () => createGetEmiPlansUseCase(emiRepository),
@@ -91,16 +98,16 @@ export function GetEmiLoansScreenFactory({
   );
 
   const transactionDatasource = useMemo(
-    () => createLocalTransactionDatasource(database),
-    [database],
+    () => createLocalTransactionDatasource(appDatabase),
+    [],
   );
   const transactionRepository = useMemo(
     () => createTransactionRepository(transactionDatasource),
     [transactionDatasource],
   );
   const ledgerDatasource = useMemo(
-    () => createLocalLedgerDatasource(database),
-    [database],
+    () => createLocalLedgerDatasource(appDatabase),
+    [],
   );
   const ledgerRepository = useMemo(
     () => createLedgerRepository(ledgerDatasource),

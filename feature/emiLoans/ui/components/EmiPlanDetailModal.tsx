@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { BellRing, ChevronRight, Phone, X } from "lucide-react-native";
+import { BellRing, Phone, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";

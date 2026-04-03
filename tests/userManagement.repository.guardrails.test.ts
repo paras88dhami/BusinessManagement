@@ -1,15 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { createUserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository.impl";
 import { AccountMemberStatus, UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementDatasource } from "@/feature/setting/accounts/userManagement/data/dataSource/userManagement.datasource";
+import { AccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository";
+import { AuthUserRepository } from "@/feature/session/data/repository/authUser.repository";
 
-const createLocalDatasourceStub = (): any => ({
+const createLocalDatasourceStub = () => ({
   ensurePermissionCatalogSeeded: vi.fn(async () => ({ success: true as const, value: true })),
-  getPermissionCatalog: vi.fn(async () => ({ success: true as const, value: [] })),
-  getRoleByRemoteId: vi.fn(async () => ({ success: true as const, value: null })),
-  getRolesByAccountRemoteId: vi.fn(async () => ({ success: true as const, value: [] })),
-  getMemberByRemoteId: vi.fn(async () => ({ success: true as const, value: null })),
-  getMembersByAccountRemoteId: vi.fn(async () => ({ success: true as const, value: [] })),
-  getMemberByAccountAndUser: vi.fn(async () => ({ success: true as const, value: null })),
+  getPermissionCatalog: vi.fn(async () => ({ success: true as const, value: [] as unknown[] })),
+  getRoleByRemoteId: vi.fn(async () => ({ success: true as const, value: null as unknown })),
+  getRolesByAccountRemoteId: vi.fn(async () => ({ success: true as const, value: [] as unknown[] })),
+  getMemberByRemoteId: vi.fn(async () => ({ success: true as const, value: null as unknown })),
+  getMembersByAccountRemoteId: vi.fn(async () => ({ success: true as const, value: [] as unknown[] })),
+  getMemberByAccountAndUser: vi.fn(async () => ({ success: true as const, value: null as unknown })),
   createMemberAccessRecord: vi.fn(async () => ({ success: true as const, value: true })),
   updateMemberAccessRecord: vi.fn(async () => ({ success: true as const, value: true })),
   saveMember: vi.fn(async () => ({ success: true as const, value: { remoteId: "member-1" } })),
@@ -27,7 +30,7 @@ const createLocalDatasourceStub = (): any => ({
   replaceRolePermissions: vi.fn(async () => ({ success: true as const, value: true })),
   getRolePermissionsByRoleRemoteIds: vi.fn(async () => ({
     success: true as const,
-    value: [],
+    value: [] as unknown[],
   })),
   assignUserRole: vi.fn(async () => ({
     success: true as const,
@@ -39,10 +42,10 @@ const createLocalDatasourceStub = (): any => ({
       updatedAt: new Date(1),
     },
   })),
-  getUserRoleAssignment: vi.fn(async () => ({ success: true as const, value: null })),
+  getUserRoleAssignment: vi.fn(async () => ({ success: true as const, value: null as unknown })),
   getUserRoleAssignmentsByAccountRemoteId: vi.fn(async () => ({
     success: true as const,
-    value: [],
+    value: [] as unknown[],
   })),
   deleteUserRoleAssignment: vi.fn(async () => ({ success: true as const, value: true })),
   deleteUserRoleAssignmentsByRoleRemoteId: vi.fn(async () => ({
@@ -69,9 +72,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.assignUserRole({
@@ -114,9 +117,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.createMemberAccessTransaction({
@@ -178,9 +181,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.updateMemberAccessTransaction({
@@ -268,9 +271,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.getPermissionCodesByAccountUser({
@@ -323,9 +326,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.assignUserRole({
@@ -375,9 +378,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.deleteAccountMemberByRemoteId("member-1");
@@ -418,9 +421,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.deleteRoleByRemoteId("role-1");
@@ -511,9 +514,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
@@ -599,9 +602,9 @@ describe("userManagement.repository guardrails", () => {
     };
 
     const repository = createUserManagementRepository({
-      localDatasource: localDatasource as any,
-      accountRepository: accountRepository as any,
-      authUserRepository: authUserRepository as any,
+      localDatasource: localDatasource as unknown as UserManagementDatasource,
+      accountRepository: accountRepository as unknown as AccountRepository,
+      authUserRepository: authUserRepository as unknown as AuthUserRepository,
     });
 
     const result = await repository.getAccountMembersWithRoleByAccountRemoteId("account-1");
@@ -621,3 +624,4 @@ describe("userManagement.repository guardrails", () => {
     expect(staffMember?.roleName).toBeNull();
   });
 });
+

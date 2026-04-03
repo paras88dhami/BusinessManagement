@@ -20,24 +20,24 @@ export type DashboardTabPath =
   | "/(dashboard)/personal-budget";
 
 export const BUSINESS_DASHBOARD_TABS: DashboardTabItems = [
-  { key: DashboardTab.Home, label: "Home", icon: "home" },
-  { key: DashboardTab.Ledger, label: "Ledger", icon: "ledger" },
+  { key: DashboardTab.Home, label: "Home", icon: "home", center: false },
+  { key: DashboardTab.Ledger, label: "Ledger", icon: "ledger", center: false },
   { key: DashboardTab.Pos, label: "POS", icon: "pos", center: true },
-  { key: DashboardTab.Emi, label: "EMI", icon: "emi" },
-  { key: DashboardTab.More, label: "More", icon: "more" },
+  { key: DashboardTab.Emi, label: "EMI", icon: "emi", center: false },
+  { key: DashboardTab.More, label: "More", icon: "more", center: false },
 ] as const;
 
 export const PERSONAL_DASHBOARD_TABS: DashboardTabItems = [
-  { key: DashboardTab.Home, label: "Home", icon: "home" },
-  { key: DashboardTab.Emi, label: "EMI", icon: "emi" },
+  { key: DashboardTab.Home, label: "Home", icon: "home", center: false },
+  { key: DashboardTab.Emi, label: "EMI", icon: "emi", center: false },
   {
     key: DashboardTab.Transactions,
     label: "Txns",
     icon: "transactions",
     center: true,
   },
-  { key: DashboardTab.Budget, label: "Budget", icon: "budget" },
-  { key: DashboardTab.More, label: "More", icon: "more" },
+  { key: DashboardTab.Budget, label: "Budget", icon: "budget", center: false },
+  { key: DashboardTab.More, label: "More", icon: "more", center: false },
 ] as const;
 
 export const getDashboardHomePath = (

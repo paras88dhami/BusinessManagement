@@ -20,8 +20,8 @@ type PermissionModuleListProps = {
   permissionGroups: readonly PermissionModuleGroup[];
   selectedPermissionCodes: readonly string[];
   editable: boolean;
-  disabled?: boolean;
-  onTogglePermission?: (permissionCode: string) => void;
+  disabled: boolean;
+  onTogglePermission: (permissionCode: string) => void;
 };
 
 export function PermissionModuleList({
@@ -39,7 +39,7 @@ export function PermissionModuleList({
 
           {permissionGroup.permissions.map((permission) => {
             const isSelected = selectedPermissionCodes.includes(permission.code);
-            const canToggle = editable && !disabled && onTogglePermission;
+            const canToggle = editable && !disabled;
 
             return canToggle ? (
               <Pressable

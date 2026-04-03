@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useSegments } from "expo-router";
-import appDatabase from "@/shared/database/appDatabase";
 import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
 import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
@@ -57,7 +56,6 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
   } = useAppRouteSession();
 
   const permissionAccess = useAccountPermissionAccess({
-    database: appDatabase,
     activeUserRemoteId,
     activeAccountRemoteId,
   });

@@ -1,12 +1,13 @@
 export type PosLoadBootstrapParams = {
-  activeBusinessRemoteId: string | null;
+  activeBusinessAccountRemoteId: string | null;
+  activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
 };
 
 export type PosAssignProductToSlotParams = {
   slotId: string;
   productId: string;
-  addToCart?: boolean;
+  addToCart: boolean;
 };
 
 export type PosRemoveSlotProductParams = {

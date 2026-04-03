@@ -8,7 +8,7 @@ export type UseProfileAccountSwitchViewModelParams = {
     updater: (previousData: ProfileScreenData) => ProfileScreenData,
   ) => void;
   onNavigateHome: (accountType: AccountTypeValue) => void;
-  setLoadError: (nextError: string | undefined) => void;
+  setLoadError: (nextError: string | null) => void;
   clearSuccessMessage: () => void;
 };
 

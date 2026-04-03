@@ -34,14 +34,14 @@ export const useProfilePersonalEditorViewModel = (
 
   const onStartPersonalEdit = useCallback(() => {
     setIsPersonalEditing(true);
-    setLoadError(undefined);
-    setSuccessMessage(undefined);
+    setLoadError(null);
+    setSuccessMessage(null);
   }, [setLoadError, setSuccessMessage]);
 
   const onCancelPersonalEdit = useCallback(() => {
     setPersonalProfileForm(basePersonalProfile);
     setIsPersonalEditing(false);
-    setLoadError(undefined);
+    setLoadError(null);
   }, [basePersonalProfile, setLoadError]);
 
   const onUpdatePersonalProfileField = useCallback(
@@ -50,15 +50,15 @@ export const useProfilePersonalEditorViewModel = (
         ...previousValue,
         [field]: value,
       }));
-      setLoadError(undefined);
-      setSuccessMessage(undefined);
+      setLoadError(null);
+      setSuccessMessage(null);
     },
     [setLoadError, setSuccessMessage],
   );
 
   const onSavePersonalProfile = useCallback(async (): Promise<void> => {
-    setLoadError(undefined);
-    setSuccessMessage(undefined);
+    setLoadError(null);
+    setSuccessMessage(null);
 
     if (!activeUserRemoteId) {
       setLoadError("Active user session not found.");
@@ -106,8 +106,7 @@ export const useProfilePersonalEditorViewModel = (
         personalProfile: normalizedProfile,
       }));
       setSuccessMessage("Personal profile updated.");
-    } catch (error) {
-      console.error("Failed to save personal profile.", error);
+    } catch {
       setLoadError("Unable to save personal profile right now.");
     } finally {
       setIsSavingPersonalProfile(false);

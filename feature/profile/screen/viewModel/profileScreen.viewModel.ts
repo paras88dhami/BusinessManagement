@@ -22,8 +22,8 @@ export type BusinessProfileFieldKey = keyof EditableBusinessProfile;
 
 export interface ProfileScreenViewModel {
   isLoading: boolean;
-  loadError?: string;
-  successMessage?: string;
+  loadError: string | null;
+  successMessage: string | null;
   profileName: string;
   roleLabel: string;
   initials: string;

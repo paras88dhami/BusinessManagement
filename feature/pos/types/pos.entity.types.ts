@@ -2,7 +2,7 @@ export type PosProduct = {
   id: string;
   name: string;
   categoryLabel: string;
-  unitLabel?: string;
+  unitLabel: string | null;
   price: number;
   taxRate: number;
   shortCode: string;
@@ -36,7 +36,11 @@ export type PosTotals = {
 };
 
 export type PosLedgerEffect = {
-  type: "none" | "due_balance_created";
+  type:
+    | "none"
+    | "due_balance_pending"
+    | "due_balance_created"
+    | "due_balance_create_failed";
   dueAmount: number;
   accountRemoteId: string | null;
 };
@@ -54,6 +58,7 @@ export type PosReceipt = {
 export type PosBootstrap = {
   products: readonly PosProduct[];
   slots: readonly PosSlot[];
-  activeBusinessRemoteId: string | null;
+  activeBusinessAccountRemoteId: string | null;
+  activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
 };

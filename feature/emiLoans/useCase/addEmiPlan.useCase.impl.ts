@@ -9,7 +9,7 @@ import {
   createLocalRemoteId,
   resolvePaymentDirectionForPlanType,
 } from "@/feature/emiLoans/viewModel/emi.shared";
-import { AddEmiPlanInput, AddEmiPlanUseCase } from "./addEmiPlan.useCase";
+import { AddEmiPlanUseCase } from "./addEmiPlan.useCase";
 
 export const createAddEmiPlanUseCase = (
   emiRepository: EmiRepository,

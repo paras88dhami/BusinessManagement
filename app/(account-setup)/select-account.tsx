@@ -18,24 +18,24 @@ export default function SelectAccountRoute() {
     activeAccountRemoteId,
   } = useAppRouteSession();
 
+  const refreshSessionSafely = useCallback(async (): Promise<void> => {
+    try {
+      await refreshSession();
+    } catch {}
+  }, [refreshSession]);
+
   const handleBackToLogin = useCallback(async () => {
     try {
       await clearActiveUserSession(appDatabase);
-      await refreshSession();
-    } catch (error) {
-      console.error("Failed to clear session and return to login.", error);
-    }
-  }, [refreshSession]);
+      await refreshSessionSafely();
+    } catch {}
+  }, [refreshSessionSafely]);
 
   const handleAccountSelected = useCallback(
-    async (_selectedAccountContext: SelectedAccountContext) => {
-      try {
-        await refreshSession();
-      } catch (error) {
-        console.error("Failed to refresh session after account selection.", error);
-      }
+    async (_selectedAccountContext: SelectedAccountContext): Promise<void> => {
+      await refreshSessionSafely();
     },
-    [refreshSession],
+    [refreshSessionSafely],
   );
 
   useEffect(() => {
@@ -45,7 +45,6 @@ export default function SelectAccountRoute() {
 
   return (
     <GetAccountSelectionScreenFactory
-      database={appDatabase}
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
       onBackToLogin={handleBackToLogin}

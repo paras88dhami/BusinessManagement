@@ -4,7 +4,6 @@ import {
   Minus,
   Percent,
   Plus,
-  Printer,
   ShoppingCart,
   Trash2,
   WalletCards,
@@ -16,6 +15,7 @@ import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
 import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
 import { PosProductSelectionModal } from "./PosProductSelectionModal";
@@ -36,7 +36,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   );
 
   const slotRows = useMemo(() => {
-    const rows: (typeof viewModel.slots)[] = [];
+    const rows: PosSlot[][] = [];
     for (
       let index = 0;
       index < viewModel.slots.length;

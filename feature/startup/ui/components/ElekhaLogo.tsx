@@ -2,14 +2,14 @@ import React from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 
 type ElekhaLogoProps = {
-  size?: number;
-  style?: StyleProp<ViewStyle>;
+  size: number;
+  style: StyleProp<ViewStyle> | null;
 };
 
 const LOGO_CIRCLE_COLOR = "#0B4F2E";
 const LOGO_TEXT_COLOR = "#FFFFFF";
 
-export function ElekhaLogo({ size = 96, style }: ElekhaLogoProps) {
+export function ElekhaLogo({ size, style }: ElekhaLogoProps) {
   const borderRadius = size / 2;
   const fontSize = Math.round(size * 0.42);
   const lineHeight = Math.round(size * 0.45);

@@ -6,7 +6,7 @@ import { AuthEntrySignUpViewModel } from "./authEntry.signUp.viewModel";
 
 type UseAuthEntrySignUpViewModelParams = {
   signUpWithEmailUseCase: SignUpWithEmailUseCase;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 };
 
 export const useAuthEntrySignUpViewModel = (
@@ -22,7 +22,7 @@ export const useAuthEntrySignUpViewModel = (
   const submitError =
     signUpViewModel.state.status === Status.Failure
       ? signUpViewModel.state.error
-      : undefined;
+      : null;
 
   return useMemo<AuthEntrySignUpViewModel>(
     () => ({

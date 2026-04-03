@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { createGetUserManagementSnapshotUseCase } from "@/feature/setting/accounts/userManagement/useCase/getUserManagementSnapshot.useCase.impl";
 import { USER_MANAGEMENT_PERMISSION_SEED } from "@/feature/setting/accounts/userManagement/types/userManagementPermissionSeed.types";
 import { USER_MANAGEMENT_DEFAULT_ROLE_TEMPLATES } from "@/feature/setting/accounts/userManagement/types/userManagementDefaultRoles.shared";
-import { AccountMemberStatus, UserManagementErrorType } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import {
+  AccountMemberStatus,
+  SaveUserManagementRolePayload,
+  UserManagementErrorType,
+  UserManagementRole,
+} from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
 
 const buildPermissionCatalog = () =>
   USER_MANAGEMENT_PERMISSION_SEED.map((permissionSeed) => ({
@@ -14,7 +20,7 @@ const buildPermissionCatalog = () =>
 
 describe("getUserManagementSnapshot use case", () => {
   it("seeds missing business default roles before loading snapshot", async () => {
-    const roles = [
+    const roles: UserManagementRole[] = [
       {
         remoteId: "owner-account-1",
         accountRemoteId: "account-1",
@@ -27,7 +33,7 @@ describe("getUserManagementSnapshot use case", () => {
       },
     ];
 
-    const repository: any = {
+    const repository = {
       ensurePermissionCatalogSeeded: vi.fn(async () => ({ success: true, value: true })),
       ensureDefaultOwnerRoleForAccountUser: vi.fn(async () => ({
         success: true,
@@ -41,9 +47,9 @@ describe("getUserManagementSnapshot use case", () => {
         success: true,
         value: [...roles],
       })),
-      saveRole: vi.fn(async (payload: any) => {
+      saveRole: vi.fn(async (payload: SaveUserManagementRolePayload) => {
         const savedRole = {
-          remoteId: payload.remoteId,
+          remoteId: payload.remoteId ?? `role-${roles.length + 1}`,
           accountRemoteId: payload.accountRemoteId,
           name: payload.name,
           isSystem: payload.isSystem ?? false,
@@ -51,7 +57,7 @@ describe("getUserManagementSnapshot use case", () => {
           permissionCodes: payload.permissionCodes,
           createdAt: 1,
           updatedAt: 1,
-        };
+        } satisfies UserManagementRole;
         roles.push(savedRole);
 
         return {
@@ -89,7 +95,7 @@ describe("getUserManagementSnapshot use case", () => {
         success: true,
         value: buildPermissionCatalog().map((permission) => permission.code),
       })),
-    };
+    } as unknown as UserManagementRepository;
 
     const useCase = createGetUserManagementSnapshotUseCase(repository);
 
@@ -112,7 +118,7 @@ describe("getUserManagementSnapshot use case", () => {
   });
 
   it("skips creating default roles that already exist by name", async () => {
-    const roles = [
+    const roles: UserManagementRole[] = [
       {
         remoteId: "owner-account-1",
         accountRemoteId: "account-1",
@@ -135,7 +141,7 @@ describe("getUserManagementSnapshot use case", () => {
       },
     ];
 
-    const repository: any = {
+    const repository = {
       ensurePermissionCatalogSeeded: vi.fn(async () => ({ success: true, value: true })),
       ensureDefaultOwnerRoleForAccountUser: vi.fn(async () => ({
         success: true,
@@ -149,9 +155,9 @@ describe("getUserManagementSnapshot use case", () => {
         success: true,
         value: [...roles],
       })),
-      saveRole: vi.fn(async (payload: any) => {
+      saveRole: vi.fn(async (payload: SaveUserManagementRolePayload) => {
         const savedRole = {
-          remoteId: payload.remoteId,
+          remoteId: payload.remoteId ?? `role-${roles.length + 1}`,
           accountRemoteId: payload.accountRemoteId,
           name: payload.name,
           isSystem: payload.isSystem ?? false,
@@ -159,7 +165,7 @@ describe("getUserManagementSnapshot use case", () => {
           permissionCodes: payload.permissionCodes,
           createdAt: 1,
           updatedAt: 1,
-        };
+        } satisfies UserManagementRole;
         roles.push(savedRole);
 
         return {
@@ -182,7 +188,7 @@ describe("getUserManagementSnapshot use case", () => {
         success: true,
         value: buildPermissionCatalog().map((permission) => permission.code),
       })),
-    };
+    } as unknown as UserManagementRepository;
 
     const useCase = createGetUserManagementSnapshotUseCase(repository);
 

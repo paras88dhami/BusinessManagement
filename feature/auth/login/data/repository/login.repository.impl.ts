@@ -16,14 +16,14 @@ import {
 import { buildPhoneLoginIdCandidates } from "@/shared/utils/auth/phoneNumber.util";
 
 type LocalLoginRepositoryOptions = {
-  onAuthenticated?: (
+  onAuthenticated: (
     verifiedCredential: VerifiedLocalCredential,
   ) => Promise<void> | void;
 };
 
 export const createLocalLoginRepository = (
   verifyLocalCredentialUseCase: VerifyLocalCredentialUseCase,
-  options: LocalLoginRepositoryOptions = {},
+  options: LocalLoginRepositoryOptions,
 ): LoginRepository => ({
   async loginWithEmail(payload): Promise<LoginResult> {
     const loginIdCandidates = buildPhoneLoginIdCandidates(payload.phoneNumber);
@@ -38,11 +38,8 @@ export const createLocalLoginRepository = (
 
       if (verificationResult.success) {
         try {
-          if (options.onAuthenticated) {
-            await options.onAuthenticated(verificationResult.value);
-          }
-        } catch (error) {
-          console.error("Failed to persist session after login.", error);
+          await options.onAuthenticated(verificationResult.value);
+        } catch {
           return {
             success: false,
             error: DatabaseError,

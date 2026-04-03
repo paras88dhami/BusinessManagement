@@ -16,6 +16,6 @@ export interface AuthEntryLoginViewModel {
   isPasswordVisible: boolean;
   togglePasswordVisibility: () => void;
   isSubmitting: boolean;
-  submitError?: string;
+  submitError: string | null;
   submit: () => Promise<void>;
 }

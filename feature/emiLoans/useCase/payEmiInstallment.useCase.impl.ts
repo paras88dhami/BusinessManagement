@@ -20,7 +20,7 @@ import {
   EmiValidationError,
 } from "@/feature/emiLoans/types/emi.error.types";
 import { createLocalRemoteId } from "@/feature/emiLoans/viewModel/emi.shared";
-import { PayEmiInstallmentInput, PayEmiInstallmentUseCase } from "./payEmiInstallment.useCase";
+import { PayEmiInstallmentUseCase } from "./payEmiInstallment.useCase";
 
 export const createPayEmiInstallmentUseCase = (
   emiRepository: EmiRepository,

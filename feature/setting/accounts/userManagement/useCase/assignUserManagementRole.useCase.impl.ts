@@ -18,7 +18,7 @@ export const createAssignUserManagementRoleUseCase = (
     payload: AssignUserManagementRolePayload,
   ): Promise<AccountUserRoleAssignmentResult> {
     const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
-    const normalizedActorUserRemoteId = normalizeRequired(payload.actorUserRemoteId ?? "");
+    const normalizedActorUserRemoteId = normalizeRequired(payload.actorUserRemoteId);
     const normalizedUserRemoteId = normalizeRequired(payload.userRemoteId);
     const normalizedRoleRemoteId = normalizeRequired(payload.roleRemoteId);
 

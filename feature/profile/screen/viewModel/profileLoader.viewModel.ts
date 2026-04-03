@@ -16,7 +16,7 @@ export type UseProfileLoaderViewModelParams = {
 
 export interface ProfileLoaderViewModel {
   isLoading: boolean;
-  loadError?: string;
+  loadError: string | null;
   reload: () => Promise<void>;
-  setLoadError: (nextError: string | undefined) => void;
+  setLoadError: (nextError: string | null) => void;
 }

@@ -20,13 +20,13 @@ export const useProfileAccountSwitchViewModel = (
 
   const onToggleSwitchExpanded = useCallback(() => {
     setIsSwitchExpanded((previousValue) => !previousValue);
-    setLoadError(undefined);
+    setLoadError(null);
     clearSuccessMessage();
   }, [clearSuccessMessage, setLoadError]);
 
   const onSelectAccount = useCallback(
     async (accountRemoteId: string): Promise<void> => {
-      setLoadError(undefined);
+      setLoadError(null);
       clearSuccessMessage();
 
       const selectedAccount = data.accountOptions.find(
@@ -52,8 +52,7 @@ export const useProfileAccountSwitchViewModel = (
         setIsSwitchExpanded(false);
 
         onNavigateHome(selectedAccount.accountType);
-      } catch (error) {
-        console.error("Failed to switch active account from profile.", error);
+      } catch {
         setLoadError("Unable to switch account right now. Please try again.");
       }
     },

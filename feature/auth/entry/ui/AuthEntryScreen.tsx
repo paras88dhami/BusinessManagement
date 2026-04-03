@@ -25,7 +25,14 @@ type AuthEntryScreenProps = {
 
 function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
   const { t } = useTranslation();
-  const { language, mode, login, signUp, onForgotPasswordPress } = viewModel;
+  const {
+    language,
+    mode,
+    login,
+    signUp,
+    onForgotPasswordPress,
+    isForgotPasswordEnabled,
+  } = viewModel;
   const isAndroid = Platform.OS === "android";
 
   const {
@@ -549,7 +556,7 @@ function AuthEntryScreenComponent({ viewModel }: AuthEntryScreenProps) {
                   }
                 />
 
-                {onForgotPasswordPress ? (
+                {isForgotPasswordEnabled ? (
                   <Pressable
                     style={styles.forgotWrapper}
                     onPress={onForgotPasswordPress}

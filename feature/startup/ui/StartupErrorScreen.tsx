@@ -6,7 +6,7 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 
 type StartupErrorScreenProps = {
   message: string;
-  onRetry?: () => Promise<void>;
+  onRetry: (() => Promise<void>) | null;
 };
 
 export function StartupErrorScreen({

@@ -198,10 +198,10 @@ export const useUserManagementViewModel = (
   }, [actions]);
 
   const load = useCallback(
-    async ({ clearFeedback }: { clearFeedback?: boolean } = {}): Promise<void> => {
+    async (shouldClearFeedback: boolean): Promise<void> => {
       actions.setIsLoading(true);
 
-      if (clearFeedback ?? true) {
+      if (shouldClearFeedback) {
         actions.clearFeedback();
       }
 
@@ -294,7 +294,11 @@ export const useUserManagementViewModel = (
   );
 
   useEffect(() => {
-    void load();
+    void load(true);
+  }, [load]);
+
+  const handleReload = useCallback(async (): Promise<void> => {
+    await load(true);
   }, [load]);
 
   const canManageStaff = useMemo(
@@ -725,8 +729,8 @@ export const useUserManagementViewModel = (
           phone: state.memberEditor.phone,
           password: state.memberEditor.password.trim()
             ? state.memberEditor.password
-            : undefined,
-          roleRemoteId: state.memberEditor.roleRemoteId ?? undefined,
+            : null,
+          roleRemoteId: state.memberEditor.roleRemoteId,
         });
 
         if (!updateMemberResult.success) {
@@ -736,7 +740,7 @@ export const useUserManagementViewModel = (
       }
 
       actions.setMemberEditor(createInitialMemberEditorState());
-      await load({ clearFeedback: false });
+      await load(false);
       actions.setScreenSuccess("Staff member saved successfully.");
     } catch (error) {
       actions.setScreenError(
@@ -795,7 +799,7 @@ export const useUserManagementViewModel = (
           return;
         }
 
-        await load({ clearFeedback: false });
+        await load(false);
         actions.setScreenSuccess("Staff status updated.");
       } catch (error) {
         actions.setScreenError(
@@ -846,7 +850,7 @@ export const useUserManagementViewModel = (
           actions.setMemberEditor(createInitialMemberEditorState());
         }
 
-        await load({ clearFeedback: false });
+        await load(false);
         actions.setScreenSuccess("Staff member deleted successfully.");
       } catch (error) {
         actions.setScreenError(
@@ -998,11 +1002,13 @@ export const useUserManagementViewModel = (
     try {
       const roleEditorLaunchSource = roleEditorLaunchSourceRef.current;
       const saveRoleResult = await saveUserManagementRoleUseCase.execute({
-        remoteId: state.roleEditor.editingRoleRemoteId ?? undefined,
+        remoteId: state.roleEditor.editingRoleRemoteId,
         accountRemoteId: activeAccountRemoteId,
         actorUserRemoteId: activeUserRemoteId,
         name: state.roleEditor.roleName,
         permissionCodes: state.roleEditor.selectedPermissionCodes,
+        isSystem: null,
+        isDefault: null,
       });
 
       if (!saveRoleResult.success) {
@@ -1024,7 +1030,7 @@ export const useUserManagementViewModel = (
       }
 
       resetRoleEditorUiState();
-      await load({ clearFeedback: false });
+      await load(false);
       actions.setScreenSuccess(
         roleEditorLaunchSource === "member_create_custom_role"
           ? "Custom role created and selected."
@@ -1101,7 +1107,7 @@ export const useUserManagementViewModel = (
           resetRoleEditorUiState();
         }
 
-        await load({ clearFeedback: false });
+        await load(false);
         actions.setScreenSuccess("Role deleted successfully.");
       } catch (error) {
         actions.setScreenError(error instanceof Error ? error.message : "Failed to delete role.");
@@ -1150,7 +1156,7 @@ export const useUserManagementViewModel = (
       screenError: state.screenError,
       screenSuccess: state.screenSuccess,
       onSelectRoleFilter,
-      onReload: load,
+      onReload: handleReload,
       onStartCreateMember,
       onStartEditMember,
       onCancelMemberEditor,
@@ -1180,7 +1186,7 @@ export const useUserManagementViewModel = (
       canAssignRoles,
       canManageRoles,
       canManageStaff,
-      load,
+      handleReload,
       memberListItems,
       memberRoleOptions,
       roleListItems,

@@ -4,7 +4,6 @@ import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDa
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
-import appDatabase from "@/shared/database/appDatabase";
 
 export default function LedgerDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -37,7 +36,6 @@ export default function LedgerDashboardRoute() {
 
   return (
     <GetLedgerScreenFactory
-      database={appDatabase}
       activeUserRemoteId={activeUserRemoteId}
       activeBusinessAccountRemoteId={activeAccountRemoteId}
     />

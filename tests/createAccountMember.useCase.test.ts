@@ -10,6 +10,8 @@ import {
   UserManagementErrorType,
   UserManagementForbiddenError,
 } from "@/feature/setting/accounts/userManagement/types/userManagement.types";
+import { UserManagementRepository } from "@/feature/setting/accounts/userManagement/data/repository/userManagement.repository";
+import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 
 vi.mock("expo-crypto", () => ({
   randomUUID: () => "mocked-uuid",
@@ -48,7 +50,7 @@ describe("createAccountMember.useCase", () => {
           },
         ],
       })),
-    } as any;
+    } as unknown as UserManagementRepository;
 
     const authCredentialRepository = {
       getAuthCredentialByLoginId: vi.fn(async () => ({
@@ -60,7 +62,7 @@ describe("createAccountMember.useCase", () => {
       })),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -70,7 +72,7 @@ describe("createAccountMember.useCase", () => {
     const useCase = createCreateAccountMemberUseCase({
       userManagementRepository,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({
@@ -106,7 +108,7 @@ describe("createAccountMember.useCase", () => {
       getAccountMembersWithRoleByAccountRemoteId: vi.fn(async () => {
         throw new Error("should not be called");
       }),
-    } as any;
+    } as unknown as UserManagementRepository;
 
     const authCredentialRepository = {
       getAuthCredentialByLoginId: vi.fn(async () => {
@@ -114,7 +116,7 @@ describe("createAccountMember.useCase", () => {
       }),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -124,7 +126,7 @@ describe("createAccountMember.useCase", () => {
     const useCase = createCreateAccountMemberUseCase({
       userManagementRepository,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({
@@ -158,7 +160,7 @@ describe("createAccountMember.useCase", () => {
       getAccountMembersWithRoleByAccountRemoteId: vi.fn(async () => {
         throw new Error("should not be called");
       }),
-    } as any;
+    } as unknown as UserManagementRepository;
 
     const authCredentialRepository = {
       getAuthCredentialByLoginId: vi.fn(async () => ({
@@ -182,7 +184,7 @@ describe("createAccountMember.useCase", () => {
       })),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -192,7 +194,7 @@ describe("createAccountMember.useCase", () => {
     const useCase = createCreateAccountMemberUseCase({
       userManagementRepository,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({
@@ -227,7 +229,7 @@ describe("createAccountMember.useCase", () => {
       getAccountMembersWithRoleByAccountRemoteId: vi.fn(async () => {
         throw new Error("should not be called");
       }),
-    } as any;
+    } as unknown as UserManagementRepository;
 
     const authCredentialRepository = {
       getAuthCredentialByLoginId: vi.fn(async () => ({
@@ -239,7 +241,7 @@ describe("createAccountMember.useCase", () => {
       })),
     } as unknown as AuthCredentialRepository;
 
-    const passwordHashService = {
+    const passwordHashService: PasswordHashService = {
       generateSalt: vi.fn(async () => "salt"),
       hash: vi.fn(async () => "hash"),
       compare: vi.fn(async () => true),
@@ -249,7 +251,7 @@ describe("createAccountMember.useCase", () => {
     const useCase = createCreateAccountMemberUseCase({
       userManagementRepository,
       authCredentialRepository,
-      passwordHashService: passwordHashService as any,
+      passwordHashService,
     });
 
     const result = await useCase.execute({

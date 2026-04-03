@@ -14,7 +14,7 @@ export interface LedgerEditorViewModel {
   accountOptions: readonly LedgerAccountOptionState[];
   availableEntryTypes: readonly LedgerEntryTypeOptionState[];
   availableDirections: readonly LedgerDirectionOptionState[];
-  openCreate: (entryType?: LedgerEntryTypeValue) => void;
+  openCreate: (entryType: LedgerEntryTypeValue) => void;
   openCreateForParty: (
     partyName: string,
     partyPhone: string | null,

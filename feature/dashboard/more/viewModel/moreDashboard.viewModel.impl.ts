@@ -156,16 +156,11 @@ export const useMoreDashboardViewModel = (
 
   const sections = useMemo(() => {
     const candidateSections = isBusinessMode ? businessSections : personalSections;
-    const canAccessMenuItem =
-      hasMenuAccess ??
-      (() => {
-        return true;
-      });
 
     return candidateSections
       .map((section) => ({
         ...section,
-        items: section.items.filter((item) => canAccessMenuItem(item.id)),
+        items: section.items.filter((item) => hasMenuAccess(item.id)),
       }))
       .filter((section) => section.items.length > 0);
   }, [hasMenuAccess, isBusinessMode]);

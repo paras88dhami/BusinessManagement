@@ -20,10 +20,10 @@ export type DashboardRouteKey =
 
 export type DashboardHeaderConfig = {
   title: string;
-  subtitle?: string;
+  subtitle: string | null;
   showBell: boolean;
   showProfile: boolean;
-  showBack?: boolean;
+  showBack: boolean;
 };
 
 export interface DashboardShellViewModel {

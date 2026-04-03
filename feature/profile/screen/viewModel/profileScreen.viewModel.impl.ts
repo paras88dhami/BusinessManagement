@@ -37,7 +37,7 @@ export const useProfileScreenViewModel = (
   const [data, setData] = useState<ProfileScreenData>(
     createInitialProfileScreenData(),
   );
-  const [successMessage, setSuccessMessage] = useState<string>();
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const onUpdateData = useCallback(
     (updater: (previousData: ProfileScreenData) => ProfileScreenData) => {
@@ -48,7 +48,7 @@ export const useProfileScreenViewModel = (
 
   const onLoaded = useCallback((nextData: ProfileScreenData) => {
     setData(nextData);
-    setSuccessMessage(undefined);
+    setSuccessMessage(null);
   }, []);
 
   const loader = useProfileLoaderViewModel({
@@ -65,7 +65,7 @@ export const useProfileScreenViewModel = (
   });
 
   const clearSuccessMessage = useCallback(() => {
-    setSuccessMessage(undefined);
+    setSuccessMessage(null);
   }, []);
 
   const accountSwitch = useProfileAccountSwitchViewModel({
@@ -200,8 +200,6 @@ export const useProfileScreenViewModel = (
       data.activeAccountDisplayName,
       data.activeAccountRemoteId,
       data.activeBusinessEstablishedYear,
-      data.activeAccountType,
-      data.isActiveAccountOwner,
       data.profileName,
       initials,
       isActiveBusinessStaff,

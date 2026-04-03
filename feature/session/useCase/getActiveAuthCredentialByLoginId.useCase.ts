@@ -6,6 +6,6 @@ import {
 export interface GetActiveAuthCredentialByLoginIdUseCase {
   execute(
     loginId: string,
-    credentialType?: CredentialTypeValue,
+    credentialType: CredentialTypeValue,
   ): Promise<AuthCredentialResult>;
 }

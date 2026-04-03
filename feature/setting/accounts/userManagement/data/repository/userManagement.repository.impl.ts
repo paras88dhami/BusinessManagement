@@ -297,7 +297,7 @@ export const createUserManagementRepository = ({
     accountRemoteId: string;
     userRemoteId: string;
     roleRemoteId: string;
-    actorUserRemoteId?: string | null;
+    actorUserRemoteId: string | null;
   }): Promise<
     | {
         success: true;
@@ -969,6 +969,7 @@ export const createUserManagementRepository = ({
         accountRemoteId: normalizedAccountRemoteId,
         userRemoteId: normalizedMemberUserRemoteId,
         roleRemoteId: normalizedRoleRemoteId,
+        actorUserRemoteId: null,
       });
 
       if (!roleAssignmentValidationResult.success) {
@@ -1007,7 +1008,7 @@ export const createUserManagementRepository = ({
     async updateMemberAccessTransaction(payload: {
       authUser: SaveAuthUserPayload;
       authCredential: SaveAuthCredentialPayload;
-      roleAssignment?: AssignUserManagementRolePayload | null;
+      roleAssignment: AssignUserManagementRolePayload | null;
     }): Promise<UserManagementOperationResult> {
       const normalizedAuthUserRemoteId = normalizeRequired(payload.authUser.remoteId);
       const normalizedCredentialUserRemoteId = normalizeRequired(

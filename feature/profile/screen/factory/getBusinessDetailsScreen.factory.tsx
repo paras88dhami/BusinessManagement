@@ -1,12 +1,11 @@
 import React from "react";
-import { Database } from "@nozbe/watermelondb";
 import { AccountTypeValue } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel.impl";
 import { BusinessDetailsScreen } from "@/feature/profile/screen/ui/BusinessDetailsScreen";
 import { useProfileScreenDependencies } from "@/feature/profile/screen/factory/useProfileScreenDependencies.factory";
+import appDatabase from "@/shared/database/appDatabase";
 
 type GetBusinessDetailsScreenFactoryProps = {
-  database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
@@ -15,14 +14,13 @@ type GetBusinessDetailsScreenFactoryProps = {
 };
 
 export function GetBusinessDetailsScreenFactory({
-  database,
   activeUserRemoteId,
   activeAccountRemoteId,
   onNavigateHome,
   onLogout,
   onBack,
 }: GetBusinessDetailsScreenFactoryProps) {
-  const dependencies = useProfileScreenDependencies(database);
+  const dependencies = useProfileScreenDependencies(appDatabase);
 
   const viewModel = useProfileScreenViewModel({
     dependencies,

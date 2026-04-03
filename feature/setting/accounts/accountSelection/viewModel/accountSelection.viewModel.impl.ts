@@ -14,7 +14,7 @@ export type UseAccountSelectionViewModelParams = {
   activeAccountRemoteId: string | null;
   getAccessibleAccountsByUserRemoteIdUseCase: GetAccessibleAccountsByUserRemoteIdUseCase;
   onBackToLogin: () => void;
-  onAccountSelected?: (
+  onAccountSelected: (
     selectedAccountContext: SelectedAccountContext,
   ) => Promise<void> | void;
 };

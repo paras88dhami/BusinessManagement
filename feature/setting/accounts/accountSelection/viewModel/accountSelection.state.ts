@@ -12,8 +12,8 @@ export type AccountSelectionState = {
   selectedAccountRemoteId: string | null;
   isLoading: boolean;
   isSubmitting: boolean;
-  submitError?: string;
-  successMessage?: string;
+  submitError: string | null;
+  successMessage: string | null;
 };
 
 export type AccountSelectionStateActions = {
@@ -21,8 +21,8 @@ export type AccountSelectionStateActions = {
   setSelectedAccountRemoteId: Dispatch<SetStateAction<string | null>>;
   setIsLoading: Dispatch<SetStateAction<boolean>>;
   setIsSubmitting: Dispatch<SetStateAction<boolean>>;
-  setSubmitError: Dispatch<SetStateAction<string | undefined>>;
-  setSuccessMessage: Dispatch<SetStateAction<string | undefined>>;
+  setSubmitError: Dispatch<SetStateAction<string | null>>;
+  setSuccessMessage: Dispatch<SetStateAction<string | null>>;
   clearFeedback: () => void;
 };
 
@@ -36,12 +36,12 @@ export const useAccountSelectionState = (): {
   >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string>();
-  const [successMessage, setSuccessMessage] = useState<string>();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const clearFeedback = useCallback(() => {
-    setSubmitError(undefined);
-    setSuccessMessage(undefined);
+    setSubmitError(null);
+    setSuccessMessage(null);
   }, []);
 
   const state = useMemo<AccountSelectionState>(

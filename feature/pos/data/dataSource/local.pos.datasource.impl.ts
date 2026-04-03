@@ -109,7 +109,7 @@ const mapProductModelToPosProduct = (product: ProductModel): PosProduct => ({
   id: product.remoteId,
   name: product.name,
   categoryLabel: product.categoryName ?? "General",
-  unitLabel: product.unitLabel ?? undefined,
+  unitLabel: product.unitLabel ?? null,
   price: product.salePrice,
   taxRate: parseTaxRate(product.taxRateLabel),
   shortCode: buildShortCode(product.name),
@@ -183,7 +183,9 @@ type CreateLocalPosDatasourceParams = {
 export const createLocalPosDatasource = ({
   database,
 }: CreateLocalPosDatasourceParams): PosDatasource => {
-  let activeAccountRemoteId: string | null = null;
+  let activeBusinessAccountRemoteId: string | null = null;
+  let activeSettlementAccountRemoteId: string | null = null;
+  let activeOwnerUserRemoteId: string | null = null;
   let products: readonly PosProduct[] = [];
   let slots: PosSlot[] = createInitialSlots();
   let cartLines: PosCartLine[] = [];
@@ -201,7 +203,7 @@ export const createLocalPosDatasource = ({
   };
 
   const loadActiveProducts = async (): Promise<readonly PosProduct[]> => {
-    if (!activeAccountRemoteId) {
+    if (!activeBusinessAccountRemoteId) {
       products = [];
       return [];
     }
@@ -209,7 +211,7 @@ export const createLocalPosDatasource = ({
     const collection = database.get<ProductModel>(PRODUCTS_TABLE);
     const productModels = await collection
       .query(
-        Q.where("account_remote_id", activeAccountRemoteId),
+        Q.where("account_remote_id", activeBusinessAccountRemoteId),
         Q.where("status", "active"),
         Q.where("deleted_at", Q.eq(null)),
         Q.sortBy("updated_at", Q.desc),
@@ -223,7 +225,7 @@ export const createLocalPosDatasource = ({
   const getActiveProductById = async (
     productId: string,
   ): Promise<PosProduct | null> => {
-    if (!activeAccountRemoteId) {
+    if (!activeBusinessAccountRemoteId) {
       return null;
     }
 
@@ -231,7 +233,7 @@ export const createLocalPosDatasource = ({
     const matchingProducts = await collection
       .query(
         Q.where("remote_id", productId),
-        Q.where("account_remote_id", activeAccountRemoteId),
+        Q.where("account_remote_id", activeBusinessAccountRemoteId),
         Q.where("status", "active"),
         Q.where("deleted_at", Q.eq(null)),
       )
@@ -252,7 +254,8 @@ export const createLocalPosDatasource = ({
       params: PosLoadBootstrapParams,
     ): Promise<PosBootstrapResult> {
       if (
-        !params.activeBusinessRemoteId ||
+        !params.activeBusinessAccountRemoteId ||
+        !params.activeOwnerUserRemoteId ||
         !params.activeSettlementAccountRemoteId
       ) {
         return {
@@ -265,17 +268,20 @@ export const createLocalPosDatasource = ({
         };
       }
 
-      if (activeAccountRemoteId !== params.activeSettlementAccountRemoteId) {
+      if (activeBusinessAccountRemoteId !== params.activeBusinessAccountRemoteId) {
         resetSessionState();
       }
-      activeAccountRemoteId = params.activeSettlementAccountRemoteId;
+      activeBusinessAccountRemoteId = params.activeBusinessAccountRemoteId;
+      activeSettlementAccountRemoteId = params.activeSettlementAccountRemoteId;
+      activeOwnerUserRemoteId = params.activeOwnerUserRemoteId;
 
       try {
         const loadedProducts = await loadActiveProducts();
         const bootstrap: PosBootstrap = {
           products: loadedProducts,
           slots: cloneSlots(slots),
-          activeBusinessRemoteId: params.activeBusinessRemoteId,
+          activeBusinessAccountRemoteId: params.activeBusinessAccountRemoteId,
+          activeOwnerUserRemoteId: params.activeOwnerUserRemoteId,
           activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
         };
         return { success: true, value: bootstrap };
@@ -495,7 +501,11 @@ export const createLocalPosDatasource = ({
     async completePayment(
       params: PosCompletePaymentParams,
     ): Promise<PosPaymentResult> {
-      if (!activeAccountRemoteId) {
+      if (
+        !activeBusinessAccountRemoteId ||
+        !activeSettlementAccountRemoteId ||
+        !activeOwnerUserRemoteId
+      ) {
         return {
           success: false,
           error: {
@@ -505,6 +515,9 @@ export const createLocalPosDatasource = ({
           },
         };
       }
+
+      const businessAccountRemoteId = activeBusinessAccountRemoteId;
+      const settlementAccountRemoteId = activeSettlementAccountRemoteId;
 
       if (cartLines.length === 0) {
         return {
@@ -530,14 +543,14 @@ export const createLocalPosDatasource = ({
       const ledgerEffect: PosLedgerEffect =
         dueAmount > 0
           ? {
-              type: "due_balance_created",
+              type: "due_balance_pending",
               dueAmount,
-              accountRemoteId: params.activeSettlementAccountRemoteId,
+              accountRemoteId: settlementAccountRemoteId,
             }
           : {
               type: "none",
               dueAmount: 0,
-              accountRemoteId: params.activeSettlementAccountRemoteId,
+              accountRemoteId: settlementAccountRemoteId,
             };
 
       const receipt: PosReceipt = {
@@ -555,48 +568,73 @@ export const createLocalPosDatasource = ({
         const movementCollection = database.get<InventoryMovementModel>(
           INVENTORY_MOVEMENTS_TABLE,
         );
+        const soldQuantityByProductId = new Map<string, number>();
+        for (const cartLine of cartLines) {
+          soldQuantityByProductId.set(
+            cartLine.productId,
+            (soldQuantityByProductId.get(cartLine.productId) ?? 0) +
+              cartLine.quantity,
+          );
+        }
+        const soldProductIds = Array.from(soldQuantityByProductId.keys());
 
         await database.write(async () => {
-          for (let index = 0; index < cartLines.length; index += 1) {
-            const cartLine = cartLines[index];
-            const matchingProducts = await productCollection
-              .query(
-                Q.where("remote_id", cartLine.productId),
-                Q.where("account_remote_id", activeAccountRemoteId!),
-                Q.where("status", "active"),
-                Q.where("deleted_at", Q.eq(null)),
-              )
-              .fetch();
-            const product = matchingProducts[0];
+          const matchingProducts = await productCollection
+            .query(
+              Q.where("remote_id", Q.oneOf(soldProductIds)),
+              Q.where("account_remote_id", businessAccountRemoteId),
+              Q.where("status", "active"),
+              Q.where("deleted_at", Q.eq(null)),
+            )
+            .fetch();
+          const productByRemoteId = new Map(
+            matchingProducts.map((product) => [product.remoteId, product]),
+          );
+          const nextStockByProductId = new Map<string, number>();
 
+          for (const [productId, soldQuantity] of soldQuantityByProductId) {
+            const product = productByRemoteId.get(productId);
             if (!product) {
               throw new Error(
-                `Product ${cartLine.productName} is no longer available.`,
+                "One or more cart products are no longer available.",
               );
             }
-
             if (product.kind !== "item") {
               continue;
             }
 
             const currentStock = product.stockQuantity ?? 0;
-            if (currentStock < cartLine.quantity) {
+            if (currentStock < soldQuantity) {
               throw new Error(
-                `Not enough stock for ${cartLine.productName}. Available: ${currentStock}.`,
+                `Not enough stock for ${product.name}. Available: ${currentStock}.`,
               );
             }
+            nextStockByProductId.set(productId, currentStock - soldQuantity);
+          }
 
+          for (const [productId, nextStock] of nextStockByProductId) {
+            const product = productByRemoteId.get(productId);
+            if (!product) {
+              continue;
+            }
             const now = Date.now();
-            const nextStock = currentStock - cartLine.quantity;
             await product.update((record) => {
               record.stockQuantity = nextStock;
               updateSyncStatusOnMutation(record);
               setUpdatedAt(record, now);
             });
+          }
 
+          for (let index = 0; index < cartLines.length; index += 1) {
+            const cartLine = cartLines[index];
+            const product = productByRemoteId.get(cartLine.productId);
+            if (!product || product.kind !== "item") {
+              continue;
+            }
+            const now = Date.now();
             await movementCollection.create((record) => {
               record.remoteId = `${receipt.receiptNumber}-${index + 1}-${now}`;
-              record.accountRemoteId = activeAccountRemoteId!;
+              record.accountRemoteId = businessAccountRemoteId;
               record.productRemoteId = product.remoteId;
               record.productNameSnapshot = product.name;
               record.productUnitLabelSnapshot = product.unitLabel;

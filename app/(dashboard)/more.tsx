@@ -5,16 +5,20 @@ import { MoreDashboardMenuItemId } from "@/feature/dashboard/more/types/moreDash
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
-import appDatabase from "@/shared/database/appDatabase";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 
 export default function MoreDashboardRoute() {
   const navigation = useSmoothNavigation();
-  const { activeAccountType, activeUserRemoteId, activeAccountRemoteId } =
-    useDashboardRouteContext();
+  const {
+    isLoading,
+    hasActiveSession,
+    hasActiveAccount,
+    activeAccountType,
+    activeUserRemoteId,
+    activeAccountRemoteId,
+  } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
-    database: appDatabase,
     activeUserRemoteId,
     activeAccountRemoteId,
   });
@@ -77,6 +81,10 @@ export default function MoreDashboardRoute() {
     },
     [activeAccountType, hasAccountPermission, isPermissionLoading],
   );
+
+  if (isLoading || !hasActiveSession || !hasActiveAccount) {
+    return null;
+  }
 
   return (
     <GetMoreDashboardScreenFactory

@@ -18,7 +18,7 @@ type UseLedgerListViewModelParams = {
   businessAccountRemoteId: string;
   businessAccountCurrencyCode: string | null;
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
-  onOpenCreate: (entryType?: LedgerEntryTypeValue) => void;
+  onOpenCreate: (entryType: LedgerEntryTypeValue) => void;
   onOpenPartyDetail: (partyId: string, partyName: string) => Promise<void> | void;
   reloadSignal: number;
 };

@@ -13,8 +13,8 @@ export type UseProfileBusinessEditorViewModelParams = {
   onUpdateData: (
     updater: (previousData: ProfileScreenData) => ProfileScreenData,
   ) => void;
-  setLoadError: (nextError: string | undefined) => void;
-  setSuccessMessage: (nextMessage: string | undefined) => void;
+  setLoadError: (nextError: string | null) => void;
+  setSuccessMessage: (nextMessage: string | null) => void;
 };
 
 export interface ProfileBusinessEditorViewModel {

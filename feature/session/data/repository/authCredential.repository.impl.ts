@@ -102,12 +102,7 @@ const mapCredentialModel = async (
   try {
     const mappedCredential = await mapAuthCredentialModelToDomain(model);
 
-    await migrateCredentialModelIfNeeded(localDatasource, model).catch((error) => {
-      console.error(
-        "Failed to migrate auth credential encryption state.",
-        error,
-      );
-    });
+    await migrateCredentialModelIfNeeded(localDatasource, model).catch(() => undefined);
 
     return {
       success: true,

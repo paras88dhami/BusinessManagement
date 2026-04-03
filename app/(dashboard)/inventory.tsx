@@ -2,29 +2,39 @@ import React, { useEffect } from "react";
 import { GetInventoryScreenFactory } from "@/feature/inventory/factory/getInventoryScreen.factory";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
-import { useAccountPermissionAccess } from "@/feature/setting/accounts/userManagement/factory/useAccountPermissionAccess.factory";
-import appDatabase from "@/shared/database/appDatabase";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 
-const INVENTORY_MANAGE_PERMISSION_CODE = "inventory.manage";
-
 export default function InventoryDashboardRoute() {
   const navigation = useSmoothNavigation();
-  const { activeAccountType, activeUserRemoteId, activeAccountRemoteId } =
-    useDashboardRouteContext();
-
-  const permissionAccess = useAccountPermissionAccess({
-    database: appDatabase,
+  const {
+    isLoading,
+    hasActiveSession,
+    hasActiveAccount,
+    activeAccountType,
     activeUserRemoteId,
     activeAccountRemoteId,
-  });
+  } = useDashboardRouteContext();
 
   useEffect(() => {
+    if (isLoading || !hasActiveSession || !hasActiveAccount) {
+      return;
+    }
+
     if (activeAccountType !== AccountType.Business) {
       navigation.replace(getDashboardHomePath(activeAccountType));
     }
-  }, [activeAccountType, navigation]);
+  }, [
+    activeAccountType,
+    hasActiveAccount,
+    hasActiveSession,
+    isLoading,
+    navigation,
+  ]);
+
+  if (isLoading || !hasActiveSession || !hasActiveAccount) {
+    return null;
+  }
 
   if (activeAccountType !== AccountType.Business) {
     return null;
@@ -32,9 +42,8 @@ export default function InventoryDashboardRoute() {
 
   return (
     <GetInventoryScreenFactory
-      database={appDatabase}
       activeAccountRemoteId={activeAccountRemoteId}
-      canManage={permissionAccess.hasPermission(INVENTORY_MANAGE_PERMISSION_CODE)}
+      activeUserRemoteId={activeUserRemoteId}
     />
   );
 }

@@ -22,7 +22,7 @@ import { StartupErrorScreen } from "@/feature/startup/ui/StartupErrorScreen";
 applyGlobalTypographyDefaults();
 
 void SplashScreen.preventAutoHideAsync().catch(() => {
-  console.warn("Failed to lock splash screen visibility.");
+  return undefined;
 });
 
 type StartupOverlayControllerProps = {
@@ -38,7 +38,7 @@ type RootNavigatorProps = {
   startupStatus: StartupBootstrapStatusValue;
   startupErrorMessage: string | null;
   fontsLoaded: boolean;
-  onRetryStartup?: () => Promise<void>;
+  onRetryStartup: (() => Promise<void>) | null;
 };
 
 function StartupOverlayController({
@@ -133,14 +133,6 @@ export default function RootLayout() {
 
   const languageCode = useCurrentLanguageCode();
 
-  React.useEffect(() => {
-    if (!fontsError) {
-      return;
-    }
-
-    console.error("App font loading failed.", fontsError);
-  }, [fontsError]);
-
   const fontErrorMessage = React.useMemo(() => {
     if (!fontsError) {
       return null;
@@ -160,9 +152,9 @@ export default function RootLayout() {
   const startupErrorMessage =
     fontErrorMessage ?? startupBootstrapViewModel.errorMessage;
 
-  const onRetryStartup = React.useMemo(() => {
+  const onRetryStartup = React.useMemo<(() => Promise<void>) | null>(() => {
     if (fontErrorMessage) {
-      return undefined;
+      return null;
     }
 
     return startupBootstrapViewModel.retry;

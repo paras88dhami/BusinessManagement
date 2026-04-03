@@ -31,6 +31,7 @@ const SEED_PRODUCTS: readonly PosProduct[] = [
     id: "product-basmati-rice-25kg",
     name: "Basmati Rice (25kg)",
     categoryLabel: "Grocery",
+    unitLabel: null,
     price: 2500,
     taxRate: 0.13,
     shortCode: "B",
@@ -39,6 +40,7 @@ const SEED_PRODUCTS: readonly PosProduct[] = [
     id: "product-cooking-oil-5l",
     name: "Cooking Oil (5L)",
     categoryLabel: "Grocery",
+    unitLabel: null,
     price: 850,
     taxRate: 0.13,
     shortCode: "C",
@@ -47,6 +49,7 @@ const SEED_PRODUCTS: readonly PosProduct[] = [
     id: "product-sugar-1kg",
     name: "Sugar (1kg)",
     categoryLabel: "Grocery",
+    unitLabel: null,
     price: 95,
     taxRate: 0.13,
     shortCode: "S",
@@ -55,6 +58,7 @@ const SEED_PRODUCTS: readonly PosProduct[] = [
     id: "product-milk-1l",
     name: "Milk (1L)",
     categoryLabel: "Dairy",
+    unitLabel: null,
     price: 110,
     taxRate: 0.13,
     shortCode: "M",
@@ -63,6 +67,7 @@ const SEED_PRODUCTS: readonly PosProduct[] = [
     id: "product-black-tea-500g",
     name: "Black Tea (500g)",
     categoryLabel: "Pantry",
+    unitLabel: null,
     price: 330,
     taxRate: 0.13,
     shortCode: "T",
@@ -71,6 +76,7 @@ const SEED_PRODUCTS: readonly PosProduct[] = [
     id: "product-noodles-pack",
     name: "Noodles Pack",
     categoryLabel: "Snacks",
+    unitLabel: null,
     price: 40,
     taxRate: 0.13,
     shortCode: "N",
@@ -140,11 +146,6 @@ const createValidationError = (message: string): PosError => ({
   message,
 });
 
-const createUnknownError = (message: string): PosError => ({
-  type: PosErrorType.Unknown,
-  message,
-});
-
 export const createMemoryPosDatasource = (): PosDatasource => {
   let products: readonly PosProduct[] = [...SEED_PRODUCTS];
   let slots: PosSlot[] = createInitialSlots();
@@ -165,7 +166,11 @@ export const createMemoryPosDatasource = (): PosDatasource => {
     async loadBootstrap(
       params: PosLoadBootstrapParams,
     ): Promise<PosBootstrapResult> {
-      if (!params.activeBusinessRemoteId || !params.activeSettlementAccountRemoteId) {
+      if (
+        !params.activeBusinessAccountRemoteId ||
+        !params.activeOwnerUserRemoteId ||
+        !params.activeSettlementAccountRemoteId
+      ) {
         return {
           success: false,
           error: {
@@ -179,7 +184,8 @@ export const createMemoryPosDatasource = (): PosDatasource => {
       const bootstrap: PosBootstrap = {
         products,
         slots: cloneSlots(slots),
-        activeBusinessRemoteId: params.activeBusinessRemoteId,
+        activeBusinessAccountRemoteId: params.activeBusinessAccountRemoteId,
+        activeOwnerUserRemoteId: params.activeOwnerUserRemoteId,
         activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
       };
 
@@ -407,7 +413,7 @@ export const createMemoryPosDatasource = (): PosDatasource => {
       const ledgerEffect: PosLedgerEffect =
         dueAmount > 0
           ? {
-              type: "due_balance_created",
+              type: "due_balance_pending",
               dueAmount,
               accountRemoteId: params.activeSettlementAccountRemoteId,
             }

@@ -1,6 +1,6 @@
 export interface AccountSelectionSubmitViewModel {
   isSubmitting: boolean;
-  submitError?: string;
-  successMessage?: string;
+  submitError: string | null;
+  successMessage: string | null;
   onConfirmSelection: () => Promise<void>;
 }

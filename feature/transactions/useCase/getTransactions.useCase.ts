@@ -2,7 +2,7 @@ import { TransactionsResult } from "@/feature/transactions/types/transaction.ent
 
 export type GetTransactionsParams = {
   ownerUserRemoteId: string;
-  accountRemoteId?: string | null;
+  accountRemoteId: string | null;
 };
 
 export interface GetTransactionsUseCase {

@@ -9,14 +9,14 @@ type ProfileFieldProps = {
   editable: boolean;
   onChangeText: (nextValue: string) => void;
   placeholder: string;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  keyboardType?: TextInputProps["keyboardType"];
-  multiline?: boolean;
-  numberOfLines?: number;
-  autoComplete?: TextInputProps["autoComplete"];
-  textContentType?: TextInputProps["textContentType"];
-  icon?: ReactNode;
-  isLast?: boolean;
+  autoCapitalize: "none" | "sentences" | "words" | "characters";
+  keyboardType: TextInputProps["keyboardType"];
+  multiline: boolean;
+  numberOfLines: number;
+  autoComplete: TextInputProps["autoComplete"] | null;
+  textContentType: TextInputProps["textContentType"] | null;
+  icon: ReactNode | null;
+  isLast: boolean;
 };
 
 export function ProfileField({
@@ -25,14 +25,14 @@ export function ProfileField({
   editable,
   onChangeText,
   placeholder,
-  autoCapitalize = "none",
-  keyboardType = "default",
-  multiline = false,
-  numberOfLines = 1,
+  autoCapitalize,
+  keyboardType,
+  multiline,
+  numberOfLines,
   autoComplete,
   textContentType,
   icon,
-  isLast = false,
+  isLast,
 }: ProfileFieldProps) {
   return (
     <View style={[styles.row, !isLast ? styles.rowDivider : null]}>
@@ -49,8 +49,8 @@ export function ProfileField({
             keyboardType={keyboardType}
             multiline={multiline}
             numberOfLines={numberOfLines}
-            autoComplete={autoComplete}
-            textContentType={textContentType}
+            autoComplete={autoComplete ?? undefined}
+            textContentType={textContentType ?? undefined}
             placeholderTextColor={colors.mutedForeground}
             style={[styles.input, multiline ? styles.inputMultiline : null]}
             textAlignVertical={multiline ? "top" : "center"}

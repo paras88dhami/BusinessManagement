@@ -141,14 +141,13 @@ export const createUpdateAccountMemberUseCase = (
       const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
       const normalizedActorUserRemoteId = normalizeRequired(payload.actorUserRemoteId);
       const normalizedMemberRemoteId = normalizeRequired(payload.memberRemoteId);
-      const normalizedRoleRemoteId = payload.roleRemoteId
-        ? normalizeRequired(payload.roleRemoteId)
-        : null;
-      const normalizedFullName = payload.fullName
-        ? normalizeRequired(payload.fullName)
-        : null;
+      const normalizedRoleRemoteId =
+        payload.roleRemoteId === null
+          ? null
+          : normalizeRequired(payload.roleRemoteId);
+      const normalizedFullName = normalizeRequired(payload.fullName);
       const normalizedEmail = normalizeOptional(payload.email);
-      const normalizedPassword = normalizeOptional(payload.password ?? null);
+      const normalizedPassword = normalizeOptional(payload.password);
 
       if (!normalizedAccountRemoteId) {
         return {
@@ -171,7 +170,7 @@ export const createUpdateAccountMemberUseCase = (
         };
       }
 
-      if (normalizedFullName !== null && normalizedFullName.length < 2) {
+      if (normalizedFullName.length < 2) {
         return {
           success: false,
           error: UserManagementValidationError(
@@ -283,30 +282,19 @@ export const createUpdateAccountMemberUseCase = (
       const existingAuthUser = authUserResult.value;
       const existingCredential = currentCredentialResult.value;
 
-      let nextPhone = existingCredential.loginId;
+      const normalizedPhoneResult = buildPhoneLoginId(
+        payload.phoneCountryCode,
+        payload.phone,
+      );
 
-      if (payload.phone !== undefined) {
-        if (!payload.phoneCountryCode) {
-          return {
-            success: false,
-            error: UserManagementValidationError("Phone country is required."),
-          };
-        }
-
-        const normalizedPhoneResult = buildPhoneLoginId(
-          payload.phoneCountryCode,
-          payload.phone,
-        );
-
-        if (!normalizedPhoneResult.success) {
-          return {
-            success: false,
-            error: normalizedPhoneResult.error,
-          };
-        }
-
-        nextPhone = normalizedPhoneResult.value;
+      if (!normalizedPhoneResult.success) {
+        return {
+          success: false,
+          error: normalizedPhoneResult.error,
+        };
       }
+
+      const nextPhone = normalizedPhoneResult.value;
 
       if (nextPhone !== existingCredential.loginId) {
         const phoneConflictResult = await authCredentialRepository.getAuthCredentialByLoginId(
@@ -337,8 +325,8 @@ export const createUpdateAccountMemberUseCase = (
         }
       }
 
-      const nextFullName = normalizedFullName ?? existingAuthUser.fullName;
-      const nextEmail = payload.email === undefined ? existingAuthUser.email : normalizedEmail;
+      const nextFullName = normalizedFullName;
+      const nextEmail = normalizedEmail;
       const shouldUpdateProfile =
         nextFullName !== existingAuthUser.fullName ||
         nextEmail !== existingAuthUser.email ||

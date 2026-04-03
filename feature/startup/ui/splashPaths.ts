@@ -1,4 +1,4 @@
-﻿/**
+/**
  * splashPaths.ts
  * Pure geometry engine for the eLekha splash animation.
  * No React Native imports - safe to unit-test or reuse.

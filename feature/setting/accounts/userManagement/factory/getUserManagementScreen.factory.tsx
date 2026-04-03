@@ -1,5 +1,4 @@
 import React from "react";
-import { Database } from "@nozbe/watermelondb";
 import { createLocalAccountDatasource } from "@/feature/setting/accounts/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/setting/accounts/accountSelection/data/repository/account.repository.impl";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/setting/accounts/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
@@ -20,28 +19,27 @@ import { createSaveUserManagementRoleUseCase } from "../useCase/saveUserManageme
 import { createUpdateAccountMemberUseCase } from "../useCase/updateAccountMember.useCase.impl";
 import { UserManagementScreen } from "../ui/UserManagementScreen";
 import { useUserManagementViewModel } from "../viewModel/userManagement.viewModel.impl";
+import appDatabase from "@/shared/database/appDatabase";
 
 type GetUserManagementScreenFactoryProps = {
-  database: Database;
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onBack: () => void;
 };
 
 export function GetUserManagementScreenFactory({
-  database,
   activeUserRemoteId,
   activeAccountRemoteId,
   onBack,
 }: GetUserManagementScreenFactoryProps) {
   const userManagementDatasource = React.useMemo(
-    () => createLocalUserManagementDatasource(database),
-    [database],
+    () => createLocalUserManagementDatasource(appDatabase),
+    [],
   );
 
   const accountDatasource = React.useMemo(
-    () => createLocalAccountDatasource(database),
-    [database],
+    () => createLocalAccountDatasource(appDatabase),
+    [],
   );
 
   const accountRepository = React.useMemo(
@@ -50,8 +48,8 @@ export function GetUserManagementScreenFactory({
   );
 
   const authUserDatasource = React.useMemo(
-    () => createLocalAuthUserDatasource(database),
-    [database],
+    () => createLocalAuthUserDatasource(appDatabase),
+    [],
   );
 
   const authUserRepository = React.useMemo(
@@ -60,8 +58,8 @@ export function GetUserManagementScreenFactory({
   );
 
   const authCredentialDatasource = React.useMemo(
-    () => createLocalAuthCredentialDatasource(database),
-    [database],
+    () => createLocalAuthCredentialDatasource(appDatabase),
+    [],
   );
 
   const authCredentialRepository = React.useMemo(

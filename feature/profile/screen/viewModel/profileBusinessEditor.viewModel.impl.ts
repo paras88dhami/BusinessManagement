@@ -67,14 +67,14 @@ export const useProfileBusinessEditorViewModel = (
     }
 
     setIsBusinessEditing(true);
-    setLoadError(undefined);
-    setSuccessMessage(undefined);
+    setLoadError(null);
+    setSuccessMessage(null);
   }, [data.activeAccountType, data.grantedPermissionCodes, setLoadError, setSuccessMessage]);
 
   const onCancelBusinessEdit = useCallback(() => {
     setActiveBusinessProfileForm(baseBusinessProfileForm);
     setIsBusinessEditing(false);
-    setLoadError(undefined);
+    setLoadError(null);
   }, [baseBusinessProfileForm, setLoadError]);
 
   const onUpdateBusinessProfileField = useCallback(
@@ -83,15 +83,15 @@ export const useProfileBusinessEditorViewModel = (
         ...previousValue,
         [field]: value,
       }));
-      setLoadError(undefined);
-      setSuccessMessage(undefined);
+      setLoadError(null);
+      setSuccessMessage(null);
     },
     [setLoadError, setSuccessMessage],
   );
 
   const onSaveBusinessProfile = useCallback(async (): Promise<void> => {
-    setLoadError(undefined);
-    setSuccessMessage(undefined);
+    setLoadError(null);
+    setSuccessMessage(null);
 
     if (!activeUserRemoteId || !data.activeAccountRemoteId) {
       setLoadError("Active account session not found.");
@@ -201,8 +201,7 @@ export const useProfileBusinessEditorViewModel = (
         ),
       }));
       setSuccessMessage("Business profile updated.");
-    } catch (error) {
-      console.error("Failed to save business profile.", error);
+    } catch {
       setLoadError("Unable to save business profile right now.");
     } finally {
       setIsSavingBusinessProfile(false);

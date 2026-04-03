@@ -14,7 +14,7 @@ type GetMoreDashboardScreenFactoryProps = {
   onOpenTransactions: () => void;
   onOpenBudget: () => void;
   onOpenUserManagement: () => void;
-  hasMenuAccess?: MoreDashboardMenuAccessPredicate;
+  hasMenuAccess: MoreDashboardMenuAccessPredicate;
 };
 
 export function GetMoreDashboardScreenFactory({

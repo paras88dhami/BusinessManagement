@@ -23,9 +23,7 @@ export function useLanguageSelectionFeature(
     (languageCode: SupportedLanguageCode): void => {
       changeLanguage(languageCode);
 
-      void setSelectedLanguage(database, languageCode).catch((error) => {
-        console.error("Failed to persist selected language.", error);
-      });
+      void setSelectedLanguage(database, languageCode).catch(() => undefined);
     },
     [database],
   );

@@ -15,7 +15,7 @@ type UseAccountSelectionSubmitViewModelParams = {
   database: Database;
   state: AccountSelectionState;
   actions: AccountSelectionStateActions;
-  onAccountSelected?: (
+  onAccountSelected: (
     selectedAccountContext: SelectedAccountContext,
   ) => Promise<void> | void;
 };
@@ -41,12 +41,10 @@ export const useAccountSelectionSubmitViewModel = (
 
       await setActiveAccountSession(database, targetAccount.remoteId);
 
-      if (onAccountSelected) {
-        await onAccountSelected({
-          accountRemoteId: targetAccount.remoteId,
-          accountType: targetAccount.accountType,
-        });
-      }
+      await onAccountSelected({
+        accountRemoteId: targetAccount.remoteId,
+        accountType: targetAccount.accountType,
+      });
 
       actions.setSuccessMessage("Account selection saved.");
     } catch (error) {

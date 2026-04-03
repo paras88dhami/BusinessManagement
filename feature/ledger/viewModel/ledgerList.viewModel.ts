@@ -16,6 +16,6 @@ export interface LedgerListViewModel {
   refresh: () => Promise<void>;
   onChangeSearchQuery: (value: string) => void;
   onChangeFilter: (filter: LedgerListFilterValue) => void;
-  onOpenCreate: (entryType?: LedgerEntryTypeValue) => void;
+  onOpenCreate: (entryType: LedgerEntryTypeValue) => void;
   onOpenPartyDetail: (partyId: string, partyName: string) => Promise<void> | void;
 }

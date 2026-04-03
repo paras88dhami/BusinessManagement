@@ -4,21 +4,37 @@ import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDa
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { AccountType } from "@/feature/setting/accounts/accountSelection/types/accountSelection.types";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
-import appDatabase from "@/shared/database/appDatabase";
 
 export default function PosDashboardRoute() {
   const navigation = useSmoothNavigation();
   const {
+    isLoading,
+    hasActiveSession,
+    hasActiveAccount,
     activeAccountType,
     activeAccountRemoteId,
     activeUserRemoteId,
   } = useDashboardRouteContext();
 
   useEffect(() => {
+    if (isLoading || !hasActiveSession || !hasActiveAccount) {
+      return;
+    }
+
     if (activeAccountType !== AccountType.Business) {
       navigation.replace(getDashboardHomePath(activeAccountType));
     }
-  }, [activeAccountType, navigation]);
+  }, [
+    activeAccountType,
+    hasActiveAccount,
+    hasActiveSession,
+    isLoading,
+    navigation,
+  ]);
+
+  if (isLoading || !hasActiveSession || !hasActiveAccount) {
+    return null;
+  }
 
   if (activeAccountType !== AccountType.Business) {
     return null;
@@ -26,8 +42,8 @@ export default function PosDashboardRoute() {
 
   return (
     <GetPosScreenFactory
-      database={appDatabase}
-      activeBusinessRemoteId={activeUserRemoteId}
+      activeBusinessAccountRemoteId={activeAccountRemoteId}
+      activeOwnerUserRemoteId={activeUserRemoteId}
       activeSettlementAccountRemoteId={activeAccountRemoteId}
     />
   );

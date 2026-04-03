@@ -1,5 +1,4 @@
 import React from "react";
-import { Database } from "@nozbe/watermelondb";
 import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
 import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
@@ -8,27 +7,32 @@ import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.i
 import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase.impl";
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
 import { createCompletePaymentUseCase } from "../useCase/completePayment.useCase.impl";
+import { createCompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase.impl";
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
 import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
 import { createRemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
+import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
+import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
 import { PosScreen } from "../ui/PosScreen";
 import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
+import appDatabase from "@/shared/database/appDatabase";
 
 type GetPosScreenFactoryProps = {
-  database: Database;
-  activeBusinessRemoteId: string | null;
+  activeBusinessAccountRemoteId: string | null;
+  activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
 };
 
 export function GetPosScreenFactory({
-  database,
-  activeBusinessRemoteId,
+  activeBusinessAccountRemoteId,
+  activeOwnerUserRemoteId,
   activeSettlementAccountRemoteId,
 }: GetPosScreenFactoryProps) {
   const datasource = React.useMemo(
-    () => createLocalPosDatasource({ database }),
-    [database],
+    () => createLocalPosDatasource({ database: appDatabase }),
+    [],
   );
   const repository = React.useMemo(() => createPosRepository(datasource), [datasource]);
 
@@ -68,13 +72,34 @@ export function GetPosScreenFactory({
     () => createCompletePaymentUseCase(repository),
     [repository],
   );
+  const ledgerDatasource = React.useMemo(
+    () => createLocalLedgerDatasource(appDatabase),
+    [],
+  );
+  const ledgerRepository = React.useMemo(
+    () => createLedgerRepository(ledgerDatasource),
+    [ledgerDatasource],
+  );
+  const addLedgerEntryUseCase = React.useMemo(
+    () => createAddLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const completePosCheckoutUseCase = React.useMemo(
+    () =>
+      createCompletePosCheckoutUseCase({
+        completePaymentUseCase,
+        addLedgerEntryUseCase,
+      }),
+    [addLedgerEntryUseCase, completePaymentUseCase],
+  );
   const printReceiptUseCase = React.useMemo(
     () => createPrintReceiptUseCase(repository),
     [repository],
   );
 
   const viewModel = usePosScreenViewModel({
-    activeBusinessRemoteId,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
@@ -84,7 +109,7 @@ export function GetPosScreenFactory({
     applyDiscountUseCase,
     applySurchargeUseCase,
     clearCartUseCase,
-    completePaymentUseCase,
+    completePosCheckoutUseCase,
     printReceiptUseCase,
   });
 

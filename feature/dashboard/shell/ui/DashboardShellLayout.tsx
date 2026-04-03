@@ -30,8 +30,8 @@ export function DashboardShellLayout({
     <View style={styles.container}>
       <PrimaryHeader
         title={viewModel.headerConfig.title}
-        subtitle={viewModel.headerConfig.subtitle}
-        showBack={Boolean(viewModel.headerConfig.showBack)}
+        subtitle={viewModel.headerConfig.subtitle ?? undefined}
+        showBack={viewModel.headerConfig.showBack}
         onBack={viewModel.onHeaderBack}
         rightLabel={viewModel.profileInitials}
         showBell={viewModel.headerConfig.showBell}
