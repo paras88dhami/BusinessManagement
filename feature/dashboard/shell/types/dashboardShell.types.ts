@@ -9,6 +9,7 @@ export type DashboardRouteKey =
   | "ledger"
   | "pos"
   | "products"
+  | "categories"
   | "inventory"
   | "emi-loans"
   | "more"
