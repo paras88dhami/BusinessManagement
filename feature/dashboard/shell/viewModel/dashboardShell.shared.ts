@@ -16,8 +16,9 @@ const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "ledger",
   "pos",
   "products",
-  "categories",
   "inventory",
+  "billing",
+  "tax-calculator",
   "user-management",
 ]);
 
@@ -45,6 +46,11 @@ export const resolveDashboardRouteKey = (
     case "products":
     case "categories":
     case "inventory":
+    case "money-accounts":
+    case "contacts":
+    case "billing":
+    case "tax-calculator":
+    case "notes":
     case "emi-loans":
     case "more":
     case "user-management":
@@ -121,6 +127,46 @@ export const resolveDashboardHeaderConfig = (params: {
         showProfile: false,
         showBack: true,
       };
+    case "money-accounts":
+      return {
+        title: "Money Accounts",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "contacts":
+      return {
+        title: "Contacts",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "billing":
+      return {
+        title: "Billing",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "tax-calculator":
+      return {
+        title: "Tax Calculator",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "notes":
+      return {
+        title: "Notes",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
     case "emi-loans":
       return {
         title: "EMI and Loans",
@@ -189,6 +235,11 @@ export const resolveDashboardActiveTab = (
     case "products":
     case "categories":
     case "inventory":
+    case "money-accounts":
+    case "contacts":
+    case "billing":
+    case "tax-calculator":
+    case "notes":
       return DashboardTab.More;
     case "personal-transactions":
       return DashboardTab.Transactions;

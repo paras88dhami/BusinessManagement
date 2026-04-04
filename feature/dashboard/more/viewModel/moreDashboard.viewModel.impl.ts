@@ -1,5 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { MoreDashboardSection } from "../types/moreDashboard.types";
+import {
+  MoreDashboardMenuItemId,
+  MoreDashboardSection,
+} from "../types/moreDashboard.types";
 import {
   MoreDashboardViewModel,
   UseMoreDashboardViewModelParams,
@@ -7,35 +10,30 @@ import {
 
 const businessSections: readonly MoreDashboardSection[] = [
   {
-    id: "account",
-    title: "Account",
+    id: "sales",
+    title: "Sales",
     items: [
-      {
-        id: "profile",
-        title: "Profile",
-        subtitle: "Your profile, switch account and logout",
-      },
-      {
-        id: "userManagement",
-        title: "User Management",
-        subtitle: "Roles, permissions, and team access",
-      },
-    ],
-  },
-  {
-    id: "quick-tools",
-    title: "Quick Tools",
-    items: [
-      {
-        id: "ledger",
-        title: "Ledger",
-        subtitle: "Payables and receivables overview",
-      },
       {
         id: "pos",
         title: "POS",
         subtitle: "Point of sale checkout",
       },
+      {
+        id: "billing",
+        title: "Billing & Invoices",
+        subtitle: "Invoices, receipts, and bill photos",
+      },
+      {
+        id: "contacts",
+        title: "Contacts",
+        subtitle: "Customers, suppliers, and parties",
+      },
+    ],
+  },
+  {
+    id: "catalog-stock",
+    title: "Catalog & Stock",
+    items: [
       {
         id: "products",
         title: "Products",
@@ -51,6 +49,32 @@ const businessSections: readonly MoreDashboardSection[] = [
         title: "Inventory",
         subtitle: "Stock levels and movements",
       },
+    ],
+  },
+  {
+    id: "finance",
+    title: "Finance",
+    items: [
+      {
+        id: "ledger",
+        title: "Ledger",
+        subtitle: "Payables and receivables overview",
+      },
+      {
+        id: "moneyAccounts",
+        title: "Money Accounts",
+        subtitle: "Cash, bank, and wallet balances",
+      },
+      {
+        id: "taxCalculator",
+        title: "Tax Calculator",
+        subtitle: "Quick GST/VAT calculations",
+      },
+      {
+        id: "notes",
+        title: "Notes",
+        subtitle: "Quick workspace notes",
+      },
       {
         id: "emi",
         title: "EMI and Loans",
@@ -58,9 +82,17 @@ const businessSections: readonly MoreDashboardSection[] = [
       },
     ],
   },
-];
-
-const personalSections: readonly MoreDashboardSection[] = [
+  {
+    id: "team",
+    title: "Team",
+    items: [
+      {
+        id: "userManagement",
+        title: "User Management",
+        subtitle: "Roles, permissions, and team access",
+      },
+    ],
+  },
   {
     id: "account",
     title: "Account",
@@ -72,9 +104,12 @@ const personalSections: readonly MoreDashboardSection[] = [
       },
     ],
   },
+];
+
+const personalSections: readonly MoreDashboardSection[] = [
   {
-    id: "personal-tools",
-    title: "Personal Tools",
+    id: "money",
+    title: "Money",
     items: [
       {
         id: "transactions",
@@ -93,6 +128,49 @@ const personalSections: readonly MoreDashboardSection[] = [
       },
     ],
   },
+  {
+    id: "records",
+    title: "Records",
+    items: [
+      {
+        id: "moneyAccounts",
+        title: "Money Accounts",
+        subtitle: "Cash, bank, and wallet balances",
+      },
+      {
+        id: "contacts",
+        title: "Contacts",
+        subtitle: "Personal parties and relationships",
+      },
+    ],
+  },
+  {
+    id: "organize",
+    title: "Organize",
+    items: [
+      {
+        id: "categories",
+        title: "Categories",
+        subtitle: "Personal income and expense categories",
+      },
+      {
+        id: "notes",
+        title: "Notes",
+        subtitle: "Quick personal notes",
+      },
+    ],
+  },
+  {
+    id: "account",
+    title: "Account",
+    items: [
+      {
+        id: "profile",
+        title: "Profile",
+        subtitle: "Your profile, switch account and logout",
+      },
+    ],
+  },
 ];
 
 export const useMoreDashboardViewModel = (
@@ -106,6 +184,11 @@ export const useMoreDashboardViewModel = (
     onOpenProducts,
     onOpenCategories,
     onOpenInventory,
+    onOpenMoneyAccounts,
+    onOpenContacts,
+    onOpenBilling,
+    onOpenTaxCalculator,
+    onOpenNotes,
     onOpenEmi,
     onOpenTransactions,
     onOpenBudget,
@@ -114,7 +197,7 @@ export const useMoreDashboardViewModel = (
   } = params;
 
   const onMenuItemPress = useCallback(
-    (itemId: string) => {
+    (itemId: MoreDashboardMenuItemId) => {
       switch (itemId) {
         case "profile":
           onOpenProfile();
@@ -133,6 +216,21 @@ export const useMoreDashboardViewModel = (
           return;
         case "inventory":
           onOpenInventory();
+          return;
+        case "moneyAccounts":
+          onOpenMoneyAccounts();
+          return;
+        case "contacts":
+          onOpenContacts();
+          return;
+        case "billing":
+          onOpenBilling();
+          return;
+        case "taxCalculator":
+          onOpenTaxCalculator();
+          return;
+        case "notes":
+          onOpenNotes();
           return;
         case "emi":
           onOpenEmi();
@@ -156,6 +254,11 @@ export const useMoreDashboardViewModel = (
       onOpenLedger,
       onOpenInventory,
       onOpenCategories,
+      onOpenMoneyAccounts,
+      onOpenContacts,
+      onOpenBilling,
+      onOpenTaxCalculator,
+      onOpenNotes,
       onOpenPos,
       onOpenProducts,
       onOpenProfile,

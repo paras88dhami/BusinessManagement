@@ -5,19 +5,25 @@ import {
   BookOpen,
   Boxes,
   Box,
+  Calculator,
   ChevronRight,
   CreditCard,
+  ReceiptText,
+  StickyNote,
   PiggyBank,
   ShieldCheck,
   ShoppingCart,
   Tags,
   User,
+  WalletCards,
+  Users,
 } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import { MoreDashboardViewModel } from "../viewModel/moreDashboard.viewModel";
+import { MoreDashboardMenuItemId } from "../types/moreDashboard.types";
 
 type MoreDashboardScreenProps = {
   viewModel: MoreDashboardViewModel;
@@ -59,7 +65,7 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
   );
 }
 
-const getItemIcon = (itemId: string) => {
+const getItemIcon = (itemId: MoreDashboardMenuItemId) => {
   switch (itemId) {
     case "profile":
       return <User size={18} color={colors.primary} />;
@@ -73,6 +79,16 @@ const getItemIcon = (itemId: string) => {
       return <Tags size={18} color={colors.primary} />;
     case "inventory":
       return <Boxes size={18} color={colors.primary} />;
+    case "moneyAccounts":
+      return <WalletCards size={18} color={colors.primary} />;
+    case "contacts":
+      return <Users size={18} color={colors.primary} />;
+    case "billing":
+      return <ReceiptText size={18} color={colors.primary} />;
+    case "taxCalculator":
+      return <Calculator size={18} color={colors.primary} />;
+    case "notes":
+      return <StickyNote size={18} color={colors.primary} />;
     case "emi":
       return <CreditCard size={18} color={colors.primary} />;
     case "transactions":

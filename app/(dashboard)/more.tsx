@@ -49,6 +49,26 @@ export default function MoreDashboardRoute() {
     navigation.push("/(dashboard)/inventory");
   }, [navigation]);
 
+  const handleOpenMoneyAccounts = useCallback(() => {
+    navigation.push("/(dashboard)/money-accounts");
+  }, [navigation]);
+
+  const handleOpenContacts = useCallback(() => {
+    navigation.push("/(dashboard)/contacts");
+  }, [navigation]);
+
+  const handleOpenBilling = useCallback(() => {
+    navigation.push("/(dashboard)/billing");
+  }, [navigation]);
+
+  const handleOpenTaxCalculator = useCallback(() => {
+    navigation.push("/(dashboard)/tax-calculator");
+  }, [navigation]);
+
+  const handleOpenNotes = useCallback(() => {
+    navigation.push("/(dashboard)/notes");
+  }, [navigation]);
+
   const handleOpenEmi = useCallback(() => {
     navigation.replace("/(dashboard)/emi-loans");
   }, [navigation]);
@@ -100,6 +120,11 @@ export default function MoreDashboardRoute() {
       onOpenProducts={handleOpenProducts}
       onOpenCategories={handleOpenCategories}
       onOpenInventory={handleOpenInventory}
+      onOpenMoneyAccounts={handleOpenMoneyAccounts}
+      onOpenContacts={handleOpenContacts}
+      onOpenBilling={handleOpenBilling}
+      onOpenTaxCalculator={handleOpenTaxCalculator}
+      onOpenNotes={handleOpenNotes}
       onOpenEmi={handleOpenEmi}
       onOpenTransactions={handleOpenTransactions}
       onOpenBudget={handleOpenBudget}

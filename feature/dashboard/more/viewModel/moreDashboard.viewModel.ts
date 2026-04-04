@@ -1,11 +1,12 @@
 import {
+  MoreDashboardMenuItemId,
   MoreDashboardMenuAccessPredicate,
   MoreDashboardSection,
 } from "../types/moreDashboard.types";
 
 export interface MoreDashboardViewModel {
   sections: readonly MoreDashboardSection[];
-  onMenuItemPress: (itemId: string) => void;
+  onMenuItemPress: (itemId: MoreDashboardMenuItemId) => void;
 }
 
 export type UseMoreDashboardViewModelParams = {
@@ -16,6 +17,11 @@ export type UseMoreDashboardViewModelParams = {
   onOpenProducts: () => void;
   onOpenCategories: () => void;
   onOpenInventory: () => void;
+  onOpenMoneyAccounts: () => void;
+  onOpenContacts: () => void;
+  onOpenBilling: () => void;
+  onOpenTaxCalculator: () => void;
+  onOpenNotes: () => void;
   onOpenEmi: () => void;
   onOpenTransactions: () => void;
   onOpenBudget: () => void;

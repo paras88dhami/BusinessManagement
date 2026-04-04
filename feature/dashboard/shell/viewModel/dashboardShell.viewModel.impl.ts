@@ -39,7 +39,14 @@ const DASHBOARD_ROUTE_PERMISSION_CODE: Partial<
   "user-management": "user_management.view",
   ledger: "ledger.view",
   pos: "pos.view",
+  products: "products.view",
   categories: "products.view",
+  inventory: "inventory.view",
+  "money-accounts": "money_accounts.view",
+  contacts: "contacts.view",
+  billing: "billing.view",
+  "tax-calculator": "tax_calculator.view",
+  notes: "notes.view",
   "emi-loans": "emi.view",
   "personal-transactions": "transactions.view",
   "personal-budget": "budget.view",
@@ -49,6 +56,11 @@ const MORE_SECTION_ROUTES = new Set<Exclude<DashboardRouteKey, null>>([
   "products",
   "categories",
   "inventory",
+  "money-accounts",
+  "contacts",
+  "billing",
+  "tax-calculator",
+  "notes",
 ]);
 
 export const useDashboardShellViewModel = (): DashboardShellViewModel => {
@@ -136,7 +148,10 @@ export const useDashboardShellViewModel = (): DashboardShellViewModel => {
       return;
     }
 
-    if (!permissionAccess.isLoading) {
+    if (
+      activeAccountType === AccountType.Business &&
+      !permissionAccess.isLoading
+    ) {
       const requiredPermissionCode = DASHBOARD_ROUTE_PERMISSION_CODE[routeKey];
 
       if (

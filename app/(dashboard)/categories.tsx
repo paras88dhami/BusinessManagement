@@ -25,24 +25,21 @@ export default function CategoriesDashboardRoute() {
     activeAccountRemoteId,
   });
 
-  const canViewCategories = permissionAccess.hasPermission(
-    CATEGORIES_VIEW_PERMISSION_CODE,
-  );
-  const canManageCategories = permissionAccess.hasPermission(
-    CATEGORIES_MANAGE_PERMISSION_CODE,
-  );
+  const shouldEnforceBusinessPermission =
+    activeAccountType === AccountType.Business;
+  const canViewCategories = shouldEnforceBusinessPermission
+    ? permissionAccess.hasPermission(CATEGORIES_VIEW_PERMISSION_CODE)
+    : true;
+  const canManageCategories = shouldEnforceBusinessPermission
+    ? permissionAccess.hasPermission(CATEGORIES_MANAGE_PERMISSION_CODE)
+    : true;
 
   useEffect(() => {
     if (isLoading || !hasActiveSession || !hasActiveAccount) {
       return;
     }
 
-    if (activeAccountType !== AccountType.Business) {
-      navigation.replace(getDashboardHomePath(activeAccountType));
-      return;
-    }
-
-    if (permissionAccess.isLoading) {
+    if (!shouldEnforceBusinessPermission || permissionAccess.isLoading) {
       return;
     }
 
@@ -57,18 +54,19 @@ export default function CategoriesDashboardRoute() {
     isLoading,
     navigation,
     permissionAccess.isLoading,
+    shouldEnforceBusinessPermission,
   ]);
 
   if (
     isLoading ||
     !hasActiveSession ||
     !hasActiveAccount ||
-    permissionAccess.isLoading
+    (shouldEnforceBusinessPermission && permissionAccess.isLoading)
   ) {
     return null;
   }
 
-  if (activeAccountType !== AccountType.Business || !canViewCategories) {
+  if (!canViewCategories) {
     return null;
   }
 
