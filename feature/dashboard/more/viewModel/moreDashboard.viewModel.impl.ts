@@ -19,6 +19,11 @@ const businessSections: readonly MoreDashboardSection[] = [
         subtitle: "Point of sale checkout",
       },
       {
+        id: "orders",
+        title: "Orders",
+        subtitle: "Order lifecycle and fulfillment",
+      },
+      {
         id: "billing",
         title: "Billing & Invoices",
         subtitle: "Invoices, receipts, and bill photos",
@@ -181,6 +186,7 @@ export const useMoreDashboardViewModel = (
     onOpenProfile,
     onOpenLedger,
     onOpenPos,
+    onOpenOrders,
     onOpenProducts,
     onOpenCategories,
     onOpenInventory,
@@ -207,6 +213,9 @@ export const useMoreDashboardViewModel = (
           return;
         case "pos":
           onOpenPos();
+          return;
+        case "orders":
+          onOpenOrders();
           return;
         case "products":
           onOpenProducts();
@@ -253,6 +262,7 @@ export const useMoreDashboardViewModel = (
       onOpenEmi,
       onOpenLedger,
       onOpenInventory,
+      onOpenOrders,
       onOpenCategories,
       onOpenMoneyAccounts,
       onOpenContacts,

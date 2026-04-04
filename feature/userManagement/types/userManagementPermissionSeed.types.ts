@@ -44,6 +44,18 @@ export const USER_MANAGEMENT_PERMISSION_SEED: readonly UserManagementPermissionS
       description: "Create and complete POS sales.",
     },
     {
+      code: "orders.view",
+      module: "Orders",
+      label: "View Orders",
+      description: "Open order tracking and fulfillment workspace.",
+    },
+    {
+      code: "orders.manage",
+      module: "Orders",
+      label: "Manage Orders",
+      description: "Create, update, and delete orders and status actions.",
+    },
+    {
       code: "products.view",
       module: "Products",
       label: "View Products",

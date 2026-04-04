@@ -7,6 +7,7 @@ export const MORE_DASHBOARD_MENU_PERMISSION_CODE: Record<
   profile: "profile.view",
   ledger: "ledger.view",
   pos: "pos.view",
+  orders: "orders.view",
   products: "products.view",
   categories: "products.view",
   inventory: "inventory.view",

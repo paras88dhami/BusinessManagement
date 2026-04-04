@@ -1,0 +1,15 @@
+import { OrderOperationResult } from "@/feature/orders/types/order.types";
+
+export interface RecordOrderPaymentUseCase {
+  execute(params: {
+    orderRemoteId: string;
+    orderNumber: string;
+    ownerUserRemoteId: string;
+    accountRemoteId: string;
+    accountDisplayNameSnapshot: string;
+    currencyCode: string | null;
+    amount: number;
+    happenedAt: number;
+    note: string | null;
+  }): Promise<OrderOperationResult>;
+}

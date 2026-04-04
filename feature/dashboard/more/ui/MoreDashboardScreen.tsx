@@ -73,6 +73,8 @@ const getItemIcon = (itemId: MoreDashboardMenuItemId) => {
       return <BookOpen size={18} color={colors.primary} />;
     case "pos":
       return <ShoppingCart size={18} color={colors.primary} />;
+    case "orders":
+      return <ReceiptText size={18} color={colors.primary} />;
     case "products":
       return <Box size={18} color={colors.primary} />;
     case "categories":

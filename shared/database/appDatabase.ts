@@ -22,12 +22,14 @@ import {
 } from "@/shared/database/createDatabase";
 import { migrations } from "@/shared/database/migration";
 import { appSchema, Q } from "@nozbe/watermelondb";
+import { orderDbConfig } from "@/feature/orders/data/dataSource/db/orderDbConfig";
+import { budgetPlanDbConfig } from "@/feature/budget/data/dataSource/db/budgetPlanDbConfig";
 
 const APP_SETTINGS_TABLE = "app_settings";
 const BILLING_DOCUMENTS_TABLE = "billing_documents";
 
 const schema = appSchema({
-  version: 25,
+  version: 27,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -45,6 +47,8 @@ const schema = appSchema({
     ...productDbConfig.tables,
     ...inventoryMovementDbConfig.tables,
     ...categoryDbConfig.tables,
+    ...orderDbConfig.tables,
+    ...budgetPlanDbConfig.tables,
   ],
 });
 
@@ -67,6 +71,8 @@ export const database = createDatabase({
     ...productDbConfig.models,
     ...inventoryMovementDbConfig.models,
     ...categoryDbConfig.models,
+    ...orderDbConfig.models,
+    ...budgetPlanDbConfig.models,
   ],
   migrations,
 });

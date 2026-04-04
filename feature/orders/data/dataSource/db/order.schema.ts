@@ -1,0 +1,23 @@
+import { tableSchema } from "@nozbe/watermelondb";
+
+export const ordersTable = tableSchema({
+  name: "orders",
+  columns: [
+    { name: "remote_id", type: "string", isIndexed: true },
+    { name: "owner_user_remote_id", type: "string", isIndexed: true },
+    { name: "account_remote_id", type: "string", isIndexed: true },
+    { name: "order_number", type: "string", isIndexed: true },
+    { name: "order_date", type: "number", isIndexed: true },
+    { name: "customer_remote_id", type: "string", isOptional: true, isIndexed: true },
+    { name: "delivery_or_pickup_details", type: "string", isOptional: true },
+    { name: "notes", type: "string", isOptional: true },
+    { name: "tags", type: "string", isOptional: true },
+    { name: "internal_remarks", type: "string", isOptional: true },
+    { name: "status", type: "string", isIndexed: true },
+    { name: "sync_status", type: "string", isIndexed: true },
+    { name: "last_synced_at", type: "number", isOptional: true },
+    { name: "deleted_at", type: "number", isOptional: true },
+    { name: "created_at", type: "number" },
+    { name: "updated_at", type: "number" },
+  ],
+});
