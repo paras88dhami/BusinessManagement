@@ -4,6 +4,7 @@ import { createLocalTransactionDatasource } from "@/feature/transactions/data/da
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import { usePersonalDashboardViewModel } from "../viewModel/personalDashboard.viewModel.impl";
+import { PersonalDashboardQuickAction } from "../types/personalDashboard.types";
 import { PersonalDashboardScreen } from "../ui/PersonalDashboardScreen";
 
 type GetPersonalDashboardScreenFactoryProps = {
@@ -11,6 +12,7 @@ type GetPersonalDashboardScreenFactoryProps = {
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  onQuickActionPress: (actionId: PersonalDashboardQuickAction["id"]) => void;
 };
 
 export function GetPersonalDashboardScreenFactory({
@@ -18,6 +20,7 @@ export function GetPersonalDashboardScreenFactory({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  onQuickActionPress,
 }: GetPersonalDashboardScreenFactoryProps) {
   const transactionDatasource = React.useMemo(
     () => createLocalTransactionDatasource(appDatabase),
@@ -39,6 +42,7 @@ export function GetPersonalDashboardScreenFactory({
     activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    onQuickActionPress,
     getTransactionsUseCase,
   });
 

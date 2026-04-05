@@ -1,3 +1,6 @@
+import type { ChartSeriesPoint } from "@/shared/components/reusable/Charts/FinancialCharts";
+import type { TransactionTableRow } from "@/shared/components/reusable/Tables/TransactionTable";
+
 export type BusinessDashboardSummaryCard = {
   id: string;
   title: string;
@@ -6,14 +9,10 @@ export type BusinessDashboardSummaryCard = {
 };
 
 export type BusinessDashboardQuickAction = {
-  id: string;
+  id: "orders" | "products" | "billing" | "contacts";
   label: string;
 };
 
-export type BusinessDashboardDueItem = {
-  id: string;
-  name: string;
-  subtitle: string;
-  amount: string;
-  direction: "receive" | "pay";
-};
+export type BusinessDashboardProfitPoint = ChartSeriesPoint;
+
+export type BusinessDashboardTransactionRow = TransactionTableRow;

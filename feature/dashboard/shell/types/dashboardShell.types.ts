@@ -9,6 +9,8 @@ export type DashboardRouteKey =
   | "ledger"
   | "pos"
   | "products"
+  | "orders"
+  | "reports"
   | "categories"
   | "inventory"
   | "money-accounts"

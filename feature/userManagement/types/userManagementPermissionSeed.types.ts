@@ -116,6 +116,12 @@ export const USER_MANAGEMENT_PERMISSION_SEED: readonly UserManagementPermissionS
       description: "Create, update, and delete invoices, receipts, and bill photos.",
     },
     {
+      code: "reports.view",
+      module: "Reports",
+      label: "View Reports",
+      description: "Open dashboards and analytical reports.",
+    },
+    {
       code: "tax_calculator.view",
       module: "Tax Calculator",
       label: "View Tax Calculator",

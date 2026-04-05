@@ -11,6 +11,9 @@ export const USER_MANAGEMENT_PERMISSION_ALIAS_MAP: Readonly<
   "contacts.manage": ["products.manage", "pos.checkout"],
   "billing.view": ["pos.view", "ledger.view"],
   "billing.manage": ["pos.checkout", "ledger.manage"],
+  "orders.view": ["pos.view", "billing.view"],
+  "orders.manage": ["pos.checkout", "billing.manage"],
+  "reports.view": ["billing.view", "ledger.view"],
   "tax_calculator.view": ["ledger.view"],
   "notes.view": ["ledger.view"],
 };

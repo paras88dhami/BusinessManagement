@@ -8,12 +8,15 @@ import { createTransactionRepository } from "@/feature/transactions/data/reposit
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import { useBusinessDashboardViewModel } from "../viewModel/businessDashboard.viewModel.impl";
 import { BusinessDashboardScreen } from "../ui/BusinessDashboardScreen";
+import { BusinessDashboardQuickAction } from "../types/businessDashboard.types";
 
 type GetBusinessDashboardScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  hasQuickActionAccess: (actionId: BusinessDashboardQuickAction["id"]) => boolean;
+  onQuickActionPress: (actionId: BusinessDashboardQuickAction["id"]) => void;
 };
 
 export function GetBusinessDashboardScreenFactory({
@@ -21,6 +24,8 @@ export function GetBusinessDashboardScreenFactory({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  hasQuickActionAccess,
+  onQuickActionPress,
 }: GetBusinessDashboardScreenFactoryProps) {
   const transactionDatasource = React.useMemo(
     () => createLocalTransactionDatasource(appDatabase),
@@ -57,6 +62,8 @@ export function GetBusinessDashboardScreenFactory({
     activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    hasQuickActionAccess,
+    onQuickActionPress,
     getTransactionsUseCase,
     getLedgerEntriesUseCase,
   });

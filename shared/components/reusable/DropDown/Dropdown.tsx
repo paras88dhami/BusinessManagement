@@ -43,10 +43,14 @@ export function Dropdown({
   triggerTextStyle,
 }: DropdownProps) {
   const [visible, setVisible] = useState(false);
+  const safeOptions = useMemo(
+    () => (Array.isArray(options) ? options : []),
+    [options],
+  );
 
   const selectedOption = useMemo(() => {
-    return options.find((item) => item.value === value);
-  }, [options, value]);
+    return safeOptions.find((item) => item.value === value);
+  }, [safeOptions, value]);
 
   const handleSelect = (nextValue: string) => {
     setVisible(false);
@@ -91,7 +95,7 @@ export function Dropdown({
             <Text style={styles.sheetTitle}>{modalTitle}</Text>
 
             <FlatList
-              data={options}
+              data={safeOptions}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => {
                 const isSelected = item.value === value;

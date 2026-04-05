@@ -47,6 +47,7 @@ export function OrderEditorModal({
   onSubmit,
 }: Props) {
   const title = mode === "create" ? "Create Order" : "Update Order";
+  const lineItems = Array.isArray(form.items) ? form.items : [];
 
   return (
     <FormSheetModal
@@ -110,7 +111,7 @@ export function OrderEditorModal({
         </Pressable>
       </View>
 
-      {form.items.map((item, index) => (
+      {lineItems.map((item, index) => (
         <View key={item.remoteId} style={styles.lineCard}>
           <Text style={styles.lineLabel}>Item {index + 1}</Text>
           <View style={styles.fieldWrap}>
@@ -131,7 +132,7 @@ export function OrderEditorModal({
             keyboardType="decimal-pad"
             placeholder="1"
           />
-          {form.items.length > 1 ? (
+          {lineItems.length > 1 ? (
             <Pressable
               style={styles.removeItemButton}
               onPress={() => onRemoveLineItem(item.remoteId)}

@@ -162,6 +162,7 @@ export const createLocalOrderDatasource = (
 ): OrderDatasource => ({
   async saveOrder(payload: SaveOrderPayload): Promise<Result<OrderRecordBundle>> {
     try {
+      const normalizedItems = Array.isArray(payload.items) ? payload.items : [];
       const normalizedRemoteId = normalizeRequired(payload.remoteId);
       const normalizedOwnerUserRemoteId = normalizeRequired(payload.ownerUserRemoteId);
       const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
@@ -181,12 +182,15 @@ export const createLocalOrderDatasource = (
       if (!Number.isFinite(payload.orderDate) || payload.orderDate <= 0) {
         throw new Error("Order date is required");
       }
-      if (payload.items.length === 0) {
+      if (normalizedItems.length === 0) {
         throw new Error("At least one order item is required");
       }
       if (
-        payload.items.some(
-          (item) => !item.productRemoteId.trim() || !Number.isFinite(item.quantity) || item.quantity <= 0,
+        normalizedItems.some(
+          (item) =>
+            !item.productRemoteId?.trim() ||
+            !Number.isFinite(item.quantity) ||
+            item.quantity <= 0,
         )
       ) {
         throw new Error("Each order item must have a product and quantity greater than zero");
@@ -273,9 +277,11 @@ export const createLocalOrderDatasource = (
         const existingOrderLinesByRemoteId = new Map(
           existingOrderLines.map((item) => [item.remoteId, item]),
         );
-        const nextRemoteIds = new Set(payload.items.map((item) => item.remoteId.trim()));
+        const nextRemoteIds = new Set(
+          normalizedItems.map((item) => item.remoteId.trim()),
+        );
 
-        for (const item of payload.items) {
+        for (const item of normalizedItems) {
           const normalizedItemRemoteId = normalizeRequired(item.remoteId);
           const normalizedProductRemoteId = normalizeRequired(item.productRemoteId);
           const existingLine = existingOrderLinesByRemoteId.get(normalizedItemRemoteId);

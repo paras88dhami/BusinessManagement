@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CreditCard,
   ReceiptText,
+  PieChart,
   StickyNote,
   PiggyBank,
   ShieldCheck,
@@ -75,6 +76,8 @@ const getItemIcon = (itemId: MoreDashboardMenuItemId) => {
       return <ShoppingCart size={18} color={colors.primary} />;
     case "orders":
       return <ReceiptText size={18} color={colors.primary} />;
+    case "reports":
+      return <PieChart size={18} color={colors.primary} />;
     case "products":
       return <Box size={18} color={colors.primary} />;
     case "categories":

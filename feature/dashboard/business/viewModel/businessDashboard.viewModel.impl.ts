@@ -6,27 +6,34 @@ import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransa
 import { LedgerEntry } from "@/feature/ledger/types/ledger.entity.types";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { buildLedgerPartyBalances } from "@/feature/ledger/viewModel/ledger.shared";
-import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import {
+  formatCurrencyAmount,
+  resolveCurrencyPrefix,
+} from "@/shared/utils/currency/accountCurrency";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  BusinessDashboardDueItem,
+  BusinessDashboardProfitPoint,
   BusinessDashboardQuickAction,
   BusinessDashboardSummaryCard,
+  BusinessDashboardTransactionRow,
 } from "../types/businessDashboard.types";
 import { BusinessDashboardViewModel } from "./businessDashboard.viewModel";
 
 const quickActions: readonly BusinessDashboardQuickAction[] = [
+  { id: "orders", label: "Orders" },
   { id: "products", label: "Products" },
   { id: "billing", label: "Billing" },
   { id: "contacts", label: "Contacts" },
-  { id: "transactions", label: "Txns" },
 ];
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type UseBusinessDashboardViewModelParams = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  hasQuickActionAccess: (actionId: BusinessDashboardQuickAction["id"]) => boolean;
+  onQuickActionPress: (actionId: BusinessDashboardQuickAction["id"]) => void;
   getTransactionsUseCase: GetTransactionsUseCase;
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
 };
@@ -36,6 +43,8 @@ export const useBusinessDashboardViewModel = ({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  hasQuickActionAccess,
+  onQuickActionPress,
   getTransactionsUseCase,
   getLedgerEntriesUseCase,
 }: UseBusinessDashboardViewModelParams): BusinessDashboardViewModel => {
@@ -103,10 +112,22 @@ export const useBusinessDashboardViewModel = ({
 
   const currencyCode = activeAccountCurrencyCode;
   const countryCode = activeAccountCountryCode;
+  const currencyPrefix = useMemo(
+    () =>
+      resolveCurrencyPrefix({
+        currencyCode,
+        countryCode,
+      }),
+    [countryCode, currencyCode],
+  );
 
   const partyBalances = useMemo(
     () => buildLedgerPartyBalances(ledgerEntries),
     [ledgerEntries],
+  );
+  const availableQuickActions = useMemo(
+    () => quickActions.filter((quickAction) => hasQuickActionAccess(quickAction.id)),
+    [hasQuickActionAccess],
   );
 
   const summaryCards = useMemo<readonly BusinessDashboardSummaryCard[]>(() => {
@@ -184,43 +205,6 @@ export const useBusinessDashboardViewModel = ({
     [transactions],
   );
 
-  const dueItems = useMemo<readonly BusinessDashboardDueItem[]>(() => {
-    return partyBalances
-      .filter(
-        (partyBalance) =>
-          partyBalance.overdueAmount > 0 || partyBalance.dueTodayAmount > 0,
-      )
-      .sort((left, right) => {
-        const leftWeight = left.overdueAmount > 0 ? 0 : 1;
-        const rightWeight = right.overdueAmount > 0 ? 0 : 1;
-
-        if (leftWeight !== rightWeight) {
-          return leftWeight - rightWeight;
-        }
-
-        return right.lastEntryAt - left.lastEntryAt;
-      })
-      .slice(0, 6)
-      .map((partyBalance) => {
-        const amount =
-          partyBalance.overdueAmount > 0
-            ? partyBalance.overdueAmount
-            : partyBalance.dueTodayAmount;
-
-        return {
-          id: partyBalance.id,
-          name: partyBalance.partyName,
-          subtitle: partyBalance.overdueAmount > 0 ? "Overdue" : "Due today",
-          amount: formatCurrencyAmount({
-            amount,
-            currencyCode,
-            countryCode,
-          }),
-          direction: partyBalance.balanceDirection,
-        };
-      });
-  }, [countryCode, currencyCode, partyBalances]);
-
   const overdueCountLabel = useMemo(
     () =>
       String(
@@ -229,6 +213,106 @@ export const useBusinessDashboardViewModel = ({
       ),
     [partyBalances],
   );
+
+  const profitOverviewSeries = useMemo<readonly BusinessDashboardProfitPoint[]>(() => {
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const firstDay = new Date(startOfToday);
+    firstDay.setDate(firstDay.getDate() - 6);
+
+    const firstDayStartTime = firstDay.getTime();
+    const todayEndTime = startOfToday.getTime() + ONE_DAY_IN_MS;
+
+    const totalsByDayStart = new Map<number, { inAmount: number; outAmount: number }>();
+
+    for (const transaction of transactions) {
+      if (
+        transaction.happenedAt < firstDayStartTime ||
+        transaction.happenedAt >= todayEndTime
+      ) {
+        continue;
+      }
+
+      const transactionDate = new Date(transaction.happenedAt);
+      const dayStartTime = new Date(
+        transactionDate.getFullYear(),
+        transactionDate.getMonth(),
+        transactionDate.getDate(),
+      ).getTime();
+
+      const current = totalsByDayStart.get(dayStartTime) ?? {
+        inAmount: 0,
+        outAmount: 0,
+      };
+
+      if (transaction.direction === TransactionDirection.In) {
+        current.inAmount += transaction.amount;
+      } else if (transaction.direction === TransactionDirection.Out) {
+        current.outAmount += transaction.amount;
+      }
+
+      totalsByDayStart.set(dayStartTime, current);
+    }
+
+    return Array.from({ length: 7 }, (_, offset) => {
+      const currentDate = new Date(firstDay);
+      currentDate.setDate(firstDay.getDate() + offset);
+      const dayStartTime = currentDate.getTime();
+      const totals = totalsByDayStart.get(dayStartTime) ?? {
+        inAmount: 0,
+        outAmount: 0,
+      };
+
+      return {
+        label: currentDate.toLocaleDateString("en-US", { weekday: "short" }),
+        value: totals.inAmount - totals.outAmount,
+      };
+    });
+  }, [transactions]);
+
+  const todayTransactionRows = useMemo<readonly BusinessDashboardTransactionRow[]>(() => {
+    const today = new Date();
+    const startOfTodayTime = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    ).getTime();
+    const endOfTodayTime = startOfTodayTime + ONE_DAY_IN_MS;
+
+    return [...transactions]
+      .filter(
+        (transaction) =>
+          transaction.happenedAt >= startOfTodayTime &&
+          transaction.happenedAt < endOfTodayTime,
+      )
+      .sort((left, right) => right.happenedAt - left.happenedAt)
+      .slice(0, 8)
+      .map((transaction, index) => {
+        const isIncoming = transaction.direction === TransactionDirection.In;
+        const amount = formatCurrencyAmount({
+          amount: transaction.amount,
+          currencyCode,
+          countryCode,
+        });
+
+        return {
+          id: `${transaction.remoteId}-${transaction.happenedAt}-${index}`,
+          title: transaction.title,
+          subtitle: `${transaction.categoryLabel ?? "General"} | ${new Date(
+            transaction.happenedAt,
+          ).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`,
+          amount: `${isIncoming ? "+" : "-"} ${amount}`,
+          tone: isIncoming ? "positive" : "negative",
+        };
+      });
+  }, [countryCode, currencyCode, transactions]);
 
   const todayInValue = useMemo(
     () =>
@@ -254,19 +338,26 @@ export const useBusinessDashboardViewModel = ({
     () => ({
       isLoading,
       errorMessage,
+      currencyPrefix,
       summaryCards,
-      quickActions,
+      quickActions: availableQuickActions,
+      onQuickActionPress,
       todayInValue,
       todayOutValue,
       overdueCountLabel,
-      dueItems,
+      profitOverviewSeries,
+      todayTransactionRows,
     }),
     [
-      dueItems,
+      availableQuickActions,
+      currencyPrefix,
       errorMessage,
       isLoading,
+      onQuickActionPress,
       overdueCountLabel,
+      profitOverviewSeries,
       summaryCards,
+      todayTransactionRows,
       todayInValue,
       todayOutValue,
     ],

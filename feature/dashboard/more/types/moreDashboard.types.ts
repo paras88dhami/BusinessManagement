@@ -3,6 +3,7 @@ export type MoreDashboardMenuItemId =
   | "ledger"
   | "pos"
   | "orders"
+  | "reports"
   | "products"
   | "categories"
   | "inventory"

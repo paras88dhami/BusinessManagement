@@ -15,6 +15,8 @@ const BUSINESS_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "business",
   "ledger",
   "pos",
+  "orders",
+  "reports",
   "products",
   "inventory",
   "billing",
@@ -43,6 +45,8 @@ export const resolveDashboardRouteKey = (
     case "personal":
     case "ledger":
     case "pos":
+    case "orders":
+    case "reports":
     case "products":
     case "categories":
     case "inventory":
@@ -98,6 +102,22 @@ export const resolveDashboardHeaderConfig = (params: {
     case "pos":
       return {
         title: "POS",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "orders":
+      return {
+        title: "Orders",
+        subtitle: null,
+        showBell: false,
+        showProfile: false,
+        showBack: true,
+      };
+    case "reports":
+      return {
+        title: "Reports",
         subtitle: null,
         showBell: false,
         showProfile: false,
@@ -232,6 +252,8 @@ export const resolveDashboardActiveTab = (
     case "emi-loans":
       return DashboardTab.Emi;
     case "more":
+    case "orders":
+    case "reports":
     case "products":
     case "categories":
     case "inventory":

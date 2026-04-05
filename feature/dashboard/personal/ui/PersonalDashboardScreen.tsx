@@ -7,10 +7,12 @@ import {
   ArrowUpRight,
   CreditCard,
   PiggyBank,
-  ReceiptText,
+  StickyNote,
 } from "lucide-react-native";
-import { Card } from "@/shared/components/reusable/Cards/Card";
+import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
+import { GroupedBarChart } from "@/shared/components/reusable/Charts/FinancialCharts";
+import { TransactionTable } from "@/shared/components/reusable/Tables/TransactionTable";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { PersonalDashboardViewModel } from "../viewModel/personalDashboard.viewModel";
@@ -78,14 +80,18 @@ export function PersonalDashboardScreen({
               <ArrowLeftRight size={20} color={colors.primary} />
             ) : quickAction.id === "emi" ? (
               <CreditCard size={20} color={colors.primary} />
-            ) : quickAction.id === "reports" ? (
-              <ReceiptText size={20} color={colors.primary} />
+            ) : quickAction.id === "notes" ? (
+              <StickyNote size={20} color={colors.primary} />
             ) : (
               <PiggyBank size={20} color={colors.primary} />
             );
 
           return (
-            <Card key={quickAction.id} style={styles.quickActionCard}>
+            <CardPressable
+              key={quickAction.id}
+              style={styles.quickActionCard}
+              onPress={() => viewModel.onQuickActionPress(quickAction.id)}
+            >
               <View style={styles.quickActionIconWrap}>{icon}</View>
               <Text
                 style={styles.quickActionLabel}
@@ -95,50 +101,23 @@ export function PersonalDashboardScreen({
               >
                 {quickAction.label}
               </Text>
-            </Card>
+            </CardPressable>
           );
         })}
       </View>
 
-      <Text style={styles.sectionTitle}>Recent Activity</Text>
-      <Card style={styles.activityCard}>
-        {viewModel.recentItems.length === 0 ? (
-          <View style={styles.emptyStateRow}>
-            <Text style={styles.emptyStateText}>
-              No recent transactions available.
-            </Text>
-          </View>
-        ) : (
-          viewModel.recentItems.map((recentItem) => (
-            <View key={recentItem.id} style={styles.activityRow}>
-              <View style={styles.activityAvatar}>
-                <Text style={styles.activityAvatarText}>{recentItem.title[0]}</Text>
-              </View>
-
-              <View style={styles.activityBody}>
-                <Text style={styles.activityTitle}>{recentItem.title}</Text>
-                <Text style={styles.activitySubtitle}>{recentItem.subtitle}</Text>
-              </View>
-
-              <View style={styles.activityAmountWrap}>
-                <Text
-                  style={[
-                    styles.activityAmount,
-                    recentItem.tone === "income"
-                      ? styles.activityAmountIncome
-                      : styles.activityAmountExpense,
-                  ]}
-                >
-                  {recentItem.amount}
-                </Text>
-                <Text style={styles.activityDirectionLabel}>
-                  {recentItem.tone === "income" ? "Income" : "Expense"}
-                </Text>
-              </View>
-            </View>
-          ))
-        )}
+      <Text style={styles.sectionTitle}>Income & Expense</Text>
+      <Card style={styles.chartCard}>
+        <Text style={styles.chartTitle}>Last 7 Days</Text>
+        <Text style={styles.chartSubtitle}>Daily income vs expense</Text>
+        <GroupedBarChart data={viewModel.incomeExpenseSeries} />
       </Card>
+
+      <Text style={styles.sectionTitle}>Transactions</Text>
+      <TransactionTable
+        rows={viewModel.transactionRows}
+        emptyStateText="No recent transactions available."
+      />
     </ScreenContainer>
   );
 }
@@ -234,70 +213,19 @@ const styles = StyleSheet.create({
     fontFamily: "InterBold",
     textAlign: "center",
   },
-  activityCard: {
-    padding: 0,
-  },
-  emptyStateRow: {
+  chartCard: {
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
   },
-  emptyStateText: {
+  chartTitle: {
+    color: colors.cardForeground,
+    fontSize: 17,
+    fontFamily: "InterBold",
+    marginBottom: 4,
+  },
+  chartSubtitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  activityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    gap: spacing.sm,
-  },
-  activityAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activityAvatarText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  activityBody: {
-    flex: 1,
-  },
-  activityTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-  },
-  activitySubtitle: {
-    marginTop: 2,
-    color: colors.mutedForeground,
-    fontSize: 11,
-  },
-  activityAmountWrap: {
-    alignItems: "flex-end",
-  },
-  activityAmount: {
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  activityAmountIncome: {
-    color: colors.success,
-  },
-  activityAmountExpense: {
-    color: colors.destructive,
-  },
-  activityDirectionLabel: {
-    marginTop: 2,
-    color: colors.mutedForeground,
-    fontSize: 10,
+    marginBottom: spacing.sm,
   },
 });
 

@@ -1,7 +1,8 @@
 import {
+  PersonalDashboardIncomeExpensePoint,
   PersonalDashboardQuickAction,
-  PersonalDashboardRecentItem,
   PersonalDashboardSummaryCard,
+  PersonalDashboardTransactionRow,
 } from "../types/personalDashboard.types";
 
 export interface PersonalDashboardViewModel {
@@ -9,8 +10,10 @@ export interface PersonalDashboardViewModel {
   errorMessage: string | null;
   summaryCards: readonly PersonalDashboardSummaryCard[];
   quickActions: readonly PersonalDashboardQuickAction[];
+  onQuickActionPress: (actionId: PersonalDashboardQuickAction["id"]) => void;
   todayInValue: string;
   todayOutValue: string;
   netValue: string;
-  recentItems: readonly PersonalDashboardRecentItem[];
+  incomeExpenseSeries: readonly PersonalDashboardIncomeExpensePoint[];
+  transactionRows: readonly PersonalDashboardTransactionRow[];
 }

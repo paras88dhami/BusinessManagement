@@ -24,6 +24,11 @@ const businessSections: readonly MoreDashboardSection[] = [
         subtitle: "Order lifecycle and fulfillment",
       },
       {
+        id: "reports",
+        title: "Reports",
+        subtitle: "Business performance and analytics",
+      },
+      {
         id: "billing",
         title: "Billing & Invoices",
         subtitle: "Invoices, receipts, and bill photos",
@@ -187,6 +192,7 @@ export const useMoreDashboardViewModel = (
     onOpenLedger,
     onOpenPos,
     onOpenOrders,
+    onOpenReports,
     onOpenProducts,
     onOpenCategories,
     onOpenInventory,
@@ -216,6 +222,9 @@ export const useMoreDashboardViewModel = (
           return;
         case "orders":
           onOpenOrders();
+          return;
+        case "reports":
+          onOpenReports();
           return;
         case "products":
           onOpenProducts();
@@ -263,6 +272,7 @@ export const useMoreDashboardViewModel = (
       onOpenLedger,
       onOpenInventory,
       onOpenOrders,
+      onOpenReports,
       onOpenCategories,
       onOpenMoneyAccounts,
       onOpenContacts,

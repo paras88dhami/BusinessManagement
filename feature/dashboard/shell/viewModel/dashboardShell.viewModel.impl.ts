@@ -39,6 +39,8 @@ const DASHBOARD_ROUTE_PERMISSION_CODE: Partial<
   "user-management": "user_management.view",
   ledger: "ledger.view",
   pos: "pos.view",
+  orders: "orders.view",
+  reports: "reports.view",
   products: "products.view",
   categories: "products.view",
   inventory: "inventory.view",
@@ -53,6 +55,8 @@ const DASHBOARD_ROUTE_PERMISSION_CODE: Partial<
 };
 
 const MORE_SECTION_ROUTES = new Set<Exclude<DashboardRouteKey, null>>([
+  "orders",
+  "reports",
   "products",
   "categories",
   "inventory",

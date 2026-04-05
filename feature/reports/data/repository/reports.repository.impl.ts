@@ -1,0 +1,772 @@
+import { EmiPlanStatus } from "@/feature/emiLoans/types/emi.entity.types";
+import { LedgerBalanceDirection, LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
+import {
+  ReportDualSeriesPoint,
+  ReportSeriesPoint,
+  ReportSegment,
+  ReportDetailResult,
+  ReportMenuItem,
+  ReportMenuSection,
+  ReportPeriod,
+  ReportQuery,
+  ReportScope,
+  ReportsDashboardResult,
+} from "@/feature/reports/types/report.entity.types";
+import {
+  ReportDatabaseError,
+  ReportNotFoundError,
+  ReportUnknownError,
+  ReportValidationError,
+} from "@/feature/reports/types/report.error.types";
+import { ReportsDatasource } from "@/feature/reports/data/dataSource/reports.datasource";
+import {
+  BillingDocumentRecord,
+  LedgerEntryRecord,
+  mapBillingDocumentModel,
+  mapEmiPlanModel,
+  mapInventoryMovementModel,
+  mapLedgerEntryModel,
+  mapMoneyAccountModel,
+  mapProductModel,
+  mapTransactionModel,
+  TransactionRecord,
+} from "./mapper/reports.mapper";
+import { ReportsRepository } from "./reports.repository";
+import { colors } from "@/shared/components/theme/colors";
+
+const CATEGORY_COLORS = [
+  colors.success,
+  colors.primary,
+  colors.warning,
+  colors.destructive,
+  colors.mutedForeground,
+  "#6A8F7B",
+] as const;
+
+const formatCurrency = (value: number): string => {
+  const absolute = Math.abs(Number.isFinite(value) ? value : 0);
+  return `₹${absolute.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+};
+
+const formatSignedCurrency = (value: number): string => {
+  const prefix = value >= 0 ? "" : "-";
+  return `${prefix}${formatCurrency(Math.abs(value))}`;
+};
+
+const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const startOfDay = (value: number): Date => {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const endOfDay = (value: number): Date => {
+  const date = new Date(value);
+  date.setHours(23, 59, 59, 999);
+  return date;
+};
+
+const getRangeForPeriod = (period: ReportQuery["period"], nowMs: number) => {
+  const now = new Date(nowMs);
+  const start = startOfDay(nowMs);
+  const end = endOfDay(nowMs);
+
+  switch (period) {
+    case ReportPeriod.Today:
+      return { startMs: start.getTime(), endMs: end.getTime(), label: "Today" };
+    case ReportPeriod.ThisWeek: {
+      const weekStart = startOfDay(nowMs);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = endOfDay(weekStart.getTime());
+      weekEnd.setDate(weekStart.getDate() + 6);
+      return { startMs: weekStart.getTime(), endMs: weekEnd.getTime(), label: "This Week" };
+    }
+    case ReportPeriod.ThisMonth: {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      return { startMs: monthStart.getTime(), endMs: monthEnd.getTime(), label: `${monthLabels[now.getMonth()]} ${now.getFullYear()}` };
+    }
+    case ReportPeriod.ThisQuarter: {
+      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      const quarterStart = new Date(now.getFullYear(), quarterStartMonth, 1);
+      const quarterEnd = new Date(now.getFullYear(), quarterStartMonth + 3, 0, 23, 59, 59, 999);
+      return { startMs: quarterStart.getTime(), endMs: quarterEnd.getTime(), label: "This Quarter" };
+    }
+    case ReportPeriod.ThisYear: {
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      return { startMs: yearStart.getTime(), endMs: yearEnd.getTime(), label: `${now.getFullYear()}` };
+    }
+    case ReportPeriod.LastSixMonths:
+    default: {
+      const startMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      return { startMs: startMonth.getTime(), endMs: end.getTime(), label: "Last 6 Months" };
+    }
+  }
+};
+
+const isWithinRange = (value: number, startMs: number, endMs: number): boolean => {
+  return value >= startMs && value <= endMs;
+};
+
+const buildLastSixMonthSeries = (
+  seriesBuilder: (bucketStart: Date, bucketEnd: Date) => number,
+  nowMs: number,
+): ReportSeriesPoint[] => {
+  const now = new Date(nowMs);
+  return Array.from({ length: 6 }).map((_, index) => {
+    const bucketDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const bucketStart = new Date(bucketDate.getFullYear(), bucketDate.getMonth(), 1);
+    const bucketEnd = new Date(bucketDate.getFullYear(), bucketDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    return {
+      label: monthLabels[bucketDate.getMonth()],
+      value: seriesBuilder(bucketStart, bucketEnd),
+    };
+  });
+};
+
+const buildLastSixMonthDualSeries = (
+  primaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
+  secondaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
+  nowMs: number,
+): ReportDualSeriesPoint[] => {
+  const now = new Date(nowMs);
+  return Array.from({ length: 6 }).map((_, index) => {
+    const bucketDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const bucketStart = new Date(bucketDate.getFullYear(), bucketDate.getMonth(), 1);
+    const bucketEnd = new Date(bucketDate.getFullYear(), bucketDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    return {
+      label: monthLabels[bucketDate.getMonth()],
+      primaryValue: primaryBuilder(bucketStart, bucketEnd),
+      secondaryValue: secondaryBuilder(bucketStart, bucketEnd),
+    };
+  });
+};
+
+const buildLastSevenDayDualSeries = (
+  primaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
+  secondaryBuilder: (bucketStart: Date, bucketEnd: Date) => number,
+  nowMs: number,
+): ReportDualSeriesPoint[] => {
+  const today = startOfDay(nowMs);
+  return Array.from({ length: 7 }).map((_, index) => {
+    const bucketStart = new Date(today);
+    bucketStart.setDate(today.getDate() - (6 - index));
+    const bucketEnd = endOfDay(bucketStart.getTime());
+    return {
+      label: weekdayLabels[bucketStart.getDay()],
+      primaryValue: primaryBuilder(bucketStart, bucketEnd),
+      secondaryValue: secondaryBuilder(bucketStart, bucketEnd),
+    };
+  });
+};
+
+const aggregateCategorySegments = (
+  transactions: readonly TransactionRecord[],
+  startMs: number,
+  endMs: number,
+): ReportSegment[] => {
+  const grouped = new Map<string, number>();
+
+  transactions.forEach((transaction) => {
+    if (!isWithinRange(transaction.happenedAt, startMs, endMs)) {
+      return;
+    }
+
+    if (transaction.direction !== "out") {
+      return;
+    }
+
+    const key = transaction.categoryLabel?.trim() || "Others";
+    grouped.set(key, (grouped.get(key) ?? 0) + transaction.amount);
+  });
+
+  return [...grouped.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, value], index) => ({
+      label,
+      value,
+      color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+    }));
+};
+
+const getScopedIncomeExpense = (params: {
+  scope: string;
+  transactions: readonly TransactionRecord[];
+  billingDocuments: readonly BillingDocumentRecord[];
+  ledgerEntries: readonly LedgerEntryRecord[];
+  startMs: number;
+  endMs: number;
+}) => {
+  const { scope, transactions, billingDocuments, ledgerEntries, startMs, endMs } = params;
+
+  if (scope === ReportScope.Personal) {
+    const totalIncome = transactions
+      .filter((item) => item.direction === "in" && isWithinRange(item.happenedAt, startMs, endMs))
+      .reduce((sum, item) => sum + item.amount, 0);
+    const totalExpense = transactions
+      .filter((item) => item.direction === "out" && isWithinRange(item.happenedAt, startMs, endMs))
+      .reduce((sum, item) => sum + item.amount, 0);
+    return { totalIncome, totalExpense };
+  }
+
+  const salesIncome = billingDocuments
+    .filter((document) => isWithinRange(document.issuedAt, startMs, endMs))
+    .reduce((sum, document) => sum + document.totalAmount, 0);
+  const collectedIncome = ledgerEntries
+    .filter(
+      (entry) =>
+        isWithinRange(entry.happenedAt, startMs, endMs) &&
+        entry.entryType === LedgerEntryType.Collection,
+    )
+    .reduce((sum, entry) => sum + entry.amount, 0);
+  const paymentExpense = ledgerEntries
+    .filter(
+      (entry) =>
+        isWithinRange(entry.happenedAt, startMs, endMs) &&
+        (entry.entryType === LedgerEntryType.PaymentOut ||
+          entry.entryType === LedgerEntryType.Purchase ||
+          entry.entryType === LedgerEntryType.Refund),
+    )
+    .reduce((sum, entry) => sum + entry.amount, 0);
+
+  return {
+    totalIncome: salesIncome + collectedIncome,
+    totalExpense: paymentExpense,
+  };
+};
+
+const buildSections = (scope: string): ReportMenuSection[] => {
+  if (scope === ReportScope.Personal) {
+    return [
+      {
+        id: "financial",
+        title: "Financial Reports",
+        items: [
+          {
+            id: ReportMenuItem.CategorySummary,
+            title: "Category Summary",
+            subtitle: "Income & expense by category",
+          },
+          {
+            id: ReportMenuItem.AccountStatement,
+            title: "Account Statement",
+            subtitle: "Account-wise transaction history",
+          },
+          {
+            id: ReportMenuItem.EmiLoan,
+            title: "EMI & Loan Report",
+            subtitle: "Active plans and dues",
+          },
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "business",
+      title: "Business Reports",
+      items: [
+        {
+          id: ReportMenuItem.Sales,
+          title: "Sales Report",
+          subtitle: "Daily, weekly, monthly sales summary",
+        },
+        {
+          id: ReportMenuItem.PartyBalances,
+          title: "Party Balances",
+          subtitle: "Customer & supplier outstanding",
+        },
+        {
+          id: ReportMenuItem.Collection,
+          title: "Collection Report",
+          subtitle: "Payment received history",
+        },
+        {
+          id: ReportMenuItem.Payment,
+          title: "Payment Report",
+          subtitle: "Payment made history",
+        },
+      ],
+    },
+    {
+      id: "financial",
+      title: "Financial Reports",
+      items: [
+        {
+          id: ReportMenuItem.CategorySummary,
+          title: "Category Summary",
+          subtitle: "Income & expense by category",
+        },
+        {
+          id: ReportMenuItem.AccountStatement,
+          title: "Account Statement",
+          subtitle: "Account-wise transaction history",
+        },
+        {
+          id: ReportMenuItem.EmiLoan,
+          title: "EMI & Loan Report",
+          subtitle: "Active plans, dues, penalties",
+        },
+      ],
+    },
+    {
+      id: "inventory",
+      title: "Inventory Reports",
+      items: [
+        {
+          id: ReportMenuItem.Stock,
+          title: "Stock Report",
+          subtitle: "Current stock & valuation",
+        },
+        {
+          id: ReportMenuItem.ExportData,
+          title: "Export Data",
+          subtitle: "Export reports as CSV / PDF",
+        },
+      ],
+    },
+  ];
+};
+
+const buildCsvPreview = (
+  title: string,
+  rows: { label: string; value: string }[],
+): string => {
+  const lines = ["label,value", ...rows.map((row) => `${row.label},${row.value}`)];
+  return `# ${title}\n${lines.join("\n")}`;
+};
+
+export const createReportsRepository = (
+  datasource: ReportsDatasource,
+): ReportsRepository => ({
+  async getReportsDashboard(query: ReportQuery): Promise<ReportsDashboardResult> {
+    if (!query.accountRemoteId && !query.ownerUserRemoteId) {
+      return { success: false, error: ReportValidationError("Active report scope is missing.") };
+    }
+
+    try {
+      const datasetResult = await datasource.getDataset(query);
+      if (!datasetResult.success) {
+        return { success: false, error: ReportDatabaseError };
+      }
+
+      const nowMs = Date.now();
+      const range = getRangeForPeriod(query.period, nowMs);
+      const transactions = datasetResult.value.transactions.map(mapTransactionModel);
+      const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
+      const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
+
+      const topSummary = getScopedIncomeExpense({
+        scope: query.scope,
+        transactions,
+        billingDocuments,
+        ledgerEntries,
+        startMs: range.startMs,
+        endMs: range.endMs,
+      });
+
+      const overviewTrend = buildLastSixMonthSeries((bucketStart, bucketEnd) => {
+        const bucketSummary = getScopedIncomeExpense({
+          scope: query.scope,
+          transactions,
+          billingDocuments,
+          ledgerEntries,
+          startMs: bucketStart.getTime(),
+          endMs: bucketEnd.getTime(),
+        });
+        return bucketSummary.totalIncome - bucketSummary.totalExpense;
+      }, nowMs);
+
+      const incomeExpenseComparison = buildLastSixMonthDualSeries(
+        (bucketStart, bucketEnd) =>
+          getScopedIncomeExpense({
+            scope: query.scope,
+            transactions,
+            billingDocuments,
+            ledgerEntries,
+            startMs: bucketStart.getTime(),
+            endMs: bucketEnd.getTime(),
+          }).totalIncome,
+        (bucketStart, bucketEnd) =>
+          getScopedIncomeExpense({
+            scope: query.scope,
+            transactions,
+            billingDocuments,
+            ledgerEntries,
+            startMs: bucketStart.getTime(),
+            endMs: bucketEnd.getTime(),
+          }).totalExpense,
+        nowMs,
+      );
+
+      const cashFlowSeries = buildLastSevenDayDualSeries(
+        (bucketStart, bucketEnd) =>
+          getScopedIncomeExpense({
+            scope: query.scope,
+            transactions,
+            billingDocuments,
+            ledgerEntries,
+            startMs: bucketStart.getTime(),
+            endMs: bucketEnd.getTime(),
+          }).totalIncome,
+        (bucketStart, bucketEnd) =>
+          getScopedIncomeExpense({
+            scope: query.scope,
+            transactions,
+            billingDocuments,
+            ledgerEntries,
+            startMs: bucketStart.getTime(),
+            endMs: bucketEnd.getTime(),
+          }).totalExpense,
+        nowMs,
+      );
+
+      const categoryBreakdown = aggregateCategorySegments(
+        transactions,
+        range.startMs,
+        range.endMs,
+      );
+
+      return {
+        success: true,
+        value: {
+          scope: query.scope,
+          periodLabel: range.label,
+          topSummary: {
+            totalIncome: topSummary.totalIncome,
+            totalExpense: topSummary.totalExpense,
+            netProfit: topSummary.totalIncome - topSummary.totalExpense,
+          },
+          overviewTrend,
+          incomeExpenseComparison,
+          categoryBreakdown,
+          cashFlowSeries,
+          sections: buildSections(query.scope),
+        },
+      };
+    } catch {
+      return { success: false, error: ReportUnknownError };
+    }
+  },
+
+  async getReportDetail(query: ReportQuery): Promise<ReportDetailResult> {
+    if (!query.reportId) {
+      return { success: false, error: ReportValidationError("Report id is required.") };
+    }
+
+    try {
+      const datasetResult = await datasource.getDataset(query);
+      if (!datasetResult.success) {
+        return { success: false, error: ReportDatabaseError };
+      }
+
+      const nowMs = Date.now();
+      const range = getRangeForPeriod(query.period, nowMs);
+      const transactions = datasetResult.value.transactions.map(mapTransactionModel);
+      const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
+      const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
+      const emiPlans = datasetResult.value.emiPlans.map(mapEmiPlanModel);
+      const inventoryMovements = datasetResult.value.inventoryMovements.map(mapInventoryMovementModel);
+      const products = datasetResult.value.products.map(mapProductModel);
+      const moneyAccounts = datasetResult.value.moneyAccounts.map(mapMoneyAccountModel);
+
+      switch (query.reportId) {
+        case ReportMenuItem.Sales: {
+          const series = buildLastSixMonthSeries(
+            (bucketStart, bucketEnd) =>
+              billingDocuments
+                .filter((document) => isWithinRange(document.issuedAt, bucketStart.getTime(), bucketEnd.getTime()))
+                .reduce((sum, document) => sum + document.totalAmount, 0),
+            nowMs,
+          );
+          const totalSales = series.reduce((sum, item) => sum + item.value, 0);
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Sales Report",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "sales-total", label: "Total Sales", value: formatCurrency(totalSales), tone: "positive" },
+                { id: "sales-docs", label: "Documents", value: `${billingDocuments.length}`, tone: "neutral" },
+              ],
+              chartTitle: "Sales Trend",
+              chartSubtitle: "Daily, weekly, monthly sales summary",
+              chartKind: "line",
+              lineSeries: series,
+            },
+          };
+        }
+        case ReportMenuItem.PartyBalances: {
+          const grouped = new Map<string, { receive: number; pay: number; lastAt: number }>();
+          ledgerEntries.forEach((entry) => {
+            const current = grouped.get(entry.partyName) ?? { receive: 0, pay: 0, lastAt: 0 };
+            if (entry.balanceDirection === LedgerBalanceDirection.Receive) {
+              current.receive += entry.amount;
+            } else {
+              current.pay += entry.amount;
+            }
+            current.lastAt = Math.max(current.lastAt, entry.happenedAt);
+            grouped.set(entry.partyName, current);
+          });
+          const items = [...grouped.entries()]
+            .map(([partyName, totals]) => ({
+              id: partyName,
+              title: partyName,
+              subtitle: `Last activity ${new Date(totals.lastAt).toLocaleDateString()}`,
+              value: formatCurrency(Math.abs(totals.receive - totals.pay)),
+              tone: totals.receive >= totals.pay ? ("positive" as const) : ("negative" as const),
+              progressRatio: null,
+            }))
+            .sort((a, b) => parseCurrencyNumber(b.value) - parseCurrencyNumber(a.value))
+            .slice(0, 6);
+          const segments = items.map((item, index) => ({
+            label: item.title,
+            value: parseCurrencyNumber(item.value),
+            color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+          }));
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Party Balances",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "open-parties", label: "Open Parties", value: `${items.length}`, tone: "neutral" },
+                { id: "total-outstanding", label: "Outstanding", value: formatCurrency(segments.reduce((sum, segment) => sum + segment.value, 0)), tone: "negative" },
+              ],
+              chartTitle: "Outstanding Balances",
+              chartSubtitle: "Customer & supplier outstanding",
+              chartKind: "semi-donut",
+              segments,
+              listItems: items,
+            },
+          };
+        }
+        case ReportMenuItem.Collection: {
+          const bars = buildLastSixMonthSeries(
+            (bucketStart, bucketEnd) =>
+              ledgerEntries
+                .filter(
+                  (entry) =>
+                    entry.entryType === LedgerEntryType.Collection &&
+                    isWithinRange(entry.happenedAt, bucketStart.getTime(), bucketEnd.getTime()),
+                )
+                .reduce((sum, entry) => sum + entry.amount, 0),
+            nowMs,
+          );
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Collection Report",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "collection-total", label: "Total Collected", value: formatCurrency(bars.reduce((sum, item) => sum + item.value, 0)), tone: "positive" },
+              ],
+              chartTitle: "Collection Trend",
+              chartSubtitle: "Payment received history",
+              chartKind: "bars",
+              barSeries: bars,
+            },
+          };
+        }
+        case ReportMenuItem.Payment: {
+          const bars = buildLastSixMonthSeries(
+            (bucketStart, bucketEnd) =>
+              ledgerEntries
+                .filter(
+                  (entry) =>
+                    entry.entryType === LedgerEntryType.PaymentOut &&
+                    isWithinRange(entry.happenedAt, bucketStart.getTime(), bucketEnd.getTime()),
+                )
+                .reduce((sum, entry) => sum + entry.amount, 0),
+            nowMs,
+          );
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Payment Report",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "payment-total", label: "Total Paid", value: formatCurrency(bars.reduce((sum, item) => sum + item.value, 0)), tone: "negative" },
+              ],
+              chartTitle: "Payment Trend",
+              chartSubtitle: "Payment made history",
+              chartKind: "bars",
+              barSeries: bars,
+            },
+          };
+        }
+        case ReportMenuItem.CategorySummary: {
+          const segments = aggregateCategorySegments(transactions, range.startMs, range.endMs);
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Category Summary",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "category-count", label: "Categories", value: `${segments.length}`, tone: "neutral" },
+                { id: "category-total", label: "Money Out", value: formatCurrency(segments.reduce((sum, item) => sum + item.value, 0)), tone: "negative" },
+              ],
+              chartTitle: "Expense Breakdown",
+              chartSubtitle: "Income & expense by category",
+              chartKind: "semi-donut",
+              segments,
+            },
+          };
+        }
+        case ReportMenuItem.AccountStatement: {
+          const filteredTransactions = transactions.filter((item) => isWithinRange(item.happenedAt, range.startMs, range.endMs));
+          const grouped = new Map<string, { totalIn: number; totalOut: number }>();
+          filteredTransactions.forEach((transaction) => {
+            const current = grouped.get(transaction.accountDisplayNameSnapshot) ?? { totalIn: 0, totalOut: 0 };
+            if (transaction.direction === "in") {
+              current.totalIn += transaction.amount;
+            } else {
+              current.totalOut += transaction.amount;
+            }
+            grouped.set(transaction.accountDisplayNameSnapshot, current);
+          });
+          const listItems = [...grouped.entries()].map(([accountName, totals]) => ({
+            id: accountName,
+            title: accountName,
+            subtitle: `Money In ${formatCurrency(totals.totalIn)} • Money Out ${formatCurrency(totals.totalOut)}`,
+            value: formatSignedCurrency(totals.totalIn - totals.totalOut),
+            tone: totals.totalIn >= totals.totalOut ? ("positive" as const) : ("negative" as const),
+            progressRatio: null,
+          }));
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Account Statement",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "statement-accounts", label: "Accounts", value: `${moneyAccounts.length}`, tone: "neutral" },
+                { id: "statement-entries", label: "Entries", value: `${filteredTransactions.length}`, tone: "neutral" },
+              ],
+              chartTitle: "Account-wise activity",
+              chartSubtitle: "Account-wise transaction history",
+              chartKind: "list",
+              listItems,
+            },
+          };
+        }
+        case ReportMenuItem.EmiLoan: {
+          const listItems = emiPlans
+            .filter((plan) => plan.status !== EmiPlanStatus.Closed)
+            .map((plan) => ({
+              id: plan.title,
+              title: plan.title,
+              subtitle: plan.nextDueAt ? `Next due ${new Date(plan.nextDueAt).toLocaleDateString()}` : "No due date",
+              value: `${plan.paidInstallmentCount}/${plan.installmentCount}`,
+              tone: plan.status === EmiPlanStatus.Active ? ("positive" as const) : ("neutral" as const),
+              progressRatio: plan.installmentCount > 0 ? plan.paidInstallmentCount / plan.installmentCount : 0,
+            }));
+          const totalOutstanding = emiPlans.reduce((sum, plan) => sum + Math.max(plan.totalAmount - plan.paidAmount, 0), 0);
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "EMI & Loan Report",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "emi-active", label: "Active Plans", value: `${listItems.length}`, tone: "neutral" },
+                { id: "emi-outstanding", label: "Outstanding", value: formatCurrency(totalOutstanding), tone: "negative" },
+              ],
+              chartTitle: "Plan progress",
+              chartSubtitle: "Active plans, dues, and exposure",
+              chartKind: "progress-list",
+              listItems,
+            },
+          };
+        }
+        case ReportMenuItem.Stock: {
+          const listItems = products.map((product) => {
+            const movementDelta = inventoryMovements
+              .filter((movement) => movement.productNameSnapshot === product.name)
+              .reduce((sum, movement) => sum + movement.deltaQuantity, 0);
+            const stockQuantity = product.stockQuantity ?? movementDelta;
+            const valuation = stockQuantity * (product.costPrice ?? product.salePrice);
+            return {
+              id: product.name,
+              title: product.name,
+              subtitle: `${product.categoryName ?? "General"} • ${stockQuantity} units`,
+              value: formatCurrency(valuation),
+              tone: stockQuantity <= 5 ? ("negative" as const) : ("positive" as const),
+              progressRatio: null,
+            };
+          });
+          const stockValue = listItems.reduce((sum, item) => sum + parseCurrencyNumber(item.value), 0);
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Stock Report",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "stock-products", label: "Products", value: `${products.length}`, tone: "neutral" },
+                { id: "stock-value", label: "Stock Value", value: formatCurrency(stockValue), tone: "positive" },
+              ],
+              chartTitle: "Current stock & valuation",
+              chartSubtitle: "Current stock and valuation summary",
+              chartKind: "list",
+              listItems,
+            },
+          };
+        }
+        case ReportMenuItem.ExportData: {
+          const topSummary = getScopedIncomeExpense({
+            scope: query.scope,
+            transactions,
+            billingDocuments,
+            ledgerEntries,
+            startMs: range.startMs,
+            endMs: range.endMs,
+          });
+          const rows = [
+            { label: "Period", value: range.label },
+            { label: "Money In", value: String(topSummary.totalIncome) },
+            { label: "Money Out", value: String(topSummary.totalExpense) },
+            { label: "Net", value: String(topSummary.totalIncome - topSummary.totalExpense) },
+            { label: "Transactions", value: String(transactions.length) },
+            { label: "BillingDocs", value: String(billingDocuments.length) },
+            { label: "LedgerEntries", value: String(ledgerEntries.length) },
+          ];
+          return {
+            success: true,
+            value: {
+              reportId: query.reportId,
+              title: "Export Data",
+              periodLabel: range.label,
+              summaryCards: [
+                { id: "export-scope", label: "Scope", value: query.scope === ReportScope.Business ? "Business" : "Personal", tone: "neutral" },
+                { id: "export-rows", label: "Rows", value: `${rows.length}`, tone: "neutral" },
+              ],
+              chartTitle: "Export Preview",
+              chartSubtitle: "Same filtered query model used for exports",
+              chartKind: "export-preview",
+              csvPreview: buildCsvPreview("Report Export", rows),
+            },
+          };
+        }
+        default:
+          return { success: false, error: ReportNotFoundError };
+      }
+    } catch {
+      return { success: false, error: ReportUnknownError };
+    }
+  },
+});
+
+const parseCurrencyNumber = (value: string): number => {
+  return Number(value.replace(/[^0-9.-]/g, ""));
+};

@@ -3,6 +3,8 @@ import { OrderResult, OrderValidationError, SaveOrderPayload } from "@/feature/o
 import { CreateOrderUseCase } from "./createOrder.useCase";
 
 const validatePayload = (payload: SaveOrderPayload): string | null => {
+  const items = Array.isArray(payload.items) ? payload.items : [];
+
   if (!payload.remoteId.trim()) return "Order remote id is required.";
   if (!payload.ownerUserRemoteId.trim()) return "User context is required.";
   if (!payload.accountRemoteId.trim()) return "An active business account is required.";
@@ -10,10 +12,13 @@ const validatePayload = (payload: SaveOrderPayload): string | null => {
   if (!Number.isFinite(payload.orderDate) || payload.orderDate <= 0) {
     return "Order date is required.";
   }
-  if (payload.items.length === 0) return "Add at least one order item.";
+  if (items.length === 0) return "Add at least one order item.";
   if (
-    payload.items.some(
-      (item) => !item.productRemoteId.trim() || !Number.isFinite(item.quantity) || item.quantity <= 0,
+    items.some(
+      (item) =>
+        !item.productRemoteId?.trim() ||
+        !Number.isFinite(item.quantity) ||
+        item.quantity <= 0,
     )
   ) {
     return "Each order item must have a product and quantity greater than zero.";

@@ -3,57 +3,33 @@ import {
   TransactionDirection,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
-import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import {
+  formatCurrencyAmount,
+} from "@/shared/utils/currency/accountCurrency";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  PersonalDashboardIncomeExpensePoint,
   PersonalDashboardQuickAction,
-  PersonalDashboardRecentItem,
   PersonalDashboardSummaryCard,
+  PersonalDashboardTransactionRow,
 } from "../types/personalDashboard.types";
 import { PersonalDashboardViewModel } from "./personalDashboard.viewModel";
 
 const quickActions: readonly PersonalDashboardQuickAction[] = [
   { id: "transactions", label: "Transactions" },
   { id: "emi", label: "EMI & Loans" },
-  { id: "reports", label: "Reports" },
   { id: "budget", label: "Budget" },
+  { id: "notes", label: "Notes" },
 ];
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type UsePersonalDashboardViewModelParams = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  onQuickActionPress: (actionId: PersonalDashboardQuickAction["id"]) => void;
   getTransactionsUseCase: GetTransactionsUseCase;
-};
-
-const formatRecentItemSubtitle = (happenedAt: number): string => {
-  const date = new Date(happenedAt);
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown date";
-  }
-
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfYesterday = new Date(startOfToday);
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-
-  if (date >= startOfToday) {
-    return `Today, ${date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`;
-  }
-
-  if (date >= startOfYesterday) {
-    return "Yesterday";
-  }
-
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 };
 
 export const usePersonalDashboardViewModel = ({
@@ -61,6 +37,7 @@ export const usePersonalDashboardViewModel = ({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  onQuickActionPress,
   getTransactionsUseCase,
 }: UsePersonalDashboardViewModelParams): PersonalDashboardViewModel => {
   const [isLoading, setIsLoading] = useState(true);
@@ -232,23 +209,110 @@ export const usePersonalDashboardViewModel = ({
     ];
   }, [countryCode, currencyCode, monthlyExpense, monthlyIncome, netAmount]);
 
-  const recentItems = useMemo<readonly PersonalDashboardRecentItem[]>(() => {
-    return transactions.slice(0, 6).map((transaction) => {
-      const isIncome = transaction.direction === TransactionDirection.In;
-      const amountLabel = formatCurrencyAmount({
-        amount: transaction.amount,
-        currencyCode,
-        countryCode,
-      });
+  const incomeExpenseSeries = useMemo<readonly PersonalDashboardIncomeExpensePoint[]>(() => {
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const firstDay = new Date(startOfToday);
+    firstDay.setDate(firstDay.getDate() - 6);
+
+    const firstDayStartTime = firstDay.getTime();
+    const endOfTodayTime = startOfToday.getTime() + ONE_DAY_IN_MS;
+
+    const totalsByDayStart = new Map<number, { income: number; expense: number }>();
+
+    for (const transaction of transactions) {
+      if (
+        transaction.happenedAt < firstDayStartTime ||
+        transaction.happenedAt >= endOfTodayTime
+      ) {
+        continue;
+      }
+
+      const transactionDate = new Date(transaction.happenedAt);
+      const dayStartTime = new Date(
+        transactionDate.getFullYear(),
+        transactionDate.getMonth(),
+        transactionDate.getDate(),
+      ).getTime();
+
+      const totals = totalsByDayStart.get(dayStartTime) ?? {
+        income: 0,
+        expense: 0,
+      };
+
+      if (transaction.direction === TransactionDirection.In) {
+        totals.income += transaction.amount;
+      } else if (transaction.direction === TransactionDirection.Out) {
+        totals.expense += transaction.amount;
+      }
+
+      totalsByDayStart.set(dayStartTime, totals);
+    }
+
+    return Array.from({ length: 7 }, (_, offset) => {
+      const currentDate = new Date(firstDay);
+      currentDate.setDate(firstDay.getDate() + offset);
+      const dayStartTime = currentDate.getTime();
+      const totals = totalsByDayStart.get(dayStartTime) ?? {
+        income: 0,
+        expense: 0,
+      };
 
       return {
-        id: transaction.remoteId,
-        title: transaction.title,
-        subtitle: formatRecentItemSubtitle(transaction.happenedAt),
-        amount: `${isIncome ? "+" : "-"} ${amountLabel}`,
-        tone: isIncome ? "income" : "expense",
+        label: currentDate.toLocaleDateString("en-US", { weekday: "short" }),
+        primaryValue: totals.income,
+        secondaryValue: totals.expense,
       };
     });
+  }, [transactions]);
+
+  const transactionRows = useMemo<readonly PersonalDashboardTransactionRow[]>(() => {
+    const now = new Date();
+    const startOfTodayTime = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
+    const startOfYesterdayTime = startOfTodayTime - ONE_DAY_IN_MS;
+
+    return [...transactions]
+      .sort((left, right) => right.happenedAt - left.happenedAt)
+      .slice(0, 8)
+      .map((transaction, index) => {
+        const happenedAtDate = new Date(transaction.happenedAt);
+        const happenedAtTime = happenedAtDate.getTime();
+        const happenedAtLabel =
+          happenedAtTime >= startOfTodayTime
+            ? `Today | ${happenedAtDate.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+            : happenedAtTime >= startOfYesterdayTime
+              ? "Yesterday"
+              : happenedAtDate.toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                });
+
+        const isIncome = transaction.direction === TransactionDirection.In;
+        const amountLabel = formatCurrencyAmount({
+          amount: transaction.amount,
+          currencyCode,
+          countryCode,
+        });
+
+        return {
+          id: `${transaction.remoteId}-${transaction.happenedAt}-${index}`,
+          title: transaction.title,
+          subtitle: `${transaction.categoryLabel ?? "General"} | ${happenedAtLabel}`,
+          amount: `${isIncome ? "+" : "-"} ${amountLabel}`,
+          tone: isIncome ? "positive" : "negative",
+        };
+      });
   }, [countryCode, currencyCode, transactions]);
 
   const todayInValue = useMemo(
@@ -287,17 +351,21 @@ export const usePersonalDashboardViewModel = ({
       errorMessage,
       summaryCards,
       quickActions,
+      onQuickActionPress,
       todayInValue,
       todayOutValue,
       netValue,
-      recentItems,
+      incomeExpenseSeries,
+      transactionRows,
     }),
     [
       errorMessage,
+      incomeExpenseSeries,
       isLoading,
       netValue,
-      recentItems,
+      onQuickActionPress,
       summaryCards,
+      transactionRows,
       todayInValue,
       todayOutValue,
     ],

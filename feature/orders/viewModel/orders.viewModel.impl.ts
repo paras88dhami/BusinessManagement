@@ -66,6 +66,8 @@ const parseNumber = (value: string): number | null => {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? parsed : null;
 };
+const safeTrim = (value: string | null | undefined): string =>
+  typeof value === "string" ? value.trim() : "";
 
 const formatDateInput = (timestamp: number): string =>
   new Date(timestamp).toISOString().slice(0, 10);
@@ -73,29 +75,35 @@ const formatDateInput = (timestamp: number): string =>
 const formatDateLabel = (timestamp: number): string =>
   new Date(timestamp).toISOString().slice(0, 10);
 
-const mapOrderToForm = (order: Order): OrderFormState => ({
-  remoteId: order.remoteId,
-  orderNumber: order.orderNumber,
-  orderDate: formatDateInput(order.orderDate),
-  customerRemoteId: order.customerRemoteId ?? "",
-  deliveryOrPickupDetails: order.deliveryOrPickupDetails ?? "",
-  notes: order.notes ?? "",
-  tags: order.tags ?? "",
-  internalRemarks: order.internalRemarks ?? "",
-  status: order.status,
-  items:
-    order.items.length > 0
-      ? order.items.map((item) => ({
-          remoteId: item.remoteId,
-          productRemoteId: item.productRemoteId,
-          quantity: String(item.quantity),
-        }))
-      : [createEmptyLineItem()],
-});
+const mapOrderToForm = (order: Order): OrderFormState => {
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+
+  return {
+    remoteId: order.remoteId,
+    orderNumber: order.orderNumber,
+    orderDate: formatDateInput(order.orderDate),
+    customerRemoteId: order.customerRemoteId ?? "",
+    deliveryOrPickupDetails: order.deliveryOrPickupDetails ?? "",
+    notes: order.notes ?? "",
+    tags: order.tags ?? "",
+    internalRemarks: order.internalRemarks ?? "",
+    status: order.status,
+    items:
+      orderItems.length > 0
+        ? orderItems.map((item) => ({
+            remoteId: item.remoteId,
+            productRemoteId: item.productRemoteId,
+            quantity: String(item.quantity),
+          }))
+        : [createEmptyLineItem()],
+  };
+};
 
 const buildNextOrderNumber = (orders: Order[]): string => {
   const maxSerial = orders.reduce((highest, order) => {
-    const match = /(?:ORD)-?(\d+)$/i.exec(order.orderNumber.trim());
+    const normalizedOrderNumber =
+      typeof order.orderNumber === "string" ? order.orderNumber.trim() : "";
+    const match = /(?:ORD)-?(\d+)$/i.exec(normalizedOrderNumber);
     if (!match) {
       return highest;
     }
@@ -113,15 +121,16 @@ const buildItemsPreview = (
   order: Order,
   productsByRemoteId: Map<string, Product>,
 ): string => {
-  const previewNames = order.items
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+  const previewNames = orderItems
     .slice(0, 2)
     .map((item) => productsByRemoteId.get(item.productRemoteId)?.name ?? "Unknown item");
 
-  if (order.items.length <= 2) {
+  if (orderItems.length <= 2) {
     return previewNames.join(", ") || "No items";
   }
 
-  return `${previewNames.join(", ")} +${order.items.length - 2} more`;
+  return `${previewNames.join(", ")} +${orderItems.length - 2} more`;
 };
 
 const buildOrderListItemView = (params: {
@@ -130,6 +139,7 @@ const buildOrderListItemView = (params: {
   productsByRemoteId: Map<string, Product>;
 }): OrderListItemView => {
   const { order, contactsByRemoteId, productsByRemoteId } = params;
+  const orderItems = Array.isArray(order.items) ? order.items : [];
   const customerName = order.customerRemoteId
     ? contactsByRemoteId.get(order.customerRemoteId)?.fullName ?? "Customer not found"
     : "No customer";
@@ -140,7 +150,7 @@ const buildOrderListItemView = (params: {
     status: order.status,
     orderDateLabel: formatDateLabel(order.orderDate),
     customerName,
-    itemCountLabel: `${order.items.length} item${order.items.length === 1 ? "" : "s"}`,
+    itemCountLabel: `${orderItems.length} item${orderItems.length === 1 ? "" : "s"}`,
     itemsPreview: buildItemsPreview(order, productsByRemoteId),
   };
 };
@@ -151,11 +161,12 @@ const buildOrderDetailView = (params: {
   productsByRemoteId: Map<string, Product>;
 }): OrderDetailView => {
   const { order, contactsByRemoteId, productsByRemoteId } = params;
+  const orderItems = Array.isArray(order.items) ? order.items : [];
   const customerName = order.customerRemoteId
     ? contactsByRemoteId.get(order.customerRemoteId)?.fullName ?? "Customer not found"
     : "No customer";
 
-  const items: OrderDetailItemView[] = order.items.map((item) => ({
+  const items: OrderDetailItemView[] = orderItems.map((item) => ({
     remoteId: item.remoteId,
     productName: productsByRemoteId.get(item.productRemoteId)?.name ?? "Unknown item",
     quantityLabel: `${item.quantity}`,
@@ -307,9 +318,9 @@ export const useOrdersViewModel = ({
       return;
     }
 
-    setOrders(ordersResult.value);
-    setContacts(contactsResult.value);
-    setProducts(productsResult.value);
+    setOrders(Array.isArray(ordersResult.value) ? ordersResult.value : []);
+    setContacts(Array.isArray(contactsResult.value) ? contactsResult.value : []);
+    setProducts(Array.isArray(productsResult.value) ? productsResult.value : []);
     setErrorMessage(null);
     setIsLoading(false);
   }, [accountRemoteId, getContactsUseCase, getOrdersUseCase, getProductsUseCase]);
@@ -427,7 +438,7 @@ export const useOrdersViewModel = ({
     (remoteId: string, field: keyof OrderLineFormState, value: string) => {
       setForm((current) => ({
         ...current,
-        items: current.items.map((item) =>
+        items: (Array.isArray(current.items) ? current.items : []).map((item) =>
           item.remoteId === remoteId ? { ...item, [field]: value } : item,
         ),
       }));
@@ -438,7 +449,7 @@ export const useOrdersViewModel = ({
   const onAddLineItem = useCallback(() => {
     setForm((current) => ({
       ...current,
-      items: [...current.items, createEmptyLineItem()],
+      items: [...(Array.isArray(current.items) ? current.items : []), createEmptyLineItem()],
     }));
   }, []);
 
@@ -446,9 +457,13 @@ export const useOrdersViewModel = ({
     setForm((current) => ({
       ...current,
       items:
-        current.items.length > 1
-          ? current.items.filter((item) => item.remoteId !== remoteId)
-          : current.items,
+        (Array.isArray(current.items) ? current.items : []).length > 1
+          ? (Array.isArray(current.items) ? current.items : []).filter(
+              (item) => item.remoteId !== remoteId,
+            )
+          : Array.isArray(current.items)
+            ? current.items
+            : [createEmptyLineItem()],
     }));
   }, []);
 
@@ -463,11 +478,12 @@ export const useOrdersViewModel = ({
     }
 
     const remoteId = form.remoteId ?? Crypto.randomUUID();
-    const normalizedItems = form.items
+    const formItems = Array.isArray(form.items) ? form.items : [];
+    const normalizedItems = formItems
       .map((item, index) => ({
         remoteId: item.remoteId || Crypto.randomUUID(),
         orderRemoteId: remoteId,
-        productRemoteId: item.productRemoteId.trim(),
+        productRemoteId: item.productRemoteId?.trim() ?? "",
         quantity: parseNumber(item.quantity) ?? 0,
         lineOrder: index,
       }))
@@ -489,13 +505,13 @@ export const useOrdersViewModel = ({
       remoteId,
       ownerUserRemoteId,
       accountRemoteId,
-      orderNumber: form.orderNumber.trim() || buildNextOrderNumber(orders),
+      orderNumber: safeTrim(form.orderNumber) || buildNextOrderNumber(orders),
       orderDate: Number.isFinite(orderDate) ? orderDate : Date.now(),
-      customerRemoteId: form.customerRemoteId.trim() || null,
-      deliveryOrPickupDetails: form.deliveryOrPickupDetails.trim() || null,
-      notes: form.notes.trim() || null,
-      tags: form.tags.trim() || null,
-      internalRemarks: form.internalRemarks.trim() || null,
+      customerRemoteId: safeTrim(form.customerRemoteId) || null,
+      deliveryOrPickupDetails: safeTrim(form.deliveryOrPickupDetails) || null,
+      notes: safeTrim(form.notes) || null,
+      tags: safeTrim(form.tags) || null,
+      internalRemarks: safeTrim(form.internalRemarks) || null,
       status: form.status,
       items: normalizedItems.map((item) => ({ ...item, orderRemoteId: remoteId })),
     };

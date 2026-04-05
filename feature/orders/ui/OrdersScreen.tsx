@@ -37,6 +37,8 @@ const getStatusTone = (status: string) => {
 };
 
 export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
+  const orderItems = Array.isArray(viewModel.orders) ? viewModel.orders : [];
+
   const confirmDelete = useCallback(() => {
     if (!viewModel.detail) {
       return;
@@ -144,13 +146,13 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
           <View style={styles.centerState}>
             <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
           </View>
-        ) : viewModel.orders.length === 0 ? (
+        ) : orderItems.length === 0 ? (
           <View style={styles.centerState}>
             <Text style={styles.emptyText}>No orders have been created yet.</Text>
           </View>
         ) : (
           <View style={styles.listWrap}>
-            {viewModel.orders.map((order) => (
+            {orderItems.map((order) => (
               <Pressable
                 key={order.remoteId}
                 style={styles.orderCard}
