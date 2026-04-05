@@ -6,6 +6,7 @@ import {
   ChipSelectorField,
   ChipSelectorOption,
 } from "@/shared/components/reusable/Form/ChipSelectorField";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import {
@@ -104,6 +105,26 @@ export function StaffMemberEditorModal({
       closeAccessibilityLabel="Close staff editor"
       contentContainerStyle={styles.content}
       presentation="dialog"
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onCancel}
+            disabled={isSaving}
+          />
+          <AppButton
+            label={isSaving ? "Saving..." : "Save"}
+            variant="primary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onSave}
+            disabled={isSaving}
+          />
+        </FormModalActionFooter>
+      }
     >
       <LabeledTextInput
         label="Full Name"
@@ -198,24 +219,6 @@ export function StaffMemberEditorModal({
         />
       </Card>
 
-      <View style={styles.actionRow}>
-        <AppButton
-          label="Cancel"
-          variant="secondary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={onCancel}
-          disabled={isSaving}
-        />
-        <AppButton
-          label={isSaving ? "Saving..." : "Save"}
-          variant="primary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={onSave}
-          disabled={isSaving}
-        />
-      </View>
     </FormSheetModal>
   );
 }
@@ -263,11 +266,6 @@ const styles = StyleSheet.create({
     fontFamily: "InterMedium",
   },
   permissionButton: {
-    marginTop: spacing.xs,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
     marginTop: spacing.xs,
   },
   actionButton: {

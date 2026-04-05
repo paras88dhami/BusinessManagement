@@ -40,9 +40,11 @@ export function CategoryEditorModal({
     <FormSheetModal
       visible={visible}
       title={title}
+      subtitle="Manage category details"
       onClose={onClose}
       closeAccessibilityLabel="Close category editor"
       contentContainerStyle={styles.content}
+      presentation="dialog"
       footer={
         <FormModalActionFooter>
           <AppButton

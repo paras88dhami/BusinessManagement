@@ -9,6 +9,7 @@ import {
 import { Check, CircleDashed } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
@@ -56,6 +57,26 @@ export function RoleEditorModal({
       closeAccessibilityLabel="Close role editor"
       contentContainerStyle={styles.content}
       presentation="dialog"
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onCancel}
+            disabled={isSaving}
+          />
+          <AppButton
+            label={isSaving ? "Saving..." : "Save Role"}
+            variant="primary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onSave}
+            disabled={isSaving}
+          />
+        </FormModalActionFooter>
+      }
     >
       <LabeledTextInput
         label="Role Name"
@@ -111,24 +132,6 @@ export function RoleEditorModal({
         ))}
       </ScrollView>
 
-      <View style={styles.actionRow}>
-        <AppButton
-          label="Cancel"
-          variant="secondary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={onCancel}
-          disabled={isSaving}
-        />
-        <AppButton
-          label={isSaving ? "Saving..." : "Save Role"}
-          variant="primary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={onSave}
-          disabled={isSaving}
-        />
-      </View>
     </FormSheetModal>
   );
 }
@@ -200,11 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     fontFamily: "InterMedium",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

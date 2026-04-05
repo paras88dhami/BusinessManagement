@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Switch, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { Card } from "@/shared/components/reusable/Cards/Card";
@@ -33,6 +34,32 @@ export function EmiPlanEditorModal({
       closeAccessibilityLabel="Close EMI plan editor"
       contentContainerStyle={styles.content}
       presentation="dialog"
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={viewModel.close}
+            disabled={state.isSaving}
+          />
+          <AppButton
+            label={
+              state.isSaving
+                ? "Saving..."
+                : state.planMode === "business"
+                  ? "Save Plan"
+                  : "Save My Plan"
+            }
+            variant="primary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => void viewModel.submit()}
+            disabled={state.isSaving}
+          />
+        </FormModalActionFooter>
+      }
     >
       <ChipSelectorField
         label="Plan Type"
@@ -137,25 +164,6 @@ export function EmiPlanEditorModal({
       {state.errorMessage ? (
         <Text style={styles.errorText}>{state.errorMessage}</Text>
       ) : null}
-
-      <View style={styles.actionRow}>
-        <AppButton
-          label="Cancel"
-          variant="secondary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={viewModel.close}
-          disabled={state.isSaving}
-        />
-        <AppButton
-          label={state.isSaving ? "Saving..." : state.planMode === "business" ? "Save Plan" : "Save My Plan"}
-          variant="primary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={() => void viewModel.submit()}
-          disabled={state.isSaving}
-        />
-      </View>
     </FormSheetModal>
   );
 }
@@ -195,11 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: "InterSemiBold",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

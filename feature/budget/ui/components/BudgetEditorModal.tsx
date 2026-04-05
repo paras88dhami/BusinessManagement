@@ -4,6 +4,7 @@ import {
   Dropdown,
   DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
@@ -40,6 +41,26 @@ export function BudgetEditorModal({
       closeAccessibilityLabel="Close budget editor"
       contentContainerStyle={styles.content}
       presentation="dialog"
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={viewModel.onCloseEditor}
+            disabled={editorState.isSaving}
+          />
+          <AppButton
+            label={editorState.isSaving ? "Saving..." : "Save Budget"}
+            variant="primary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => void viewModel.onSubmit()}
+            disabled={editorState.isSaving}
+          />
+        </FormModalActionFooter>
+      }
     >
       <LabeledTextInput
         label="Budget Month *"
@@ -89,25 +110,6 @@ export function BudgetEditorModal({
       {editorState.errorMessage ? (
         <Text style={styles.errorText}>{editorState.errorMessage}</Text>
       ) : null}
-
-      <View style={styles.actionRow}>
-        <AppButton
-          label="Cancel"
-          variant="secondary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={viewModel.onCloseEditor}
-          disabled={editorState.isSaving}
-        />
-        <AppButton
-          label={editorState.isSaving ? "Saving..." : "Save Budget"}
-          variant="primary"
-          size="lg"
-          style={styles.actionButton}
-          onPress={() => void viewModel.onSubmit()}
-          disabled={editorState.isSaving}
-        />
-      </View>
     </FormSheetModal>
   );
 }
@@ -132,11 +134,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: "InterSemiBold",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
   },
   actionButton: {
     flex: 1,

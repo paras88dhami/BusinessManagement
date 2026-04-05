@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
@@ -18,6 +19,7 @@ type InventoryMovementModalProps = {
   editorType: InventoryMovementTypeValue;
   title: string;
   form: InventoryMovementFormState;
+  canManage: boolean;
   currencyPrefix: string;
   productOptions: { label: string; value: string }[];
   adjustmentReasonOptions: readonly { label: string; value: InventoryAdjustmentReasonValue }[];
@@ -31,6 +33,7 @@ export function InventoryMovementModal({
   editorType,
   title,
   form,
+  canManage,
   currencyPrefix,
   productOptions,
   adjustmentReasonOptions,
@@ -47,6 +50,26 @@ export function InventoryMovementModal({
       closeAccessibilityLabel="Close inventory movement editor"
       presentation="dialog"
       contentContainerStyle={styles.content}
+      footer={
+        <FormModalActionFooter>
+          <AppButton
+            label="Cancel"
+            variant="secondary"
+            size="lg"
+            style={styles.actionButton}
+            onPress={onClose}
+          />
+          <AppButton
+            label="Save"
+            size="lg"
+            style={styles.actionButton}
+            onPress={() => {
+              void onSubmit();
+            }}
+            disabled={!canManage}
+          />
+        </FormModalActionFooter>
+      }
     >
       <View style={styles.fieldWrap}>
         <Text style={styles.inputLabel}>Product</Text>
@@ -116,14 +139,6 @@ export function InventoryMovementModal({
         multiline={true}
         numberOfLines={4}
       />
-
-      <AppButton
-        label="Save"
-        size="lg"
-        onPress={() => {
-          void onSubmit();
-        }}
-      />
     </FormSheetModal>
   );
 }
@@ -160,6 +175,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   flexOne: {
+    flex: 1,
+  },
+  actionButton: {
     flex: 1,
   },
 });

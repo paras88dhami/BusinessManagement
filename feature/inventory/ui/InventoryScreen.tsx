@@ -254,6 +254,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
         editorType={viewModel.editorType}
         title={viewModel.editorTitle}
         form={viewModel.form}
+        canManage={viewModel.canManage}
         productOptions={viewModel.productOptions}
         adjustmentReasonOptions={viewModel.adjustmentReasonOptions}
         currencyPrefix={viewModel.currencyPrefix}
