@@ -14,6 +14,7 @@ type PosReceiptModalProps = {
   countryCode: string | null;
   onClose: () => void;
   onPrint: () => void;
+  isPrintAvailable?: boolean;
 };
 
 export function PosReceiptModal({
@@ -23,6 +24,7 @@ export function PosReceiptModal({
   countryCode,
   onClose,
   onPrint,
+  isPrintAvailable = false,
 }: PosReceiptModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -117,14 +119,22 @@ export function PosReceiptModal({
                   .
                 </Text>
               ) : null}
+
+              {!isPrintAvailable ? (
+                <Text style={styles.printUnavailableText}>
+                  Printing is unavailable in this build. The receipt shown here is
+                  accurate, but no print action will be attempted.
+                </Text>
+              ) : null}
             </ScrollView>
           ) : null}
 
           <AppButton
-            label="Print Receipt"
+            label={isPrintAvailable ? "Print Receipt" : "Print Unavailable"}
             size="lg"
             leadingIcon={<Printer size={18} color={colors.primaryForeground} />}
             onPress={onPrint}
+            disabled={!isPrintAvailable}
           />
         </View>
       </View>
@@ -237,6 +247,12 @@ const styles = StyleSheet.create({
   ledgerWarningText: {
     color: colors.warning,
     fontSize: 13,
+    lineHeight: 18,
+    fontFamily: "InterMedium",
+  },
+  printUnavailableText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
     lineHeight: 18,
     fontFamily: "InterMedium",
   },

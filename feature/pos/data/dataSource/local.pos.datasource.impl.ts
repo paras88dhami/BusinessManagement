@@ -669,7 +669,14 @@ export const createLocalPosDatasource = ({
     },
 
     async printReceipt(_: PosReceipt): Promise<PosOperationResult> {
-      return { success: true, value: true };
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.UnsupportedOperation,
+          message:
+            "Receipt printing is not available in this build yet. Use the on-screen receipt for now.",
+        },
+      };
     },
   };
 };

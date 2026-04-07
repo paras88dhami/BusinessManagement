@@ -14,6 +14,7 @@ export const PosErrorType = {
   SlotNotFound: "SLOT_NOT_FOUND",
   CartLineNotFound: "CART_LINE_NOT_FOUND",
   EmptyCart: "EMPTY_CART",
+  UnsupportedOperation: "UNSUPPORTED_OPERATION",
   Unknown: "UNKNOWN",
 } as const;
 

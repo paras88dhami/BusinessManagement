@@ -477,6 +477,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
         onClose={viewModel.onCloseModal}
+        isPrintAvailable={false}
         onPrint={() => {
           void viewModel.onPrintReceipt();
         }}
