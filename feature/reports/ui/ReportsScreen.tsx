@@ -11,6 +11,7 @@ import { REPORT_PERIOD_OPTIONS } from "@/feature/reports/types/report.state.type
 import { ReportHomeTab } from "@/feature/reports/types/report.entity.types";
 import { LineAreaChart, GroupedBarChart, DualLineChart, SemiDonutChart, SingleBarChart } from "./components/ReportCharts";
 import { ExportPreviewCard, ReportListItems, ReportsSummaryRow, ReportMenuSections } from "./components/ReportCards";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 const HOME_TAB_OPTIONS = [
   { value: ReportHomeTab.Overview, label: "Overview" },
@@ -47,6 +48,25 @@ function ReportsHomeView({ viewModel }: Props) {
     netProfit: 0,
   };
 
+  const formattedTotalIncome = formatCurrencyAmount({
+    amount: topSummary.totalIncome,
+    currencyCode: viewModel.dashboard?.currencyCode,
+    countryCode: viewModel.dashboard?.countryCode ?? null,
+    maximumFractionDigits: 0,
+  });
+  const formattedTotalExpense = formatCurrencyAmount({
+    amount: topSummary.totalExpense,
+    currencyCode: viewModel.dashboard?.currencyCode,
+    countryCode: viewModel.dashboard?.countryCode ?? null,
+    maximumFractionDigits: 0,
+  });
+  const formattedNetProfit = formatCurrencyAmount({
+    amount: topSummary.netProfit,
+    currencyCode: viewModel.dashboard?.currencyCode,
+    countryCode: viewModel.dashboard?.countryCode ?? null,
+    maximumFractionDigits: 0,
+  });
+
   return (
     <View style={styles.screenGap}>
       {viewModel.errorMessage ? <ErrorCard message={viewModel.errorMessage} /> : null}
@@ -59,17 +79,17 @@ function ReportsHomeView({ viewModel }: Props) {
         <View style={styles.heroMetricsRow}>
           <View style={styles.heroMetricBlock}>
             <Text style={styles.heroMetricLabel}>Total Income</Text>
-            <Text style={[styles.heroMetricValue, { color: colors.success }]}>₹{topSummary.totalIncome.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Text>
+            <Text style={[styles.heroMetricValue, { color: colors.success }]}>{formattedTotalIncome}</Text>
           </View>
           <View style={styles.heroMetricBlock}>
             <Text style={styles.heroMetricLabel}>Total Expense</Text>
-            <Text style={[styles.heroMetricValue, { color: colors.destructive }]}>₹{topSummary.totalExpense.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Text>
+            <Text style={[styles.heroMetricValue, { color: colors.destructive }]}>{formattedTotalExpense}</Text>
           </View>
         </View>
         <View style={styles.heroDivider} />
         <View style={styles.netRow}>
           <Text style={styles.netLabel}>Net Profit</Text>
-          <Text style={[styles.netValue, { color: topSummary.netProfit >= 0 ? colors.success : colors.destructive }]}>₹{topSummary.netProfit.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</Text>
+          <Text style={[styles.netValue, { color: topSummary.netProfit >= 0 ? colors.success : colors.destructive }]}>{formattedNetProfit}</Text>
         </View>
       </Card>
 

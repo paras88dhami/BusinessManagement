@@ -97,6 +97,8 @@ export type ReportMenuSection = {
 
 export type ReportsDashboardSnapshot = {
   scope: ReportScopeValue;
+  currencyCode: string | null;
+  countryCode: string | null;
   periodLabel: string;
   topSummary: {
     totalIncome: number;

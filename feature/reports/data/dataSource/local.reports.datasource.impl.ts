@@ -2,11 +2,17 @@ import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billi
 import { EmiPlanMode } from "@/feature/emiLoans/types/emi.entity.types";
 import { EmiPlanModel } from "@/feature/emiLoans/data/dataSource/db/emiPlan.model";
 import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
+import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerEntryModel } from "@/feature/ledger/data/dataSource/db/ledger.model";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
+import {
+  ReportMenuItem,
+  ReportPeriod,
+  ReportQuery,
+  ReportScope,
+} from "@/feature/reports/types/report.entity.types";
 import { TransactionModel } from "@/feature/transactions/data/dataSource/db/transaction.model";
 import { MoneyAccountModel } from "@/feature/accounts/data/dataSource/db/moneyAccount.model";
-import { ReportQuery } from "@/feature/reports/types/report.entity.types";
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import { ReportsDatasource, ReportsRawDataset } from "./reports.datasource";
@@ -19,20 +25,306 @@ const INVENTORY_TABLE = "inventory_movements";
 const PRODUCTS_TABLE = "products";
 const MONEY_ACCOUNTS_TABLE = "money_accounts";
 
+type DateWindow = {
+  startMs: number | null;
+  endMs: number | null;
+};
+
+type DatasetRequirements = {
+  loadTransactions: boolean;
+  loadBillingDocuments: boolean;
+  loadLedgerEntries: boolean;
+  loadEmiPlans: boolean;
+  loadInventoryMovements: boolean;
+  loadProducts: boolean;
+  loadMoneyAccounts: boolean;
+  dateWindow: DateWindow;
+  ledgerEntryTypes: readonly string[] | null;
+};
+
+const startOfDay = (value: number): number => {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
+
+const endOfDay = (value: number): number => {
+  const date = new Date(value);
+  date.setHours(23, 59, 59, 999);
+  return date.getTime();
+};
+
+const getRangeForPeriod = (period: ReportQuery["period"], nowMs: number): DateWindow => {
+  const now = new Date(nowMs);
+
+  switch (period) {
+    case ReportPeriod.Today:
+      return { startMs: startOfDay(nowMs), endMs: endOfDay(nowMs) };
+    case ReportPeriod.ThisWeek: {
+      const weekStart = new Date(startOfDay(nowMs));
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = new Date(endOfDay(weekStart.getTime()));
+      weekEnd.setDate(weekStart.getDate() + 6);
+      return { startMs: weekStart.getTime(), endMs: weekEnd.getTime() };
+    }
+    case ReportPeriod.ThisMonth:
+      return {
+        startMs: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
+        endMs: new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ).getTime(),
+      };
+    case ReportPeriod.ThisQuarter: {
+      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      return {
+        startMs: new Date(now.getFullYear(), quarterStartMonth, 1).getTime(),
+        endMs: new Date(
+          now.getFullYear(),
+          quarterStartMonth + 3,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ).getTime(),
+      };
+    }
+    case ReportPeriod.ThisYear:
+      return {
+        startMs: new Date(now.getFullYear(), 0, 1).getTime(),
+        endMs: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999).getTime(),
+      };
+    case ReportPeriod.LastSixMonths:
+    default:
+      return {
+        startMs: new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime(),
+        endMs: endOfDay(nowMs),
+      };
+  }
+};
+
+const getDashboardDateWindow = (
+  period: ReportQuery["period"],
+  nowMs: number,
+): DateWindow => {
+  const periodRange = getRangeForPeriod(period, nowMs);
+  const sixMonthStart = new Date(
+    new Date(nowMs).getFullYear(),
+    new Date(nowMs).getMonth() - 5,
+    1,
+  ).getTime();
+  const sevenDayStart = new Date(startOfDay(nowMs));
+  sevenDayStart.setDate(sevenDayStart.getDate() - 6);
+
+  return {
+    startMs: Math.min(periodRange.startMs ?? sixMonthStart, sixMonthStart, sevenDayStart.getTime()),
+    endMs: periodRange.endMs ?? endOfDay(nowMs),
+  };
+};
+
+const getSixMonthWindow = (nowMs: number): DateWindow => {
+  const now = new Date(nowMs);
+  return {
+    startMs: new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime(),
+    endMs: endOfDay(nowMs),
+  };
+};
+
+const resolveDatasetRequirements = (
+  query: ReportQuery,
+  nowMs: number,
+): DatasetRequirements => {
+  const periodWindow = getRangeForPeriod(query.period, nowMs);
+  const businessFinancialDataRequired = query.scope === ReportScope.Business;
+
+  switch (query.reportId) {
+    case undefined:
+    case null:
+      return {
+        loadTransactions: true,
+        loadBillingDocuments: businessFinancialDataRequired,
+        loadLedgerEntries: businessFinancialDataRequired,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: getDashboardDateWindow(query.period, nowMs),
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.Sales:
+      return {
+        loadTransactions: false,
+        loadBillingDocuments: true,
+        loadLedgerEntries: false,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: getSixMonthWindow(nowMs),
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.PartyBalances:
+      return {
+        loadTransactions: false,
+        loadBillingDocuments: false,
+        loadLedgerEntries: true,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: { startMs: null, endMs: null },
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.Collection:
+      return {
+        loadTransactions: false,
+        loadBillingDocuments: false,
+        loadLedgerEntries: true,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: getSixMonthWindow(nowMs),
+        ledgerEntryTypes: [LedgerEntryType.Collection],
+      };
+    case ReportMenuItem.Payment:
+      return {
+        loadTransactions: false,
+        loadBillingDocuments: false,
+        loadLedgerEntries: true,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: getSixMonthWindow(nowMs),
+        ledgerEntryTypes: [LedgerEntryType.PaymentOut],
+      };
+    case ReportMenuItem.CategorySummary:
+      return {
+        loadTransactions: true,
+        loadBillingDocuments: false,
+        loadLedgerEntries: false,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: periodWindow,
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.AccountStatement:
+      return {
+        loadTransactions: true,
+        loadBillingDocuments: false,
+        loadLedgerEntries: false,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: true,
+        dateWindow: periodWindow,
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.EmiLoan:
+      return {
+        loadTransactions: false,
+        loadBillingDocuments: false,
+        loadLedgerEntries: false,
+        loadEmiPlans: true,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: { startMs: null, endMs: null },
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.Stock:
+      return {
+        loadTransactions: false,
+        loadBillingDocuments: false,
+        loadLedgerEntries: false,
+        loadEmiPlans: false,
+        loadInventoryMovements: true,
+        loadProducts: true,
+        loadMoneyAccounts: false,
+        dateWindow: { startMs: null, endMs: null },
+        ledgerEntryTypes: null,
+      };
+    case ReportMenuItem.ExportData:
+      return {
+        loadTransactions: true,
+        loadBillingDocuments: businessFinancialDataRequired,
+        loadLedgerEntries: businessFinancialDataRequired,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: periodWindow,
+        ledgerEntryTypes: null,
+      };
+    default:
+      return {
+        loadTransactions: true,
+        loadBillingDocuments: businessFinancialDataRequired,
+        loadLedgerEntries: businessFinancialDataRequired,
+        loadEmiPlans: false,
+        loadInventoryMovements: false,
+        loadProducts: false,
+        loadMoneyAccounts: false,
+        dateWindow: periodWindow,
+        ledgerEntryTypes: null,
+      };
+  }
+};
+
+const appendDateWindowClause = (
+  clauses: ReturnType<typeof Q.where>[],
+  columnName: string,
+  dateWindow: DateWindow,
+): void => {
+  if (dateWindow.startMs === null || dateWindow.endMs === null) {
+    return;
+  }
+
+  clauses.push(Q.where(columnName, Q.between(dateWindow.startMs, dateWindow.endMs)));
+};
+
 export const createLocalReportsDatasource = (
   database: Database,
 ): ReportsDatasource => ({
   async getDataset(query: ReportQuery): Promise<Result<ReportsRawDataset>> {
     try {
+      const requirements = resolveDatasetRequirements(query, Date.now());
+
       const [transactions, billingDocuments, ledgerEntries, emiPlans, inventoryMovements, products, moneyAccounts] =
         await Promise.all([
-          loadTransactions(database, query),
-          loadBillingDocuments(database, query),
-          loadLedgerEntries(database, query),
-          loadEmiPlans(database, query),
-          loadInventoryMovements(database, query),
-          loadProducts(database, query),
-          loadMoneyAccounts(database, query),
+          requirements.loadTransactions
+            ? loadTransactions(database, query, requirements.dateWindow)
+            : Promise.resolve([]),
+          requirements.loadBillingDocuments
+            ? loadBillingDocuments(database, query, requirements.dateWindow)
+            : Promise.resolve([]),
+          requirements.loadLedgerEntries
+            ? loadLedgerEntries(
+                database,
+                query,
+                requirements.dateWindow,
+                requirements.ledgerEntryTypes,
+              )
+            : Promise.resolve([]),
+          requirements.loadEmiPlans
+            ? loadEmiPlans(database, query)
+            : Promise.resolve([]),
+          requirements.loadInventoryMovements
+            ? loadInventoryMovements(database, query)
+            : Promise.resolve([]),
+          requirements.loadProducts ? loadProducts(database, query) : Promise.resolve([]),
+          requirements.loadMoneyAccounts
+            ? loadMoneyAccounts(database, query)
+            : Promise.resolve([]),
         ]);
 
       return {
@@ -59,9 +351,10 @@ export const createLocalReportsDatasource = (
 const loadTransactions = async (
   database: Database,
   query: ReportQuery,
+  dateWindow: DateWindow,
 ): Promise<TransactionModel[]> => {
   const collection = database.get<TransactionModel>(TRANSACTIONS_TABLE);
-  const clauses = [Q.where("deleted_at", Q.eq(null))];
+  const clauses: ReturnType<typeof Q.where>[] = [Q.where("deleted_at", Q.eq(null))];
 
   if (query.accountRemoteId) {
     clauses.push(Q.where("account_remote_id", query.accountRemoteId));
@@ -69,43 +362,56 @@ const loadTransactions = async (
     clauses.push(Q.where("owner_user_remote_id", query.ownerUserRemoteId));
   }
 
+  appendDateWindowClause(clauses, "happened_at", dateWindow);
+
   return collection.query(...clauses, Q.sortBy("happened_at", Q.desc)).fetch();
 };
 
 const loadBillingDocuments = async (
   database: Database,
   query: ReportQuery,
+  dateWindow: DateWindow,
 ): Promise<BillingDocumentModel[]> => {
   if (!query.accountRemoteId) {
     return [];
   }
 
   const collection = database.get<BillingDocumentModel>(BILLING_DOCUMENTS_TABLE);
-  return collection
-    .query(
-      Q.where("account_remote_id", query.accountRemoteId),
-      Q.where("deleted_at", Q.eq(null)),
-      Q.sortBy("issued_at", Q.desc),
-    )
-    .fetch();
+  const clauses: ReturnType<typeof Q.where>[] = [
+    Q.where("account_remote_id", query.accountRemoteId),
+    Q.where("deleted_at", Q.eq(null)),
+  ];
+
+  appendDateWindowClause(clauses, "issued_at", dateWindow);
+
+  return collection.query(...clauses, Q.sortBy("issued_at", Q.desc)).fetch();
 };
 
 const loadLedgerEntries = async (
   database: Database,
   query: ReportQuery,
+  dateWindow: DateWindow,
+  ledgerEntryTypes: readonly string[] | null,
 ): Promise<LedgerEntryModel[]> => {
   if (!query.accountRemoteId) {
     return [];
   }
 
   const collection = database.get<LedgerEntryModel>(LEDGER_TABLE);
-  return collection
-    .query(
-      Q.where("business_account_remote_id", query.accountRemoteId),
-      Q.where("deleted_at", Q.eq(null)),
-      Q.sortBy("happened_at", Q.desc),
-    )
-    .fetch();
+  const clauses: ReturnType<typeof Q.where>[] = [
+    Q.where("business_account_remote_id", query.accountRemoteId),
+    Q.where("deleted_at", Q.eq(null)),
+  ];
+
+  appendDateWindowClause(clauses, "happened_at", dateWindow);
+
+  if (ledgerEntryTypes && ledgerEntryTypes.length === 1) {
+    clauses.push(Q.where("entry_type", ledgerEntryTypes[0]));
+  } else if (ledgerEntryTypes && ledgerEntryTypes.length > 1) {
+    clauses.push(Q.where("entry_type", Q.oneOf([...ledgerEntryTypes])));
+  }
+
+  return collection.query(...clauses, Q.sortBy("happened_at", Q.desc)).fetch();
 };
 
 const loadEmiPlans = async (
@@ -114,7 +420,7 @@ const loadEmiPlans = async (
 ): Promise<EmiPlanModel[]> => {
   const collection = database.get<EmiPlanModel>(EMI_TABLE);
 
-  if (query.scope === "business") {
+  if (query.scope === ReportScope.Business) {
     if (!query.accountRemoteId) {
       return [];
     }

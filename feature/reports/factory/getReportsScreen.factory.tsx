@@ -13,6 +13,8 @@ type Props = {
   accountType: AccountTypeValue;
   ownerUserRemoteId: string | null;
   accountRemoteId: string | null;
+  activeAccountCurrencyCode: string | null;
+  activeAccountCountryCode: string | null;
 };
 
 export function GetReportsScreenFactory({
@@ -20,9 +22,18 @@ export function GetReportsScreenFactory({
   accountType,
   ownerUserRemoteId,
   accountRemoteId,
+  activeAccountCurrencyCode,
+  activeAccountCountryCode,
 }: Props) {
   const datasource = React.useMemo(() => createLocalReportsDatasource(database), [database]);
-  const repository = React.useMemo(() => createReportsRepository(datasource), [datasource]);
+  const repository = React.useMemo(
+    () =>
+      createReportsRepository(datasource, {
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode, datasource],
+  );
   const getReportsDashboardUseCase = React.useMemo(
     () => createGetReportsDashboardUseCase(repository),
     [repository],

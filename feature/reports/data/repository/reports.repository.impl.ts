@@ -33,6 +33,7 @@ import {
 } from "./mapper/reports.mapper";
 import { ReportsRepository } from "./reports.repository";
 import { colors } from "@/shared/components/theme/colors";
+import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
 const CATEGORY_COLORS = [
   colors.success,
@@ -43,14 +44,29 @@ const CATEGORY_COLORS = [
   "#6A8F7B",
 ] as const;
 
-const formatCurrency = (value: number): string => {
-  const absolute = Math.abs(Number.isFinite(value) ? value : 0);
-  return `₹${absolute.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+type CreateReportsRepositoryOptions = {
+  currencyCode: string | null;
+  countryCode: string | null;
 };
 
-const formatSignedCurrency = (value: number): string => {
-  const prefix = value >= 0 ? "" : "-";
-  return `${prefix}${formatCurrency(Math.abs(value))}`;
+const createCurrencyFormatter = (options: CreateReportsRepositoryOptions) => {
+  const formatCurrency = (value: number): string => {
+    const absolute = Math.abs(Number.isFinite(value) ? value : 0);
+
+    return formatCurrencyAmount({
+      amount: absolute,
+      currencyCode: options.currencyCode,
+      countryCode: options.countryCode,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const formatSignedCurrency = (value: number): string => {
+    const prefix = value >= 0 ? "" : "-";
+    return `${prefix}${formatCurrency(Math.abs(value))}`;
+  };
+
+  return { formatCurrency, formatSignedCurrency };
 };
 
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -343,8 +359,12 @@ const buildCsvPreview = (
 
 export const createReportsRepository = (
   datasource: ReportsDatasource,
-): ReportsRepository => ({
-  async getReportsDashboard(query: ReportQuery): Promise<ReportsDashboardResult> {
+  options: CreateReportsRepositoryOptions,
+): ReportsRepository => {
+  const { formatCurrency, formatSignedCurrency } = createCurrencyFormatter(options);
+
+  return {
+    async getReportsDashboard(query: ReportQuery): Promise<ReportsDashboardResult> {
     if (!query.accountRemoteId && !query.ownerUserRemoteId) {
       return { success: false, error: ReportValidationError("Active report scope is missing.") };
     }
@@ -436,6 +456,8 @@ export const createReportsRepository = (
         success: true,
         value: {
           scope: query.scope,
+          currencyCode: options.currencyCode,
+          countryCode: options.countryCode,
           periodLabel: range.label,
           topSummary: {
             totalIncome: topSummary.totalIncome,
@@ -454,7 +476,7 @@ export const createReportsRepository = (
     }
   },
 
-  async getReportDetail(query: ReportQuery): Promise<ReportDetailResult> {
+    async getReportDetail(query: ReportQuery): Promise<ReportDetailResult> {
     if (!query.reportId) {
       return { success: false, error: ReportValidationError("Report id is required.") };
     }
@@ -765,7 +787,8 @@ export const createReportsRepository = (
       return { success: false, error: ReportUnknownError };
     }
   },
-});
+  };
+};
 
 const parseCurrencyNumber = (value: string): number => {
   return Number(value.replace(/[^0-9.-]/g, ""));
