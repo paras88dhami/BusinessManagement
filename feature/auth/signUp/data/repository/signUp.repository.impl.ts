@@ -1,7 +1,7 @@
 import { VerifiedLocalCredential } from "@/feature/session/types/authSession.types";
 import { RegisterUserWithDefaultAccountUseCase } from "../../useCase/registerUserWithDefaultAccount.useCase";
 import { SignUpRepository } from "./signUp.repository";
-import { DatabaseError, SignUpInput, SignUpResult } from "../../types/signUp.types";
+import { SessionActivationFailedError, SignUpInput, SignUpResult } from "../../types/signUp.types";
 
 type LocalSignUpRepositoryOptions = {
   onRegistered: (
@@ -24,10 +24,15 @@ export const createLocalSignUpRepository = (
 
     try {
       await options.onRegistered(registrationResult.value, payload);
-    } catch {
+    } catch (error) {
+      const activationErrorMessage =
+        error instanceof Error && error.message.trim().length > 0
+          ? `${error.message.trim()} Please log in with the phone number and password you just created.`
+          : undefined;
+
       return {
         success: false,
-        error: DatabaseError,
+        error: SessionActivationFailedError(activationErrorMessage),
       };
     }
 

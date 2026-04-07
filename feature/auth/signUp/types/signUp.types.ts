@@ -10,6 +10,7 @@ import {
 export const SignUpErrorType = {
   ValidationError: "VALIDATION_ERROR",
   PhoneNumberAlreadyInUse: "PHONE_NUMBER_ALREADY_IN_USE",
+  SessionActivationFailed: "SESSION_ACTIVATION_FAILED",
   DatabaseError: "DATABASE_ERROR",
   UnknownError: "UNKNOWN_ERROR",
 } as const;
@@ -28,6 +29,14 @@ export const PhoneNumberAlreadyInUseError: SignUpError = {
   type: SignUpErrorType.PhoneNumberAlreadyInUse,
   message: "An account with this phone number already exists.",
 };
+
+export const SessionActivationFailedError = (
+  message =
+    "Your account was created, but automatic sign-in could not be completed. Please log in with the phone number and password you just created.",
+): SignUpError => ({
+  type: SignUpErrorType.SessionActivationFailed,
+  message,
+});
 
 export const DatabaseError: SignUpError = {
   type: SignUpErrorType.DatabaseError,
