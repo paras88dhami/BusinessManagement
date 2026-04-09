@@ -1,19 +1,36 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { ChevronRight, LogOut } from "lucide-react-native";
+import { ChevronRight, LogOut, Settings2 } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 
 type ProfileActionsSectionProps = {
+  onOpenSettings: () => void;
   onLogout: () => Promise<void>;
 };
 
 export function ProfileActionsSection({
+  onOpenSettings,
   onLogout,
 }: ProfileActionsSectionProps) {
   return (
     <Card style={styles.sectionCard}>
+      <Pressable
+        style={[styles.actionCard, styles.actionCardBorder]}
+        onPress={onOpenSettings}
+        accessibilityRole="button"
+      >
+        <View style={styles.actionIconWrap}>
+          <Settings2 size={18} color={colors.primary} />
+        </View>
+        <View style={styles.actionBody}>
+          <Text style={styles.actionTitle}>Settings</Text>
+          <Text style={styles.actionSubtitle}>Security, appearance, and support</Text>
+        </View>
+        <ChevronRight size={16} color={colors.mutedForeground} />
+      </Pressable>
+
       <Pressable
         style={styles.actionCard}
         onPress={() => {
@@ -46,6 +63,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
+  actionCardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
   actionIconWrap: {
     width: 34,
     height: 34,
@@ -56,6 +77,12 @@ const styles = StyleSheet.create({
   },
   actionBody: {
     flex: 1,
+  },
+  actionTitle: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+    marginBottom: 2,
   },
   logoutTitle: {
     color: colors.destructive,

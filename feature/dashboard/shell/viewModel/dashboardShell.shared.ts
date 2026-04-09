@@ -32,6 +32,7 @@ const PERSONAL_ONLY_ROUTES = new Set<DashboardRouteKey>([
 
 const SLOT_ONLY_ROUTES = new Set<DashboardRouteKey>([
   "profile",
+  "settings",
   "user-management",
 ]);
 
@@ -57,6 +58,7 @@ export const resolveDashboardRouteKey = (
     case "notes":
     case "emi-loans":
     case "more":
+    case "settings":
     case "user-management":
     case "personal-transactions":
     case "personal-budget":
@@ -262,6 +264,7 @@ export const resolveDashboardActiveTab = (
     case "billing":
     case "tax-calculator":
     case "notes":
+    case "settings":
       return DashboardTab.More;
     case "personal-transactions":
       return DashboardTab.Transactions;

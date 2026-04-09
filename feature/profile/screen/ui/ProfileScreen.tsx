@@ -149,7 +149,10 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
       ) : null}
 
       {!viewModel.isLoading ? (
-        <ProfileActionsSection onLogout={viewModel.onLogout} />
+        <ProfileActionsSection
+          onOpenSettings={viewModel.onOpenSettings}
+          onLogout={viewModel.onLogout}
+        />
       ) : null}
     </ScreenContainer>
   );

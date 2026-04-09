@@ -2,6 +2,7 @@ import { Result } from "@/shared/types/result.types";
 
 export const SettingsModal = {
   None: "none",
+  Appearance: "appearance",
   Security: "security",
   ChangePassword: "change_password",
   HelpFaq: "help_faq",

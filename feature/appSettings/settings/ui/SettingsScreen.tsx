@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CircleHelp,
   LockKeyhole,
+  Palette,
   ShieldCheck,
   Star,
 } from "lucide-react-native";
@@ -21,6 +22,7 @@ import { RateELekhaModal } from "./components/RateELekhaModal";
 import { ReportBugModal } from "./components/ReportBugModal";
 import { SecurityModal } from "./components/SecurityModal";
 import { TermsPrivacyModal } from "./components/TermsPrivacyModal";
+import { AppearanceModal } from "@/feature/appSettings/appearance/ui/components/AppearanceModal";
 
 type SettingsScreenProps = {
   viewModel: SettingsViewModel;
@@ -29,6 +31,8 @@ type SettingsScreenProps = {
 
 const getIcon = (id: SettingsViewModel["settingsRows"][number]["id"]) => {
   switch (id) {
+    case "appearance":
+      return <Palette size={18} color={colors.primary} />;
     case "security":
       return <LockKeyhole size={18} color={colors.primary} />;
     case "helpFaq":
@@ -49,6 +53,9 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
     id: SettingsViewModel["settingsRows"][number]["id"],
   ): void => {
     switch (id) {
+      case "appearance":
+        viewModel.onOpenAppearance();
+        return;
       case "security":
         viewModel.onOpenSecurity();
         return;
@@ -102,6 +109,11 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
                   <View style={styles.rowTextWrap}>
                     <Text style={styles.rowTitle}>{row.title}</Text>
                     <Text style={styles.rowSubtitle}>{row.subtitle}</Text>
+                    {row.id === "appearance" ? (
+                      <Text style={styles.rowValue}>
+                        {viewModel.appearanceSummaryLabel}
+                      </Text>
+                    ) : null}
                   </View>
                   <ChevronRight size={16} color={colors.mutedForeground} />
                 </Pressable>
@@ -125,6 +137,23 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
           <Text style={styles.successText}>{viewModel.successMessage}</Text>
         ) : null}
       </ScreenContainer>
+
+      <AppearanceModal
+        visible={viewModel.activeModal === SettingsModal.Appearance}
+        isSaving={viewModel.isSavingAppearance}
+        title={viewModel.appearanceModalTitle}
+        subtitle={viewModel.appearanceModalSubtitle}
+        errorMessage={viewModel.errorMessage}
+        selectedThemePreference={viewModel.selectedThemePreference}
+        selectedTextSizePreference={viewModel.selectedTextSizePreference}
+        compactModeEnabled={viewModel.compactModeEnabled}
+        compactModeTitle={viewModel.compactModeTitle}
+        compactModeSubtitle={viewModel.compactModeSubtitle}
+        onClose={viewModel.onCloseModal}
+        onSelectThemePreference={viewModel.onSelectThemePreference}
+        onSelectTextSizePreference={viewModel.onSelectTextSizePreference}
+        onToggleCompactMode={viewModel.onToggleCompactMode}
+      />
 
       <SecurityModal
         visible={viewModel.activeModal === SettingsModal.Security}
@@ -249,6 +278,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontFamily: "InterMedium",
+  },
+  rowValue: {
+    marginTop: 6,
+    color: colors.primary,
+    fontSize: 12,
+    fontFamily: "InterSemiBold",
   },
   feedbackRow: {
     flexDirection: "row",

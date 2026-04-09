@@ -11,6 +11,7 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: AccountType.Business,
       navigateReplace: (targetPath) => replaceCalls.push(targetPath),
+      navigatePush: vi.fn(),
       clearUserSession: async () => {},
       refreshSession: async () => {},
     });
@@ -32,6 +33,7 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: null,
       navigateReplace: replace,
+      navigatePush: vi.fn(),
       clearUserSession: async () => {},
       refreshSession: async () => {},
     });
@@ -48,6 +50,7 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: AccountType.Personal,
       navigateReplace: vi.fn(),
+      navigatePush: vi.fn(),
       clearUserSession: async () => {
         calls.push("clear");
       },
@@ -68,6 +71,7 @@ describe("dashboardProfileRouteHandlers.shared", () => {
       activeAccountRemoteId: "acct-1",
       activeAccountType: AccountType.Personal,
       navigateReplace: vi.fn(),
+      navigatePush: vi.fn(),
       clearUserSession: async () => {
         throw new Error("clear-failed");
       },
@@ -76,5 +80,22 @@ describe("dashboardProfileRouteHandlers.shared", () => {
 
     await expect(handlers.onLogout()).resolves.toBeUndefined();
     expect(refreshSessionSpy).not.toHaveBeenCalled();
+  });
+
+  it("opens dashboard settings from profile actions", () => {
+    const push = vi.fn();
+
+    const handlers = createDashboardProfileRouteHandlers({
+      activeUserRemoteId: "user-1",
+      activeAccountRemoteId: "acct-1",
+      activeAccountType: AccountType.Personal,
+      navigateReplace: vi.fn(),
+      navigatePush: push,
+      clearUserSession: async () => {},
+      refreshSession: async () => {},
+    });
+
+    handlers.onOpenSettings();
+    expect(push).toHaveBeenCalledWith("/(dashboard)/settings");
   });
 });

@@ -9,6 +9,7 @@ type GetProfileScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
+  onOpenSettings: () => void;
   onLogout: () => Promise<void>;
   onBack: () => void;
 };
@@ -17,6 +18,7 @@ export function GetProfileScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
   onNavigateHome,
+  onOpenSettings,
   onLogout,
   onBack,
 }: GetProfileScreenFactoryProps) {
@@ -27,6 +29,7 @@ export function GetProfileScreenFactory({
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
+    onOpenSettings,
     onLogout,
     onBack,
   });

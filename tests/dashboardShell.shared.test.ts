@@ -17,6 +17,9 @@ describe("dashboardShell.shared", () => {
     expect(resolveDashboardRouteKey(["(dashboard)", "profile"])).toBe(
       "profile",
     );
+    expect(resolveDashboardRouteKey(["(dashboard)", "settings"])).toBe(
+      "settings",
+    );
     expect(resolveDashboardRouteKey(["(dashboard)", "products"])).toBe(
       "products",
     );
@@ -85,6 +88,7 @@ describe("dashboardShell.shared", () => {
 
   it("marks slot-only routes correctly", () => {
     expect(isSlotOnlyDashboardRoute("profile")).toBe(true);
+    expect(isSlotOnlyDashboardRoute("settings")).toBe(true);
     expect(isSlotOnlyDashboardRoute("user-management")).toBe(true);
     expect(isSlotOnlyDashboardRoute("business")).toBe(false);
   });

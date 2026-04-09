@@ -1,3 +1,7 @@
+import { createLocalAppearanceDatasource } from "@/feature/appSettings/appearance/data/dataSource/local.appearance.datasource.impl";
+import { createAppearanceRepository } from "@/feature/appSettings/appearance/data/repository/appearance.repository.impl";
+import { createGetAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/getAppearancePreferences.useCase.impl";
+import { createSaveAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/saveAppearancePreferences.useCase.impl";
 import { createLocalSettingsDatasource } from "@/feature/appSettings/settings/data/dataSource/local.settings.datasource.impl";
 import { createSettingsRepository } from "@/feature/appSettings/settings/data/repository/settings.repository.impl";
 import { SettingsScreen } from "@/feature/appSettings/settings/ui/SettingsScreen";
@@ -23,6 +27,23 @@ export function GetSettingsScreenFactory({
   activeUserRemoteId,
   onBack,
 }: GetSettingsScreenFactoryProps) {
+  const appearanceDatasource = React.useMemo(
+    () => createLocalAppearanceDatasource(appDatabase),
+    [],
+  );
+  const appearanceRepository = React.useMemo(
+    () => createAppearanceRepository(appearanceDatasource),
+    [appearanceDatasource],
+  );
+  const getAppearancePreferencesUseCase = React.useMemo(
+    () => createGetAppearancePreferencesUseCase(appearanceRepository),
+    [appearanceRepository],
+  );
+  const saveAppearancePreferencesUseCase = React.useMemo(
+    () => createSaveAppearancePreferencesUseCase(appearanceRepository),
+    [appearanceRepository],
+  );
+
   const settingsDatasource = React.useMemo(
     () => createLocalSettingsDatasource(appDatabase),
     [],
@@ -77,6 +98,8 @@ export function GetSettingsScreenFactory({
 
   const viewModel = useSettingsViewModel({
     activeUserRemoteId,
+    getAppearancePreferencesUseCase,
+    saveAppearancePreferencesUseCase,
     getSettingsBootstrapUseCase,
     updateBiometricLoginPreferenceUseCase,
     updateTwoFactorAuthPreferenceUseCase,

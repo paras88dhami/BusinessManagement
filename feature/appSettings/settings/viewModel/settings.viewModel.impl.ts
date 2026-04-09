@@ -1,8 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  APPEARANCE_TEXT_SIZE_OPTIONS,
+  APPEARANCE_THEME_OPTIONS,
+  AppearancePreferences,
+  AppearanceTextSizePreference,
+  AppearanceTextSizePreferenceValue,
+  AppearanceThemePreference,
+  AppearanceThemePreferenceValue,
+} from "@/feature/appSettings/appearance/types/appearance.types";
+import { GetAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/getAppearancePreferences.useCase";
+import { SaveAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/saveAppearancePreferences.useCase";
 import {
   BUG_SEVERITY_OPTIONS,
   BugSeverity,
   SettingsModal,
+  SettingsModalValue,
 } from "@/feature/appSettings/settings/types/settings.types";
 import { ChangePasswordUseCase } from "../useCase/changePassword.useCase";
 import { GetSettingsBootstrapUseCase } from "../useCase/getSettingsBootstrap.useCase";
@@ -28,7 +40,19 @@ const DEFAULT_CHANGE_PASSWORD_FORM: SettingsChangePasswordForm = {
   confirmPassword: "",
 };
 
+const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
+  themePreference: AppearanceThemePreference.Light,
+  textSizePreference: AppearanceTextSizePreference.Medium,
+  compactModeEnabled: false,
+  updatedAt: 0,
+};
+
 const SETTINGS_ROWS: SettingsViewModel["settingsRows"] = [
+  {
+    id: "appearance",
+    title: "Appearance",
+    subtitle: "Theme, text size, and compact mode",
+  },
   {
     id: "security",
     title: "Security",
@@ -55,6 +79,44 @@ const SETTINGS_ROWS: SettingsViewModel["settingsRows"] = [
     subtitle: "Tell us what went wrong",
   },
 ] as const;
+
+const themeLabelMap: Record<AppearanceThemePreferenceValue, string> =
+  APPEARANCE_THEME_OPTIONS.reduce(
+    (map, option) => ({
+      ...map,
+      [option.value]: option.label,
+    }),
+    {
+      [AppearanceThemePreference.Light]: "Light",
+      [AppearanceThemePreference.Dark]: "Dark",
+      [AppearanceThemePreference.System]: "System",
+    } as Record<AppearanceThemePreferenceValue, string>,
+  );
+
+const textSizeLabelMap: Record<AppearanceTextSizePreferenceValue, string> =
+  APPEARANCE_TEXT_SIZE_OPTIONS.reduce(
+    (map, option) => ({
+      ...map,
+      [option.value]: option.label,
+    }),
+    {
+      [AppearanceTextSizePreference.Small]: "Small",
+      [AppearanceTextSizePreference.Medium]: "Medium",
+      [AppearanceTextSizePreference.Large]: "Large",
+    } as Record<AppearanceTextSizePreferenceValue, string>,
+  );
+
+const buildAppearanceSummaryLabel = (
+  appearancePreferences: AppearancePreferences,
+): string => {
+  const compactModeLabel = appearancePreferences.compactModeEnabled
+    ? "Compact On"
+    : "Compact Off";
+
+  return `${themeLabelMap[appearancePreferences.themePreference]} | ${
+    textSizeLabelMap[appearancePreferences.textSizePreference]
+  } | ${compactModeLabel}`;
+};
 
 const formatRelativeLabel = (timestamp: number | null): string => {
   if (timestamp === null) {
@@ -83,6 +145,8 @@ const formatRelativeLabel = (timestamp: number | null): string => {
 
 type Params = {
   activeUserRemoteId: string | null;
+  getAppearancePreferencesUseCase: GetAppearancePreferencesUseCase;
+  saveAppearancePreferencesUseCase: SaveAppearancePreferencesUseCase;
   getSettingsBootstrapUseCase: GetSettingsBootstrapUseCase;
   updateBiometricLoginPreferenceUseCase: UpdateBiometricLoginPreferenceUseCase;
   updateTwoFactorAuthPreferenceUseCase: UpdateTwoFactorAuthPreferenceUseCase;
@@ -93,6 +157,8 @@ type Params = {
 
 export const useSettingsViewModel = ({
   activeUserRemoteId,
+  getAppearancePreferencesUseCase,
+  saveAppearancePreferencesUseCase,
   getSettingsBootstrapUseCase,
   updateBiometricLoginPreferenceUseCase,
   updateTwoFactorAuthPreferenceUseCase,
@@ -102,25 +168,34 @@ export const useSettingsViewModel = ({
 }: Params): SettingsViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPreference, setIsSavingPreference] = useState(false);
+  const [isSavingAppearance, setIsSavingAppearance] = useState(false);
   const [isSubmittingBugReport, setIsSubmittingBugReport] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [activeModal, setActiveModal] = useState(SettingsModal.None);
+  const [activeModal, setActiveModal] = useState<SettingsModalValue>(
+    SettingsModal.None,
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [helpFaqItems, setHelpFaqItems] = useState<SettingsViewModel["helpFaqItems"]>([]);
+  const [helpFaqItems, setHelpFaqItems] = useState<
+    SettingsViewModel["helpFaqItems"]
+  >([]);
   const [supportContactItems, setSupportContactItems] = useState<
     SettingsViewModel["supportContactItems"]
   >([]);
   const [termsDocumentItems, setTermsDocumentItems] = useState<
     SettingsViewModel["termsDocumentItems"]
   >([]);
-  const [dataRightItems, setDataRightItems] = useState<SettingsViewModel["dataRightItems"]>([]);
+  const [dataRightItems, setDataRightItems] = useState<
+    SettingsViewModel["dataRightItems"]
+  >([]);
   const [securitySessions, setSecuritySessions] = useState<
     SettingsViewModel["securitySessions"]
   >([]);
   const [biometricLoginEnabled, setBiometricLoginEnabled] = useState(false);
   const [twoFactorAuthEnabled, setTwoFactorAuthEnabled] = useState(false);
+  const [appearancePreferences, setAppearancePreferences] =
+    useState<AppearancePreferences>(DEFAULT_APPEARANCE_PREFERENCES);
   const [passwordChangedAt, setPasswordChangedAt] = useState<number | null>(null);
   const [deviceInfoLabel, setDeviceInfoLabel] = useState("Unavailable");
   const [appVersionLabel, setAppVersionLabel] = useState("Unavailable");
@@ -140,27 +215,48 @@ export const useSettingsViewModel = ({
     }
 
     setIsLoading(true);
-    const result = await getSettingsBootstrapUseCase.execute(activeUserRemoteId);
 
-    if (!result.success) {
-      setErrorMessage(result.error.message);
+    const [bootstrapResult, appearanceResult] = await Promise.all([
+      getSettingsBootstrapUseCase.execute(activeUserRemoteId),
+      getAppearancePreferencesUseCase.execute(),
+    ]);
+
+    if (!bootstrapResult.success) {
+      setErrorMessage(bootstrapResult.error.message);
       setIsLoading(false);
       return;
     }
 
-    setHelpFaqItems(result.value.helpFaqItems);
-    setSupportContactItems(result.value.supportContactItems);
-    setTermsDocumentItems(result.value.termsDocumentItems);
-    setDataRightItems(result.value.dataRightItems);
-    setSecuritySessions(result.value.securitySessions);
-    setBiometricLoginEnabled(result.value.securityPreferences.biometricLoginEnabled);
-    setTwoFactorAuthEnabled(result.value.securityPreferences.twoFactorAuthEnabled);
-    setPasswordChangedAt(result.value.passwordChangedAt);
-    setDeviceInfoLabel(result.value.deviceInfo ?? "Unavailable");
-    setAppVersionLabel(result.value.appVersion ?? "Unavailable");
+    setHelpFaqItems(bootstrapResult.value.helpFaqItems);
+    setSupportContactItems(bootstrapResult.value.supportContactItems);
+    setTermsDocumentItems(bootstrapResult.value.termsDocumentItems);
+    setDataRightItems(bootstrapResult.value.dataRightItems);
+    setSecuritySessions(bootstrapResult.value.securitySessions);
+    setBiometricLoginEnabled(
+      bootstrapResult.value.securityPreferences.biometricLoginEnabled,
+    );
+    setTwoFactorAuthEnabled(
+      bootstrapResult.value.securityPreferences.twoFactorAuthEnabled,
+    );
+    setPasswordChangedAt(bootstrapResult.value.passwordChangedAt);
+    setDeviceInfoLabel(bootstrapResult.value.deviceInfo ?? "Unavailable");
+    setAppVersionLabel(bootstrapResult.value.appVersion ?? "Unavailable");
+
+    if (!appearanceResult.success) {
+      setAppearancePreferences(DEFAULT_APPEARANCE_PREFERENCES);
+      setErrorMessage(appearanceResult.error.message);
+      setIsLoading(false);
+      return;
+    }
+
+    setAppearancePreferences(appearanceResult.value);
     setErrorMessage(null);
     setIsLoading(false);
-  }, [activeUserRemoteId, getSettingsBootstrapUseCase]);
+  }, [
+    activeUserRemoteId,
+    getAppearancePreferencesUseCase,
+    getSettingsBootstrapUseCase,
+  ]);
 
   useEffect(() => {
     void loadSettings();
@@ -169,6 +265,12 @@ export const useSettingsViewModel = ({
   const onCloseModal = useCallback(() => {
     setActiveModal(SettingsModal.None);
     setErrorMessage(null);
+  }, []);
+
+  const onOpenAppearance = useCallback(() => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setActiveModal(SettingsModal.Appearance);
   }, []);
 
   const onOpenSecurity = useCallback(() => {
@@ -208,6 +310,85 @@ export const useSettingsViewModel = ({
     setActiveModal(SettingsModal.ChangePassword);
   }, []);
 
+  const persistAppearancePreferences = useCallback(
+    async (nextPreferences: {
+      themePreference: AppearanceThemePreferenceValue;
+      textSizePreference: AppearanceTextSizePreferenceValue;
+      compactModeEnabled: boolean;
+    }) => {
+      setIsSavingAppearance(true);
+      const previousPreferences = appearancePreferences;
+
+      setAppearancePreferences((currentPreferences) => ({
+        ...currentPreferences,
+        ...nextPreferences,
+        updatedAt: Date.now(),
+      }));
+
+      const result = await saveAppearancePreferencesUseCase.execute(
+        nextPreferences,
+      );
+
+      if (!result.success) {
+        setAppearancePreferences(previousPreferences);
+        setErrorMessage(result.error.message);
+        setIsSavingAppearance(false);
+        return;
+      }
+
+      setAppearancePreferences(result.value);
+      setErrorMessage(null);
+      setSuccessMessage("Appearance settings updated.");
+      setIsSavingAppearance(false);
+    },
+    [appearancePreferences, saveAppearancePreferencesUseCase],
+  );
+
+  const onSelectThemePreference = useCallback(
+    async (value: AppearanceThemePreferenceValue) => {
+      if (value === appearancePreferences.themePreference) {
+        return;
+      }
+
+      await persistAppearancePreferences({
+        themePreference: value,
+        textSizePreference: appearancePreferences.textSizePreference,
+        compactModeEnabled: appearancePreferences.compactModeEnabled,
+      });
+    },
+    [appearancePreferences, persistAppearancePreferences],
+  );
+
+  const onSelectTextSizePreference = useCallback(
+    async (value: AppearanceTextSizePreferenceValue) => {
+      if (value === appearancePreferences.textSizePreference) {
+        return;
+      }
+
+      await persistAppearancePreferences({
+        themePreference: appearancePreferences.themePreference,
+        textSizePreference: value,
+        compactModeEnabled: appearancePreferences.compactModeEnabled,
+      });
+    },
+    [appearancePreferences, persistAppearancePreferences],
+  );
+
+  const onToggleCompactMode = useCallback(
+    async (value: boolean) => {
+      if (value === appearancePreferences.compactModeEnabled) {
+        return;
+      }
+
+      await persistAppearancePreferences({
+        themePreference: appearancePreferences.themePreference,
+        textSizePreference: appearancePreferences.textSizePreference,
+        compactModeEnabled: value,
+      });
+    },
+    [appearancePreferences, persistAppearancePreferences],
+  );
+
   const onToggleBiometricLogin = useCallback(
     async (value: boolean) => {
       setIsSavingPreference(true);
@@ -222,7 +403,9 @@ export const useSettingsViewModel = ({
       setBiometricLoginEnabled(value);
       setErrorMessage(null);
       setSuccessMessage(
-        value ? "Biometric login preference updated." : "Biometric login preference disabled.",
+        value
+          ? "Biometric login preference updated."
+          : "Biometric login preference disabled.",
       );
       setIsSavingPreference(false);
     },
@@ -243,7 +426,9 @@ export const useSettingsViewModel = ({
       setTwoFactorAuthEnabled(value);
       setErrorMessage(null);
       setSuccessMessage(
-        value ? "Two-factor auth preference updated." : "Two-factor auth preference disabled.",
+        value
+          ? "Two-factor auth preference updated."
+          : "Two-factor auth preference disabled.",
       );
       setIsSavingPreference(false);
     },
@@ -255,8 +440,8 @@ export const useSettingsViewModel = ({
       setReportBugForm((current) => {
         if (field === "severity") {
           const matchedValue =
-            BUG_SEVERITY_OPTIONS.find((option) => option.value === value)?.value ??
-            current.severity;
+            BUG_SEVERITY_OPTIONS.find((option) => option.value === value)
+              ?.value ?? current.severity;
 
           return {
             ...current,
@@ -391,6 +576,7 @@ export const useSettingsViewModel = ({
     () => ({
       isLoading,
       isSavingPreference,
+      isSavingAppearance,
       isSubmittingBugReport,
       isSubmittingRating,
       isChangingPassword,
@@ -400,6 +586,14 @@ export const useSettingsViewModel = ({
       pageTitle: "Settings",
       sectionTitle: "Support & Preferences",
       settingsRows: SETTINGS_ROWS,
+      appearanceSummaryLabel: buildAppearanceSummaryLabel(appearancePreferences),
+      selectedThemePreference: appearancePreferences.themePreference,
+      selectedTextSizePreference: appearancePreferences.textSizePreference,
+      compactModeEnabled: appearancePreferences.compactModeEnabled,
+      appearanceModalTitle: "Appearance",
+      appearanceModalSubtitle: "Changes are saved automatically.",
+      compactModeTitle: "Compact Mode",
+      compactModeSubtitle: "Reduce spacing for more content",
       helpFaqItems,
       supportContactItems,
       termsDocumentItems,
@@ -415,6 +609,7 @@ export const useSettingsViewModel = ({
       ratingReview,
       changePasswordForm,
       canOpenSecurity: Boolean(activeUserRemoteId),
+      onOpenAppearance,
       onOpenSecurity,
       onOpenHelpFaq,
       onOpenTermsPrivacy,
@@ -424,6 +619,9 @@ export const useSettingsViewModel = ({
       onCloseModal,
       onToggleBiometricLogin,
       onToggleTwoFactorAuth,
+      onSelectThemePreference,
+      onSelectTextSizePreference,
+      onToggleCompactMode,
       onReportBugFieldChange,
       onSubmitBugReport,
       onSelectRating,
@@ -436,6 +634,7 @@ export const useSettingsViewModel = ({
       activeModal,
       activeUserRemoteId,
       appVersionLabel,
+      appearancePreferences,
       biometricLoginEnabled,
       changePasswordForm,
       dataRightItems,
@@ -444,11 +643,13 @@ export const useSettingsViewModel = ({
       helpFaqItems,
       isChangingPassword,
       isLoading,
+      isSavingAppearance,
       isSavingPreference,
       isSubmittingBugReport,
       isSubmittingRating,
       onChangePasswordField,
       onCloseModal,
+      onOpenAppearance,
       onOpenChangePassword,
       onOpenHelpFaq,
       onOpenRateELekha,
@@ -458,10 +659,13 @@ export const useSettingsViewModel = ({
       onRatingReviewChange,
       onReportBugFieldChange,
       onSelectRating,
+      onSelectTextSizePreference,
+      onSelectThemePreference,
       onSubmitBugReport,
       onSubmitPasswordChange,
       onSubmitRating,
       onToggleBiometricLogin,
+      onToggleCompactMode,
       onToggleTwoFactorAuth,
       passwordChangedAt,
       ratingReview,

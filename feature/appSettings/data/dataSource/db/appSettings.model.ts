@@ -10,6 +10,15 @@ export class AppSettingsModel extends Model {
   @field("active_account_remote_id") activeAccountRemoteId!: string | null;
   @field("biometric_login_enabled") biometricLoginEnabled!: boolean;
   @field("two_factor_auth_enabled") twoFactorAuthEnabled!: boolean;
+  @field("appearance_theme_preference") appearanceThemePreference!:
+    | string
+    | null;
+  @field("appearance_text_size_preference") appearanceTextSizePreference!:
+    | string
+    | null;
+  @field("appearance_compact_mode_enabled") appearanceCompactModeEnabled!:
+    | boolean
+    | null;
 
   @readonly
   @date("created_at")

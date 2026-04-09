@@ -27,6 +27,7 @@ export function GetBusinessDetailsScreenFactory({
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
+    onOpenSettings: () => {},
     onLogout,
     onBack,
   });

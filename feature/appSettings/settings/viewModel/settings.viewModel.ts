@@ -1,4 +1,8 @@
 import {
+  AppearanceTextSizePreferenceValue,
+  AppearanceThemePreferenceValue,
+} from "@/feature/appSettings/appearance/types/appearance.types";
+import {
   BugSeverityValue,
   DataRightItem,
   HelpFaqItem,
@@ -23,6 +27,7 @@ export type SettingsChangePasswordForm = {
 export interface SettingsViewModel {
   isLoading: boolean;
   isSavingPreference: boolean;
+  isSavingAppearance: boolean;
   isSubmittingBugReport: boolean;
   isSubmittingRating: boolean;
   isChangingPassword: boolean;
@@ -32,10 +37,24 @@ export interface SettingsViewModel {
   pageTitle: string;
   sectionTitle: string;
   settingsRows: readonly {
-    id: "security" | "helpFaq" | "termsPrivacy" | "rateELekha" | "reportBug";
+    id:
+      | "appearance"
+      | "security"
+      | "helpFaq"
+      | "termsPrivacy"
+      | "rateELekha"
+      | "reportBug";
     title: string;
     subtitle: string;
   }[];
+  appearanceSummaryLabel: string;
+  selectedThemePreference: AppearanceThemePreferenceValue;
+  selectedTextSizePreference: AppearanceTextSizePreferenceValue;
+  compactModeEnabled: boolean;
+  appearanceModalTitle: string;
+  appearanceModalSubtitle: string;
+  compactModeTitle: string;
+  compactModeSubtitle: string;
   helpFaqItems: readonly HelpFaqItem[];
   supportContactItems: readonly SupportContactItem[];
   termsDocumentItems: readonly TermsDocumentItem[];
@@ -52,6 +71,7 @@ export interface SettingsViewModel {
   changePasswordForm: SettingsChangePasswordForm;
   canOpenSecurity: boolean;
   onOpenSecurity: () => void;
+  onOpenAppearance: () => void;
   onOpenHelpFaq: () => void;
   onOpenTermsPrivacy: () => void;
   onOpenRateELekha: () => void;
@@ -60,6 +80,13 @@ export interface SettingsViewModel {
   onCloseModal: () => void;
   onToggleBiometricLogin: (value: boolean) => Promise<void>;
   onToggleTwoFactorAuth: (value: boolean) => Promise<void>;
+  onSelectThemePreference: (
+    value: AppearanceThemePreferenceValue,
+  ) => Promise<void>;
+  onSelectTextSizePreference: (
+    value: AppearanceTextSizePreferenceValue,
+  ) => Promise<void>;
+  onToggleCompactMode: (value: boolean) => Promise<void>;
   onReportBugFieldChange: (
     field: keyof SettingsReportBugForm,
     value: string,

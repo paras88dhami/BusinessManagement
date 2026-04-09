@@ -20,6 +20,7 @@ export type DashboardRouteKey =
   | "notes"
   | "emi-loans"
   | "more"
+  | "settings"
   | "user-management"
   | "personal-transactions"
   | "personal-budget"

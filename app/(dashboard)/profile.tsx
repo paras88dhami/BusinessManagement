@@ -7,6 +7,7 @@ export default function DashboardProfileRoute() {
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
+    onOpenSettings,
     onLogout,
     onBackToHome,
   } = useDashboardProfileRouteHandlers();
@@ -16,6 +17,7 @@ export default function DashboardProfileRoute() {
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
       onNavigateHome={onNavigateHome}
+      onOpenSettings={onOpenSettings}
       onLogout={onLogout}
       onBack={onBackToHome}
     />

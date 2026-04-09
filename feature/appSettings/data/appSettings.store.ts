@@ -4,6 +4,10 @@ import { AppSettingsModel } from "./dataSource/db/appSettings.model";
 const APP_SETTINGS_TABLE = "app_settings";
 const APP_SETTINGS_SINGLETON_ID = "singleton";
 const DEFAULT_LANGUAGE = "en";
+const DEFAULT_THEME_PREFERENCE = "light";
+const DEFAULT_TEXT_SIZE_PREFERENCE = "medium";
+const DEFAULT_COMPACT_MODE_ENABLED = false;
+
 let pendingEnsureAppSettingsRecord: Promise<AppSettingsModel> | null = null;
 
 export type AppSessionState = {
@@ -16,6 +20,38 @@ export type AppSessionState = {
 export type SecurityPreferenceState = {
   biometricLoginEnabled: boolean;
   twoFactorAuthEnabled: boolean;
+};
+
+export type AppAppearanceState = {
+  themePreference: string;
+  textSizePreference: string;
+  compactModeEnabled: boolean;
+  updatedAt: number;
+};
+
+const normalizeStringValue = (
+  value: string | null | undefined,
+  fallbackValue: string,
+): string => {
+  const normalizedValue =
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+  return normalizedValue || fallbackValue;
+};
+
+const normalizeThemePreference = (value: string | null | undefined): string => {
+  return normalizeStringValue(value, DEFAULT_THEME_PREFERENCE);
+};
+
+const normalizeTextSizePreference = (
+  value: string | null | undefined,
+): string => {
+  return normalizeStringValue(value, DEFAULT_TEXT_SIZE_PREFERENCE);
+};
+
+const normalizeCompactModeEnabled = (
+  value: boolean | null | undefined,
+): boolean => {
+  return value === true;
 };
 
 const setCreatedAndUpdatedAt = (record: AppSettingsModel, now: number) => {
@@ -55,8 +91,19 @@ const copySettingsValues = (
   target.onboardingCompleted = source.onboardingCompleted;
   target.activeUserRemoteId = source.activeUserRemoteId;
   target.activeAccountRemoteId = source.activeAccountRemoteId;
+
   target.biometricLoginEnabled = Boolean(source.biometricLoginEnabled);
   target.twoFactorAuthEnabled = Boolean(source.twoFactorAuthEnabled);
+
+  target.appearanceThemePreference = normalizeThemePreference(
+    source.appearanceThemePreference,
+  );
+  target.appearanceTextSizePreference = normalizeTextSizePreference(
+    source.appearanceTextSizePreference,
+  );
+  target.appearanceCompactModeEnabled = normalizeCompactModeEnabled(
+    source.appearanceCompactModeEnabled,
+  );
 };
 
 const createSingletonRecord = async (
@@ -79,8 +126,13 @@ const createSingletonRecord = async (
         record.onboardingCompleted = false;
         record.activeUserRemoteId = null;
         record.activeAccountRemoteId = null;
+
         record.biometricLoginEnabled = false;
         record.twoFactorAuthEnabled = false;
+
+        record.appearanceThemePreference = DEFAULT_THEME_PREFERENCE;
+        record.appearanceTextSizePreference = DEFAULT_TEXT_SIZE_PREFERENCE;
+        record.appearanceCompactModeEnabled = DEFAULT_COMPACT_MODE_ENABLED;
       }
 
       setCreatedAndUpdatedAt(record, now);
@@ -125,8 +177,9 @@ const ensureAppSettingsRecord = async (
     const collection = database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
     const existingSettings = await collection.query().fetch();
     const singletonRecord =
-      existingSettings.find((record) => record.id === APP_SETTINGS_SINGLETON_ID) ??
-      null;
+      existingSettings.find(
+        (record) => record.id === APP_SETTINGS_SINGLETON_ID,
+      ) ?? null;
 
     if (singletonRecord) {
       await removeDuplicateRecords(database, singletonRecord, existingSettings);
@@ -196,6 +249,80 @@ export const setSelectedLanguage = async (
       setUpdatedAt(record, Date.now());
     });
   });
+};
+
+export const getAppearanceSettingsState = async (
+  database: Database,
+): Promise<AppAppearanceState> => {
+  const settings = await ensureAppSettingsRecord(database);
+
+  return {
+    themePreference: normalizeThemePreference(
+      settings.appearanceThemePreference,
+    ),
+    textSizePreference: normalizeTextSizePreference(
+      settings.appearanceTextSizePreference,
+    ),
+    compactModeEnabled: normalizeCompactModeEnabled(
+      settings.appearanceCompactModeEnabled,
+    ),
+    updatedAt: settings.updatedAt.getTime(),
+  };
+};
+
+export const setAppearanceSettingsState = async (
+  database: Database,
+  params: {
+    themePreference: string;
+    textSizePreference: string;
+    compactModeEnabled: boolean;
+  },
+): Promise<AppAppearanceState> => {
+  const normalizedThemePreference = normalizeThemePreference(
+    params.themePreference,
+  );
+  const normalizedTextSizePreference = normalizeTextSizePreference(
+    params.textSizePreference,
+  );
+  const normalizedCompactModeEnabled = normalizeCompactModeEnabled(
+    params.compactModeEnabled,
+  );
+
+  const settings = await ensureAppSettingsRecord(database);
+
+  const currentThemePreference = normalizeThemePreference(
+    settings.appearanceThemePreference,
+  );
+  const currentTextSizePreference = normalizeTextSizePreference(
+    settings.appearanceTextSizePreference,
+  );
+  const currentCompactModeEnabled = normalizeCompactModeEnabled(
+    settings.appearanceCompactModeEnabled,
+  );
+
+  if (
+    currentThemePreference === normalizedThemePreference &&
+    currentTextSizePreference === normalizedTextSizePreference &&
+    currentCompactModeEnabled === normalizedCompactModeEnabled
+  ) {
+    return {
+      themePreference: currentThemePreference,
+      textSizePreference: currentTextSizePreference,
+      compactModeEnabled: currentCompactModeEnabled,
+      updatedAt: settings.updatedAt.getTime(),
+    };
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      record.appearanceThemePreference = normalizedThemePreference;
+      record.appearanceTextSizePreference = normalizedTextSizePreference;
+      record.appearanceCompactModeEnabled = normalizedCompactModeEnabled;
+      setUpdatedAt(record, Date.now());
+    });
+  });
+
+  return getAppearanceSettingsState(database);
 };
 
 export const setBiometricLoginEnabled = async (

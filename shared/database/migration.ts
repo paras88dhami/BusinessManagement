@@ -676,7 +676,7 @@ export const migrations = schemaMigrations({
       ],
     },
      {
-      toVersion: 25,
+      toVersion: 28,
       steps: [
         addColumns({
           table: "app_settings",
