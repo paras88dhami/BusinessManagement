@@ -25,6 +25,12 @@ const createLedgerEntryRemoteId = (): string => {
   return `pos-ledger-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 };
 
+const getTodayStartTimestamp = (): number => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
+
 export const createCompletePosCheckoutUseCase = ({
   completePaymentUseCase,
   addLedgerEntryUseCase,
@@ -79,7 +85,11 @@ export const createCompletePosCheckoutUseCase = ({
       currencyCode,
       note: `Unpaid balance from POS receipt ${receipt.receiptNumber}.`,
       happenedAt: Date.now(),
-      dueAt: null,
+      dueAt: getTodayStartTimestamp(),
+      paymentMode: null,
+      referenceNumber: receipt.receiptNumber,
+      reminderAt: null,
+      attachmentUri: null,
       settlementAccountRemoteId: params.activeSettlementAccountRemoteId,
       settlementAccountDisplayNameSnapshot: null,
     });

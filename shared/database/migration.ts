@@ -730,5 +730,19 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 30,
+      steps: [
+        addColumns({
+          table: "ledger_entries",
+          columns: [
+            { name: "payment_mode", type: "string", isOptional: true },
+            { name: "reference_number", type: "string", isOptional: true },
+            { name: "reminder_at", type: "number", isOptional: true },
+            { name: "attachment_uri", type: "string", isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });

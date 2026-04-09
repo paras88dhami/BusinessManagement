@@ -41,7 +41,7 @@ export function LedgerPartyDetailModal({
                 {viewModel.state?.partyName ?? "Party Detail"}
               </Text>
               <Text style={styles.modalSubtitle}>
-                {viewModel.state?.partyPhone ?? "Business ledger history"}
+                {viewModel.state?.partyPhone ?? "Ledger history"}
               </Text>
             </View>
 
@@ -100,14 +100,14 @@ export function LedgerPartyDetailModal({
 
               <View style={styles.quickActionRow}>
                 <AppButton
-                  label="Collect"
+                  label="Receive Money"
                   variant="primary"
                   size="md"
                   style={styles.quickActionButton}
                   onPress={viewModel.onQuickCollect}
                 />
                 <AppButton
-                  label="Pay Out"
+                  label="Pay Money"
                   variant="secondary"
                   size="md"
                   style={styles.quickActionButton}

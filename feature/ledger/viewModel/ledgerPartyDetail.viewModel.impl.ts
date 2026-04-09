@@ -11,7 +11,6 @@ type UseLedgerPartyDetailViewModelParams = {
   onOpenDelete: (remoteId: string) => void;
   onOpenCreateForParty: (
     partyName: string,
-    partyPhone: string | null,
     entryType: typeof LedgerEntryType.Collection | typeof LedgerEntryType.PaymentOut,
   ) => void;
 };
@@ -80,7 +79,6 @@ export const useLedgerPartyDetailViewModel = ({
     setVisible(false);
     onOpenCreateForParty(
       state.partyName,
-      state.partyPhone,
       LedgerEntryType.Collection,
     );
   }, [onOpenCreateForParty, state]);
@@ -93,7 +91,6 @@ export const useLedgerPartyDetailViewModel = ({
     setVisible(false);
     onOpenCreateForParty(
       state.partyName,
-      state.partyPhone,
       LedgerEntryType.PaymentOut,
     );
   }, [onOpenCreateForParty, state]);

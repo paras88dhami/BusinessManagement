@@ -177,7 +177,7 @@ export const useLedgerListViewModel = ({
       return {
         id: partyBalance.id,
         partyName: partyBalance.partyName,
-        subtitle: subtitleParts.join(" • "),
+        subtitle: subtitleParts.join(" | "),
         amountLabel: formatCurrency(
           partyBalance.balanceAmount,
           partyBalance.currencyCode,
@@ -201,7 +201,7 @@ export const useLedgerListViewModel = ({
       return "No overdue balance right now.";
     }
 
-    return "No ledger party yet. Add your first sale, purchase, or collection.";
+    return "No ledger party yet. Add your first sale due, purchase due, or receive money entry.";
   }, [searchQuery, selectedFilter]);
 
   const handleOpenPartyDetail = useCallback(
@@ -246,3 +246,4 @@ export const useLedgerListViewModel = ({
     ],
   );
 };
+

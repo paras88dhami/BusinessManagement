@@ -21,6 +21,18 @@ export const LedgerBalanceDirection = {
 export type LedgerBalanceDirectionValue =
   (typeof LedgerBalanceDirection)[keyof typeof LedgerBalanceDirection];
 
+export const LedgerPaymentMode = {
+  Cash: "cash",
+  BankTransfer: "bank_transfer",
+  MobileWallet: "mobile_wallet",
+  Card: "card",
+  Cheque: "cheque",
+  Other: "other",
+} as const;
+
+export type LedgerPaymentModeValue =
+  (typeof LedgerPaymentMode)[keyof typeof LedgerPaymentMode];
+
 export const LedgerEntrySyncStatus = {
   PendingCreate: "pending_create",
   PendingUpdate: "pending_update",
@@ -46,6 +58,10 @@ export type LedgerEntry = {
   note: string | null;
   happenedAt: number;
   dueAt: number | null;
+  paymentMode: LedgerPaymentModeValue | null;
+  referenceNumber: string | null;
+  reminderAt: number | null;
+  attachmentUri: string | null;
   settlementAccountRemoteId: string | null;
   settlementAccountDisplayNameSnapshot: string | null;
   createdAt: number;
@@ -66,6 +82,10 @@ export type SaveLedgerEntryPayload = {
   note: string | null;
   happenedAt: number;
   dueAt: number | null;
+  paymentMode: LedgerPaymentModeValue | null;
+  referenceNumber: string | null;
+  reminderAt: number | null;
+  attachmentUri: string | null;
   settlementAccountRemoteId: string | null;
   settlementAccountDisplayNameSnapshot: string | null;
 };

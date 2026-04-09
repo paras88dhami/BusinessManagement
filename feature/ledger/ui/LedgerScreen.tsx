@@ -78,7 +78,7 @@ export function LedgerScreen({
         footer={
           <BottomTabAwareFooter>
             <AppButton
-              label="Add Ledger Entry"
+              label="Quick Ledger Entry"
               variant="primary"
               size="lg"
               style={styles.primaryActionButton}
@@ -144,7 +144,7 @@ export function LedgerScreen({
         <SearchInputRow
           value={listViewModel.searchQuery}
           onChangeText={listViewModel.onChangeSearchQuery}
-          placeholder="Search party name or phone"
+          placeholder="Search party name"
           inputStyle={styles.searchInput}
         />
 

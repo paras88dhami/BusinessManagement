@@ -181,7 +181,6 @@ export function GetLedgerScreenFactory({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     activeBusinessAccountRemoteId,
     activeBusinessCurrencyCode: resolvedBusinessCurrencyCode,
-    accounts,
     getLedgerEntryByRemoteIdUseCase,
     addLedgerEntryUseCase,
     updateLedgerEntryUseCase,

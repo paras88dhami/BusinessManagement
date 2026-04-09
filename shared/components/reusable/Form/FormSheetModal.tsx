@@ -69,7 +69,7 @@ export function FormSheetModal({
         />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
           style={[
             isDialogPresentation ? styles.dialogKeyboardWrap : null,
@@ -106,6 +106,7 @@ export function FormSheetModal({
                 <ScrollView
                   style={styles.scroll}
                   showsVerticalScrollIndicator={false}
+                  automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
                   contentContainerStyle={[

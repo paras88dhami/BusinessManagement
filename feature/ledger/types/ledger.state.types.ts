@@ -1,4 +1,8 @@
-import { LedgerBalanceDirectionValue, LedgerEntryTypeValue } from "./ledger.entity.types";
+import {
+  LedgerBalanceDirectionValue,
+  LedgerEntryTypeValue,
+  LedgerPaymentModeValue,
+} from "./ledger.entity.types";
 
 export const LedgerListFilter = {
   All: "all",
@@ -49,20 +53,34 @@ export type LedgerPartyDetailState = {
 
 export type LedgerEditorMode = "create" | "edit";
 
+export type LedgerEditorFieldName =
+  | "partyName"
+  | "amount"
+  | "happenedAt"
+  | "dueAt"
+  | "paymentMode"
+  | "reminderAt";
+
+export type LedgerEditorFieldErrors = Partial<
+  Record<LedgerEditorFieldName, string>
+>;
+
 export type LedgerEditorFormState = {
   visible: boolean;
   mode: LedgerEditorMode;
   editingRemoteId: string | null;
-  partyName: string;
-  partyPhone: string;
   entryType: LedgerEntryTypeValue;
-  balanceDirection: LedgerBalanceDirectionValue;
-  title: string;
+  partyName: string;
   amount: string;
-  note: string;
   happenedAt: string;
   dueAt: string;
-  settlementAccountRemoteId: string;
+  paymentMode: LedgerPaymentModeValue | "";
+  referenceNumber: string;
+  note: string;
+  reminderAt: string;
+  attachmentUri: string;
+  showMoreDetails: boolean;
+  fieldErrors: LedgerEditorFieldErrors;
   isSaving: boolean;
   errorMessage: string | null;
 };
@@ -78,7 +96,7 @@ export type LedgerEntryTypeOptionState = {
   label: string;
 };
 
-export type LedgerDirectionOptionState = {
-  value: LedgerBalanceDirectionValue;
+export type LedgerPaymentModeOptionState = {
+  value: LedgerPaymentModeValue;
   label: string;
 };

@@ -125,13 +125,13 @@ export const getLedgerEntryTypeLabel = (
 ): string => {
   switch (entryType) {
     case LedgerEntryType.Sale:
-      return "Sale";
+      return "Sale Due";
     case LedgerEntryType.Purchase:
-      return "Purchase";
+      return "Purchase Due";
     case LedgerEntryType.Collection:
-      return "Collection";
+      return "Receive Money";
     case LedgerEntryType.PaymentOut:
-      return "Payment Out";
+      return "Pay Money";
     case LedgerEntryType.Refund:
       return "Refund";
     case LedgerEntryType.Advance:
@@ -141,6 +141,36 @@ export const getLedgerEntryTypeLabel = (
     default:
       return "Entry";
   }
+};
+
+export const getLedgerPartyLabel = (
+  entryType: LedgerEntryTypeValue,
+): "Customer" | "Supplier" | "Party" => {
+  if (entryType === LedgerEntryType.Sale || entryType === LedgerEntryType.Collection) {
+    return "Customer";
+  }
+
+  if (
+    entryType === LedgerEntryType.Purchase ||
+    entryType === LedgerEntryType.PaymentOut
+  ) {
+    return "Supplier";
+  }
+
+  return "Party";
+};
+
+export const requiresDueDate = (entryType: LedgerEntryTypeValue): boolean => {
+  return entryType === LedgerEntryType.Sale || entryType === LedgerEntryType.Purchase;
+};
+
+export const requiresPaymentMode = (
+  entryType: LedgerEntryTypeValue,
+): boolean => {
+  return (
+    entryType === LedgerEntryType.Collection ||
+    entryType === LedgerEntryType.PaymentOut
+  );
 };
 
 export const resolveDefaultDirectionForEntryType = (
@@ -312,9 +342,12 @@ export const buildLedgerPartyDetailState = (
     .sort((left, right) => right.happenedAt - left.happenedAt)
     .map((entry) => ({
       id: entry.remoteId,
-      title: entry.title,
-      subtitle: `${formatDateLabel(entry.happenedAt)} • ${getLedgerEntryTypeLabel(entry.entryType)}${
-        entry.note ? ` • ${entry.note}` : ""
+      title:
+        entry.title.trim().length > 0
+          ? entry.title
+          : getLedgerEntryTypeLabel(entry.entryType),
+      subtitle: `${formatDateLabel(entry.happenedAt)} | ${getLedgerEntryTypeLabel(entry.entryType)}${
+        entry.note ? ` | ${entry.note}` : ""
       }`,
       amountLabel: formatCurrency(entry.amount, entry.currencyCode),
       tone: entry.balanceDirection,

@@ -2,6 +2,7 @@ import { Model } from "@nozbe/watermelondb";
 import { date, field, readonly } from "@nozbe/watermelondb/decorators";
 import {
   LedgerBalanceDirectionValue,
+  LedgerPaymentModeValue,
   LedgerEntrySyncStatusValue,
   LedgerEntryTypeValue,
 } from "@/feature/ledger/types/ledger.entity.types";
@@ -22,6 +23,10 @@ export class LedgerEntryModel extends Model {
   @field("note") note!: string | null;
   @field("happened_at") happenedAt!: number;
   @field("due_at") dueAt!: number | null;
+  @field("payment_mode") paymentMode!: LedgerPaymentModeValue | null;
+  @field("reference_number") referenceNumber!: string | null;
+  @field("reminder_at") reminderAt!: number | null;
+  @field("attachment_uri") attachmentUri!: string | null;
   @field("settlement_account_remote_id") settlementAccountRemoteId!: string | null;
   @field("settlement_account_display_name_snapshot")
   settlementAccountDisplayNameSnapshot!: string | null;

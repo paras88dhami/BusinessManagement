@@ -1,36 +1,35 @@
 import {
-  LedgerBalanceDirectionValue,
   LedgerEntryTypeValue,
+  LedgerPaymentModeValue,
 } from "@/feature/ledger/types/ledger.entity.types";
 import {
-  LedgerAccountOptionState,
-  LedgerDirectionOptionState,
   LedgerEditorFormState,
   LedgerEntryTypeOptionState,
+  LedgerPaymentModeOptionState,
 } from "@/feature/ledger/types/ledger.state.types";
 
 export interface LedgerEditorViewModel {
   state: LedgerEditorFormState;
-  accountOptions: readonly LedgerAccountOptionState[];
   availableEntryTypes: readonly LedgerEntryTypeOptionState[];
-  availableDirections: readonly LedgerDirectionOptionState[];
+  availablePaymentModes: readonly LedgerPaymentModeOptionState[];
   openCreate: (entryType: LedgerEntryTypeValue) => void;
   openCreateForParty: (
     partyName: string,
-    partyPhone: string | null,
     entryType: LedgerEntryTypeValue,
   ) => void;
   openEdit: (remoteId: string) => Promise<void>;
   close: () => void;
   onChangeEntryType: (entryType: LedgerEntryTypeValue) => void;
-  onChangeBalanceDirection: (direction: LedgerBalanceDirectionValue) => void;
   onChangePartyName: (value: string) => void;
-  onChangePartyPhone: (value: string) => void;
-  onChangeTitle: (value: string) => void;
   onChangeAmount: (value: string) => void;
-  onChangeNote: (value: string) => void;
   onChangeHappenedAt: (value: string) => void;
   onChangeDueAt: (value: string) => void;
-  onChangeSettlementAccountRemoteId: (value: string) => void;
+  onChangePaymentMode: (value: LedgerPaymentModeValue | "") => void;
+  onChangeReferenceNumber: (value: string) => void;
+  onChangeNote: (value: string) => void;
+  onChangeReminderAt: (value: string) => void;
+  onToggleMoreDetails: () => void;
+  pickAttachment: () => Promise<void>;
+  clearAttachment: () => void;
   submit: () => Promise<void>;
 }

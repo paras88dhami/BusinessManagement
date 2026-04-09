@@ -121,6 +121,10 @@ export const createPayEmiInstallmentUseCase = (
         note: plan.note,
         happenedAt: paidAt,
         dueAt: null,
+        paymentMode: null,
+        referenceNumber: null,
+        reminderAt: null,
+        attachmentUri: null,
         settlementAccountRemoteId: plan.linkedAccountRemoteId,
         settlementAccountDisplayNameSnapshot: plan.linkedAccountDisplayNameSnapshot,
       });

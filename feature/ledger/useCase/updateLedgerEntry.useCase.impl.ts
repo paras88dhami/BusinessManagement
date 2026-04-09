@@ -1,5 +1,9 @@
 import { LedgerRepository } from "@/feature/ledger/data/repository/ledger.repository";
-import { LedgerEntryResult, SaveLedgerEntryPayload } from "@/feature/ledger/types/ledger.entity.types";
+import {
+  LedgerEntryResult,
+  LedgerEntryType,
+  SaveLedgerEntryPayload,
+} from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerValidationError } from "@/feature/ledger/types/ledger.error.types";
 import { UpdateLedgerEntryUseCase } from "./updateLedgerEntry.useCase";
 
@@ -46,6 +50,27 @@ export const createUpdateLedgerEntryUseCase = (
       return {
         success: false,
         error: LedgerValidationError("Amount must be greater than zero."),
+      };
+    }
+
+    const requiresDueDate =
+      payload.entryType === LedgerEntryType.Sale ||
+      payload.entryType === LedgerEntryType.Purchase;
+    const requiresPaymentMode =
+      payload.entryType === LedgerEntryType.Collection ||
+      payload.entryType === LedgerEntryType.PaymentOut;
+
+    if (requiresDueDate && payload.dueAt === null) {
+      return {
+        success: false,
+        error: LedgerValidationError("Due date is required for due entries."),
+      };
+    }
+
+    if (requiresPaymentMode && !payload.paymentMode) {
+      return {
+        success: false,
+        error: LedgerValidationError("Payment mode is required for payment entries."),
       };
     }
 
