@@ -21,6 +21,7 @@ import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
+import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
 
@@ -30,6 +31,7 @@ type Props = {
   activeAccountDisplayName: string;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
   canManage: boolean;
 };
 
@@ -39,6 +41,7 @@ export function GetOrdersScreenFactory({
   activeAccountDisplayName,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
   canManage,
 }: Props) {
   const orderDatasource = React.useMemo(
@@ -120,6 +123,10 @@ export function GetOrdersScreenFactory({
     () => createAddTransactionUseCase(transactionRepository),
     [transactionRepository],
   );
+  const getTransactionsUseCase = React.useMemo(
+    () => createGetTransactionsUseCase(transactionRepository),
+    [transactionRepository],
+  );
   const recordOrderPaymentUseCase = React.useMemo(
     () => createRecordOrderPaymentUseCase({
       orderRepository,
@@ -141,6 +148,7 @@ export function GetOrdersScreenFactory({
     accountDisplayNameSnapshot: activeAccountDisplayName,
     accountCurrencyCode: activeAccountCurrencyCode,
     accountCountryCode: activeAccountCountryCode,
+    accountDefaultTaxRatePercent: activeAccountDefaultTaxRatePercent,
     canManage,
     getOrdersUseCase,
     getOrderByIdUseCase,
@@ -154,6 +162,7 @@ export function GetOrdersScreenFactory({
     refundOrderUseCase,
     getContactsUseCase,
     getProductsUseCase,
+    getTransactionsUseCase,
   });
 
   return <OrdersScreen viewModel={viewModel} />;

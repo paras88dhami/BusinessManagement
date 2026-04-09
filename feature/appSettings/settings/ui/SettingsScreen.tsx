@@ -7,34 +7,46 @@ import {
   Bug,
   ChevronRight,
   CircleHelp,
+  Download,
+  Landmark,
   LockKeyhole,
   Palette,
   ShieldCheck,
   Star,
+  Upload,
 } from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { SettingsViewModel } from "../viewModel/settings.viewModel";
+import { SettingsRowId, SettingsViewModel } from "../viewModel/settings.viewModel";
 import { SettingsModal } from "../types/settings.types";
 import { ChangePasswordModal } from "./components/ChangePasswordModal";
 import { HelpFaqModal } from "./components/HelpFaqModal";
 import { RateELekhaModal } from "./components/RateELekhaModal";
 import { ReportBugModal } from "./components/ReportBugModal";
+import { RegionalFinanceModal } from "./components/RegionalFinanceModal";
 import { SecurityModal } from "./components/SecurityModal";
 import { TermsPrivacyModal } from "./components/TermsPrivacyModal";
 import { AppearanceModal } from "@/feature/appSettings/appearance/ui/components/AppearanceModal";
+import { ExportDataModal } from "./components/ExportDataModal";
+import { ImportDataModal } from "./components/ImportDataModal";
 
 type SettingsScreenProps = {
   viewModel: SettingsViewModel;
   onBack: () => void;
 };
 
-const getIcon = (id: SettingsViewModel["settingsRows"][number]["id"]) => {
+const getIcon = (id: SettingsRowId) => {
   switch (id) {
     case "appearance":
       return <Palette size={18} color={colors.primary} />;
     case "security":
       return <LockKeyhole size={18} color={colors.primary} />;
+    case "regionalFinance":
+      return <Landmark size={18} color={colors.primary} />;
+    case "exportData":
+      return <Download size={18} color={colors.primary} />;
+    case "importData":
+      return <Upload size={18} color={colors.primary} />;
     case "helpFaq":
       return <CircleHelp size={18} color={colors.primary} />;
     case "termsPrivacy":
@@ -49,15 +61,22 @@ const getIcon = (id: SettingsViewModel["settingsRows"][number]["id"]) => {
 };
 
 export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
-  const onRowPress = (
-    id: SettingsViewModel["settingsRows"][number]["id"],
-  ): void => {
+  const onRowPress = (id: SettingsRowId): void => {
     switch (id) {
       case "appearance":
         viewModel.onOpenAppearance();
         return;
       case "security":
         viewModel.onOpenSecurity();
+        return;
+      case "regionalFinance":
+        viewModel.onOpenRegionalFinance();
+        return;
+      case "exportData":
+        viewModel.onOpenExportData();
+        return;
+      case "importData":
+        viewModel.onOpenImportData();
         return;
       case "helpFaq":
         viewModel.onOpenHelpFaq();
@@ -91,36 +110,43 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
         contentContainerStyle={styles.content}
         baseBottomPadding={spacing.xxl}
       >
-        <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle}>{viewModel.sectionTitle}</Text>
+        {viewModel.settingsSections.map((section) => (
+          <View key={section.id} style={styles.sectionWrap}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
 
-          <Card style={styles.listCard}>
-            {viewModel.settingsRows.map((row, index) => {
-              const isLast = index === viewModel.settingsRows.length - 1;
+            <Card style={styles.listCard}>
+              {section.rows.map((row, index) => {
+                const isLast = index === section.rows.length - 1;
 
-              return (
-                <Pressable
-                  key={row.id}
-                  style={[styles.row, !isLast ? styles.rowBorder : null]}
-                  onPress={() => onRowPress(row.id)}
-                  accessibilityRole="button"
-                >
-                  <View style={styles.iconWrap}>{getIcon(row.id)}</View>
-                  <View style={styles.rowTextWrap}>
-                    <Text style={styles.rowTitle}>{row.title}</Text>
-                    <Text style={styles.rowSubtitle}>{row.subtitle}</Text>
-                    {row.id === "appearance" ? (
-                      <Text style={styles.rowValue}>
-                        {viewModel.appearanceSummaryLabel}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <ChevronRight size={16} color={colors.mutedForeground} />
-                </Pressable>
-              );
-            })}
-          </Card>
-        </View>
+                return (
+                  <Pressable
+                    key={row.id}
+                    style={[styles.row, !isLast ? styles.rowBorder : null]}
+                    onPress={() => onRowPress(row.id)}
+                    accessibilityRole="button"
+                  >
+                    <View style={styles.iconWrap}>{getIcon(row.id)}</View>
+                    <View style={styles.rowTextWrap}>
+                      <Text style={styles.rowTitle}>{row.title}</Text>
+                      <Text style={styles.rowSubtitle}>{row.subtitle}</Text>
+                      {row.id === "appearance" ? (
+                        <Text style={styles.rowValue}>
+                          {viewModel.appearanceSummaryLabel}
+                        </Text>
+                      ) : null}
+                      {row.id === "regionalFinance" ? (
+                        <Text style={styles.rowValue}>
+                          {viewModel.regionalFinanceSummaryLabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <ChevronRight size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                );
+              })}
+            </Card>
+          </View>
+        ))}
 
         {viewModel.isLoading ? (
           <View style={styles.feedbackRow}>
@@ -153,6 +179,46 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
         onSelectThemePreference={viewModel.onSelectThemePreference}
         onSelectTextSizePreference={viewModel.onSelectTextSizePreference}
         onToggleCompactMode={viewModel.onToggleCompactMode}
+      />
+
+      <RegionalFinanceModal
+        visible={viewModel.activeModal === SettingsModal.RegionalFinance}
+        isSaving={viewModel.isSavingRegionalFinance}
+        title={viewModel.regionalFinanceModalTitle}
+        subtitle={viewModel.regionalFinanceModalSubtitle}
+        errorMessage={viewModel.errorMessage}
+        settings={viewModel.regionalFinanceSettings}
+        countryOptions={viewModel.regionalFinanceCountryOptions}
+        currencyOptions={viewModel.regionalFinanceCurrencyOptions}
+        taxRateOptions={viewModel.regionalFinanceTaxRateOptions}
+        taxModeOptions={viewModel.regionalFinanceTaxModeOptions}
+        onClose={viewModel.onCloseModal}
+        onChangeCountry={viewModel.onChangeRegionalFinanceCountry}
+        onChangeCurrency={viewModel.onChangeRegionalFinanceCurrency}
+        onChangeTaxRate={viewModel.onChangeRegionalFinanceTaxRate}
+        onChangeTaxMode={viewModel.onChangeRegionalFinanceTaxMode}
+        onSave={viewModel.onSaveRegionalFinance}
+      />
+
+      <ExportDataModal
+        visible={viewModel.activeModal === SettingsModal.ExportData}
+        format={viewModel.exportDataFormat}
+        moduleSelections={viewModel.exportDataModuleSelections}
+        isExporting={viewModel.isExportingData}
+        errorMessage={viewModel.errorMessage}
+        onClose={viewModel.onCloseModal}
+        onChangeFormat={viewModel.onChangeExportDataFormat}
+        onToggleModule={viewModel.onToggleExportDataModule}
+        onSubmit={viewModel.onSubmitExportData}
+      />
+
+      <ImportDataModal
+        visible={viewModel.activeModal === SettingsModal.ImportData}
+        moduleOptions={viewModel.importDataModuleOptions}
+        isImporting={viewModel.isImportingData}
+        errorMessage={viewModel.errorMessage}
+        onClose={viewModel.onCloseModal}
+        onImportModule={viewModel.onImportDataModule}
       />
 
       <SecurityModal

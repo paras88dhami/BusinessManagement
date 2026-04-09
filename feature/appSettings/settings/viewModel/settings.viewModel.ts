@@ -6,11 +6,16 @@ import {
   BugSeverityValue,
   DataRightItem,
   HelpFaqItem,
+  SettingsDataTransferFormatValue,
+  SettingsDataTransferModuleOption,
+  SettingsDataTransferModuleValue,
+  RegionalFinanceSettings,
   SecuritySessionItem,
   SettingsModalValue,
   SupportContactItem,
   TermsDocumentItem,
 } from "@/feature/appSettings/settings/types/settings.types";
+import { RegionalFinanceOption } from "@/shared/types/regionalFinance.types";
 
 export type SettingsReportBugForm = {
   title: string;
@@ -24,6 +29,29 @@ export type SettingsChangePasswordForm = {
   confirmPassword: string;
 };
 
+export type SettingsRowId =
+  | "appearance"
+  | "regionalFinance"
+  | "exportData"
+  | "importData"
+  | "security"
+  | "helpFaq"
+  | "termsPrivacy"
+  | "rateELekha"
+  | "reportBug";
+
+export type SettingsRow = {
+  id: SettingsRowId;
+  title: string;
+  subtitle: string;
+};
+
+export type SettingsSection = {
+  id: "preferences" | "dataTools" | "security" | "support";
+  title: string;
+  rows: readonly SettingsRow[];
+};
+
 export interface SettingsViewModel {
   isLoading: boolean;
   isSavingPreference: boolean;
@@ -35,22 +63,29 @@ export interface SettingsViewModel {
   errorMessage: string | null;
   successMessage: string | null;
   pageTitle: string;
-  sectionTitle: string;
-  settingsRows: readonly {
-    id:
-      | "appearance"
-      | "security"
-      | "helpFaq"
-      | "termsPrivacy"
-      | "rateELekha"
-      | "reportBug";
-    title: string;
-    subtitle: string;
-  }[];
+  settingsSections: readonly SettingsSection[];
   appearanceSummaryLabel: string;
+  regionalFinanceSummaryLabel: string;
   selectedThemePreference: AppearanceThemePreferenceValue;
   selectedTextSizePreference: AppearanceTextSizePreferenceValue;
   compactModeEnabled: boolean;
+  exportDataFormat: SettingsDataTransferFormatValue;
+  exportDataModuleSelections: readonly {
+    id: SettingsDataTransferModuleValue;
+    label: string;
+    selected: boolean;
+  }[];
+  importDataModuleOptions: readonly SettingsDataTransferModuleOption[];
+  isExportingData: boolean;
+  isImportingData: boolean;
+  isSavingRegionalFinance: boolean;
+  regionalFinanceModalTitle: string;
+  regionalFinanceModalSubtitle: string;
+  regionalFinanceSettings: RegionalFinanceSettings;
+  regionalFinanceCountryOptions: readonly RegionalFinanceOption[];
+  regionalFinanceCurrencyOptions: readonly RegionalFinanceOption[];
+  regionalFinanceTaxRateOptions: readonly RegionalFinanceOption[];
+  regionalFinanceTaxModeOptions: readonly RegionalFinanceOption[];
   appearanceModalTitle: string;
   appearanceModalSubtitle: string;
   compactModeTitle: string;
@@ -71,6 +106,9 @@ export interface SettingsViewModel {
   changePasswordForm: SettingsChangePasswordForm;
   canOpenSecurity: boolean;
   onOpenSecurity: () => void;
+  onOpenRegionalFinance: () => void;
+  onOpenExportData: () => void;
+  onOpenImportData: () => void;
   onOpenAppearance: () => void;
   onOpenHelpFaq: () => void;
   onOpenTermsPrivacy: () => void;
@@ -87,6 +125,15 @@ export interface SettingsViewModel {
     value: AppearanceTextSizePreferenceValue,
   ) => Promise<void>;
   onToggleCompactMode: (value: boolean) => Promise<void>;
+  onChangeRegionalFinanceCountry: (value: string) => void;
+  onChangeRegionalFinanceCurrency: (value: string) => void;
+  onChangeRegionalFinanceTaxRate: (value: string) => void;
+  onChangeRegionalFinanceTaxMode: (value: string) => void;
+  onSaveRegionalFinance: () => Promise<void>;
+  onChangeExportDataFormat: (value: SettingsDataTransferFormatValue) => void;
+  onToggleExportDataModule: (id: SettingsDataTransferModuleValue) => void;
+  onSubmitExportData: () => Promise<void>;
+  onImportDataModule: (id: SettingsDataTransferModuleValue) => Promise<void>;
   onReportBugFieldChange: (
     field: keyof SettingsReportBugForm,
     value: string,

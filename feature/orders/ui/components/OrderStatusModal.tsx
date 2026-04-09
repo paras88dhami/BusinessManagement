@@ -1,11 +1,11 @@
 import { OrderStatusValue } from "@/feature/orders/types/order.types";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { colors } from "@/shared/components/theme/colors";
-import { spacing } from "@/shared/components/theme/spacing";
+import { radius, spacing } from "@/shared/components/theme/spacing";
+import { CheckCircle2 } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   visible: boolean;
@@ -27,26 +27,42 @@ export function OrderStatusModal({
   return (
     <FormSheetModal
       visible={visible}
-      title="Change Order Status"
-      subtitle="Apply the selected order status"
+      title="Change Status"
       onClose={onClose}
       presentation="dialog"
       contentContainerStyle={styles.content}
+      scrollEnabled={false}
     >
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Status</Text>
-        <Dropdown
-          value={value}
-          options={options}
-          onChange={(nextValue) => onChange(nextValue as OrderStatusValue)}
-          placeholder="Select status"
-          modalTitle="Select order status"
-          showLeadingIcon={false}
-        />
-      </View>
-      <View style={styles.actionRow}>
-        <AppButton label="Cancel" variant="secondary" style={styles.actionButton} onPress={onClose} />
-        <AppButton label="Save Status" style={styles.actionButton} onPress={() => void onSubmit()} />
+      <View style={styles.optionList}>
+        {options.map((option) => {
+          const isSelected = option.value === value;
+
+          return (
+            <Pressable
+              key={option.value}
+              style={[styles.optionRow, isSelected ? styles.optionRowSelected : null]}
+              onPress={() => {
+                onChange(option.value as OrderStatusValue);
+                if (!isSelected) {
+                  void onSubmit();
+                }
+              }}
+              accessibilityRole="button"
+            >
+              <Text
+                style={[
+                  styles.optionLabel,
+                  isSelected ? styles.optionLabelSelected : null,
+                ]}
+              >
+                {option.label}
+              </Text>
+              {isSelected ? (
+                <CheckCircle2 size={16} color={colors.primaryForeground} />
+              ) : null}
+            </Pressable>
+          );
+        })}
       </View>
     </FormSheetModal>
   );
@@ -56,21 +72,32 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
   },
-  fieldWrap: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  actionRow: {
-    flexDirection: "row",
+  optionList: {
     gap: spacing.sm,
   },
-  actionButton: {
-    flex: 1,
+  optionRow: {
+    minHeight: 50,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  optionRowSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  optionLabel: {
+    color: colors.cardForeground,
+    fontSize: 17,
+    fontFamily: "InterSemiBold",
+  },
+  optionLabelSelected: {
+    color: colors.primaryForeground,
+    fontFamily: "InterBold",
   },
 });

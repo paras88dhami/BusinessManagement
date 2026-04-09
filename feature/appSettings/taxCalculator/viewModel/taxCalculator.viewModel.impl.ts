@@ -13,9 +13,9 @@ import {
 } from "./taxCalculator.viewModel";
 import {
   formatCurrencyAmount,
-  resolveCurrencyCode,
   resolveCurrencyPrefix,
 } from "@/shared/utils/currency/accountCurrency";
+import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
 
 const parseAmountInput = (value: string): number | null => {
   const normalized = value.replace(/,/g, "").trim();
@@ -35,8 +35,9 @@ const buildCalculationSummary = (
   breakdown: TaxBreakdown,
   currencyCode: string,
   countryCode: string | null,
+  taxLabel: string,
 ): TaxCalculationSummaryState => ({
-  presetLabel: breakdown.presetLabel,
+  presetLabel: `${taxLabel} ${breakdown.ratePercent}%`,
   modeLabel:
     breakdown.mode === TaxCalculationMode.Inclusive
       ? "Tax Inclusive"
@@ -64,6 +65,8 @@ const buildCalculationSummary = (
 type Params = {
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxCalculationModeValue | null;
   getTaxCalculatorPresetsUseCase: GetTaxCalculatorPresetsUseCase;
   calculateTaxBreakdownUseCase: CalculateTaxBreakdownUseCase;
 };
@@ -71,9 +74,26 @@ type Params = {
 export const useTaxCalculatorViewModel = ({
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
+  activeAccountDefaultTaxMode,
   getTaxCalculatorPresetsUseCase,
   calculateTaxBreakdownUseCase,
 }: Params): TaxCalculatorScreenViewModel => {
+  const regionalFinancePolicy = useMemo(
+    () =>
+      resolveRegionalFinancePolicy({
+        countryCode: activeAccountCountryCode,
+        currencyCode: activeAccountCurrencyCode,
+        defaultTaxRatePercent: activeAccountDefaultTaxRatePercent,
+        defaultTaxMode: activeAccountDefaultTaxMode,
+      }),
+    [
+      activeAccountCountryCode,
+      activeAccountCurrencyCode,
+      activeAccountDefaultTaxMode,
+      activeAccountDefaultTaxRatePercent,
+    ],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [calculationErrorMessage, setCalculationErrorMessage] =
@@ -81,27 +101,24 @@ export const useTaxCalculatorViewModel = ({
   const [presets, setPresets] = useState<readonly TaxToolPreset[]>([]);
   const [selectedPresetCode, setSelectedPresetCode] = useState("");
   const [selectedMode, setSelectedMode] = useState<TaxCalculationModeValue>(
-    TaxCalculationMode.Exclusive,
+    regionalFinancePolicy.defaultTaxMode,
   );
   const [amountInput, setAmountInput] = useState("");
   const [calculationSummary, setCalculationSummary] =
     useState<TaxCalculationSummaryState | null>(null);
   const [isCalculatorVisible, setIsCalculatorVisible] = useState(false);
-  const currencyCode = useMemo(
-    () =>
-      resolveCurrencyCode({
-        currencyCode: activeAccountCurrencyCode,
-        countryCode: activeAccountCountryCode,
-      }),
-    [activeAccountCountryCode, activeAccountCurrencyCode],
-  );
+  const currencyCode = regionalFinancePolicy.currencyCode;
   const amountInputPlaceholder = useMemo(() => {
     const currencyPrefix = resolveCurrencyPrefix({
       currencyCode,
-      countryCode: activeAccountCountryCode,
+      countryCode: regionalFinancePolicy.countryCode,
     });
     return `Enter Amount (${currencyPrefix})`;
-  }, [activeAccountCountryCode, currencyCode]);
+  }, [currencyCode, regionalFinancePolicy.countryCode]);
+
+  useEffect(() => {
+    setSelectedMode(regionalFinancePolicy.defaultTaxMode);
+  }, [regionalFinancePolicy.defaultTaxMode]);
 
   const loadPresets = useCallback(async () => {
     setIsLoading(true);
@@ -117,18 +134,35 @@ export const useTaxCalculatorViewModel = ({
       return;
     }
 
-    setPresets(result.value);
+    const presetsByRate = new Map(
+      result.value.map((preset) => [preset.ratePercent, preset]),
+    );
+    const filteredPresets = regionalFinancePolicy.taxRateOptions
+      .map((ratePercent) => presetsByRate.get(ratePercent))
+      .filter((preset): preset is TaxToolPreset => Boolean(preset));
+    const nextPresets = filteredPresets.length > 0 ? filteredPresets : result.value;
+
+    setPresets(nextPresets);
     setSelectedPresetCode((current) => {
-      if (current && result.value.some((preset) => preset.code === current)) {
+      if (current && nextPresets.some((preset) => preset.code === current)) {
         return current;
       }
 
-      return result.value[2]?.code ?? result.value[0]?.code ?? "";
+      const defaultPreset = nextPresets.find(
+        (preset) =>
+          preset.ratePercent === regionalFinancePolicy.defaultTaxRatePercent,
+      );
+
+      return defaultPreset?.code ?? nextPresets[0]?.code ?? "";
     });
     setLoadErrorMessage(null);
     setCalculationErrorMessage(null);
     setIsLoading(false);
-  }, [getTaxCalculatorPresetsUseCase]);
+  }, [
+    getTaxCalculatorPresetsUseCase,
+    regionalFinancePolicy.defaultTaxRatePercent,
+    regionalFinancePolicy.taxRateOptions,
+  ]);
 
   useEffect(() => {
     void loadPresets();
@@ -184,7 +218,8 @@ export const useTaxCalculatorViewModel = ({
         buildCalculationSummary(
           result.value,
           currencyCode,
-          activeAccountCountryCode,
+          regionalFinancePolicy.countryCode,
+          regionalFinancePolicy.taxLabel,
         ),
       );
       setCalculationErrorMessage(null);
@@ -197,18 +232,23 @@ export const useTaxCalculatorViewModel = ({
     };
   }, [
     amountInput,
-    activeAccountCountryCode,
     calculateTaxBreakdownUseCase,
     currencyCode,
     isLoading,
     loadErrorMessage,
+    regionalFinancePolicy.countryCode,
+    regionalFinancePolicy.taxLabel,
     selectedMode,
     selectedPresetCode,
   ]);
 
   const presetOptions = useMemo(
-    () => presets.map((preset) => ({ label: preset.label, value: preset.code })),
-    [presets],
+    () =>
+      presets.map((preset) => ({
+        label: `${regionalFinancePolicy.taxLabel} ${preset.ratePercent}%`,
+        value: preset.code,
+      })),
+    [presets, regionalFinancePolicy.taxLabel],
   );
 
   const onOpenCalculator = useCallback(() => {

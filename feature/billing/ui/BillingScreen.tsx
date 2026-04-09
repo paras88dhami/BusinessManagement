@@ -279,6 +279,8 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
         onExportPdf={viewModel.onExportPdf}
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
+        taxLabel={viewModel.taxLabel}
+        taxRateOptions={viewModel.taxRateOptions}
         draftTotals={viewModel.draftTotals}
       />
     </DashboardTabScaffold>

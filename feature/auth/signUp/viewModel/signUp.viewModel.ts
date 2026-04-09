@@ -33,6 +33,15 @@ export interface SignUpViewModel {
   submit: () => Promise<void>;
 }
 
+export type SignUpSessionRecoveryInput = {
+  phoneCountryCode: SignUpPhoneCountryCode;
+  phoneNumber: string;
+  message: string;
+};
+
 export type UseSignUpViewModelOptions = {
   onSuccess: () => void;
+  onSessionActivationFailed?: (
+    recovery: SignUpSessionRecoveryInput,
+  ) => void;
 };

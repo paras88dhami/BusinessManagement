@@ -20,6 +20,22 @@ export type OrderFormState = {
   items: OrderLineFormState[];
 };
 
+export type OrderFormPricingPreview = {
+  subtotalAmount: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balanceDueAmount: number;
+  subtotalLabel: string;
+  taxLabel: string;
+  discountLabel: string;
+  totalLabel: string;
+  paidLabel: string;
+  balanceDueLabel: string;
+  taxRateLabel: string;
+};
+
 export type OrderSummaryState = {
   totalOrders: number;
   pendingCount: number;
@@ -33,21 +49,45 @@ export type OrderListItemView = {
   status: OrderStatusValue;
   orderDateLabel: string;
   customerName: string;
+  paymentMethodLabel: string;
   itemCountLabel: string;
   itemsPreview: string;
+  totalLabel: string;
+  balanceDueLabel: string | null;
 };
 
 export type OrderDetailItemView = {
   remoteId: string;
   productName: string;
   quantityLabel: string;
+  unitPriceLabel: string;
+  lineTotalLabel: string;
+};
+
+export type OrderDetailPricingView = {
+  subtotalAmount: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balanceDueAmount: number;
+  subtotalLabel: string;
+  taxLabel: string;
+  discountLabel: string;
+  totalLabel: string;
+  paidLabel: string;
+  balanceDueLabel: string;
+  taxRateLabel: string;
 };
 
 export type OrderDetailView = {
   order: Order;
   customerName: string;
+  customerPhone: string | null;
+  paymentMethodLabel: string;
   orderDateLabel: string;
   items: OrderDetailItemView[];
+  pricing: OrderDetailPricingView;
 };
 
 export type OrderMoneyActionValue = "payment" | "refund";
@@ -69,11 +109,15 @@ export interface OrdersViewModel {
   summary: OrderSummaryState;
   orders: OrderListItemView[];
   customerOptions: DropdownOption[];
+  customerPhoneByRemoteId: Readonly<Record<string, string | null>>;
   productOptions: DropdownOption[];
+  productPriceByRemoteId: Readonly<Record<string, number>>;
   statusOptions: DropdownOption[];
+  paymentMethodOptions: readonly DropdownOption[];
   isEditorVisible: boolean;
   editorMode: "create" | "edit";
   form: OrderFormState;
+  formPricingPreview: OrderFormPricingPreview;
   isDetailVisible: boolean;
   detail: OrderDetailView | null;
   isStatusModalVisible: boolean;

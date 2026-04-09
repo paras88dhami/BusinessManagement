@@ -28,6 +28,8 @@ type GetPosScreenFactoryProps = {
   activeSettlementAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxModeValue | null;
 };
 
 export function GetPosScreenFactory({
@@ -36,6 +38,8 @@ export function GetPosScreenFactory({
   activeSettlementAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
+  activeAccountDefaultTaxMode,
 }: GetPosScreenFactoryProps) {
   const datasource = React.useMemo(
     () => createLocalPosDatasource({ database: appDatabase }),
@@ -122,6 +126,8 @@ export function GetPosScreenFactory({
     activeSettlementAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
     assignProductToSlotUseCase,
@@ -137,3 +143,4 @@ export function GetPosScreenFactory({
 
   return <PosScreen viewModel={viewModel} />;
 }
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";

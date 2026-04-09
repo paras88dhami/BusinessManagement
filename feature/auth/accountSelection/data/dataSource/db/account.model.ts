@@ -13,6 +13,8 @@ export class AccountModel extends Model {
   @field("currency_code") currencyCode!: string | null;
   @field("city_or_location") cityOrLocation!: string | null;
   @field("country_code") countryCode!: string | null;
+  @field("default_tax_rate_percent") defaultTaxRatePercent!: number | null;
+  @field("default_tax_mode") defaultTaxMode!: string | null;
   @field("is_active") isActive!: boolean;
   @field("is_default") isDefault!: boolean;
 

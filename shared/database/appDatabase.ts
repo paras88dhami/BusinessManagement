@@ -31,7 +31,7 @@ const APP_SETTINGS_TABLE = "app_settings";
 const BILLING_DOCUMENTS_TABLE = "billing_documents";
 
 const schema = appSchema({
-  version: 28,
+  version: 29,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,

@@ -14,7 +14,6 @@ import {
 } from "@/feature/billing/viewModel/billing.viewModel";
 import {
   BILLING_STATUS_OPTIONS,
-  BILLING_TAX_RATE_OPTIONS,
   BILLING_TEMPLATE_OPTIONS,
 } from "@/feature/billing/types/billing.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
@@ -34,6 +33,8 @@ export function BillingDocumentEditorModal({
   onExportPdf,
   currencyCode,
   countryCode,
+  taxLabel,
+  taxRateOptions,
   draftTotals,
 }: {
   visible: boolean;
@@ -57,6 +58,8 @@ export function BillingDocumentEditorModal({
   onExportPdf: () => void;
   currencyCode: string;
   countryCode: string | null;
+  taxLabel: string;
+  taxRateOptions: readonly string[];
   draftTotals: { subtotalAmount: number; taxAmount: number; totalAmount: number };
 }) {
   const lineItems = Array.isArray(form.items) ? form.items : [];
@@ -184,8 +187,8 @@ export function BillingDocumentEditorModal({
       <Text style={styles.label}>Tax Rate (%)</Text>
       <Dropdown
         value={form.taxRatePercent}
-        options={BILLING_TAX_RATE_OPTIONS.map((option) => ({
-          label: option,
+        options={taxRateOptions.map((option) => ({
+          label: `${option}%`,
           value: option,
         }))}
         onChange={(value) => onChange("taxRatePercent", value)}
@@ -226,7 +229,9 @@ export function BillingDocumentEditorModal({
           </Text>
         </View>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Tax ({form.taxRatePercent || "0"}%)</Text>
+          <Text style={styles.totalLabel}>
+            {taxLabel} ({form.taxRatePercent || "0"}%)
+          </Text>
           <Text style={styles.totalValue}>
             {formatCurrencyAmount({
               amount: draftTotals.taxAmount,

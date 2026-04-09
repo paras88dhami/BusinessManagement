@@ -7,6 +7,7 @@ import { useAuthEntryLoginViewModel } from "./authEntry.login.viewModel.impl";
 import { useAuthEntryModeViewModel } from "./authEntry.mode.viewModel.impl";
 import { useAuthEntrySignUpViewModel } from "./authEntry.signUp.viewModel.impl";
 import { AuthEntryViewModel } from "./authEntry.viewModel";
+import { SignUpSessionRecoveryInput } from "@/feature/auth/signUp/viewModel/signUp.viewModel";
 
 type UseAuthEntryViewModelParams = {
   database: Database;
@@ -44,9 +45,22 @@ export const useAuthEntryViewModel = (
     onSignUpSuccess();
   }, [mode, onSignUpSuccess]);
 
+  const handleSignUpSessionActivationFailed = useCallback(
+    (recovery: SignUpSessionRecoveryInput) => {
+      mode.switchToLogin();
+      login.applySignUpRecovery({
+        phoneCountryCode: recovery.phoneCountryCode,
+        phoneNumber: recovery.phoneNumber,
+        message: recovery.message,
+      });
+    },
+    [login, mode],
+  );
+
   const signUp = useAuthEntrySignUpViewModel({
     signUpWithEmailUseCase,
     onSuccess: handleSignUpSuccess,
+    onSessionActivationFailed: handleSignUpSessionActivationFailed,
   });
 
   return useMemo<AuthEntryViewModel>(

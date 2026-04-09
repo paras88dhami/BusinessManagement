@@ -312,7 +312,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               </View>
             ) : null}
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>VAT (13%)</Text>
+              <Text style={styles.totalLabel}>{viewModel.taxSummaryLabel}</Text>
               <Text style={styles.totalValue}>
                 {formatCurrency(
                   viewModel.totals.taxAmount,

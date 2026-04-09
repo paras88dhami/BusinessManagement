@@ -139,8 +139,6 @@ export const BILLING_STATUS_OPTIONS = [
   { label: "Overdue", value: BillingDocumentStatus.Overdue },
 ] as const;
 
-export const BILLING_TAX_RATE_OPTIONS = ["0", "5", "13", "18"] as const;
-
 export const BillingErrorType = {
   DatabaseError: "DATABASE_ERROR",
   ValidationError: "VALIDATION_ERROR",

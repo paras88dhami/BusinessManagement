@@ -14,11 +14,16 @@ import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { PosCartLine, PosSlot, PosTotals } from "../types/pos.entity.types";
 import {
   formatCurrencyAmount,
-  resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { ProductKind, ProductStatus } from "@/feature/products/types/product.types";
 import * as Crypto from "expo-crypto";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
+import {
+  buildTaxRateLabel,
+  buildTaxSummaryLabel,
+  resolveRegionalFinancePolicy,
+} from "@/shared/utils/finance/regionalFinancePolicy";
 
 const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -106,6 +111,8 @@ export type UsePosScreenViewModelParams = {
   activeSettlementAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxModeValue | null;
   getPosBootstrapUseCase: GetPosBootstrapUseCase;
   searchPosProductsUseCase: SearchPosProductsUseCase;
   assignProductToSlotUseCase: AssignProductToSlotUseCase;
@@ -128,6 +135,8 @@ export function usePosScreenViewModel(
     activeSettlementAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
     assignProductToSlotUseCase,
@@ -141,14 +150,40 @@ export function usePosScreenViewModel(
     saveProductUseCase,
   } = params;
 
+  const regionalFinancePolicy = useMemo(
+    () =>
+      resolveRegionalFinancePolicy({
+        countryCode: activeAccountCountryCode,
+        currencyCode: activeAccountCurrencyCode,
+        defaultTaxRatePercent: activeAccountDefaultTaxRatePercent,
+        defaultTaxMode: activeAccountDefaultTaxMode,
+      }),
+    [
+      activeAccountCountryCode,
+      activeAccountCurrencyCode,
+      activeAccountDefaultTaxMode,
+      activeAccountDefaultTaxRatePercent,
+    ],
+  );
+  const defaultTaxRateLabel = useMemo(
+    () => buildTaxRateLabel(regionalFinancePolicy.defaultTaxRatePercent),
+    [regionalFinancePolicy.defaultTaxRatePercent],
+  );
+  const taxSummaryLabel = useMemo(
+    () =>
+      buildTaxSummaryLabel({
+        taxLabel: regionalFinancePolicy.taxLabel,
+        taxRatePercent: regionalFinancePolicy.defaultTaxRatePercent,
+      }),
+    [
+      regionalFinancePolicy.defaultTaxRatePercent,
+      regionalFinancePolicy.taxLabel,
+    ],
+  );
   const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
   const currencyCode = useMemo(
-    () =>
-      resolveCurrencyCode({
-        currencyCode: activeAccountCurrencyCode,
-        countryCode: activeAccountCountryCode,
-      }),
-    [activeAccountCountryCode, activeAccountCurrencyCode],
+    () => regionalFinancePolicy.currencyCode,
+    [regionalFinancePolicy.currencyCode],
   );
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
@@ -436,7 +471,7 @@ export function usePosScreenViewModel(
       stockQuantity: 0,
       unitLabel: "pcs",
       skuOrBarcode: null,
-      taxRateLabel: "0%",
+      taxRateLabel: defaultTaxRateLabel,
       description: null,
       imageUrl: null,
       status: ProductStatus.Active,
@@ -469,6 +504,7 @@ export function usePosScreenViewModel(
     state.quickProductCategoryInput,
     state.quickProductNameInput,
     state.quickProductPriceInput,
+    defaultTaxRateLabel,
   ]);
 
   const onIncreaseQuantity = useCallback(async (lineId: string) => {
@@ -571,17 +607,17 @@ export function usePosScreenViewModel(
 
     setState((currentState) => ({
       ...currentState,
-      infoMessage: `Split preview: ${splitCount} people x ${formatCurrencyAmount({
+          infoMessage: `Split preview: ${splitCount} people x ${formatCurrencyAmount({
         amount: splitAmount,
         currencyCode,
-        countryCode: activeAccountCountryCode,
+        countryCode: regionalFinancePolicy.countryCode,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
     }));
   }, [
-    activeAccountCountryCode,
     currencyCode,
+    regionalFinancePolicy.countryCode,
     state.paymentSplitCountInput,
     state.totals.grandTotal,
   ]);
@@ -655,7 +691,7 @@ export function usePosScreenViewModel(
       activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
       activeAccountCurrencyCode: currencyCode,
-      activeAccountCountryCode,
+      activeAccountCountryCode: regionalFinancePolicy.countryCode,
     });
 
     if (!result.success) {
@@ -685,7 +721,7 @@ export function usePosScreenViewModel(
           ? `Sale completed. ${formatCurrencyAmount({
               amount: result.value.dueAmount,
               currencyCode,
-              countryCode: activeAccountCountryCode,
+              countryCode: regionalFinancePolicy.countryCode,
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })} was posted as ledger due.`
@@ -693,7 +729,7 @@ export function usePosScreenViewModel(
             ? `Sale completed. ${formatCurrencyAmount({
                 amount: result.value.dueAmount,
                 currencyCode,
-                countryCode: activeAccountCountryCode,
+                countryCode: regionalFinancePolicy.countryCode,
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })} due could not be posted automatically. Add it from Ledger.`
@@ -701,12 +737,12 @@ export function usePosScreenViewModel(
       errorMessage: null,
     }));
   }, [
-    activeAccountCountryCode,
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     completePosCheckoutUseCase,
     currencyCode,
+    regionalFinancePolicy.countryCode,
     searchPosProductsUseCase,
     state.paymentInput,
   ]);
@@ -733,7 +769,8 @@ export function usePosScreenViewModel(
       status: state.status,
       screenTitle: "POS Checkout",
       currencyCode,
-      countryCode: activeAccountCountryCode,
+      countryCode: regionalFinancePolicy.countryCode,
+      taxSummaryLabel,
       slots: state.slots,
       cartLines: state.cartLines,
       totals: state.totals,
@@ -790,7 +827,6 @@ export function usePosScreenViewModel(
     }),
     [
       activeBusinessAccountRemoteId,
-      activeAccountCountryCode,
       activeOwnerUserRemoteId,
       activeSettlementAccountRemoteId,
       currencyCode,
@@ -823,6 +859,7 @@ export function usePosScreenViewModel(
       onRemoveSlotProduct,
       onSelectProduct,
       onSurchargeInputChange,
+      regionalFinancePolicy.countryCode,
       state.activeModal,
       state.activeSlotId,
       state.selectedSlotId,
@@ -842,6 +879,7 @@ export function usePosScreenViewModel(
       state.slots,
       state.status,
       state.surchargeInput,
+      taxSummaryLabel,
       state.totals,
     ],
   );

@@ -10,6 +10,7 @@ import { createAuthUserRepository } from "@/feature/session/data/repository/auth
 import { createGetAuthUserByRemoteIdUseCase } from "@/feature/session/useCase/getAuthUserByRemoteId.useCase.impl";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Database } from "@nozbe/watermelondb";
 import React, {
     createContext,
@@ -40,6 +41,8 @@ export type DashboardRouteContext = {
   activeAccountType: AccountTypeValue | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxModeValue | null;
   activeAccountDisplayName: string;
   profileName: string;
   profileInitials: string;
@@ -60,6 +63,8 @@ const INITIAL_CONTEXT: DashboardRouteContext = {
   activeAccountType: null,
   activeAccountCurrencyCode: null,
   activeAccountCountryCode: null,
+  activeAccountDefaultTaxRatePercent: null,
+  activeAccountDefaultTaxMode: null,
   activeAccountDisplayName: "",
   profileName: "eLekha User",
   profileInitials: "EL",
@@ -153,6 +158,8 @@ export function AppRouteSessionProvider({
       let activeAccountType: AccountTypeValue | null = null;
       let activeAccountCurrencyCode: string | null = null;
       let activeAccountCountryCode: string | null = null;
+      let activeAccountDefaultTaxRatePercent: number | null = null;
+      let activeAccountDefaultTaxMode: TaxModeValue | null = null;
       let activeAccountDisplayName = "";
       let sessionError: string | null = null;
 
@@ -193,6 +200,9 @@ export function AppRouteSessionProvider({
             activeAccountType = activeAccount.accountType;
             activeAccountCurrencyCode = activeAccount.currencyCode;
             activeAccountCountryCode = activeAccount.countryCode;
+            activeAccountDefaultTaxRatePercent =
+              activeAccount.defaultTaxRatePercent ?? null;
+            activeAccountDefaultTaxMode = activeAccount.defaultTaxMode ?? null;
             activeAccountDisplayName = activeAccount.displayName;
 
             if (profileName === "eLekha User") {
@@ -224,6 +234,8 @@ export function AppRouteSessionProvider({
         activeAccountType,
         activeAccountCurrencyCode,
         activeAccountCountryCode,
+        activeAccountDefaultTaxRatePercent,
+        activeAccountDefaultTaxMode,
         activeAccountDisplayName,
         profileName,
         profileInitials,

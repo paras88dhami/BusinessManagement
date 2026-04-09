@@ -97,5 +97,3 @@ export const PRODUCT_CATEGORY_OPTIONS = [
 ] as const;
 
 export const PRODUCT_UNIT_OPTIONS = ["pcs", "kg", "bag", "bottle", "box", "ltr"] as const;
-
-export const PRODUCT_TAX_RATE_OPTIONS = ["0%", "5%", "13%", "18%"] as const;

@@ -52,6 +52,8 @@ export const createLocalAccountDatasource = (
             record.currencyCode = payload.currencyCode;
             record.cityOrLocation = payload.cityOrLocation;
             record.countryCode = payload.countryCode;
+            record.defaultTaxRatePercent = payload.defaultTaxRatePercent ?? null;
+            record.defaultTaxMode = payload.defaultTaxMode ?? null;
             record.isActive = payload.isActive;
             record.isDefault = payload.isDefault;
             updateSyncStatusOnMutation(record);
@@ -76,6 +78,8 @@ export const createLocalAccountDatasource = (
           record.currencyCode = payload.currencyCode;
           record.cityOrLocation = payload.cityOrLocation;
           record.countryCode = payload.countryCode;
+          record.defaultTaxRatePercent = payload.defaultTaxRatePercent ?? null;
+          record.defaultTaxMode = payload.defaultTaxMode ?? null;
           record.isActive = payload.isActive;
           record.isDefault = payload.isDefault;
 

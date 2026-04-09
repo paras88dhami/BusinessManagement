@@ -106,6 +106,42 @@ export const useLoginViewModel = (
     [clearErrors, getValues, setValue],
   );
 
+  const applySignUpRecovery = useCallback(
+    (params: {
+      phoneCountryCode: LoginPhoneCountryCode;
+      phoneNumber: string;
+      message: string;
+    }) => {
+      const nextCountryCode = params.phoneCountryCode;
+      const nextPhoneLength = getSignUpPhoneLengthForCountry(nextCountryCode);
+      const normalizedPhoneDigits = sanitizeSignUpPhoneDigits(params.phoneNumber);
+
+      setValue("phoneCountryCode", nextCountryCode, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+      setValue("phoneNumber", normalizedPhoneDigits.slice(0, nextPhoneLength), {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+      setValue("password", "", {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+
+      clearErrors("phoneNumber");
+      clearErrors("password");
+      setState({
+        status: Status.Failure,
+        error: params.message,
+      });
+    },
+    [clearErrors, setValue],
+  );
+
   const submitWithValidPayload = useCallback(
     async (payload: LoginFormInput): Promise<void> => {
       if (state.status === Status.Loading) {
@@ -167,6 +203,7 @@ export const useLoginViewModel = (
     isPasswordVisible,
     clearSubmitError,
     togglePasswordVisibility,
+    applySignUpRecovery,
     submit,
   };
 };

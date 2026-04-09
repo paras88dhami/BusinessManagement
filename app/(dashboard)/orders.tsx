@@ -21,6 +21,7 @@ export default function OrdersDashboardRoute() {
     activeAccountDisplayName,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -78,6 +79,7 @@ export default function OrdersDashboardRoute() {
       activeAccountDisplayName={activeAccountDisplayName}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      activeAccountDefaultTaxRatePercent={activeAccountDefaultTaxRatePercent}
       canManage={canManageOrders}
     />
   );

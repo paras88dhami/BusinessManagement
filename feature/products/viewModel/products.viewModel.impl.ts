@@ -1,7 +1,6 @@
 import {
     Product,
     PRODUCT_CATEGORY_OPTIONS,
-    PRODUCT_TAX_RATE_OPTIONS,
     PRODUCT_UNIT_OPTIONS,
     ProductKind,
     ProductKindValue,
@@ -13,10 +12,13 @@ import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCa
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductFormState, ProductsViewModel } from "./products.viewModel";
-import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import {
+  buildTaxRateLabel,
+  resolveRegionalFinancePolicy,
+} from "@/shared/utils/finance/regionalFinancePolicy";
 
-const EMPTY_FORM: ProductFormState = {
+const createEmptyForm = (defaultTaxRateLabel: string): ProductFormState => ({
   remoteId: null,
   name: "",
   kind: ProductKind.Item,
@@ -26,12 +28,15 @@ const EMPTY_FORM: ProductFormState = {
   stockQuantity: "0",
   unitLabel: "pcs",
   skuOrBarcode: "",
-  taxRateLabel: "0%",
+  taxRateLabel: defaultTaxRateLabel,
   description: "",
   imageUrl: "",
-};
+});
 
-const mapProductToForm = (product: Product): ProductFormState => ({
+const mapProductToForm = (
+  product: Product,
+  defaultTaxRateLabel: string,
+): ProductFormState => ({
   remoteId: product.remoteId,
   name: product.name,
   kind: product.kind,
@@ -42,7 +47,7 @@ const mapProductToForm = (product: Product): ProductFormState => ({
     product.stockQuantity === null ? "" : String(product.stockQuantity),
   unitLabel: product.unitLabel ?? "pcs",
   skuOrBarcode: product.skuOrBarcode ?? "",
-  taxRateLabel: product.taxRateLabel ?? "0%",
+  taxRateLabel: product.taxRateLabel ?? defaultTaxRateLabel,
   description: product.description ?? "",
   imageUrl: product.imageUrl ?? "",
 });
@@ -58,6 +63,7 @@ type Params = {
   accountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
   canManage: boolean;
   getProductsUseCase: GetProductsUseCase;
   saveProductUseCase: SaveProductUseCase;
@@ -68,11 +74,36 @@ export const useProductsViewModel = ({
   accountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
   canManage,
   getProductsUseCase,
   saveProductUseCase,
   deleteProductUseCase,
 }: Params): ProductsViewModel => {
+  const regionalFinancePolicy = useMemo(
+    () =>
+      resolveRegionalFinancePolicy({
+        countryCode: activeAccountCountryCode,
+        currencyCode: activeAccountCurrencyCode,
+        defaultTaxRatePercent: activeAccountDefaultTaxRatePercent,
+      }),
+    [
+      activeAccountCountryCode,
+      activeAccountCurrencyCode,
+      activeAccountDefaultTaxRatePercent,
+    ],
+  );
+  const defaultTaxRateLabel = useMemo(
+    () => buildTaxRateLabel(regionalFinancePolicy.defaultTaxRatePercent),
+    [regionalFinancePolicy.defaultTaxRatePercent],
+  );
+  const taxRateOptions = useMemo(
+    () =>
+      regionalFinancePolicy.taxRateOptions.map((ratePercent) =>
+        buildTaxRateLabel(ratePercent),
+      ),
+    [regionalFinancePolicy.taxRateOptions],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -82,15 +113,10 @@ export const useProductsViewModel = ({
   );
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
-  const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
-  const currencyCode = useMemo(
-    () =>
-      resolveCurrencyCode({
-        currencyCode: activeAccountCurrencyCode,
-        countryCode: activeAccountCountryCode,
-      }),
-    [activeAccountCountryCode, activeAccountCurrencyCode],
+  const [form, setForm] = useState<ProductFormState>(
+    createEmptyForm(defaultTaxRateLabel),
   );
+  const currencyCode = regionalFinancePolicy.currencyCode;
 
   const loadProducts = useCallback(async () => {
     if (!accountRemoteId) {
@@ -115,6 +141,12 @@ export const useProductsViewModel = ({
   useEffect(() => {
     void loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    if (!isEditorVisible) {
+      setForm(createEmptyForm(defaultTaxRateLabel));
+    }
+  }, [defaultTaxRateLabel, isEditorVisible]);
 
   const summary = useMemo(() => {
     const totalItems = products.filter(
@@ -158,10 +190,10 @@ export const useProductsViewModel = ({
       return;
     }
     setEditorMode("create");
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm(defaultTaxRateLabel));
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, [canManage]);
+  }, [canManage, defaultTaxRateLabel]);
 
   const onOpenEdit = useCallback((product: Product) => {
     if (!canManage) {
@@ -169,15 +201,15 @@ export const useProductsViewModel = ({
       return;
     }
     setEditorMode("edit");
-    setForm(mapProductToForm(product));
+    setForm(mapProductToForm(product, defaultTaxRateLabel));
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, [canManage]);
+  }, [canManage, defaultTaxRateLabel]);
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
-  }, []);
+    setForm(createEmptyForm(defaultTaxRateLabel));
+  }, [defaultTaxRateLabel]);
 
   const onFormChange = useCallback(
     (field: keyof ProductFormState, value: string) => {
@@ -259,9 +291,16 @@ export const useProductsViewModel = ({
     });
     setErrorMessage(null);
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm(defaultTaxRateLabel));
     void loadProducts();
-  }, [accountRemoteId, canManage, form, loadProducts, saveProductUseCase]);
+  }, [
+    accountRemoteId,
+    canManage,
+    defaultTaxRateLabel,
+    form,
+    loadProducts,
+    saveProductUseCase,
+  ]);
 
   const onDelete = useCallback(
     async (product: Product) => {
@@ -289,7 +328,7 @@ export const useProductsViewModel = ({
       errorMessage,
       canManage,
       currencyCode,
-      countryCode: activeAccountCountryCode,
+      countryCode: regionalFinancePolicy.countryCode,
       searchQuery,
       selectedKind,
       summary,
@@ -299,7 +338,7 @@ export const useProductsViewModel = ({
       form,
       categoryOptions: PRODUCT_CATEGORY_OPTIONS,
       unitOptions: PRODUCT_UNIT_OPTIONS,
-      taxRateOptions: PRODUCT_TAX_RATE_OPTIONS,
+      taxRateOptions,
       onRefresh: loadProducts,
       onSearchChange: setSearchQuery,
       onKindFilterChange: setSelectedKind,
@@ -319,7 +358,7 @@ export const useProductsViewModel = ({
       errorMessage,
       filteredProducts,
       form,
-      activeAccountCountryCode,
+      regionalFinancePolicy.countryCode,
       isEditorVisible,
       isLoading,
       loadProducts,
@@ -334,6 +373,7 @@ export const useProductsViewModel = ({
       searchQuery,
       selectedKind,
       summary,
+      taxRateOptions,
     ],
   );
 };

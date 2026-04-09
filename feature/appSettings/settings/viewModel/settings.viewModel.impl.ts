@@ -10,9 +10,18 @@ import {
 } from "@/feature/appSettings/appearance/types/appearance.types";
 import { GetAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/getAppearancePreferences.useCase";
 import { SaveAppearancePreferencesUseCase } from "@/feature/appSettings/appearance/useCase/saveAppearancePreferences.useCase";
+import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { GetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase";
+import { SaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase";
 import {
   BUG_SEVERITY_OPTIONS,
   BugSeverity,
+  SETTINGS_DATA_TRANSFER_MODULE_OPTIONS,
+  SettingsDataTransferFormat,
+  SettingsDataTransferFormatValue,
+  SettingsDataTransferModuleValue,
+  RegionalFinanceSettings,
+  SETTINGS_TAX_MODE_OPTIONS,
   SettingsModal,
   SettingsModalValue,
 } from "@/feature/appSettings/settings/types/settings.types";
@@ -22,11 +31,20 @@ import { SubmitAppRatingUseCase } from "../useCase/submitAppRating.useCase";
 import { SubmitBugReportUseCase } from "../useCase/submitBugReport.useCase";
 import { UpdateBiometricLoginPreferenceUseCase } from "../useCase/updateBiometricLoginPreference.useCase";
 import { UpdateTwoFactorAuthPreferenceUseCase } from "../useCase/updateTwoFactorAuthPreference.useCase";
+import { ExportSettingsDataUseCase } from "../useCase/exportSettingsData.useCase";
 import {
   SettingsChangePasswordForm,
   SettingsReportBugForm,
+  SettingsSection,
   SettingsViewModel,
 } from "./settings.viewModel";
+import {
+  buildTaxRateLabel,
+  getRegionalFinanceCountryOptions,
+  resolveRegionalFinancePolicy,
+} from "@/shared/utils/finance/regionalFinancePolicy";
+import { RegionalFinanceOption, TaxMode } from "@/shared/types/regionalFinance.types";
+import { ImportSettingsDataUseCase } from "../useCase/importSettingsData.useCase";
 
 const DEFAULT_REPORT_BUG_FORM: SettingsReportBugForm = {
   title: "",
@@ -47,36 +65,100 @@ const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
   updatedAt: 0,
 };
 
-const SETTINGS_ROWS: SettingsViewModel["settingsRows"] = [
+const DEFAULT_REGIONAL_FINANCE_SETTINGS: RegionalFinanceSettings = {
+  countryCode: "NP",
+  countryName: "Nepal",
+  currencyCode: "NPR",
+  taxMode: TaxMode.Exclusive,
+  defaultTaxRatePercent: 13,
+};
+
+const buildRegionalFinanceSummaryLabel = (
+  settings: RegionalFinanceSettings,
+): string =>
+  `${settings.countryName} | ${settings.currencyCode} | ${settings.defaultTaxRatePercent}%`;
+
+const buildDefaultExportModuleSelectionState = (): Record<
+  SettingsDataTransferModuleValue,
+  boolean
+> =>
+  SETTINGS_DATA_TRANSFER_MODULE_OPTIONS.reduce(
+    (state, moduleOption) => ({
+      ...state,
+      [moduleOption.id]: true,
+    }),
+    {} as Record<SettingsDataTransferModuleValue, boolean>,
+  );
+
+const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   {
-    id: "appearance",
-    title: "Appearance",
-    subtitle: "Theme, text size, and compact mode",
+    id: "preferences",
+    title: "Preferences",
+    rows: [
+      {
+        id: "appearance",
+        title: "Appearance",
+        subtitle: "Theme, text size, and compact mode",
+      },
+      {
+        id: "regionalFinance",
+        title: "Regional Finance",
+        subtitle: "Country, currency, and tax defaults",
+      },
+    ],
+  },
+  {
+    id: "dataTools",
+    title: "Data Tools",
+    rows: [
+      {
+        id: "exportData",
+        title: "Export Data",
+        subtitle: "Download business data as CSV or JSON",
+      },
+      {
+        id: "importData",
+        title: "Import Data",
+        subtitle: "Upload CSV or JSON into your business",
+      },
+    ],
   },
   {
     id: "security",
     title: "Security",
-    subtitle: "Password, biometric login, active sessions",
+    rows: [
+      {
+        id: "security",
+        title: "Security Controls",
+        subtitle: "Password, biometric login, active sessions",
+      },
+      {
+        id: "termsPrivacy",
+        title: "Terms & Privacy",
+        subtitle: "Terms, privacy policy, and data rights",
+      },
+    ],
   },
   {
-    id: "helpFaq",
-    title: "Help & FAQ",
-    subtitle: "Guides, tutorials, contact",
-  },
-  {
-    id: "termsPrivacy",
-    title: "Terms & Privacy",
-    subtitle: "Terms, privacy policy, data rights",
-  },
-  {
-    id: "rateELekha",
-    title: "Rate e-Lekha",
-    subtitle: "Share your experience with the app",
-  },
-  {
-    id: "reportBug",
-    title: "Report a Bug",
-    subtitle: "Tell us what went wrong",
+    id: "support",
+    title: "Support",
+    rows: [
+      {
+        id: "helpFaq",
+        title: "Help & FAQ",
+        subtitle: "Guides, tutorials, and contact",
+      },
+      {
+        id: "reportBug",
+        title: "Report a Bug",
+        subtitle: "Tell us what went wrong",
+      },
+      {
+        id: "rateELekha",
+        title: "Rate e-Lekha",
+        subtitle: "Share your experience with the app",
+      },
+    ],
   },
 ] as const;
 
@@ -145,6 +227,7 @@ const formatRelativeLabel = (timestamp: number | null): string => {
 
 type Params = {
   activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   getAppearancePreferencesUseCase: GetAppearancePreferencesUseCase;
   saveAppearancePreferencesUseCase: SaveAppearancePreferencesUseCase;
   getSettingsBootstrapUseCase: GetSettingsBootstrapUseCase;
@@ -152,11 +235,16 @@ type Params = {
   updateTwoFactorAuthPreferenceUseCase: UpdateTwoFactorAuthPreferenceUseCase;
   submitBugReportUseCase: SubmitBugReportUseCase;
   submitAppRatingUseCase: SubmitAppRatingUseCase;
+  exportSettingsDataUseCase: ExportSettingsDataUseCase;
+  importSettingsDataUseCase: ImportSettingsDataUseCase;
   changePasswordUseCase: ChangePasswordUseCase;
+  getAccountByRemoteIdUseCase: GetAccountByRemoteIdUseCase;
+  saveAccountUseCase: SaveAccountUseCase;
 };
 
 export const useSettingsViewModel = ({
   activeUserRemoteId,
+  activeAccountRemoteId,
   getAppearancePreferencesUseCase,
   saveAppearancePreferencesUseCase,
   getSettingsBootstrapUseCase,
@@ -164,11 +252,18 @@ export const useSettingsViewModel = ({
   updateTwoFactorAuthPreferenceUseCase,
   submitBugReportUseCase,
   submitAppRatingUseCase,
+  exportSettingsDataUseCase,
+  importSettingsDataUseCase,
   changePasswordUseCase,
+  getAccountByRemoteIdUseCase,
+  saveAccountUseCase,
 }: Params): SettingsViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingPreference, setIsSavingPreference] = useState(false);
   const [isSavingAppearance, setIsSavingAppearance] = useState(false);
+  const [isSavingRegionalFinance, setIsSavingRegionalFinance] = useState(false);
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [isImportingData, setIsImportingData] = useState(false);
   const [isSubmittingBugReport, setIsSubmittingBugReport] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -196,6 +291,15 @@ export const useSettingsViewModel = ({
   const [twoFactorAuthEnabled, setTwoFactorAuthEnabled] = useState(false);
   const [appearancePreferences, setAppearancePreferences] =
     useState<AppearancePreferences>(DEFAULT_APPEARANCE_PREFERENCES);
+  const [exportDataFormat, setExportDataFormat] =
+    useState<SettingsDataTransferFormatValue>(SettingsDataTransferFormat.Csv);
+  const [exportModuleSelectionState, setExportModuleSelectionState] = useState<
+    Record<SettingsDataTransferModuleValue, boolean>
+  >(buildDefaultExportModuleSelectionState);
+  const [regionalFinanceSettings, setRegionalFinanceSettings] =
+    useState<RegionalFinanceSettings>(DEFAULT_REGIONAL_FINANCE_SETTINGS);
+  const [regionalFinanceAccountSnapshot, setRegionalFinanceAccountSnapshot] =
+    useState<Account | null>(null);
   const [passwordChangedAt, setPasswordChangedAt] = useState<number | null>(null);
   const [deviceInfoLabel, setDeviceInfoLabel] = useState("Unavailable");
   const [appVersionLabel, setAppVersionLabel] = useState("Unavailable");
@@ -216,9 +320,15 @@ export const useSettingsViewModel = ({
 
     setIsLoading(true);
 
-    const [bootstrapResult, appearanceResult] = await Promise.all([
+    const [bootstrapResult, appearanceResult, accountResult] = await Promise.all([
       getSettingsBootstrapUseCase.execute(activeUserRemoteId),
       getAppearancePreferencesUseCase.execute(),
+      activeAccountRemoteId
+        ? getAccountByRemoteIdUseCase.execute(activeAccountRemoteId)
+        : Promise.resolve({
+            success: true as const,
+            value: null,
+          }),
     ]);
 
     if (!bootstrapResult.success) {
@@ -242,6 +352,31 @@ export const useSettingsViewModel = ({
     setDeviceInfoLabel(bootstrapResult.value.deviceInfo ?? "Unavailable");
     setAppVersionLabel(bootstrapResult.value.appVersion ?? "Unavailable");
 
+    if (accountResult.success && accountResult.value) {
+      const resolvedFinancePolicy = resolveRegionalFinancePolicy({
+        countryCode: accountResult.value.countryCode,
+        currencyCode: accountResult.value.currencyCode,
+        defaultTaxRatePercent: accountResult.value.defaultTaxRatePercent,
+        defaultTaxMode: accountResult.value.defaultTaxMode,
+      });
+
+      setRegionalFinanceAccountSnapshot(accountResult.value);
+      setRegionalFinanceSettings({
+        countryCode: resolvedFinancePolicy.countryCode,
+        countryName: resolvedFinancePolicy.countryName,
+        currencyCode: resolvedFinancePolicy.currencyCode,
+        taxMode: resolvedFinancePolicy.defaultTaxMode,
+        defaultTaxRatePercent: resolvedFinancePolicy.defaultTaxRatePercent,
+      });
+    } else {
+      setRegionalFinanceAccountSnapshot(null);
+      setRegionalFinanceSettings(DEFAULT_REGIONAL_FINANCE_SETTINGS);
+    }
+
+    if (!accountResult.success) {
+      setErrorMessage(accountResult.error.message);
+    }
+
     if (!appearanceResult.success) {
       setAppearancePreferences(DEFAULT_APPEARANCE_PREFERENCES);
       setErrorMessage(appearanceResult.error.message);
@@ -253,7 +388,9 @@ export const useSettingsViewModel = ({
     setErrorMessage(null);
     setIsLoading(false);
   }, [
+    activeAccountRemoteId,
     activeUserRemoteId,
+    getAccountByRemoteIdUseCase,
     getAppearancePreferencesUseCase,
     getSettingsBootstrapUseCase,
   ]);
@@ -262,9 +399,69 @@ export const useSettingsViewModel = ({
     void loadSettings();
   }, [loadSettings]);
 
+  const regionalFinanceCountryOptions = useMemo(
+    () => getRegionalFinanceCountryOptions(),
+    [],
+  );
+
+  const regionalFinanceCurrencyOptions = useMemo<
+    readonly RegionalFinanceOption[]
+  >(() => {
+    const baseCurrencyOption = {
+      label: regionalFinanceSettings.currencyCode,
+      value: regionalFinanceSettings.currencyCode,
+    };
+
+    const countryPolicy = resolveRegionalFinancePolicy({
+      countryCode: regionalFinanceSettings.countryCode,
+    });
+    const countryCurrencyOption = {
+      label: countryPolicy.currencyCode,
+      value: countryPolicy.currencyCode,
+    };
+
+    if (baseCurrencyOption.value === countryCurrencyOption.value) {
+      return [countryCurrencyOption];
+    }
+
+    return [countryCurrencyOption, baseCurrencyOption];
+  }, [regionalFinanceSettings.countryCode, regionalFinanceSettings.currencyCode]);
+
+  const regionalFinanceTaxRateOptions = useMemo<
+    readonly RegionalFinanceOption[]
+  >(() => {
+    const countryPolicy = resolveRegionalFinancePolicy({
+      countryCode: regionalFinanceSettings.countryCode,
+      currencyCode: regionalFinanceSettings.currencyCode,
+      defaultTaxRatePercent: regionalFinanceSettings.defaultTaxRatePercent,
+      defaultTaxMode: regionalFinanceSettings.taxMode,
+    });
+
+    return countryPolicy.taxRateOptions.map((rate) => ({
+      label: buildTaxRateLabel(rate),
+      value: String(rate),
+    }));
+  }, [
+    regionalFinanceSettings.countryCode,
+    regionalFinanceSettings.currencyCode,
+    regionalFinanceSettings.defaultTaxRatePercent,
+    regionalFinanceSettings.taxMode,
+  ]);
+
+  const exportDataModuleSelections = useMemo(
+    () =>
+      SETTINGS_DATA_TRANSFER_MODULE_OPTIONS.map((moduleOption) => ({
+        id: moduleOption.id,
+        label: moduleOption.label,
+        selected: exportModuleSelectionState[moduleOption.id] ?? false,
+      })),
+    [exportModuleSelectionState],
+  );
+
   const onCloseModal = useCallback(() => {
     setActiveModal(SettingsModal.None);
     setErrorMessage(null);
+    setSuccessMessage(null);
   }, []);
 
   const onOpenAppearance = useCallback(() => {
@@ -277,6 +474,24 @@ export const useSettingsViewModel = ({
     setErrorMessage(null);
     setSuccessMessage(null);
     setActiveModal(SettingsModal.Security);
+  }, []);
+
+  const onOpenRegionalFinance = useCallback(() => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setActiveModal(SettingsModal.RegionalFinance);
+  }, []);
+
+  const onOpenExportData = useCallback(() => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setActiveModal(SettingsModal.ExportData);
+  }, []);
+
+  const onOpenImportData = useCallback(() => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setActiveModal(SettingsModal.ImportData);
   }, []);
 
   const onOpenHelpFaq = useCallback(() => {
@@ -435,6 +650,195 @@ export const useSettingsViewModel = ({
     [updateTwoFactorAuthPreferenceUseCase],
   );
 
+  const onChangeRegionalFinanceCountry = useCallback((value: string) => {
+    const countryPolicy = resolveRegionalFinancePolicy({
+      countryCode: value,
+      currencyCode: regionalFinanceSettings.currencyCode,
+      defaultTaxRatePercent: regionalFinanceSettings.defaultTaxRatePercent,
+      defaultTaxMode: regionalFinanceSettings.taxMode,
+    });
+
+    setRegionalFinanceSettings((current) => ({
+      ...current,
+      countryCode: countryPolicy.countryCode,
+      countryName: countryPolicy.countryName,
+      currencyCode: countryPolicy.currencyCode,
+      defaultTaxRatePercent: countryPolicy.defaultTaxRatePercent,
+    }));
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  }, [regionalFinanceSettings.currencyCode, regionalFinanceSettings.defaultTaxRatePercent, regionalFinanceSettings.taxMode]);
+
+  const onChangeRegionalFinanceCurrency = useCallback((value: string) => {
+    const normalizedCurrencyCode = value.trim().toUpperCase();
+    if (!normalizedCurrencyCode) {
+      return;
+    }
+
+    setRegionalFinanceSettings((current) => ({
+      ...current,
+      currencyCode: normalizedCurrencyCode,
+    }));
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  }, []);
+
+  const onChangeRegionalFinanceTaxRate = useCallback((value: string) => {
+    const parsedValue = Number(value.trim());
+    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+      return;
+    }
+
+    setRegionalFinanceSettings((current) => ({
+      ...current,
+      defaultTaxRatePercent: parsedValue,
+    }));
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  }, []);
+
+  const onChangeRegionalFinanceTaxMode = useCallback((value: string) => {
+    if (value !== TaxMode.Exclusive && value !== TaxMode.Inclusive) {
+      return;
+    }
+
+    setRegionalFinanceSettings((current) => ({
+      ...current,
+      taxMode: value,
+    }));
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  }, []);
+
+  const onSaveRegionalFinance = useCallback(async (): Promise<void> => {
+    if (!regionalFinanceAccountSnapshot) {
+      setErrorMessage("Regional finance settings require an active account.");
+      return;
+    }
+
+    setIsSavingRegionalFinance(true);
+
+    const saveResult = await saveAccountUseCase.execute({
+      remoteId: regionalFinanceAccountSnapshot.remoteId,
+      ownerUserRemoteId: regionalFinanceAccountSnapshot.ownerUserRemoteId,
+      accountType: regionalFinanceAccountSnapshot.accountType,
+      businessType: regionalFinanceAccountSnapshot.businessType,
+      displayName: regionalFinanceAccountSnapshot.displayName,
+      currencyCode: regionalFinanceSettings.currencyCode,
+      cityOrLocation: regionalFinanceAccountSnapshot.cityOrLocation,
+      countryCode: regionalFinanceSettings.countryCode,
+      defaultTaxRatePercent: regionalFinanceSettings.defaultTaxRatePercent,
+      defaultTaxMode: regionalFinanceSettings.taxMode,
+      isActive: regionalFinanceAccountSnapshot.isActive,
+      isDefault: regionalFinanceAccountSnapshot.isDefault,
+    });
+
+    if (!saveResult.success) {
+      setErrorMessage(saveResult.error.message);
+      setIsSavingRegionalFinance(false);
+      return;
+    }
+
+    const resolvedFinancePolicy = resolveRegionalFinancePolicy({
+      countryCode: saveResult.value.countryCode,
+      currencyCode: saveResult.value.currencyCode,
+      defaultTaxRatePercent: saveResult.value.defaultTaxRatePercent,
+      defaultTaxMode: saveResult.value.defaultTaxMode,
+    });
+
+    setRegionalFinanceAccountSnapshot(saveResult.value);
+    setRegionalFinanceSettings({
+      countryCode: resolvedFinancePolicy.countryCode,
+      countryName: resolvedFinancePolicy.countryName,
+      currencyCode: resolvedFinancePolicy.currencyCode,
+      taxMode: resolvedFinancePolicy.defaultTaxMode,
+      defaultTaxRatePercent: resolvedFinancePolicy.defaultTaxRatePercent,
+    });
+    setErrorMessage(null);
+    setSuccessMessage("Regional finance settings updated.");
+    setIsSavingRegionalFinance(false);
+    setActiveModal(SettingsModal.None);
+  }, [regionalFinanceAccountSnapshot, regionalFinanceSettings.countryCode, regionalFinanceSettings.currencyCode, regionalFinanceSettings.defaultTaxRatePercent, regionalFinanceSettings.taxMode, saveAccountUseCase]);
+
+  const onChangeExportDataFormat = useCallback(
+    (value: SettingsDataTransferFormatValue) => {
+      setExportDataFormat(value);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    },
+    [],
+  );
+
+  const onToggleExportDataModule = useCallback(
+    (id: SettingsDataTransferModuleValue) => {
+      setExportModuleSelectionState((currentSelectionState) => ({
+        ...currentSelectionState,
+        [id]: !currentSelectionState[id],
+      }));
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    },
+    [],
+  );
+
+  const onSubmitExportData = useCallback(async () => {
+    const selectedModuleIds = exportDataModuleSelections
+      .filter((selection) => selection.selected)
+      .map((selection) => selection.id);
+
+    if (selectedModuleIds.length === 0) {
+      setErrorMessage("Select at least one data group to export.");
+      return;
+    }
+
+    setIsExportingData(true);
+
+    const result = await exportSettingsDataUseCase.execute({
+      format: exportDataFormat,
+      moduleIds: selectedModuleIds,
+    });
+
+    if (!result.success) {
+      setErrorMessage(result.error.message);
+      setIsExportingData(false);
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(
+      `Exported ${result.value.exportedRowCount} records to ${result.value.fileName}.`,
+    );
+    setIsExportingData(false);
+    setActiveModal(SettingsModal.None);
+  }, [
+    exportDataFormat,
+    exportDataModuleSelections,
+    exportSettingsDataUseCase,
+  ]);
+
+  const onImportDataModule = useCallback(
+    async (moduleId: SettingsDataTransferModuleValue) => {
+      setIsImportingData(true);
+
+      const result = await importSettingsDataUseCase.execute({ moduleId });
+      if (!result.success) {
+        if (result.error.message !== "Import cancelled.") {
+          setErrorMessage(result.error.message);
+        }
+        setIsImportingData(false);
+        return;
+      }
+
+      setErrorMessage(null);
+      setSuccessMessage(
+        `Imported ${result.value.importedRowCount} records${result.value.skippedRowCount > 0 ? ` (${result.value.skippedRowCount} skipped)` : ""}.`,
+      );
+      setIsImportingData(false);
+      setActiveModal(SettingsModal.None);
+    },
+    [importSettingsDataUseCase],
+  );
+
   const onReportBugFieldChange = useCallback(
     (field: keyof SettingsReportBugForm, value: string) => {
       setReportBugForm((current) => {
@@ -584,12 +988,28 @@ export const useSettingsViewModel = ({
       errorMessage,
       successMessage,
       pageTitle: "Settings",
-      sectionTitle: "Support & Preferences",
-      settingsRows: SETTINGS_ROWS,
+      settingsSections: SETTINGS_SECTIONS,
       appearanceSummaryLabel: buildAppearanceSummaryLabel(appearancePreferences),
+      regionalFinanceSummaryLabel: buildRegionalFinanceSummaryLabel(
+        regionalFinanceSettings,
+      ),
       selectedThemePreference: appearancePreferences.themePreference,
       selectedTextSizePreference: appearancePreferences.textSizePreference,
       compactModeEnabled: appearancePreferences.compactModeEnabled,
+      exportDataFormat,
+      exportDataModuleSelections,
+      importDataModuleOptions: SETTINGS_DATA_TRANSFER_MODULE_OPTIONS,
+      isExportingData,
+      isImportingData,
+      isSavingRegionalFinance,
+      regionalFinanceModalTitle: "Regional Finance",
+      regionalFinanceModalSubtitle:
+        "Country, currency, and tax defaults are account-level settings.",
+      regionalFinanceSettings,
+      regionalFinanceCountryOptions,
+      regionalFinanceCurrencyOptions,
+      regionalFinanceTaxRateOptions,
+      regionalFinanceTaxModeOptions: SETTINGS_TAX_MODE_OPTIONS,
       appearanceModalTitle: "Appearance",
       appearanceModalSubtitle: "Changes are saved automatically.",
       compactModeTitle: "Compact Mode",
@@ -610,6 +1030,9 @@ export const useSettingsViewModel = ({
       changePasswordForm,
       canOpenSecurity: Boolean(activeUserRemoteId),
       onOpenAppearance,
+      onOpenRegionalFinance,
+      onOpenExportData,
+      onOpenImportData,
       onOpenSecurity,
       onOpenHelpFaq,
       onOpenTermsPrivacy,
@@ -622,6 +1045,15 @@ export const useSettingsViewModel = ({
       onSelectThemePreference,
       onSelectTextSizePreference,
       onToggleCompactMode,
+      onChangeRegionalFinanceCountry,
+      onChangeRegionalFinanceCurrency,
+      onChangeRegionalFinanceTaxRate,
+      onChangeRegionalFinanceTaxMode,
+      onSaveRegionalFinance,
+      onChangeExportDataFormat,
+      onToggleExportDataModule,
+      onSubmitExportData,
+      onImportDataModule,
       onReportBugFieldChange,
       onSubmitBugReport,
       onSelectRating,
@@ -632,38 +1064,55 @@ export const useSettingsViewModel = ({
     }),
     [
       activeModal,
+      appearancePreferences,
       activeUserRemoteId,
       appVersionLabel,
-      appearancePreferences,
       biometricLoginEnabled,
       changePasswordForm,
       dataRightItems,
       deviceInfoLabel,
       errorMessage,
+      exportDataFormat,
+      exportDataModuleSelections,
       helpFaqItems,
       isChangingPassword,
+      isExportingData,
+      isImportingData,
       isLoading,
       isSavingAppearance,
+      isSavingRegionalFinance,
       isSavingPreference,
       isSubmittingBugReport,
       isSubmittingRating,
       onChangePasswordField,
+      onChangeExportDataFormat,
+      onChangeRegionalFinanceCountry,
+      onChangeRegionalFinanceCurrency,
+      onChangeRegionalFinanceTaxMode,
+      onChangeRegionalFinanceTaxRate,
       onCloseModal,
       onOpenAppearance,
       onOpenChangePassword,
+      onOpenExportData,
       onOpenHelpFaq,
+      onOpenImportData,
+      onOpenRegionalFinance,
       onOpenRateELekha,
       onOpenReportBug,
       onOpenSecurity,
       onOpenTermsPrivacy,
+      onImportDataModule,
       onRatingReviewChange,
       onReportBugFieldChange,
       onSelectRating,
       onSelectTextSizePreference,
       onSelectThemePreference,
+      onSubmitExportData,
       onSubmitBugReport,
       onSubmitPasswordChange,
+      onSaveRegionalFinance,
       onSubmitRating,
+      onToggleExportDataModule,
       onToggleBiometricLogin,
       onToggleCompactMode,
       onToggleTwoFactorAuth,
@@ -676,6 +1125,10 @@ export const useSettingsViewModel = ({
       supportContactItems,
       termsDocumentItems,
       twoFactorAuthEnabled,
+      regionalFinanceSettings,
+      regionalFinanceCountryOptions,
+      regionalFinanceCurrencyOptions,
+      regionalFinanceTaxRateOptions,
     ],
   );
 };

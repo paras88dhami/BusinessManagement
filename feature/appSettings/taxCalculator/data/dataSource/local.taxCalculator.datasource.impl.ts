@@ -5,11 +5,15 @@ import {
 } from "./taxCalculator.datasource";
 
 const TAX_TOOL_PRESET_RECORDS: readonly TaxToolPresetRecord[] = [
-  { code: "gst_5", label: "GST 5%", rate_percent: 5 },
-  { code: "gst_12", label: "GST 12%", rate_percent: 12 },
-  { code: "vat_13", label: "VAT 13%", rate_percent: 13 },
-  { code: "gst_18", label: "GST 18%", rate_percent: 18 },
-  { code: "gst_28", label: "GST 28%", rate_percent: 28 },
+  { code: "tax_0", label: "Tax 0%", rate_percent: 0 },
+  { code: "tax_5", label: "Tax 5%", rate_percent: 5 },
+  { code: "tax_7_5", label: "Tax 7.5%", rate_percent: 7.5 },
+  { code: "tax_10", label: "Tax 10%", rate_percent: 10 },
+  { code: "tax_12", label: "Tax 12%", rate_percent: 12 },
+  { code: "tax_13", label: "Tax 13%", rate_percent: 13 },
+  { code: "tax_15", label: "Tax 15%", rate_percent: 15 },
+  { code: "tax_18", label: "Tax 18%", rate_percent: 18 },
+  { code: "tax_28", label: "Tax 28%", rate_percent: 28 },
 ] as const;
 
 export const createLocalTaxCalculatorDatasource = (): TaxCalculatorDatasource => ({

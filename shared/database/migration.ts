@@ -675,7 +675,7 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
-     {
+    {
       toVersion: 28,
       steps: [
         addColumns({
@@ -710,6 +710,22 @@ export const migrations = schemaMigrations({
             { name: "submitted_at", type: "number", isIndexed: true },
             { name: "created_at", type: "number" },
             { name: "updated_at", type: "number" },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 29,
+      steps: [
+        addColumns({
+          table: "accounts",
+          columns: [
+            {
+              name: "default_tax_rate_percent",
+              type: "number",
+              isOptional: true,
+            },
+            { name: "default_tax_mode", type: "string", isOptional: true },
           ],
         }),
       ],

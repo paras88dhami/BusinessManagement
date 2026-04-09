@@ -19,6 +19,8 @@ export default function TaxCalculatorDashboardRoute() {
     activeAccountType,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -74,6 +76,8 @@ export default function TaxCalculatorDashboardRoute() {
     <GetTaxCalculatorSettingsScreenFactory
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      activeAccountDefaultTaxRatePercent={activeAccountDefaultTaxRatePercent}
+      activeAccountDefaultTaxMode={activeAccountDefaultTaxMode}
     />
   );
 }

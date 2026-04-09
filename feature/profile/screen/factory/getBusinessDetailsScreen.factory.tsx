@@ -9,7 +9,6 @@ type GetBusinessDetailsScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
   onNavigateHome: (accountType: AccountTypeValue) => void;
-  onLogout: () => Promise<void>;
   onBack: () => void;
 };
 
@@ -17,7 +16,6 @@ export function GetBusinessDetailsScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
   onNavigateHome,
-  onLogout,
   onBack,
 }: GetBusinessDetailsScreenFactoryProps) {
   const dependencies = useProfileScreenDependencies(appDatabase);
@@ -27,8 +25,6 @@ export function GetBusinessDetailsScreenFactory({
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
-    onOpenSettings: () => {},
-    onLogout,
     onBack,
   });
 

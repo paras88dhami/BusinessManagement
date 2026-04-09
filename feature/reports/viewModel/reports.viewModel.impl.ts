@@ -6,7 +6,7 @@ import {
   ReportScope,
 } from "@/feature/reports/types/report.entity.types";
 import { ReportsViewState } from "@/feature/reports/types/report.state.types";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReportsViewModel,
   UseReportsViewModelParams,
@@ -50,9 +50,24 @@ export const useReportsViewModel = (
     selectedReportId: null,
     detail: null,
   });
+  const activeLoadRequestRef = useRef(0);
 
   const loadDashboard = useCallback(
     async (period: ReportQuery["period"]) => {
+      if (
+        (accountType === AccountType.Business && !accountRemoteId) ||
+        (!ownerUserRemoteId && !accountRemoteId)
+      ) {
+        setState((current) => ({
+          ...current,
+          isLoading: false,
+          errorMessage: "Active report scope is missing.",
+        }));
+        return;
+      }
+
+      const requestId = activeLoadRequestRef.current + 1;
+      activeLoadRequestRef.current = requestId;
       setState((current) => ({ ...current, isLoading: true, errorMessage: null }));
       const result = await getReportsDashboardUseCase.execute(
         buildQuery({
@@ -62,6 +77,10 @@ export const useReportsViewModel = (
           period,
         }),
       );
+
+      if (requestId !== activeLoadRequestRef.current) {
+        return;
+      }
 
       if (!result.success) {
         setState((current) => ({
@@ -85,11 +104,24 @@ export const useReportsViewModel = (
 
   const loadDetail = useCallback(
     async (reportId: NonNullable<ReportQuery["reportId"]>, period: ReportQuery["period"]) => {
+      if (
+        (accountType === AccountType.Business && !accountRemoteId) ||
+        (!ownerUserRemoteId && !accountRemoteId)
+      ) {
+        setState((current) => ({
+          ...current,
+          isLoading: false,
+          errorMessage: "Active report scope is missing.",
+        }));
+        return;
+      }
+
+      const requestId = activeLoadRequestRef.current + 1;
+      activeLoadRequestRef.current = requestId;
       setState((current) => ({
         ...current,
         isLoading: true,
         errorMessage: null,
-        selectedReportId: reportId,
       }));
 
       const result = await getReportDetailUseCase.execute(
@@ -102,13 +134,15 @@ export const useReportsViewModel = (
         }),
       );
 
+      if (requestId !== activeLoadRequestRef.current) {
+        return;
+      }
+
       if (!result.success) {
         setState((current) => ({
           ...current,
           isLoading: false,
           errorMessage: result.error.message,
-          selectedReportId: null,
-          detail: null,
         }));
         return;
       }
@@ -130,7 +164,7 @@ export const useReportsViewModel = (
   }, [loadDashboard]);
 
   const onRefresh = useCallback(async () => {
-    if (state.selectedReportId) {
+    if (state.selectedReportId && state.detail) {
       await loadDetail(state.selectedReportId, state.activePeriod);
       return;
     }
@@ -144,7 +178,7 @@ export const useReportsViewModel = (
 
   const onSelectPeriod = useCallback(
     async (period: ReportQuery["period"]) => {
-      if (state.selectedReportId) {
+      if (state.selectedReportId && state.detail) {
         await loadDetail(state.selectedReportId, period);
         return;
       }

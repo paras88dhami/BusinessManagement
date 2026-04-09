@@ -110,7 +110,17 @@ const businessSections: readonly MoreDashboardSection[] = [
       {
         id: "profile",
         title: "Profile",
-        subtitle: "Your profile, switch account and logout",
+        subtitle: "Your profile and account details",
+      },
+      {
+        id: "settings",
+        title: "Settings",
+        subtitle: "Currency, tax, and app preferences",
+      },
+      {
+        id: "logout",
+        title: "Logout",
+        subtitle: "Sign out from this device",
       },
     ],
   },
@@ -177,7 +187,17 @@ const personalSections: readonly MoreDashboardSection[] = [
       {
         id: "profile",
         title: "Profile",
-        subtitle: "Your profile, switch account and logout",
+        subtitle: "Your profile and account details",
+      },
+      {
+        id: "settings",
+        title: "Settings",
+        subtitle: "Currency, tax, and app preferences",
+      },
+      {
+        id: "logout",
+        title: "Logout",
+        subtitle: "Sign out from this device",
       },
     ],
   },
@@ -205,6 +225,8 @@ export const useMoreDashboardViewModel = (
     onOpenTransactions,
     onOpenBudget,
     onOpenUserManagement,
+    onOpenSettings,
+    onLogout,
     hasMenuAccess,
   } = params;
 
@@ -262,6 +284,12 @@ export const useMoreDashboardViewModel = (
         case "userManagement":
           onOpenUserManagement();
           return;
+        case "settings":
+          onOpenSettings();
+          return;
+        case "logout":
+          void onLogout();
+          return;
         default:
           return;
       }
@@ -284,6 +312,8 @@ export const useMoreDashboardViewModel = (
       onOpenProfile,
       onOpenTransactions,
       onOpenUserManagement,
+      onOpenSettings,
+      onLogout,
     ],
   );
 

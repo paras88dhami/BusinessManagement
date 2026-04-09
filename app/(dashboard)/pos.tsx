@@ -16,6 +16,8 @@ export default function PosDashboardRoute() {
     activeUserRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
   } = useDashboardRouteContext();
 
   useEffect(() => {
@@ -49,6 +51,8 @@ export default function PosDashboardRoute() {
       activeSettlementAccountRemoteId={activeAccountRemoteId}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      activeAccountDefaultTaxRatePercent={activeAccountDefaultTaxRatePercent}
+      activeAccountDefaultTaxMode={activeAccountDefaultTaxMode}
     />
   );
 }

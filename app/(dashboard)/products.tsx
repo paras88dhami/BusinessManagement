@@ -16,6 +16,7 @@ export default function ProductsDashboardRoute() {
     activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
   } = useDashboardRouteContext();
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function ProductsDashboardRoute() {
       activeUserRemoteId={activeUserRemoteId}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      activeAccountDefaultTaxRatePercent={activeAccountDefaultTaxRatePercent}
     />
   );
 }

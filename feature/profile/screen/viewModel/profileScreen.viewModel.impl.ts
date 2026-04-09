@@ -28,8 +28,6 @@ export const useProfileScreenViewModel = (
     activeUserRemoteId,
     activeAccountRemoteId,
     onNavigateHome,
-    onOpenSettings,
-    onLogout,
     onBack,
   } = params;
 
@@ -178,8 +176,6 @@ export const useProfileScreenViewModel = (
       onCreateBusinessProfile: businessCreator.onCreateBusinessProfile,
 
       businessTypeOptions: PROFILE_BUSINESS_TYPE_OPTIONS,
-      onOpenSettings,
-      onLogout,
       onBack,
     }),
     [
@@ -212,8 +208,6 @@ export const useProfileScreenViewModel = (
       loader.isLoading,
       loader.loadError,
       onBack,
-      onOpenSettings,
-      onLogout,
       personalEditor.isPersonalEditing,
       personalEditor.isSavingPersonalProfile,
       personalEditor.onCancelPersonalEdit,

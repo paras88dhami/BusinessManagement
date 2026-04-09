@@ -15,7 +15,9 @@ export type MoreDashboardMenuItemId =
   | "emi"
   | "transactions"
   | "budget"
-  | "userManagement";
+  | "userManagement"
+  | "settings"
+  | "logout";
 
 export type MoreDashboardMenuItem = {
   id: MoreDashboardMenuItemId;

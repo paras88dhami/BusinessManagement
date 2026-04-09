@@ -10,10 +10,11 @@ export default function SettingsDashboardRoute() {
     hasActiveSession,
     hasActiveAccount,
     activeUserRemoteId,
+    activeAccountRemoteId,
   } = useDashboardRouteContext();
 
   const handleBack = useCallback(() => {
-    navigation.replace("/(dashboard)/profile");
+    navigation.replace("/(dashboard)/more");
   }, [navigation]);
 
   if (isLoading || !hasActiveSession || !hasActiveAccount) {
@@ -23,6 +24,7 @@ export default function SettingsDashboardRoute() {
   return (
     <GetSettingsScreenFactory
       activeUserRemoteId={activeUserRemoteId}
+      activeAccountRemoteId={activeAccountRemoteId}
       onBack={handleBack}
     />
   );

@@ -111,7 +111,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
             valueColor={colors.warning}
           />
           <StatCard
-            icon={<Text style={styles.currencyIcon}>{viewModel.currencyPrefix}</Text>}
+            icon={<Boxes size={18} color={colors.primary} />}
             value={formatCurrencyAmount({
               amount: viewModel.summary.stockValue,
               currencyCode: viewModel.currencyCode,
@@ -273,11 +273,6 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
     gap: spacing.sm,
-  },
-  currencyIcon: {
-    color: colors.primary,
-    fontFamily: "InterBold",
-    fontSize: 18,
   },
   bannerCard: {
     flexDirection: "row",

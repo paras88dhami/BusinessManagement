@@ -46,6 +46,7 @@ export type PosScreenViewModel = {
   screenTitle: string;
   currencyCode: string;
   countryCode: string | null;
+  taxSummaryLabel: string;
   slots: readonly PosSlot[];
   cartLines: readonly PosCartLine[];
   totals: PosTotals;

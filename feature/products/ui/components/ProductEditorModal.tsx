@@ -39,6 +39,7 @@ export function ProductEditorModal({
   onSubmit,
 }: ProductEditorModalProps) {
   const [isPickingImage, setIsPickingImage] = React.useState(false);
+  const isItemKind = form.kind === ProductKind.Item;
   const title = mode === "create" ? "New Product" : "Edit Product";
   const productImageUrl = form.imageUrl.trim();
   const categoryDropdownOptions = [
@@ -196,34 +197,34 @@ export function ProductEditorModal({
         />
       </View>
 
-      {form.kind === ProductKind.Item ? (
-        <View style={styles.doubleRow}>
-          <LabeledTextInput
-            label="Stock Quantity"
-            value={form.stockQuantity}
-            placeholder="0"
-            keyboardType="decimal-pad"
-            onChangeText={(value) => onChange("stockQuantity", value)}
-            containerStyle={styles.flexOne}
+      <View style={styles.doubleRow}>
+        <LabeledTextInput
+          label="Stock Quantity"
+          value={form.stockQuantity}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          onChangeText={(value) => onChange("stockQuantity", value)}
+          containerStyle={styles.flexOne}
+          editable={isItemKind}
+        />
+        <View style={[styles.flexOne, styles.fieldWrap]}>
+          <Text style={styles.inputLabel}>Unit</Text>
+          <Dropdown
+            value={form.unitLabel}
+            options={unitOptions.map((unitLabel) => ({
+              label: unitLabel,
+              value: unitLabel,
+            }))}
+            onChange={(value) => onChange("unitLabel", value)}
+            placeholder="Select unit"
+            modalTitle="Select unit"
+            showLeadingIcon={false}
+            triggerStyle={styles.dropdownTrigger}
+            triggerTextStyle={styles.dropdownText}
+            disabled={!isItemKind}
           />
-          <View style={[styles.flexOne, styles.fieldWrap]}>
-            <Text style={styles.inputLabel}>Unit</Text>
-            <Dropdown
-              value={form.unitLabel}
-              options={unitOptions.map((unitLabel) => ({
-                label: unitLabel,
-                value: unitLabel,
-              }))}
-              onChange={(value) => onChange("unitLabel", value)}
-              placeholder="Select unit"
-              modalTitle="Select unit"
-              showLeadingIcon={false}
-              triggerStyle={styles.dropdownTrigger}
-              triggerTextStyle={styles.dropdownText}
-            />
-          </View>
         </View>
-      ) : null}
+      </View>
 
       <LabeledTextInput
         label="SKU / Barcode"

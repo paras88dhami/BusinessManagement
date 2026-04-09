@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  Keyboard,
   Modal,
   Pressable,
   StyleProp,
@@ -21,7 +22,7 @@ export type DropdownOption = {
 
 type DropdownProps = {
   value: string;
-  options: DropdownOption[];
+  options: readonly DropdownOption[];
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -43,6 +44,8 @@ export function Dropdown({
   triggerTextStyle,
 }: DropdownProps) {
   const [visible, setVisible] = useState(false);
+  const reopenBlockedUntilRef = useRef(0);
+  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safeOptions = useMemo(
     () => (Array.isArray(options) ? options : []),
     [options],
@@ -52,8 +55,40 @@ export function Dropdown({
     return safeOptions.find((item) => item.value === value);
   }, [safeOptions, value]);
 
+  const closeDropdown = useCallback(() => {
+    if (!visible) {
+      return;
+    }
+    reopenBlockedUntilRef.current = Date.now() + 220;
+    setVisible(false);
+  }, [visible]);
+
+  const openDropdown = useCallback(() => {
+    if (disabled || visible || Date.now() < reopenBlockedUntilRef.current) {
+      return;
+    }
+
+    Keyboard.dismiss();
+    if (openTimeoutRef.current !== null) {
+      clearTimeout(openTimeoutRef.current);
+    }
+    openTimeoutRef.current = setTimeout(() => {
+      setVisible(true);
+      openTimeoutRef.current = null;
+    }, 90);
+  }, [disabled, visible]);
+
+  React.useEffect(() => {
+    return () => {
+      if (openTimeoutRef.current !== null) {
+        clearTimeout(openTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSelect = (nextValue: string) => {
     setVisible(false);
+    reopenBlockedUntilRef.current = Date.now() + 220;
     onChange(nextValue);
   };
 
@@ -61,11 +96,7 @@ export function Dropdown({
     <>
       <Pressable
         style={[styles.trigger, triggerStyle, disabled && styles.triggerDisabled]}
-        onPress={() => {
-          if (!disabled) {
-            setVisible(true);
-          }
-        }}
+        onPress={openDropdown}
         accessibilityRole="button"
         accessibilityState={{ disabled }}
       >
@@ -83,12 +114,12 @@ export function Dropdown({
         visible={visible}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setVisible(false)}
+        onRequestClose={closeDropdown}
       >
         <View style={styles.backdrop}>
           <Pressable
             style={styles.backdropDismissArea}
-            onPress={() => setVisible(false)}
+            onPress={closeDropdown}
           />
 
           <View style={styles.sheet}>

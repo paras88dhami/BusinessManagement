@@ -3,6 +3,7 @@ import {
   BUSINESS_TYPE_VALUES,
   BusinessTypeValue,
 } from "@/shared/constants/businessType.constants";
+import { TaxMode, TaxModeValue } from "@/shared/types/regionalFinance.types";
 import {
   AccountType,
   Account,
@@ -21,6 +22,52 @@ const normalizeOptional = (value: string | null): string | null => {
 
   const normalizedValue = value.trim();
   return normalizedValue.length > 0 ? normalizedValue : null;
+};
+
+const normalizeDefaultTaxRatePercent = (
+  value: number | null | undefined,
+): {
+  valid: true;
+  value: number | null;
+} | {
+  valid: false;
+  errorMessage: string;
+} => {
+  if (value === null || value === undefined) {
+    return { valid: true, value: null };
+  }
+
+  if (!Number.isFinite(value) || value < 0) {
+    return {
+      valid: false,
+      errorMessage: "Default tax rate must be a non-negative number.",
+    };
+  }
+
+  return { valid: true, value: Number(value) };
+};
+
+const normalizeDefaultTaxMode = (
+  value: TaxModeValue | string | null | undefined,
+): {
+  valid: true;
+  value: TaxModeValue | null;
+} | {
+  valid: false;
+  errorMessage: string;
+} => {
+  if (value === null || value === undefined) {
+    return { valid: true, value: null };
+  }
+
+  if (value === TaxMode.Exclusive || value === TaxMode.Inclusive) {
+    return { valid: true, value };
+  }
+
+  return {
+    valid: false,
+    errorMessage: "Default tax mode is invalid.",
+  };
 };
 
 const normalizeBusinessType = (
@@ -76,6 +123,8 @@ const mapAccountToSavePayload = (account: Account): SaveAccountPayload => ({
   currencyCode: account.currencyCode,
   cityOrLocation: account.cityOrLocation,
   countryCode: account.countryCode,
+  defaultTaxRatePercent: account.defaultTaxRatePercent,
+  defaultTaxMode: account.defaultTaxMode,
   isActive: account.isActive,
   isDefault: account.isDefault,
 });
@@ -142,9 +191,39 @@ export const createSaveAccountUseCase = (
       currencyCode: normalizeOptional(payload.currencyCode),
       cityOrLocation: normalizeOptional(payload.cityOrLocation),
       countryCode: normalizeOptional(payload.countryCode),
+      defaultTaxRatePercent: null,
+      defaultTaxMode: null,
       isActive: payload.isActive,
       isDefault: payload.isDefault,
     };
+
+    const normalizedDefaultTaxRatePercentResult = normalizeDefaultTaxRatePercent(
+      payload.defaultTaxRatePercent,
+    );
+    if (!normalizedDefaultTaxRatePercentResult.valid) {
+      return {
+        success: false,
+        error: AccountSelectionValidationError(
+          normalizedDefaultTaxRatePercentResult.errorMessage,
+        ),
+      };
+    }
+
+    const normalizedDefaultTaxModeResult = normalizeDefaultTaxMode(
+      payload.defaultTaxMode,
+    );
+    if (!normalizedDefaultTaxModeResult.valid) {
+      return {
+        success: false,
+        error: AccountSelectionValidationError(
+          normalizedDefaultTaxModeResult.errorMessage,
+        ),
+      };
+    }
+
+    normalizedPayload.defaultTaxRatePercent =
+      normalizedDefaultTaxRatePercentResult.value;
+    normalizedPayload.defaultTaxMode = normalizedDefaultTaxModeResult.value;
 
     if (normalizedPayload.isDefault) {
       const existingAccountsResult =

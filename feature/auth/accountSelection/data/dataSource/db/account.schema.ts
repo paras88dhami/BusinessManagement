@@ -11,6 +11,8 @@ export const accountsTable = tableSchema({
     { name: "currency_code", type: "string", isOptional: true },
     { name: "city_or_location", type: "string", isOptional: true },
     { name: "country_code", type: "string", isOptional: true },
+    { name: "default_tax_rate_percent", type: "number", isOptional: true },
+    { name: "default_tax_mode", type: "string", isOptional: true },
     { name: "is_active", type: "boolean" },
     { name: "is_default", type: "boolean" },
 

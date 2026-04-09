@@ -12,7 +12,6 @@ import { AccountSwitchSection } from "./sections/AccountSwitchSection";
 import { BusinessProfileSection } from "./sections/BusinessProfileSection";
 import { CreateBusinessProfileSection } from "./sections/CreateBusinessProfileSection";
 import { PersonalProfileSection } from "./sections/PersonalProfileSection";
-import { ProfileActionsSection } from "./sections/ProfileActionsSection";
 
 type ProfileScreenProps = {
   viewModel: ProfileScreenViewModel;
@@ -148,12 +147,6 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
         />
       ) : null}
 
-      {!viewModel.isLoading ? (
-        <ProfileActionsSection
-          onOpenSettings={viewModel.onOpenSettings}
-          onLogout={viewModel.onLogout}
-        />
-      ) : null}
     </ScreenContainer>
   );
 }

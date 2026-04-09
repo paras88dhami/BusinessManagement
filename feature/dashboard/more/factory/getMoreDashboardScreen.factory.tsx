@@ -22,6 +22,8 @@ type GetMoreDashboardScreenFactoryProps = {
   onOpenTransactions: () => void;
   onOpenBudget: () => void;
   onOpenUserManagement: () => void;
+  onOpenSettings: () => void;
+  onLogout: () => Promise<void>;
   hasMenuAccess: MoreDashboardMenuAccessPredicate;
 };
 
@@ -44,6 +46,8 @@ export function GetMoreDashboardScreenFactory({
   onOpenTransactions,
   onOpenBudget,
   onOpenUserManagement,
+  onOpenSettings,
+  onLogout,
   hasMenuAccess,
 }: GetMoreDashboardScreenFactoryProps) {
   const viewModel = useMoreDashboardViewModel({
@@ -65,6 +69,8 @@ export function GetMoreDashboardScreenFactory({
     onOpenTransactions,
     onOpenBudget,
     onOpenUserManagement,
+    onOpenSettings,
+    onLogout,
     hasMenuAccess,
   });
 

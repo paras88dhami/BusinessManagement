@@ -1,21 +1,26 @@
 import { useMemo } from "react";
 import { Status } from "@/shared/types/status.types";
 import { SignUpWithEmailUseCase } from "@/feature/auth/signUp/useCase/signUpWithEmail.useCase";
+import { SignUpSessionRecoveryInput } from "@/feature/auth/signUp/viewModel/signUp.viewModel";
 import { useSignUpViewModel } from "@/feature/auth/signUp/viewModel/signUp.viewModel.impl";
 import { AuthEntrySignUpViewModel } from "./authEntry.signUp.viewModel";
 
 type UseAuthEntrySignUpViewModelParams = {
   signUpWithEmailUseCase: SignUpWithEmailUseCase;
   onSuccess: () => void;
+  onSessionActivationFailed?: (
+    recovery: SignUpSessionRecoveryInput,
+  ) => void;
 };
 
 export const useAuthEntrySignUpViewModel = (
   params: UseAuthEntrySignUpViewModelParams,
 ): AuthEntrySignUpViewModel => {
-  const { signUpWithEmailUseCase, onSuccess } = params;
+  const { signUpWithEmailUseCase, onSuccess, onSessionActivationFailed } = params;
 
   const signUpViewModel = useSignUpViewModel(signUpWithEmailUseCase, {
     onSuccess,
+    onSessionActivationFailed,
   });
 
   const isSubmitting = signUpViewModel.state.status === Status.Loading;

@@ -1,4 +1,8 @@
 import {
+  ExportSettingsDataBundlePayload,
+  ExportSettingsDataBundleResult,
+  ImportSettingsDataBundlePayload,
+  ImportSettingsDataBundleResult,
   SettingsDatasourceError,
   SettingsUnknownError,
   SubmitAppRatingPayload,
@@ -105,6 +109,38 @@ export const createSettingsRepository = (
       }
 
       return { success: true, value: mapAppRatingModelToEntity(result.value) };
+    } catch {
+      return { success: false, error: SettingsUnknownError };
+    }
+  },
+
+  async exportDataBundle(
+    payload: ExportSettingsDataBundlePayload,
+  ): Promise<ExportSettingsDataBundleResult> {
+    try {
+      const result = await datasource.exportDataBundle(payload);
+
+      if (!result.success) {
+        return { success: false, error: mapDatasourceError() };
+      }
+
+      return { success: true, value: result.value };
+    } catch {
+      return { success: false, error: SettingsUnknownError };
+    }
+  },
+
+  async importDataBundle(
+    payload: ImportSettingsDataBundlePayload,
+  ): Promise<ImportSettingsDataBundleResult> {
+    try {
+      const result = await datasource.importDataBundle(payload);
+
+      if (!result.success) {
+        return { success: false, error: mapDatasourceError() };
+      }
+
+      return { success: true, value: result.value };
     } catch {
       return { success: false, error: SettingsUnknownError };
     }

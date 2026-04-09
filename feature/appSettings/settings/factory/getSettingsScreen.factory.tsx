@@ -11,6 +11,12 @@ import { createSubmitAppRatingUseCase } from "@/feature/appSettings/settings/use
 import { createSubmitBugReportUseCase } from "@/feature/appSettings/settings/useCase/submitBugReport.useCase.impl";
 import { createUpdateBiometricLoginPreferenceUseCase } from "@/feature/appSettings/settings/useCase/updateBiometricLoginPreference.useCase.impl";
 import { createUpdateTwoFactorAuthPreferenceUseCase } from "@/feature/appSettings/settings/useCase/updateTwoFactorAuthPreference.useCase.impl";
+import { createExportSettingsDataUseCase } from "@/feature/appSettings/settings/useCase/exportSettingsData.useCase.impl";
+import { createImportSettingsDataUseCase } from "@/feature/appSettings/settings/useCase/importSettingsData.useCase.impl";
+import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
+import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
+import { createGetAccountByRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccountByRemoteId.useCase.impl";
+import { createSaveAccountUseCase } from "@/feature/auth/accountSelection/useCase/saveAccount.useCase.impl";
 import { useSettingsViewModel } from "@/feature/appSettings/settings/viewModel/settings.viewModel.impl";
 import { createLocalAuthCredentialDatasource } from "@/feature/session/data/dataSource/local.authCredential.datasource.impl";
 import { createAuthCredentialRepository } from "@/feature/session/data/repository/authCredential.repository.impl";
@@ -20,11 +26,13 @@ import React from "react";
 
 type GetSettingsScreenFactoryProps = {
   activeUserRemoteId: string | null;
+  activeAccountRemoteId: string | null;
   onBack: () => void;
 };
 
 export function GetSettingsScreenFactory({
   activeUserRemoteId,
+  activeAccountRemoteId,
   onBack,
 }: GetSettingsScreenFactoryProps) {
   const appearanceDatasource = React.useMemo(
@@ -51,6 +59,22 @@ export function GetSettingsScreenFactory({
   const settingsRepository = React.useMemo(
     () => createSettingsRepository(settingsDatasource),
     [settingsDatasource],
+  );
+  const accountDatasource = React.useMemo(
+    () => createLocalAccountDatasource(appDatabase),
+    [],
+  );
+  const accountRepository = React.useMemo(
+    () => createAccountRepository(accountDatasource),
+    [accountDatasource],
+  );
+  const getAccountByRemoteIdUseCase = React.useMemo(
+    () => createGetAccountByRemoteIdUseCase(accountRepository),
+    [accountRepository],
+  );
+  const saveAccountUseCase = React.useMemo(
+    () => createSaveAccountUseCase(accountRepository),
+    [accountRepository],
   );
 
   const authCredentialDatasource = React.useMemo(
@@ -87,6 +111,14 @@ export function GetSettingsScreenFactory({
     () => createSubmitAppRatingUseCase(settingsRepository),
     [settingsRepository],
   );
+  const exportSettingsDataUseCase = React.useMemo(
+    () => createExportSettingsDataUseCase(settingsRepository),
+    [settingsRepository],
+  );
+  const importSettingsDataUseCase = React.useMemo(
+    () => createImportSettingsDataUseCase(settingsRepository),
+    [settingsRepository],
+  );
   const changePasswordUseCase = React.useMemo(
     () =>
       createChangePasswordUseCase(
@@ -98,6 +130,7 @@ export function GetSettingsScreenFactory({
 
   const viewModel = useSettingsViewModel({
     activeUserRemoteId,
+    activeAccountRemoteId,
     getAppearancePreferencesUseCase,
     saveAppearancePreferencesUseCase,
     getSettingsBootstrapUseCase,
@@ -105,7 +138,11 @@ export function GetSettingsScreenFactory({
     updateTwoFactorAuthPreferenceUseCase,
     submitBugReportUseCase,
     submitAppRatingUseCase,
+    exportSettingsDataUseCase,
+    importSettingsDataUseCase,
     changePasswordUseCase,
+    getAccountByRemoteIdUseCase,
+    saveAccountUseCase,
   });
 
   return <SettingsScreen viewModel={viewModel} onBack={onBack} />;

@@ -16,6 +16,7 @@ type Props = {
   activeUserRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
 };
 
 export function GetProductsScreenFactory({
@@ -23,6 +24,7 @@ export function GetProductsScreenFactory({
   activeUserRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
 }: Props) {
   const permissionAccess = useAccountPermissionAccess({
     activeUserRemoteId,
@@ -54,6 +56,7 @@ export function GetProductsScreenFactory({
     accountRemoteId: activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
     canManage: permissionAccess.hasPermission(PRODUCTS_MANAGE_PERMISSION_CODE),
     getProductsUseCase,
     saveProductUseCase,

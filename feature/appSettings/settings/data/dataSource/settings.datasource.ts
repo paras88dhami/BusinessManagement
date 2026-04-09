@@ -1,7 +1,13 @@
 import { Result } from "@/shared/types/result.types";
 import { AppRatingModel } from "./db/appRating.model";
 import { BugReportModel } from "./db/bugReport.model";
-import { BugSeverityValue } from "../../types/settings.types";
+import {
+  BugSeverityValue,
+  ExportSettingsDataBundlePayload,
+  ImportSettingsDataBundlePayload,
+  SettingsDataImportSummary,
+  SettingsDataTransferBundle,
+} from "../../types/settings.types";
 
 export type SecurityPreferencesRecord = {
   biometric_login_enabled: boolean;
@@ -59,4 +65,10 @@ export interface SettingsDatasource {
     starCount: number;
     review: string | null;
   }): Promise<Result<AppRatingModel>>;
+  exportDataBundle(
+    payload: ExportSettingsDataBundlePayload,
+  ): Promise<Result<SettingsDataTransferBundle>>;
+  importDataBundle(
+    payload: ImportSettingsDataBundlePayload,
+  ): Promise<Result<SettingsDataImportSummary>>;
 }

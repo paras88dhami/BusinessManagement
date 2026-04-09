@@ -1,4 +1,8 @@
 import {
+  ExportSettingsDataBundlePayload,
+  ExportSettingsDataBundleResult,
+  ImportSettingsDataBundlePayload,
+  ImportSettingsDataBundleResult,
   SettingsBootstrapResult,
   SettingsOperationResult,
   SubmitAppRatingPayload,
@@ -16,4 +20,10 @@ export interface SettingsRepository {
   updateTwoFactorAuthEnabled(enabled: boolean): Promise<SettingsOperationResult>;
   submitBugReport(payload: SubmitBugReportPayload): Promise<SubmitBugReportResult>;
   submitAppRating(payload: SubmitAppRatingPayload): Promise<SubmitAppRatingResult>;
+  exportDataBundle(
+    payload: ExportSettingsDataBundlePayload,
+  ): Promise<ExportSettingsDataBundleResult>;
+  importDataBundle(
+    payload: ImportSettingsDataBundlePayload,
+  ): Promise<ImportSettingsDataBundleResult>;
 }

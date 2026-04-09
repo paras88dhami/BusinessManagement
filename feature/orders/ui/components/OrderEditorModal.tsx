@@ -1,4 +1,5 @@
 import {
+  OrderFormPricingPreview,
   OrderFormState,
   OrderLineFormState,
 } from "@/feature/orders/viewModel/orders.viewModel";
@@ -8,7 +9,6 @@ import {
   DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -21,15 +21,34 @@ type Props = {
   mode: "create" | "edit";
   canManage: boolean;
   form: OrderFormState;
+  formPricingPreview: OrderFormPricingPreview;
   customerOptions: DropdownOption[];
+  customerPhoneByRemoteId: Readonly<Record<string, string | null>>;
   productOptions: DropdownOption[];
-  statusOptions: DropdownOption[];
+  productPriceByRemoteId: Readonly<Record<string, number>>;
+  paymentMethodOptions: readonly DropdownOption[];
   onClose: () => void;
   onChange: (field: keyof Omit<OrderFormState, "items">, value: string) => void;
-  onLineItemChange: (remoteId: string, field: keyof OrderLineFormState, value: string) => void;
+  onLineItemChange: (
+    remoteId: string,
+    field: keyof OrderLineFormState,
+    value: string,
+  ) => void;
   onAddLineItem: () => void;
   onRemoveLineItem: (remoteId: string) => void;
   onSubmit: () => Promise<void>;
+};
+
+const formatCompactAmount = (amount: number): string => {
+  if (!Number.isFinite(amount)) {
+    return "0";
+  }
+
+  if (Math.round(amount) === amount) {
+    return String(amount);
+  }
+
+  return amount.toFixed(2);
 };
 
 export function OrderEditorModal({
@@ -37,9 +56,12 @@ export function OrderEditorModal({
   mode,
   canManage,
   form,
+  formPricingPreview,
   customerOptions,
+  customerPhoneByRemoteId,
   productOptions,
-  statusOptions,
+  productPriceByRemoteId,
+  paymentMethodOptions,
   onClose,
   onChange,
   onLineItemChange,
@@ -47,145 +69,155 @@ export function OrderEditorModal({
   onRemoveLineItem,
   onSubmit,
 }: Props) {
-  const title = mode === "create" ? "Create Order" : "Update Order";
+  const title =
+    mode === "create" ? "Create Order" : `Edit ${form.orderNumber || "Order"}`;
   const lineItems = Array.isArray(form.items) ? form.items : [];
+  const selectedCustomerPhone = form.customerRemoteId
+    ? customerPhoneByRemoteId[form.customerRemoteId] ?? ""
+    : "";
 
   return (
     <FormSheetModal
       visible={visible}
       title={title}
-      subtitle="Manage business orders with products, customer, and status"
       onClose={onClose}
+      presentation="dialog"
       contentContainerStyle={styles.content}
       footer={
-        <FormModalActionFooter>
-          <AppButton
-            label="Cancel"
-            variant="secondary"
-            size="lg"
-            style={styles.actionButton}
-            onPress={onClose}
-          />
-          <AppButton
-            label={mode === "create" ? "Create Order" : "Save Changes"}
-            size="lg"
-            style={styles.actionButton}
-            onPress={() => void onSubmit()}
-            disabled={!canManage}
-          />
-        </FormModalActionFooter>
+        <AppButton
+          label={mode === "create" ? "Create Order" : "Update Order"}
+          size="lg"
+          style={styles.submitButton}
+          onPress={() => void onSubmit()}
+          disabled={!canManage}
+        />
       }
     >
-      <LabeledTextInput
-        label="Order Number"
-        value={form.orderNumber}
-        editable={false}
-        helperText="Order number follows the current billing-style sequence in this codebase."
-      />
-
-      <LabeledTextInput
-        label="Order Date"
-        value={form.orderDate}
-        onChangeText={(value) => onChange("orderDate", value)}
-        placeholder="YYYY-MM-DD"
-      />
-
       <View style={styles.fieldWrap}>
         <Text style={styles.fieldLabel}>Customer</Text>
         <Dropdown
           value={form.customerRemoteId}
           options={customerOptions}
           onChange={(value) => onChange("customerRemoteId", value)}
-          placeholder="Select customer"
+          placeholder="Customer name"
           modalTitle="Select customer"
           showLeadingIcon={false}
         />
       </View>
 
+      <LabeledTextInput
+        label="Phone"
+        value={selectedCustomerPhone}
+        placeholder="Phone number"
+        editable={false}
+      />
+
+      <View style={styles.itemsHeaderRow}>
+        <Text style={styles.fieldLabel}>Items</Text>
+      </View>
+
+      <View style={styles.itemsWrap}>
+        {lineItems.map((item) => {
+          const salePriceAmount = productPriceByRemoteId[item.productRemoteId] ?? 0;
+
+          return (
+            <View key={item.remoteId} style={styles.itemRow}>
+              <View style={styles.itemNameWrap}>
+                <Dropdown
+                  value={item.productRemoteId}
+                  options={productOptions}
+                  onChange={(value) =>
+                    onLineItemChange(item.remoteId, "productRemoteId", value)
+                  }
+                  placeholder="Item name"
+                  modalTitle="Select item"
+                  showLeadingIcon={false}
+                />
+              </View>
+              <LabeledTextInput
+                label=""
+                value={item.quantity}
+                onChangeText={(value) =>
+                  onLineItemChange(item.remoteId, "quantity", value)
+                }
+                keyboardType="decimal-pad"
+                placeholder="1"
+                containerStyle={styles.quantityWrap}
+                inputStyle={styles.centeredInput}
+              />
+              <LabeledTextInput
+                label=""
+                value={formatCompactAmount(salePriceAmount)}
+                editable={false}
+                containerStyle={styles.priceWrap}
+                inputStyle={styles.centeredInput}
+              />
+              {lineItems.length > 1 ? (
+                <Pressable
+                  style={styles.removeItemIconButton}
+                  onPress={() => onRemoveLineItem(item.remoteId)}
+                >
+                  <Trash2 size={14} color={colors.destructive} />
+                </Pressable>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+
+      <Pressable style={styles.addItemButton} onPress={onAddLineItem} disabled={!canManage}>
+        <Plus size={14} color={colors.success} />
+        <Text style={styles.addItemText}>Add Item</Text>
+      </Pressable>
+
+      <View style={styles.twoColumnGrid}>
+        <LabeledTextInput label="Discount" value="0" editable={false} />
+        <LabeledTextInput
+          label="Paid Amount"
+          value={formatCompactAmount(formPricingPreview.paidAmount)}
+          editable={false}
+        />
+      </View>
+
       <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Status</Text>
+        <Text style={styles.fieldLabel}>Payment Method</Text>
         <Dropdown
-          value={form.status}
-          options={statusOptions}
-          onChange={(value) => onChange("status", value)}
-          placeholder="Select status"
-          modalTitle="Select status"
+          value={form.tags}
+          options={paymentMethodOptions}
+          onChange={(value) => onChange("tags", value)}
+          placeholder="Select payment method"
+          modalTitle="Select payment method"
           showLeadingIcon={false}
         />
       </View>
 
       <LabeledTextInput
-        label="Delivery / Pickup Details"
-        value={form.deliveryOrPickupDetails}
-        onChangeText={(value) => onChange("deliveryOrPickupDetails", value)}
-        placeholder="Delivery note, pickup detail, or short logistics note"
-        multiline
-      />
-
-      <View style={styles.itemsHeaderRow}>
-        <Text style={styles.sectionTitle}>Order Items</Text>
-        <Pressable style={styles.addItemChip} onPress={onAddLineItem} disabled={!canManage}>
-          <Plus size={14} color={colors.primary} />
-          <Text style={styles.addItemText}>Add Item</Text>
-        </Pressable>
-      </View>
-
-      {lineItems.map((item, index) => (
-        <View key={item.remoteId} style={styles.lineCard}>
-          <Text style={styles.lineLabel}>Item {index + 1}</Text>
-          <View style={styles.fieldWrap}>
-            <Text style={styles.fieldLabel}>Product / Service</Text>
-            <Dropdown
-              value={item.productRemoteId}
-              options={productOptions}
-              onChange={(value) => onLineItemChange(item.remoteId, "productRemoteId", value)}
-              placeholder="Select product"
-              modalTitle="Select product"
-              showLeadingIcon={false}
-            />
-          </View>
-          <LabeledTextInput
-            label="Quantity"
-            value={item.quantity}
-            onChangeText={(value) => onLineItemChange(item.remoteId, "quantity", value)}
-            keyboardType="decimal-pad"
-            placeholder="1"
-          />
-          {lineItems.length > 1 ? (
-            <Pressable
-              style={styles.removeItemButton}
-              onPress={() => onRemoveLineItem(item.remoteId)}
-            >
-              <Trash2 size={14} color={colors.destructive} />
-              <Text style={styles.removeItemText}>Remove</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ))}
-
-      <LabeledTextInput
-        label="Tags"
-        value={form.tags}
-        onChangeText={(value) => onChange("tags", value)}
-        placeholder="Simple text tags"
-      />
-
-      <LabeledTextInput
-        label="Internal Remarks"
-        value={form.internalRemarks}
-        onChangeText={(value) => onChange("internalRemarks", value)}
-        placeholder="Internal order remarks"
-        multiline
-      />
-
-      <LabeledTextInput
         label="Notes"
         value={form.notes}
         onChangeText={(value) => onChange("notes", value)}
-        placeholder="Customer note or extra order note"
+        placeholder="Order notes..."
         multiline
       />
 
+      <View style={styles.totalCard}>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Subtotal</Text>
+          <Text style={styles.totalValue}>{formPricingPreview.subtotalLabel}</Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Tax ({formPricingPreview.taxRateLabel})</Text>
+          <Text style={styles.totalValue}>{formPricingPreview.taxLabel}</Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Discount</Text>
+          <Text style={styles.discountValue}>-{formPricingPreview.discountLabel}</Text>
+        </View>
+        <View style={styles.totalDivider} />
+        <View style={styles.totalRow}>
+          <Text style={styles.finalTotalLabel}>Total</Text>
+          <Text style={styles.finalTotalValue}>{formPricingPreview.totalLabel}</Text>
+        </View>
+      </View>
     </FormSheetModal>
   );
 }
@@ -193,6 +225,9 @@ export function OrderEditorModal({
 const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
+  },
+  submitButton: {
+    width: "100%",
   },
   fieldWrap: {
     gap: 6,
@@ -205,61 +240,99 @@ const styles = StyleSheet.create({
     letterSpacing: 0.45,
   },
   itemsHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    marginTop: spacing.xs,
+  },
+  itemsWrap: {
     gap: spacing.sm,
   },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.xs,
   },
-  addItemChip: {
-    minHeight: 32,
+  itemNameWrap: {
+    flex: 1,
+  },
+  quantityWrap: {
+    width: 58,
+  },
+  priceWrap: {
+    width: 66,
+  },
+  centeredInput: {
+    textAlign: "center",
+    paddingHorizontal: spacing.xs,
+  },
+  removeItemIconButton: {
+    width: 30,
+    height: 30,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.card,
+    marginBottom: 10,
+  },
+  addItemButton: {
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
   addItemText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
+    color: colors.success,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
   },
-  lineCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.md,
+  twoColumnGrid: {
+    flexDirection: "row",
     gap: spacing.sm,
-    backgroundColor: colors.secondary,
   },
-  lineLabel: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-  removeItemButton: {
-    alignSelf: "flex-start",
-    minHeight: 30,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.card,
+  totalCard: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "rgba(31, 99, 64, 0.08)",
+    backgroundColor: "#EAF4EF",
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: 4,
+  },
+  totalRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
+    gap: spacing.sm,
   },
-  removeItemText: {
-    color: colors.destructive,
-    fontSize: 12,
+  totalLabel: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontFamily: "InterMedium",
+  },
+  totalValue: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterMedium",
+  },
+  discountValue: {
+    color: colors.success,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
+  },
+  totalDivider: {
+    marginTop: 2,
+    marginBottom: 2,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  finalTotalLabel: {
+    color: colors.cardForeground,
+    fontSize: 15,
     fontFamily: "InterBold",
   },
-  actionButton: {
-    flex: 1,
+  finalTotalValue: {
+    color: colors.cardForeground,
+    fontSize: 22,
+    fontFamily: "InterBold",
   },
 });

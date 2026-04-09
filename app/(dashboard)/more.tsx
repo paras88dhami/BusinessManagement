@@ -1,14 +1,18 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { clearActiveUserSession } from "@/feature/appSettings/data/appSettings.store";
 import { GetMoreDashboardScreenFactory } from "@/feature/dashboard/more/factory/getMoreDashboardScreen.factory";
 import { MoreDashboardMenuItemId } from "@/feature/dashboard/more/types/moreDashboard.types";
 import { MORE_DASHBOARD_MENU_PERMISSION_CODE } from "@/feature/dashboard/more/types/moreDashboardPermission.constants";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
+import { useAppRouteSession } from "@/feature/session/ui/AppRouteSessionProvider";
+import appDatabase from "@/shared/database/appDatabase";
 import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
 import React, { useCallback } from "react";
 
 export default function MoreDashboardRoute() {
   const navigation = useSmoothNavigation();
+  const { refreshSession } = useAppRouteSession();
   const {
     isLoading,
     hasActiveSession,
@@ -73,9 +77,20 @@ export default function MoreDashboardRoute() {
     navigation.push("/(dashboard)/tax-calculator");
   }, [navigation]);
 
+  const handleOpenSettings = useCallback(() => {
+    navigation.push("/(dashboard)/settings");
+  }, [navigation]);
+
   const handleOpenNotes = useCallback(() => {
     navigation.push("/(dashboard)/notes");
   }, [navigation]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await clearActiveUserSession(appDatabase);
+      await refreshSession();
+    } catch {}
+  }, [refreshSession]);
 
   const handleOpenEmi = useCallback(() => {
     navigation.replace("/(dashboard)/emi-loans");
@@ -99,7 +114,7 @@ export default function MoreDashboardRoute() {
         return true;
       }
 
-      if (itemId === "profile") {
+      if (itemId === "profile" || itemId === "settings" || itemId === "logout") {
         return true;
       }
 
@@ -134,11 +149,13 @@ export default function MoreDashboardRoute() {
       onOpenContacts={handleOpenContacts}
       onOpenBilling={handleOpenBilling}
       onOpenTaxCalculator={handleOpenTaxCalculator}
+      onOpenSettings={handleOpenSettings}
       onOpenNotes={handleOpenNotes}
       onOpenEmi={handleOpenEmi}
       onOpenTransactions={handleOpenTransactions}
       onOpenBudget={handleOpenBudget}
       onOpenUserManagement={handleOpenUserManagement}
+      onLogout={handleLogout}
       hasMenuAccess={hasMenuAccess}
     />
   );

@@ -536,22 +536,38 @@ export const createReportsRepository = (
             current.lastAt = Math.max(current.lastAt, entry.happenedAt);
             grouped.set(entry.partyName, current);
           });
-          const items = [...grouped.entries()]
-            .map(([partyName, totals]) => ({
-              id: partyName,
-              title: partyName,
-              subtitle: `Last activity ${new Date(totals.lastAt).toLocaleDateString()}`,
-              value: formatCurrency(Math.abs(totals.receive - totals.pay)),
-              tone: totals.receive >= totals.pay ? ("positive" as const) : ("negative" as const),
-              progressRatio: null,
-            }))
-            .sort((a, b) => parseCurrencyNumber(b.value) - parseCurrencyNumber(a.value))
+          const balances = [...grouped.entries()]
+            .map(([partyName, totals]) => {
+              const outstandingAmount = Math.abs(totals.receive - totals.pay);
+              return {
+                partyName,
+                lastAt: totals.lastAt,
+                outstandingAmount,
+                tone:
+                  totals.receive >= totals.pay
+                    ? ("positive" as const)
+                    : ("negative" as const),
+              };
+            })
+            .sort((left, right) => right.outstandingAmount - left.outstandingAmount)
             .slice(0, 6);
-          const segments = items.map((item, index) => ({
-            label: item.title,
-            value: parseCurrencyNumber(item.value),
+          const items = balances.map((balance) => ({
+            id: balance.partyName,
+            title: balance.partyName,
+            subtitle: `Last activity ${new Date(balance.lastAt).toLocaleDateString()}`,
+            value: formatCurrency(balance.outstandingAmount),
+            tone: balance.tone,
+            progressRatio: null,
+          }));
+          const segments = balances.map((balance, index) => ({
+            label: balance.partyName,
+            value: balance.outstandingAmount,
             color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
           }));
+          const totalOutstanding = balances.reduce(
+            (sum, balance) => sum + balance.outstandingAmount,
+            0,
+          );
           return {
             success: true,
             value: {
@@ -560,7 +576,12 @@ export const createReportsRepository = (
               periodLabel: range.label,
               summaryCards: [
                 { id: "open-parties", label: "Open Parties", value: `${items.length}`, tone: "neutral" },
-                { id: "total-outstanding", label: "Outstanding", value: formatCurrency(segments.reduce((sum, segment) => sum + segment.value, 0)), tone: "negative" },
+                {
+                  id: "total-outstanding",
+                  label: "Outstanding",
+                  value: formatCurrency(totalOutstanding),
+                  tone: "negative",
+                },
               ],
               chartTitle: "Outstanding Balances",
               chartSubtitle: "Customer & supplier outstanding",
@@ -660,7 +681,7 @@ export const createReportsRepository = (
           const listItems = [...grouped.entries()].map(([accountName, totals]) => ({
             id: accountName,
             title: accountName,
-            subtitle: `Money In ${formatCurrency(totals.totalIn)} • Money Out ${formatCurrency(totals.totalOut)}`,
+            subtitle: `Money In ${formatCurrency(totals.totalIn)} | Money Out ${formatCurrency(totals.totalOut)}`,
             value: formatSignedCurrency(totals.totalIn - totals.totalOut),
             tone: totals.totalIn >= totals.totalOut ? ("positive" as const) : ("negative" as const),
             progressRatio: null,
@@ -712,22 +733,29 @@ export const createReportsRepository = (
           };
         }
         case ReportMenuItem.Stock: {
-          const listItems = products.map((product) => {
+          const stockRows = products.map((product) => {
             const movementDelta = inventoryMovements
               .filter((movement) => movement.productNameSnapshot === product.name)
               .reduce((sum, movement) => sum + movement.deltaQuantity, 0);
             const stockQuantity = product.stockQuantity ?? movementDelta;
             const valuation = stockQuantity * (product.costPrice ?? product.salePrice);
             return {
-              id: product.name,
-              title: product.name,
-              subtitle: `${product.categoryName ?? "General"} • ${stockQuantity} units`,
-              value: formatCurrency(valuation),
+              productName: product.name,
+              categoryLabel: product.categoryName ?? "General",
+              stockQuantity,
+              valuation,
               tone: stockQuantity <= 5 ? ("negative" as const) : ("positive" as const),
-              progressRatio: null,
             };
           });
-          const stockValue = listItems.reduce((sum, item) => sum + parseCurrencyNumber(item.value), 0);
+          const listItems = stockRows.map((row) => ({
+            id: row.productName,
+            title: row.productName,
+            subtitle: `${row.categoryLabel} | ${row.stockQuantity} units`,
+            value: formatCurrency(row.valuation),
+            tone: row.tone,
+            progressRatio: null,
+          }));
+          const stockValue = stockRows.reduce((sum, row) => sum + row.valuation, 0);
           return {
             success: true,
             value: {
@@ -788,8 +816,4 @@ export const createReportsRepository = (
     }
   },
   };
-};
-
-const parseCurrencyNumber = (value: string): number => {
-  return Number(value.replace(/[^0-9.-]/g, ""));
 };

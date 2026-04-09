@@ -19,13 +19,20 @@ import { ChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderSt
 import { Product } from "@/feature/products/types/product.types";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
-import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
+import { Transaction } from "@/feature/transactions/types/transaction.entity.types";
+import { GetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase";
+import {
+  formatCurrencyAmount,
+  resolveCurrencyCode,
+} from "@/shared/utils/currency/accountCurrency";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  OrderDetailPricingView,
   OrderDetailItemView,
   OrderDetailView,
   OrderFormState,
+  OrderFormPricingPreview,
   OrderLineFormState,
   OrderListItemView,
   OrderMoneyActionValue,
@@ -62,12 +69,38 @@ const EMPTY_MONEY_FORM: OrderMoneyFormState = {
   note: "",
 };
 
+const DEFAULT_ORDER_TAX_RATE_PERCENT = 13;
+const ORDER_PAYMENT_TITLE_PREFIX = "Order Payment ";
+const ORDER_REFUND_TITLE_PREFIX = "Order Refund ";
+const FALLBACK_PAYMENT_METHOD = "Cash";
+
+const ORDER_PAYMENT_METHOD_OPTIONS: readonly DropdownOption[] = [
+  { label: "Cash", value: "Cash" },
+  { label: "Bank Transfer", value: "Bank Transfer" },
+  { label: "Credit", value: "Credit" },
+  { label: "UPI/QR", value: "UPI/QR" },
+] as const;
+
+type OrderFinancialSnapshot = {
+  subtotalAmount: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balanceDueAmount: number;
+};
+
 const parseNumber = (value: string): number | null => {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? parsed : null;
 };
 const safeTrim = (value: string | null | undefined): string =>
   typeof value === "string" ? value.trim() : "";
+
+const normalizePaymentMethod = (value: string | null | undefined): string => {
+  const normalizedValue = safeTrim(value);
+  return normalizedValue.length > 0 ? normalizedValue : FALLBACK_PAYMENT_METHOD;
+};
 
 const formatDateInput = (timestamp: number): string =>
   new Date(timestamp).toISOString().slice(0, 10);
@@ -85,7 +118,7 @@ const mapOrderToForm = (order: Order): OrderFormState => {
     customerRemoteId: order.customerRemoteId ?? "",
     deliveryOrPickupDetails: order.deliveryOrPickupDetails ?? "",
     notes: order.notes ?? "",
-    tags: order.tags ?? "",
+    tags: normalizePaymentMethod(order.tags),
     internalRemarks: order.internalRemarks ?? "",
     status: order.status,
     items:
@@ -117,6 +150,63 @@ const buildNextOrderNumber = (orders: Order[]): string => {
   return `ORD-${String(maxSerial + 1).padStart(3, "0")}`;
 };
 
+const toOrderFinancialSnapshot = (params: {
+  lineSubtotalAmount: number;
+  taxRatePercent: number;
+  paidAmount: number;
+}): OrderFinancialSnapshot => {
+  const taxAmount = (params.lineSubtotalAmount * params.taxRatePercent) / 100;
+  const discountAmount = 0;
+  const totalAmount = params.lineSubtotalAmount + taxAmount - discountAmount;
+  const balanceDueAmount = Math.max(totalAmount - params.paidAmount, 0);
+
+  return {
+    subtotalAmount: params.lineSubtotalAmount,
+    taxAmount,
+    discountAmount,
+    totalAmount,
+    paidAmount: params.paidAmount,
+    balanceDueAmount,
+  };
+};
+
+const calculateOrderSubtotalAmount = (
+  order: Order,
+  productsByRemoteId: Map<string, Product>,
+): number => {
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+  return orderItems.reduce((subtotal, item) => {
+    const product = productsByRemoteId.get(item.productRemoteId);
+    const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
+    const salePrice = product ? product.salePrice : 0;
+
+    return subtotal + quantity * salePrice;
+  }, 0);
+};
+
+const calculatePaidAmount = (
+  orderNumber: string,
+  transactions: readonly Transaction[],
+): number => {
+  const trimmedOrderNumber = orderNumber.trim();
+  if (!trimmedOrderNumber) {
+    return 0;
+  }
+
+  return transactions.reduce((totalPaidAmount, transaction) => {
+    const transactionTitle = safeTrim(transaction.title);
+    if (transactionTitle === `${ORDER_PAYMENT_TITLE_PREFIX}${trimmedOrderNumber}`) {
+      return totalPaidAmount + transaction.amount;
+    }
+
+    if (transactionTitle === `${ORDER_REFUND_TITLE_PREFIX}${trimmedOrderNumber}`) {
+      return totalPaidAmount - transaction.amount;
+    }
+
+    return totalPaidAmount;
+  }, 0);
+};
+
 const buildItemsPreview = (
   order: Order,
   productsByRemoteId: Map<string, Product>,
@@ -137,12 +227,31 @@ const buildOrderListItemView = (params: {
   order: Order;
   contactsByRemoteId: Map<string, Contact>;
   productsByRemoteId: Map<string, Product>;
+  transactions: readonly Transaction[];
+  taxRatePercent: number;
+  currencyCode: string;
+  countryCode: string | null;
 }): OrderListItemView => {
-  const { order, contactsByRemoteId, productsByRemoteId } = params;
+  const {
+    order,
+    contactsByRemoteId,
+    productsByRemoteId,
+    transactions,
+    taxRatePercent,
+    currencyCode,
+    countryCode,
+  } = params;
   const orderItems = Array.isArray(order.items) ? order.items : [];
   const customerName = order.customerRemoteId
     ? contactsByRemoteId.get(order.customerRemoteId)?.fullName ?? "Customer not found"
     : "No customer";
+  const lineSubtotalAmount = calculateOrderSubtotalAmount(order, productsByRemoteId);
+  const paidAmount = calculatePaidAmount(order.orderNumber, transactions);
+  const financialSnapshot = toOrderFinancialSnapshot({
+    lineSubtotalAmount,
+    taxRatePercent,
+    paidAmount,
+  });
 
   return {
     remoteId: order.remoteId,
@@ -150,8 +259,26 @@ const buildOrderListItemView = (params: {
     status: order.status,
     orderDateLabel: formatDateLabel(order.orderDate),
     customerName,
+    paymentMethodLabel: normalizePaymentMethod(order.tags),
     itemCountLabel: `${orderItems.length} item${orderItems.length === 1 ? "" : "s"}`,
     itemsPreview: buildItemsPreview(order, productsByRemoteId),
+    totalLabel: formatCurrencyAmount({
+      amount: financialSnapshot.totalAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    balanceDueLabel:
+      financialSnapshot.balanceDueAmount > 0
+        ? formatCurrencyAmount({
+            amount: financialSnapshot.balanceDueAmount,
+            currencyCode,
+            countryCode,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+          })
+        : null,
   };
 };
 
@@ -159,24 +286,113 @@ const buildOrderDetailView = (params: {
   order: Order;
   contactsByRemoteId: Map<string, Contact>;
   productsByRemoteId: Map<string, Product>;
+  transactions: readonly Transaction[];
+  taxRatePercent: number;
+  currencyCode: string;
+  countryCode: string | null;
 }): OrderDetailView => {
-  const { order, contactsByRemoteId, productsByRemoteId } = params;
+  const {
+    order,
+    contactsByRemoteId,
+    productsByRemoteId,
+    transactions,
+    taxRatePercent,
+    currencyCode,
+    countryCode,
+  } = params;
   const orderItems = Array.isArray(order.items) ? order.items : [];
+  const customerContact = order.customerRemoteId
+    ? contactsByRemoteId.get(order.customerRemoteId) ?? null
+    : null;
   const customerName = order.customerRemoteId
-    ? contactsByRemoteId.get(order.customerRemoteId)?.fullName ?? "Customer not found"
+    ? customerContact?.fullName ?? "Customer not found"
     : "No customer";
 
   const items: OrderDetailItemView[] = orderItems.map((item) => ({
     remoteId: item.remoteId,
     productName: productsByRemoteId.get(item.productRemoteId)?.name ?? "Unknown item",
     quantityLabel: `${item.quantity}`,
+    unitPriceLabel: formatCurrencyAmount({
+      amount: productsByRemoteId.get(item.productRemoteId)?.salePrice ?? 0,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    lineTotalLabel: formatCurrencyAmount({
+      amount:
+        (productsByRemoteId.get(item.productRemoteId)?.salePrice ?? 0) *
+        (Number.isFinite(item.quantity) ? item.quantity : 0),
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
   }));
+
+  const lineSubtotalAmount = calculateOrderSubtotalAmount(order, productsByRemoteId);
+  const paidAmount = calculatePaidAmount(order.orderNumber, transactions);
+  const financialSnapshot = toOrderFinancialSnapshot({
+    lineSubtotalAmount,
+    taxRatePercent,
+    paidAmount,
+  });
+
+  const pricing: OrderDetailPricingView = {
+    ...financialSnapshot,
+    subtotalLabel: formatCurrencyAmount({
+      amount: financialSnapshot.subtotalAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    taxLabel: formatCurrencyAmount({
+      amount: financialSnapshot.taxAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    discountLabel: formatCurrencyAmount({
+      amount: financialSnapshot.discountAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    totalLabel: formatCurrencyAmount({
+      amount: financialSnapshot.totalAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    paidLabel: formatCurrencyAmount({
+      amount: financialSnapshot.paidAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    balanceDueLabel: formatCurrencyAmount({
+      amount: financialSnapshot.balanceDueAmount,
+      currencyCode,
+      countryCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }),
+    taxRateLabel: `${taxRatePercent}%`,
+  };
 
   return {
     order,
     customerName,
+    customerPhone: customerContact?.phoneNumber ?? null,
+    paymentMethodLabel: normalizePaymentMethod(order.tags),
     orderDateLabel: formatDateLabel(order.orderDate),
     items,
+    pricing,
   };
 };
 
@@ -186,6 +402,7 @@ type Params = {
   accountDisplayNameSnapshot: string;
   accountCurrencyCode: string | null;
   accountCountryCode: string | null;
+  accountDefaultTaxRatePercent: number | null;
   canManage: boolean;
   getOrdersUseCase: GetOrdersUseCase;
   getOrderByIdUseCase: GetOrderByIdUseCase;
@@ -199,6 +416,7 @@ type Params = {
   refundOrderUseCase: RefundOrderUseCase;
   getContactsUseCase: GetContactsUseCase;
   getProductsUseCase: GetProductsUseCase;
+  getTransactionsUseCase: GetTransactionsUseCase;
 };
 
 export const useOrdersViewModel = ({
@@ -207,6 +425,7 @@ export const useOrdersViewModel = ({
   accountDisplayNameSnapshot,
   accountCurrencyCode,
   accountCountryCode,
+  accountDefaultTaxRatePercent,
   canManage,
   getOrdersUseCase,
   getOrderByIdUseCase,
@@ -220,12 +439,14 @@ export const useOrdersViewModel = ({
   refundOrderUseCase,
   getContactsUseCase,
   getProductsUseCase,
+  getTransactionsUseCase,
 }: Params): OrdersViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<OrderFormState>(EMPTY_FORM);
@@ -250,6 +471,35 @@ export const useOrdersViewModel = ({
         countryCode: accountCountryCode,
       }),
     [accountCountryCode, accountCurrencyCode],
+  );
+  const taxRatePercent = useMemo(() => {
+    if (
+      accountDefaultTaxRatePercent !== null &&
+      Number.isFinite(accountDefaultTaxRatePercent) &&
+      accountDefaultTaxRatePercent >= 0
+    ) {
+      return accountDefaultTaxRatePercent;
+    }
+
+    return DEFAULT_ORDER_TAX_RATE_PERCENT;
+  }, [accountDefaultTaxRatePercent]);
+
+  const customerPhoneByRemoteId = useMemo<Readonly<Record<string, string | null>>>(
+    () =>
+      contacts.reduce<Record<string, string | null>>((map, contact) => {
+        map[contact.remoteId] = contact.phoneNumber;
+        return map;
+      }, {}),
+    [contacts],
+  );
+
+  const productPriceByRemoteId = useMemo<Readonly<Record<string, number>>>(
+    () =>
+      products.reduce<Record<string, number>>((map, product) => {
+        map[product.remoteId] = product.salePrice;
+        return map;
+      }, {}),
+    [products],
   );
 
   const customerOptions = useMemo<DropdownOption[]>(
@@ -284,6 +534,7 @@ export const useOrdersViewModel = ({
       setOrders([]);
       setContacts([]);
       setProducts([]);
+      setTransactions([]);
       setErrorMessage("A business account is required to manage orders.");
       setIsLoading(false);
       return;
@@ -291,10 +542,13 @@ export const useOrdersViewModel = ({
 
     setIsLoading(true);
 
-    const [ordersResult, contactsResult, productsResult] = await Promise.all([
+    const [ordersResult, contactsResult, productsResult, transactionsResult] = await Promise.all([
       getOrdersUseCase.execute({ accountRemoteId }),
       getContactsUseCase.execute({ accountRemoteId }),
       getProductsUseCase.execute(accountRemoteId),
+      ownerUserRemoteId
+        ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
+        : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
     ]);
 
     if (!ordersResult.success) {
@@ -318,12 +572,29 @@ export const useOrdersViewModel = ({
       return;
     }
 
+    if (!transactionsResult.success) {
+      setTransactions([]);
+      setErrorMessage(transactionsResult.error.message);
+      setIsLoading(false);
+      return;
+    }
+
     setOrders(Array.isArray(ordersResult.value) ? ordersResult.value : []);
     setContacts(Array.isArray(contactsResult.value) ? contactsResult.value : []);
     setProducts(Array.isArray(productsResult.value) ? productsResult.value : []);
+    setTransactions(
+      Array.isArray(transactionsResult.value) ? transactionsResult.value : [],
+    );
     setErrorMessage(null);
     setIsLoading(false);
-  }, [accountRemoteId, getContactsUseCase, getOrdersUseCase, getProductsUseCase]);
+  }, [
+    accountRemoteId,
+    getContactsUseCase,
+    getOrdersUseCase,
+    getProductsUseCase,
+    getTransactionsUseCase,
+    ownerUserRemoteId,
+  ]);
 
   useEffect(() => {
     void loadAll();
@@ -331,23 +602,49 @@ export const useOrdersViewModel = ({
 
   const refreshDetail = useCallback(
     async (remoteId: string) => {
-      const result = await getOrderByIdUseCase.execute(remoteId);
-      if (!result.success) {
-        setErrorMessage(result.error.message);
+      const [orderResult, transactionResult] = await Promise.all([
+        getOrderByIdUseCase.execute(remoteId),
+        ownerUserRemoteId
+          ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
+          : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
+      ]);
+
+      if (!orderResult.success) {
+        setErrorMessage(orderResult.error.message);
+        setDetail(null);
+        return;
+      }
+
+      if (!transactionResult.success) {
+        setErrorMessage(transactionResult.error.message);
         setDetail(null);
         return;
       }
 
       setDetail(
         buildOrderDetailView({
-          order: result.value,
+          order: orderResult.value,
           contactsByRemoteId,
           productsByRemoteId,
+          transactions: transactionResult.value,
+          taxRatePercent,
+          currencyCode: resolvedCurrencyCode,
+          countryCode: accountCountryCode,
         }),
       );
-      setStatusDraft(result.value.status);
+      setStatusDraft(orderResult.value.status);
     },
-    [contactsByRemoteId, getOrderByIdUseCase, productsByRemoteId],
+    [
+      accountRemoteId,
+      accountCountryCode,
+      contactsByRemoteId,
+      getOrderByIdUseCase,
+      getTransactionsUseCase,
+      ownerUserRemoteId,
+      productsByRemoteId,
+      resolvedCurrencyCode,
+      taxRatePercent,
+    ],
   );
 
   const summary = useMemo(() => ({
@@ -364,10 +661,97 @@ export const useOrdersViewModel = ({
           order,
           contactsByRemoteId,
           productsByRemoteId,
+          transactions,
+          taxRatePercent,
+          currencyCode: resolvedCurrencyCode,
+          countryCode: accountCountryCode,
         }),
       ),
-    [contactsByRemoteId, orders, productsByRemoteId],
+    [
+      accountCountryCode,
+      contactsByRemoteId,
+      orders,
+      productsByRemoteId,
+      resolvedCurrencyCode,
+      taxRatePercent,
+      transactions,
+    ],
   );
+
+  const formPricingPreview = useMemo<OrderFormPricingPreview>(() => {
+    const formItems = Array.isArray(form.items) ? form.items : [];
+    const lineSubtotalAmount = formItems.reduce((subtotal, item) => {
+      const quantity = parseNumber(item.quantity) ?? 0;
+      const salePrice = productPriceByRemoteId[item.productRemoteId] ?? 0;
+
+      return subtotal + quantity * salePrice;
+    }, 0);
+
+    const paidAmount =
+      editorMode === "edit" ? calculatePaidAmount(form.orderNumber, transactions) : 0;
+
+    const financialSnapshot = toOrderFinancialSnapshot({
+      lineSubtotalAmount,
+      taxRatePercent,
+      paidAmount,
+    });
+
+    return {
+      ...financialSnapshot,
+      subtotalLabel: formatCurrencyAmount({
+        amount: financialSnapshot.subtotalAmount,
+        currencyCode: resolvedCurrencyCode,
+        countryCode: accountCountryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      taxLabel: formatCurrencyAmount({
+        amount: financialSnapshot.taxAmount,
+        currencyCode: resolvedCurrencyCode,
+        countryCode: accountCountryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      discountLabel: formatCurrencyAmount({
+        amount: financialSnapshot.discountAmount,
+        currencyCode: resolvedCurrencyCode,
+        countryCode: accountCountryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      totalLabel: formatCurrencyAmount({
+        amount: financialSnapshot.totalAmount,
+        currencyCode: resolvedCurrencyCode,
+        countryCode: accountCountryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      paidLabel: formatCurrencyAmount({
+        amount: financialSnapshot.paidAmount,
+        currencyCode: resolvedCurrencyCode,
+        countryCode: accountCountryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      balanceDueLabel: formatCurrencyAmount({
+        amount: financialSnapshot.balanceDueAmount,
+        currencyCode: resolvedCurrencyCode,
+        countryCode: accountCountryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      taxRateLabel: `${taxRatePercent}%`,
+    };
+  }, [
+    accountCountryCode,
+    editorMode,
+    form.items,
+    form.orderNumber,
+    productPriceByRemoteId,
+    resolvedCurrencyCode,
+    taxRatePercent,
+    transactions,
+  ]);
 
   const onOpenCreate = useCallback(() => {
     if (!canManage) {
@@ -380,6 +764,7 @@ export const useOrdersViewModel = ({
       ...EMPTY_FORM,
       orderNumber: buildNextOrderNumber(orders),
       orderDate: new Date().toISOString().slice(0, 10),
+      tags: FALLBACK_PAYMENT_METHOD,
       items: [createEmptyLineItem()],
     });
     setErrorMessage(null);
@@ -736,11 +1121,15 @@ export const useOrdersViewModel = ({
       summary,
       orders: orderList,
       customerOptions,
+      customerPhoneByRemoteId,
       productOptions,
+      productPriceByRemoteId,
       statusOptions,
+      paymentMethodOptions: ORDER_PAYMENT_METHOD_OPTIONS,
       isEditorVisible,
       editorMode,
       form,
+      formPricingPreview,
       isDetailVisible,
       detail,
       isStatusModalVisible,
@@ -771,11 +1160,13 @@ export const useOrdersViewModel = ({
     }),
     [
       canManage,
+      customerPhoneByRemoteId,
       customerOptions,
       detail,
       editorMode,
       errorMessage,
       form,
+      formPricingPreview,
       isDetailVisible,
       isEditorVisible,
       isLoading,
@@ -803,6 +1194,7 @@ export const useOrdersViewModel = ({
       onSubmitMoneyAction,
       onSubmitStatus,
       orderList,
+      productPriceByRemoteId,
       productOptions,
       statusDraft,
       statusOptions,

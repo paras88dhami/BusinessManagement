@@ -9,11 +9,15 @@ import { createSaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPh
 import { useBillingViewModel } from "@/feature/billing/viewModel/billing.viewModel.impl";
 import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
 
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
+
 type Props = {
   database: Database;
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxModeValue | null;
   canManage: boolean;
 };
 
@@ -22,6 +26,8 @@ export function GetBillingScreenFactory({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
+  activeAccountDefaultTaxMode,
   canManage,
 }: Props) {
   const datasource = React.useMemo(
@@ -58,6 +64,8 @@ export function GetBillingScreenFactory({
     accountRemoteId: activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
     canManage,
     getBillingOverviewUseCase,
     saveBillingDocumentUseCase,

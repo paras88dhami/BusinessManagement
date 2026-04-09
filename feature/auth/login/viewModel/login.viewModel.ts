@@ -17,6 +17,11 @@ export interface LoginViewModel {
   isPasswordVisible: boolean;
   clearSubmitError: () => void;
   togglePasswordVisibility: () => void;
+  applySignUpRecovery: (params: {
+    phoneCountryCode: LoginPhoneCountryCode;
+    phoneNumber: string;
+    message: string;
+  }) => void;
   submit: () => Promise<void>;
 }
 

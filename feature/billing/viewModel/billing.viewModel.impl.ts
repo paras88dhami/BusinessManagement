@@ -15,8 +15,11 @@ import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillin
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
-import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import {
+  resolveRegionalFinancePolicy,
+} from "@/shared/utils/finance/regionalFinancePolicy";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 
 const createEmptyLineItem = (): BillingLineItemFormState => ({
   remoteId: Crypto.randomUUID(),
@@ -25,17 +28,17 @@ const createEmptyLineItem = (): BillingLineItemFormState => ({
   unitRate: "0",
 });
 
-const EMPTY_FORM: BillingDocumentFormState = {
+const createEmptyForm = (defaultTaxRatePercent: string): BillingDocumentFormState => ({
   remoteId: null,
   documentType: BillingDocumentType.Invoice,
   customerName: "",
   templateType: BillingTemplateType.StandardInvoice,
   status: BillingDocumentStatus.Pending,
-  taxRatePercent: "13",
+  taxRatePercent: defaultTaxRatePercent,
   notes: "",
   issuedAt: new Date().toISOString().slice(0, 10),
   items: [createEmptyLineItem()],
-};
+});
 
 const parseNumber = (value: string): number => {
   const parsed = Number(value.trim());
@@ -84,6 +87,8 @@ type Params = {
   accountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxModeValue | null;
   canManage: boolean;
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
@@ -95,12 +100,40 @@ export const useBillingViewModel = ({
   accountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
+  activeAccountDefaultTaxMode,
   canManage,
   getBillingOverviewUseCase,
   saveBillingDocumentUseCase,
   deleteBillingDocumentUseCase,
   saveBillPhotoUseCase,
 }: Params): BillingViewModel => {
+  const regionalFinancePolicy = useMemo(
+    () =>
+      resolveRegionalFinancePolicy({
+        countryCode: activeAccountCountryCode,
+        currencyCode: activeAccountCurrencyCode,
+        defaultTaxRatePercent: activeAccountDefaultTaxRatePercent,
+        defaultTaxMode: activeAccountDefaultTaxMode,
+      }),
+    [
+      activeAccountCountryCode,
+      activeAccountCurrencyCode,
+      activeAccountDefaultTaxMode,
+      activeAccountDefaultTaxRatePercent,
+    ],
+  );
+  const defaultTaxRatePercent = useMemo(
+    () => String(regionalFinancePolicy.defaultTaxRatePercent),
+    [regionalFinancePolicy.defaultTaxRatePercent],
+  );
+  const taxRateOptions = useMemo(
+    () =>
+      regionalFinancePolicy.taxRateOptions.map((ratePercent) =>
+        String(ratePercent),
+      ),
+    [regionalFinancePolicy.taxRateOptions],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [documents, setDocuments] = useState<BillingDocument[]>([]);
@@ -109,15 +142,10 @@ export const useBillingViewModel = ({
   const [activeTab, setActiveTab] = useState<BillingTabValue>("invoices");
   const [isTemplateModalVisible, setIsTemplateModalVisible] = useState(false);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
-  const [form, setForm] = useState<BillingDocumentFormState>(EMPTY_FORM);
-  const currencyCode = useMemo(
-    () =>
-      resolveCurrencyCode({
-        currencyCode: activeAccountCurrencyCode,
-        countryCode: activeAccountCountryCode,
-      }),
-    [activeAccountCountryCode, activeAccountCurrencyCode],
+  const [form, setForm] = useState<BillingDocumentFormState>(
+    createEmptyForm(defaultTaxRatePercent),
   );
+  const currencyCode = regionalFinancePolicy.currencyCode;
 
   const loadOverview = useCallback(async () => {
     if (!accountRemoteId) {
@@ -158,6 +186,12 @@ export const useBillingViewModel = ({
     return { subtotalAmount, taxAmount, totalAmount };
   }, [form.items, form.taxRatePercent]);
 
+  useEffect(() => {
+    if (!isEditorVisible) {
+      setForm(createEmptyForm(defaultTaxRatePercent));
+    }
+  }, [defaultTaxRatePercent, isEditorVisible]);
+
   const filteredDocuments = useMemo(() => {
     if (activeTab === "receipts") {
       return documents.filter((item) => item.documentType === BillingDocumentType.Receipt);
@@ -174,8 +208,9 @@ export const useBillingViewModel = ({
 
   const onOpenCreate = useCallback(() => {
     const nextDocumentType = activeTab === "receipts" ? BillingDocumentType.Receipt : BillingDocumentType.Invoice;
+    const baseForm = createEmptyForm(defaultTaxRatePercent);
     setForm({
-      ...EMPTY_FORM,
+      ...baseForm,
       documentType: nextDocumentType,
       templateType: nextDocumentType === BillingDocumentType.Receipt ? BillingTemplateType.PosReceipt : BillingTemplateType.StandardInvoice,
       items: [createEmptyLineItem()],
@@ -183,7 +218,7 @@ export const useBillingViewModel = ({
     });
     setErrorMessage(null);
     setIsEditorVisible(true);
-  }, [activeTab]);
+  }, [activeTab, defaultTaxRatePercent]);
 
   const onOpenEdit = useCallback((document: BillingDocument) => {
     setForm(mapDocumentToForm(document));
@@ -193,8 +228,8 @@ export const useBillingViewModel = ({
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
-  }, []);
+    setForm(createEmptyForm(defaultTaxRatePercent));
+  }, [defaultTaxRatePercent]);
 
   const onFormChange = useCallback((field: keyof Omit<BillingDocumentFormState, "items">, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -280,9 +315,17 @@ export const useBillingViewModel = ({
       return;
     }
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm(defaultTaxRatePercent));
     await loadOverview();
-  }, [accountRemoteId, canManage, documents, form, loadOverview, saveBillingDocumentUseCase]);
+  }, [
+    accountRemoteId,
+    canManage,
+    defaultTaxRatePercent,
+    documents,
+    form,
+    loadOverview,
+    saveBillingDocumentUseCase,
+  ]);
 
   const onDelete = useCallback(async (document: BillingDocument) => {
     const result = await deleteBillingDocumentUseCase.execute(document.remoteId);
@@ -309,7 +352,7 @@ export const useBillingViewModel = ({
       draftTotals.taxAmount,
       draftTotals.totalAmount,
       currencyCode,
-      activeAccountCountryCode,
+      regionalFinancePolicy.countryCode,
     );
     popup.document.open();
     popup.document.write(html);
@@ -319,12 +362,12 @@ export const useBillingViewModel = ({
       popup.print();
     }, 250);
   }, [
-    activeAccountCountryCode,
     currencyCode,
     draftTotals.subtotalAmount,
     draftTotals.taxAmount,
     draftTotals.totalAmount,
     form,
+    regionalFinancePolicy.countryCode,
   ]);
 
   const onPrintPreview = useCallback(() => {
@@ -428,7 +471,9 @@ export const useBillingViewModel = ({
     form,
     activeTemplateType,
     currencyCode,
-    countryCode: activeAccountCountryCode,
+    countryCode: regionalFinancePolicy.countryCode,
+    taxLabel: regionalFinancePolicy.taxLabel,
+    taxRateOptions,
     canManage,
     onRefresh: loadOverview,
     onTabChange: setActiveTab,
@@ -451,5 +496,36 @@ export const useBillingViewModel = ({
     onExportPdf,
     onUploadBillPhoto,
     draftTotals,
-  }), [activeTab, activeTemplateType, activeAccountCountryCode, billPhotos, canManage, currencyCode, draftTotals, editorTitle, errorMessage, filteredDocuments, form, isEditorVisible, isLoading, isTemplateModalVisible, loadOverview, onAddLineItem, onCloseEditor, onDelete, onExportPdf, onFormChange, onLineItemChange, onOpenCreate, onOpenEdit, onPrintPreview, onRemoveLineItem, onSubmit, onUploadBillPhoto, summary]);
+  }), [
+    activeTab,
+    activeTemplateType,
+    billPhotos,
+    canManage,
+    currencyCode,
+    draftTotals,
+    editorTitle,
+    errorMessage,
+    filteredDocuments,
+    form,
+    isEditorVisible,
+    isLoading,
+    isTemplateModalVisible,
+    loadOverview,
+    onAddLineItem,
+    onCloseEditor,
+    onDelete,
+    onExportPdf,
+    onFormChange,
+    onLineItemChange,
+    onOpenCreate,
+    onOpenEdit,
+    onPrintPreview,
+    onRemoveLineItem,
+    onSubmit,
+    onUploadBillPhoto,
+    regionalFinancePolicy.countryCode,
+    regionalFinancePolicy.taxLabel,
+    summary,
+    taxRateOptions,
+  ]);
 };

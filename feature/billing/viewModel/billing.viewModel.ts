@@ -47,6 +47,8 @@ export interface BillingViewModel {
   activeTemplateType: BillingTemplateTypeValue;
   currencyCode: string;
   countryCode: string | null;
+  taxLabel: string;
+  taxRateOptions: readonly string[];
   canManage: boolean;
   onRefresh: () => Promise<void>;
   onTabChange: (value: BillingTabValue) => void;

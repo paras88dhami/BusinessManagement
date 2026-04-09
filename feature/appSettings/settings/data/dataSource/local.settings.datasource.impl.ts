@@ -3,13 +3,26 @@ import {
   setBiometricLoginEnabled,
   setTwoFactorAuthEnabled,
 } from "@/feature/appSettings/data/appSettings.store";
+import { moneyAccountsTable } from "@/feature/accounts/data/dataSource/db/moneyAccount.schema";
+import { budgetPlansTable } from "@/feature/budget/data/dataSource/db/budgetPlan.schema";
+import { contactsTable } from "@/feature/contacts/data/dataSource/db/contact.schema";
+import { emiInstallmentsTable } from "@/feature/emiLoans/data/dataSource/db/emiInstallment.schema";
+import { emiPlansTable } from "@/feature/emiLoans/data/dataSource/db/emiPlan.schema";
+import { installmentPaymentLinksTable } from "@/feature/emiLoans/data/dataSource/db/installmentPaymentLink.schema";
+import { ledgerEntriesTable } from "@/feature/ledger/data/dataSource/db/ledger.schema";
+import { orderLinesTable } from "@/feature/orders/data/dataSource/db/orderLine.schema";
+import { ordersTable } from "@/feature/orders/data/dataSource/db/order.schema";
+import { productsTable } from "@/feature/products/data/dataSource/db/product.schema";
+import { transactionsTable } from "@/feature/transactions/data/dataSource/db/transaction.schema";
 import { Result } from "@/shared/types/result.types";
-import { Database } from "@nozbe/watermelondb";
+import { Database, Q } from "@nozbe/watermelondb";
 import { Platform } from "react-native";
 import {
-  SettingsBootstrapRecord,
-  SettingsDatasource,
-} from "./settings.datasource";
+  SettingsDataTransferModule,
+  SettingsDataTransferModuleValue,
+  SettingsDataTransferTable,
+} from "../../types/settings.types";
+import { SettingsBootstrapRecord, SettingsDatasource } from "./settings.datasource";
 import { BugReportModel } from "./db/bugReport.model";
 import { AppRatingModel } from "./db/appRating.model";
 
@@ -54,6 +67,156 @@ const DATA_RIGHT_ITEMS = [
   { id: "consent", label: "Update your consent preferences" },
 ] as const;
 
+type TransferColumnDefinition = {
+  name: string;
+  type: "string" | "number" | "boolean";
+  isOptional?: boolean;
+};
+
+type TransferTableDefinition = {
+  tableName: string;
+  columns: readonly TransferColumnDefinition[];
+};
+
+type TransferModuleDefinition = {
+  label: string;
+  tables: readonly TransferTableDefinition[];
+};
+
+type UnsafeAdapter = {
+  unsafeExecute: (params: { sqls: [string, unknown[]][] }) => Promise<void>;
+};
+
+const castTableColumns = (
+  schemaColumns: unknown,
+): readonly TransferColumnDefinition[] => {
+  const columnList = (Array.isArray(schemaColumns)
+    ? schemaColumns
+    : Object.values(
+        (schemaColumns ?? {}) as Record<
+          string,
+          { name: string; type: unknown; isOptional?: boolean }
+        >,
+      )) as ReadonlyArray<{
+    name: string;
+    type: unknown;
+    isOptional?: boolean;
+  }>;
+
+  return columnList
+    .filter(
+      (column): column is {
+        name: string;
+        type: "string" | "number" | "boolean";
+        isOptional?: boolean;
+      } =>
+        column.type === "string" ||
+        column.type === "number" ||
+        column.type === "boolean",
+    )
+    .map((column) => ({
+      name: column.name,
+      type: column.type,
+      isOptional: column.isOptional,
+    }));
+};
+
+const DATA_TRANSFER_MODULES: Record<
+  SettingsDataTransferModuleValue,
+  TransferModuleDefinition
+> = {
+  [SettingsDataTransferModule.Transactions]: {
+    label: "Transactions",
+    tables: [
+      {
+        tableName: transactionsTable.name,
+        columns: castTableColumns(transactionsTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.Products]: {
+    label: "Products",
+    tables: [
+      {
+        tableName: productsTable.name,
+        columns: castTableColumns(productsTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.Contacts]: {
+    label: "Contacts",
+    tables: [
+      {
+        tableName: contactsTable.name,
+        columns: castTableColumns(contactsTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.Orders]: {
+    label: "Orders",
+    tables: [
+      {
+        tableName: ordersTable.name,
+        columns: castTableColumns(ordersTable.columns),
+      },
+      {
+        tableName: orderLinesTable.name,
+        columns: castTableColumns(orderLinesTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.Budgets]: {
+    label: "Budgets",
+    tables: [
+      {
+        tableName: budgetPlansTable.name,
+        columns: castTableColumns(budgetPlansTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.Ledger]: {
+    label: "Ledger",
+    tables: [
+      {
+        tableName: ledgerEntriesTable.name,
+        columns: castTableColumns(ledgerEntriesTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.EmiLoans]: {
+    label: "EMI & Loans",
+    tables: [
+      {
+        tableName: emiPlansTable.name,
+        columns: castTableColumns(emiPlansTable.columns),
+      },
+      {
+        tableName: emiInstallmentsTable.name,
+        columns: castTableColumns(emiInstallmentsTable.columns),
+      },
+      {
+        tableName: installmentPaymentLinksTable.name,
+        columns: castTableColumns(installmentPaymentLinksTable.columns),
+      },
+    ],
+  },
+  [SettingsDataTransferModule.Accounts]: {
+    label: "Accounts",
+    tables: [
+      {
+        tableName: moneyAccountsTable.name,
+        columns: castTableColumns(moneyAccountsTable.columns),
+      },
+    ],
+  },
+};
+
+const getModuleDefinition = (
+  moduleId: SettingsDataTransferModuleValue,
+): TransferModuleDefinition | null => {
+  return DATA_TRANSFER_MODULES[moduleId] ?? null;
+};
+
 const normalizeRequired = (value: string): string => value.trim();
 const normalizeOptional = (value: string | null | undefined): string | null => {
   const normalized = value?.trim() ?? "";
@@ -62,6 +225,134 @@ const normalizeOptional = (value: string | null | undefined): string | null => {
 
 const createLocalRemoteId = (prefix: string): string => {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+};
+
+const createLocalRowId = (prefix: string): string => {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+};
+
+const normalizeBooleanValue = (
+  value: unknown,
+): 0 | 1 | null => {
+  if (typeof value === "boolean") {
+    return value ? 1 : 0;
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) return 1;
+    if (value === 0) return 0;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+      return 1;
+    }
+    if (normalized === "false" || normalized === "0") {
+      return 0;
+    }
+  }
+
+  return null;
+};
+
+const normalizeColumnValue = (
+  column: TransferColumnDefinition,
+  rawValue: unknown,
+): unknown => {
+  if (rawValue === undefined || rawValue === null) {
+    return null;
+  }
+
+  if (column.type === "number") {
+    if (typeof rawValue === "number" && Number.isFinite(rawValue)) {
+      return rawValue;
+    }
+
+    if (typeof rawValue === "string" && rawValue.trim().length > 0) {
+      const parsed = Number(rawValue.trim());
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  if (column.type === "boolean") {
+    return normalizeBooleanValue(rawValue);
+  }
+
+  if (typeof rawValue === "string") {
+    return rawValue;
+  }
+
+  return String(rawValue);
+};
+
+const normalizeImportedRows = (
+  table: TransferTableDefinition,
+  rows: readonly Record<string, unknown>[],
+): { preparedRows: [string, unknown[]][]; skippedRowCount: number } => {
+  const columns = ["id", ...table.columns.map((column) => column.name)];
+  const placeholders = columns.map(() => "?").join(", ");
+  const sql = `INSERT OR REPLACE INTO ${table.tableName} (${columns.join(", ")}) VALUES (${placeholders});`;
+
+  const preparedRows: [string, unknown[]][] = [];
+  let skippedRowCount = 0;
+  const now = Date.now();
+
+  for (const row of rows) {
+    const rowIdCandidate = row.id;
+    const rowId =
+      typeof rowIdCandidate === "string" && rowIdCandidate.trim().length > 0
+        ? rowIdCandidate.trim()
+        : createLocalRowId(table.tableName);
+
+    const values: unknown[] = [rowId];
+    let isValidRow = true;
+
+    for (const column of table.columns) {
+      const normalizedValue = normalizeColumnValue(column, row[column.name]);
+      const isMissingRequiredValue =
+        !column.isOptional &&
+        (normalizedValue === null ||
+          (typeof normalizedValue === "string" &&
+            normalizedValue.trim().length === 0));
+
+      if (isMissingRequiredValue) {
+        if (
+          column.type === "number" &&
+          (column.name === "created_at" || column.name === "updated_at")
+        ) {
+          values.push(now);
+          continue;
+        }
+
+        if (column.type === "string" && column.name === "sync_status") {
+          values.push("synced");
+          continue;
+        }
+
+        if (column.type === "boolean") {
+          values.push(0);
+          continue;
+        }
+
+        isValidRow = false;
+        break;
+      }
+
+      values.push(normalizedValue);
+    }
+
+    if (!isValidRow) {
+      skippedRowCount += 1;
+      continue;
+    }
+
+    preparedRows.push([sql, values]);
+  }
+
+  return { preparedRows, skippedRowCount };
 };
 
 const setCreatedAndUpdatedAt = (
@@ -243,6 +534,134 @@ export const createLocalSettingsDatasource = (
       });
 
       return { success: true, value: created };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async exportDataBundle(payload): Promise<Result<{
+    version: 1;
+    exportedAt: number;
+    modules: readonly {
+      moduleId: SettingsDataTransferModuleValue;
+      label: string;
+      tables: readonly SettingsDataTransferTable[];
+    }[];
+  }>> {
+    try {
+      const deduplicatedModuleIds = [...new Set(payload.moduleIds)];
+      const modules = [];
+
+      for (const moduleId of deduplicatedModuleIds) {
+        const moduleDefinition = getModuleDefinition(moduleId);
+        if (!moduleDefinition) {
+          continue;
+        }
+
+        const tables: SettingsDataTransferTable[] = [];
+
+        for (const table of moduleDefinition.tables) {
+          const collection = database.get<any>(table.tableName);
+          const hasSoftDeleteColumn = table.columns.some(
+            (column) => column.name === "deleted_at",
+          );
+          const whereClause = hasSoftDeleteColumn
+            ? " WHERE deleted_at IS NULL"
+            : "";
+          const query = `SELECT * FROM ${table.tableName}${whereClause};`;
+          const rows = await collection
+            .query(Q.unsafeSqlQuery(query))
+            .unsafeFetchRaw();
+
+          tables.push({
+            tableName: table.tableName,
+            columns: [
+              { name: "id", type: "string" },
+              ...table.columns.map((column) => ({
+                name: column.name,
+                type: column.type,
+              })),
+            ],
+            rows: rows.map((row) => ({ ...row })),
+          });
+        }
+
+        modules.push({
+          moduleId,
+          label: moduleDefinition.label,
+          tables,
+        });
+      }
+
+      return {
+        success: true,
+        value: {
+          version: 1,
+          exportedAt: Date.now(),
+          modules,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async importDataBundle(payload): Promise<Result<{
+    moduleId: SettingsDataTransferModuleValue;
+    importedRowCount: number;
+    skippedRowCount: number;
+  }>> {
+    try {
+      const moduleDefinition = getModuleDefinition(payload.moduleId);
+
+      if (!moduleDefinition) {
+        return {
+          success: false,
+          error: new Error("Unsupported import module."),
+        };
+      }
+
+      const importTableMap = new Map(
+        payload.tables.map((table) => [table.tableName, table]),
+      );
+      const sqlStatements: [string, unknown[]][] = [];
+      let skippedRowCount = 0;
+
+      for (const tableDefinition of moduleDefinition.tables) {
+        const tableData = importTableMap.get(tableDefinition.tableName);
+        if (!tableData) {
+          continue;
+        }
+
+        const normalizedRows = normalizeImportedRows(
+          tableDefinition,
+          tableData.rows,
+        );
+        skippedRowCount += normalizedRows.skippedRowCount;
+        sqlStatements.push(...normalizedRows.preparedRows);
+      }
+
+      if (sqlStatements.length > 0) {
+        await database.write(async () => {
+          const adapter = database.adapter as unknown as UnsafeAdapter;
+          await adapter.unsafeExecute({ sqls: sqlStatements });
+        });
+      }
+
+      return {
+        success: true,
+        value: {
+          moduleId: payload.moduleId,
+          importedRowCount: sqlStatements.length,
+          skippedRowCount,
+        },
+      };
     } catch (error) {
       return {
         success: false,

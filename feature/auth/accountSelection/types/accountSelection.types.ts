@@ -1,5 +1,6 @@
 import { Result } from "@/shared/types/result.types";
 import { BusinessTypeValue } from "@/shared/constants/businessType.constants";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 
 export const AccountType = {
   Personal: "personal",
@@ -28,6 +29,8 @@ export type SaveAccountPayload = {
   currencyCode: string | null;
   cityOrLocation: string | null;
   countryCode: string | null;
+  defaultTaxRatePercent?: number | null;
+  defaultTaxMode?: TaxModeValue | null;
   isActive: boolean;
   isDefault: boolean;
 };
@@ -41,6 +44,8 @@ export type Account = {
   currencyCode: string | null;
   cityOrLocation: string | null;
   countryCode: string | null;
+  defaultTaxRatePercent?: number | null;
+  defaultTaxMode?: TaxModeValue | null;
   isActive: boolean;
   isDefault: boolean;
   createdAt: number;

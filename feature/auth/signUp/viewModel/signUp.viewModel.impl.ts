@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useForm, useFormState, useWatch } from "react-hook-form";
 import {
   SIGN_UP_BUSINESS_TYPE_OPTIONS,
+  SignUpErrorType,
   SIGN_UP_PHONE_COUNTRY_OPTIONS,
   SignUpFormInput,
   SignUpInput,
@@ -194,6 +195,17 @@ export const useSignUpViewModel = (
           options.onSuccess();
 
           return;
+        }
+
+        if (
+          result.error.type === SignUpErrorType.SessionActivationFailed &&
+          options.onSessionActivationFailed
+        ) {
+          options.onSessionActivationFailed({
+            phoneCountryCode: payload.phoneCountryCode,
+            phoneNumber: normalizedPhoneDigits,
+            message: result.error.message,
+          });
         }
 
         setState({

@@ -14,6 +14,8 @@ import {
   PiggyBank,
   ShieldCheck,
   ShoppingCart,
+  LogOut,
+  Settings2,
   Tags,
   User,
   WalletCards,
@@ -52,7 +54,13 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
                 <View style={styles.iconWrap}>{getItemIcon(item.id)}</View>
 
                 <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle}>{item.title}</Text>
+                  <Text
+                    style={
+                      item.id === "logout" ? styles.logoutTitle : styles.rowTitle
+                    }
+                  >
+                    {item.title}
+                  </Text>
                   <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
                 </View>
 
@@ -102,6 +110,10 @@ const getItemIcon = (itemId: MoreDashboardMenuItemId) => {
       return <PiggyBank size={18} color={colors.primary} />;
     case "userManagement":
       return <ShieldCheck size={18} color={colors.primary} />;
+    case "settings":
+      return <Settings2 size={18} color={colors.primary} />;
+    case "logout":
+      return <LogOut size={18} color={colors.destructive} />;
     default:
       return <User size={18} color={colors.primary} />;
   }
@@ -143,6 +155,12 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+    marginBottom: 2,
+  },
+  logoutTitle: {
+    color: colors.destructive,
     fontSize: 14,
     fontFamily: "InterBold",
     marginBottom: 2,

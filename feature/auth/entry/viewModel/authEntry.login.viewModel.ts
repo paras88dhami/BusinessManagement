@@ -15,6 +15,11 @@ export interface AuthEntryLoginViewModel {
   clearSubmitError: () => void;
   isPasswordVisible: boolean;
   togglePasswordVisibility: () => void;
+  applySignUpRecovery: (params: {
+    phoneCountryCode: LoginPhoneCountryCode;
+    phoneNumber: string;
+    message: string;
+  }) => void;
   isSubmitting: boolean;
   submitError: string | null;
   submit: () => Promise<void>;

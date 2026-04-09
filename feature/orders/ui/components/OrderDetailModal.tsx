@@ -1,23 +1,51 @@
 import { OrderStatus } from "@/feature/orders/types/order.types";
 import { OrderDetailView } from "@/feature/orders/viewModel/orders.viewModel";
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { Pill } from "@/shared/components/reusable/List/Pill";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import {
+  Calendar,
+  CreditCard,
+  Edit2,
+  Phone,
+  Trash2,
+  User,
+} from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-const getStatusTone = (status: OrderDetailView["order"]["status"]) => {
+const isTerminalOrderStatus = (status: string): boolean =>
+  status === OrderStatus.Delivered ||
+  status === OrderStatus.Cancelled ||
+  status === OrderStatus.Returned;
+
+const getStatusChipStyles = (status: string) => {
   switch (status) {
+    case OrderStatus.Pending:
+      return {
+        container: styles.pendingStatusChip,
+        label: styles.pendingStatusLabel,
+      };
     case OrderStatus.Delivered:
-      return "success" as const;
-    case OrderStatus.Returned:
-      return "warning" as const;
+      return {
+        container: styles.deliveredStatusChip,
+        label: styles.deliveredStatusLabel,
+      };
     case OrderStatus.Cancelled:
-      return "danger" as const;
+      return {
+        container: styles.cancelledStatusChip,
+        label: styles.cancelledStatusLabel,
+      };
+    case OrderStatus.Returned:
+      return {
+        container: styles.returnedStatusChip,
+        label: styles.returnedStatusLabel,
+      };
     default:
-      return "neutral" as const;
+      return {
+        container: styles.defaultStatusChip,
+        label: styles.defaultStatusLabel,
+      };
   }
 };
 
@@ -42,17 +70,12 @@ export function OrderDetailModal({
   onClose,
   onOpenEdit,
   onOpenStatus,
-  onOpenPayment,
-  onOpenRefund,
-  onReturnOrder,
-  onCancelOrder,
   onDelete,
 }: Props) {
   return (
     <FormSheetModal
       visible={visible}
       title={detail ? detail.order.orderNumber : "Order Detail"}
-      subtitle={detail ? detail.customerName : "Loading order detail"}
       onClose={onClose}
       presentation="dialog"
       contentContainerStyle={styles.content}
@@ -63,119 +86,117 @@ export function OrderDetailModal({
         </View>
       ) : (
         <>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Status</Text>
-              <Pill label={detail.order.status.replace(/(^|\s)\w/g, (match) => match.toUpperCase())} tone={getStatusTone(detail.order.status)} />
+          <View style={styles.headerActionRow}>
+            <View style={styles.statusChipWrap}>
+              <View
+                style={[
+                  styles.statusChipBase,
+                  getStatusChipStyles(detail.order.status).container,
+                ]}
+              >
+                <Text style={getStatusChipStyles(detail.order.status).label}>
+                  {detail.order.status.replace(/(^|\s)\w/g, (match) =>
+                    match.toUpperCase(),
+                  )}
+                </Text>
+              </View>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Order Date</Text>
-              <Text style={styles.summaryValue}>{detail.orderDateLabel}</Text>
+            {canManage ? (
+              <View style={styles.inlineActionsRow}>
+                <Pressable
+                  style={styles.actionChip}
+                  onPress={() => void onOpenEdit(detail.order.remoteId)}
+                >
+                  <Edit2 size={12} color={colors.primary} />
+                  <Text style={styles.actionChipLabel}>Edit</Text>
+                </Pressable>
+                {!isTerminalOrderStatus(detail.order.status) ? (
+                  <Pressable style={styles.actionChip} onPress={onOpenStatus}>
+                    <Text style={styles.actionChipLabel}>Status</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  style={styles.deleteActionChip}
+                  onPress={() => onDelete(detail.order.remoteId)}
+                >
+                  <Trash2 size={12} color={colors.destructive} />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.customerCard}>
+            <View style={styles.customerRow}>
+              <User size={14} color={colors.primary} />
+              <Text style={styles.customerPrimary}>{detail.customerName}</Text>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Customer</Text>
-              <Text style={styles.summaryValue}>{detail.customerName}</Text>
+            {detail.customerPhone ? (
+              <View style={styles.customerRow}>
+                <Phone size={14} color={colors.primary} />
+                <Text style={styles.customerSecondary}>{detail.customerPhone}</Text>
+              </View>
+            ) : null}
+            <View style={styles.customerRow}>
+              <Calendar size={14} color={colors.primary} />
+              <Text style={styles.customerSecondary}>{detail.orderDateLabel}</Text>
+            </View>
+            <View style={styles.customerRow}>
+              <CreditCard size={14} color={colors.primary} />
+              <Text style={styles.customerSecondary}>{detail.paymentMethodLabel}</Text>
             </View>
           </View>
 
           <View style={styles.sectionWrap}>
-            <Text style={styles.sectionTitle}>Items</Text>
-            <View style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>Items</Text>
+            <View style={styles.itemsCard}>
               {detail.items.map((item) => (
-                <View key={item.remoteId} style={styles.lineRow}>
-                  <Text style={styles.lineTitle}>{item.productName}</Text>
-                  <Text style={styles.lineValue}>Qty {item.quantityLabel}</Text>
+                <View key={item.remoteId} style={styles.itemLineRow}>
+                  <View style={styles.itemLineLeft}>
+                    <Text style={styles.itemName}>{item.productName}</Text>
+                    <Text style={styles.itemMeta}>
+                      Qty: {item.quantityLabel} x {item.unitPriceLabel}
+                    </Text>
+                  </View>
+                  <Text style={styles.itemLineTotal}>{item.lineTotalLabel}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          {detail.order.deliveryOrPickupDetails ? (
-            <View style={styles.sectionWrap}>
-              <Text style={styles.sectionTitle}>Delivery / Pickup</Text>
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionBodyText}>{detail.order.deliveryOrPickupDetails}</Text>
-              </View>
+          <View style={styles.totalCard}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Subtotal</Text>
+              <Text style={styles.totalValue}>{detail.pricing.subtotalLabel}</Text>
             </View>
-          ) : null}
-
-          {detail.order.tags ? (
-            <View style={styles.sectionWrap}>
-              <Text style={styles.sectionTitle}>Tags</Text>
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionBodyText}>{detail.order.tags}</Text>
-              </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Tax ({detail.pricing.taxRateLabel})</Text>
+              <Text style={styles.totalValue}>{detail.pricing.taxLabel}</Text>
             </View>
-          ) : null}
-
-          {detail.order.internalRemarks ? (
-            <View style={styles.sectionWrap}>
-              <Text style={styles.sectionTitle}>Internal Remarks</Text>
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionBodyText}>{detail.order.internalRemarks}</Text>
-              </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Discount</Text>
+              <Text style={styles.discountValue}>-{detail.pricing.discountLabel}</Text>
             </View>
-          ) : null}
+            <View style={styles.totalDivider} />
+            <View style={styles.totalRow}>
+              <Text style={styles.totalBold}>Total</Text>
+              <Text style={styles.totalBold}>{detail.pricing.totalLabel}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Paid</Text>
+              <Text style={styles.paidValue}>{detail.pricing.paidLabel}</Text>
+            </View>
+            {detail.pricing.balanceDueAmount > 0 ? (
+              <View style={styles.totalRow}>
+                <Text style={styles.balanceLabel}>Balance Due</Text>
+                <Text style={styles.balanceValue}>{detail.pricing.balanceDueLabel}</Text>
+              </View>
+            ) : null}
+          </View>
 
           {detail.order.notes ? (
-            <View style={styles.sectionWrap}>
-              <Text style={styles.sectionTitle}>Notes</Text>
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionBodyText}>{detail.order.notes}</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {canManage ? (
-            <View style={styles.actionWrap}>
-              <AppButton
-                label="Edit Order"
-                size="lg"
-                style={styles.fullButton}
-                onPress={() => void onOpenEdit(detail.order.remoteId)}
-              />
-              <AppButton
-                label="Change Status"
-                size="lg"
-                variant="secondary"
-                style={styles.fullButton}
-                onPress={onOpenStatus}
-              />
-              <View style={styles.twoColumnRow}>
-                <AppButton
-                  label="Record Payment"
-                  size="md"
-                  variant="secondary"
-                  style={styles.flexButton}
-                  onPress={onOpenPayment}
-                />
-                <AppButton
-                  label="Refund"
-                  size="md"
-                  variant="secondary"
-                  style={styles.flexButton}
-                  onPress={onOpenRefund}
-                />
-              </View>
-              <View style={styles.twoColumnRow}>
-                <AppButton
-                  label="Mark Returned"
-                  size="md"
-                  variant="secondary"
-                  style={styles.flexButton}
-                  onPress={onReturnOrder}
-                />
-                <AppButton
-                  label="Cancel Order"
-                  size="md"
-                  variant="secondary"
-                  style={styles.flexButton}
-                  onPress={onCancelOrder}
-                />
-              </View>
-              <Pressable onPress={() => onDelete(detail.order.remoteId)}>
-                <Text style={styles.deleteText}>Delete Order</Text>
-              </Pressable>
+            <View style={styles.notesCard}>
+              <Text style={styles.notesTitle}>Notes</Text>
+              <Text style={styles.notesBody}>{detail.order.notes}</Text>
             </View>
           ) : null}
         </>
@@ -193,91 +214,236 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  summaryCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.secondary,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  summaryRow: {
+  headerActionRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
   },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
+  statusChipWrap: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  summaryValue: {
-    color: colors.cardForeground,
+  statusChipBase: {
+    minHeight: 30,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  defaultStatusChip: {
+    backgroundColor: colors.accent,
+  },
+  defaultStatusLabel: {
+    color: colors.primary,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  pendingStatusChip: {
+    backgroundColor: "rgba(242, 168, 29, 0.16)",
+  },
+  pendingStatusLabel: {
+    color: colors.warning,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  deliveredStatusChip: {
+    backgroundColor: "rgba(46, 139, 87, 0.16)",
+  },
+  deliveredStatusLabel: {
+    color: colors.success,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  cancelledStatusChip: {
+    backgroundColor: "rgba(228, 71, 71, 0.15)",
+  },
+  cancelledStatusLabel: {
+    color: colors.destructive,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  returnedStatusChip: {
+    backgroundColor: "rgba(242, 168, 29, 0.2)",
+  },
+  returnedStatusLabel: {
+    color: colors.warning,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  inlineActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  actionChip: {
+    minHeight: 30,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.accent,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  actionChipLabel: {
+    color: colors.primary,
     fontSize: 13,
     fontFamily: "InterSemiBold",
-    flexShrink: 1,
-    textAlign: "right",
+  },
+  deleteActionChip: {
+    minHeight: 30,
+    minWidth: 36,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: "rgba(228, 71, 71, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customerCard: {
+    borderWidth: 1,
+    borderColor: "rgba(31, 99, 64, 0.08)",
+    backgroundColor: "#EAF4EF",
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: 8,
+  },
+  customerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  customerPrimary: {
+    color: colors.cardForeground,
+    fontSize: 20,
+    fontFamily: "InterBold",
+    lineHeight: 24,
+  },
+  customerSecondary: {
+    color: colors.mutedForeground,
+    fontSize: 15,
+    fontFamily: "InterMedium",
   },
   sectionWrap: {
     gap: 6,
   },
-  sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+  sectionLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
     fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
-  sectionCard: {
+  itemsCard: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
     backgroundColor: colors.card,
-    padding: spacing.md,
-    gap: spacing.sm,
+    overflow: "hidden",
   },
-  lineRow: {
+  itemLineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  itemLineLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  itemName: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
+  },
+  itemMeta: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontFamily: "InterMedium",
+  },
+  itemLineTotal: {
+    color: colors.cardForeground,
+    fontSize: 14,
+    fontFamily: "InterBold",
+  },
+  totalCard: {
+    borderWidth: 1,
+    borderColor: "rgba(31, 99, 64, 0.08)",
+    backgroundColor: "#EAF4EF",
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: 6,
+  },
+  totalRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
   },
-  lineTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-    flex: 1,
-  },
-  lineValue: {
+  totalLabel: {
     color: colors.mutedForeground,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: "InterMedium",
   },
-  sectionBodyText: {
+  totalValue: {
     color: colors.cardForeground,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    fontFamily: "InterMedium",
   },
-  actionWrap: {
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
+  discountValue: {
+    color: colors.success,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
   },
-  fullButton: {
-    width: "100%",
+  totalDivider: {
+    marginTop: 2,
+    marginBottom: 2,
+    height: 1,
+    backgroundColor: colors.border,
   },
-  twoColumnRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  flexButton: {
-    flex: 1,
-  },
-  deleteText: {
-    color: colors.destructive,
-    fontSize: 13,
+  totalBold: {
+    color: colors.cardForeground,
+    fontSize: 15,
     fontFamily: "InterBold",
-    textAlign: "center",
-    paddingVertical: spacing.xs,
+  },
+  paidValue: {
+    color: colors.success,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
+  },
+  balanceLabel: {
+    color: colors.warning,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
+  },
+  balanceValue: {
+    color: colors.warning,
+    fontSize: 15,
+    fontFamily: "InterBold",
+  },
+  notesCard: {
+    borderWidth: 1,
+    borderColor: "rgba(31, 99, 64, 0.08)",
+    backgroundColor: "#EAF4EF",
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: 6,
+  },
+  notesTitle: {
+    color: colors.mutedForeground,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
+  },
+  notesBody: {
+    color: colors.cardForeground,
+    fontSize: 16,
+    fontFamily: "InterMedium",
   },
 });

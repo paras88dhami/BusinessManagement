@@ -21,6 +21,8 @@ export default function BillingDashboardRoute() {
     activeAccountType,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -79,6 +81,8 @@ export default function BillingDashboardRoute() {
       activeAccountRemoteId={activeAccountRemoteId}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
+      activeAccountDefaultTaxRatePercent={activeAccountDefaultTaxRatePercent}
+      activeAccountDefaultTaxMode={activeAccountDefaultTaxMode}
       canManage={canManageBilling}
     />
   );

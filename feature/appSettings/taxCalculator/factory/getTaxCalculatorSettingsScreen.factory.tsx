@@ -6,14 +6,20 @@ import { createCalculateTaxBreakdownUseCase } from "@/feature/appSettings/taxCal
 import { createGetTaxCalculatorPresetsUseCase } from "@/feature/appSettings/taxCalculator/useCase/getTaxCalculatorPresets.useCase.impl";
 import { useTaxCalculatorViewModel } from "@/feature/appSettings/taxCalculator/viewModel/taxCalculator.viewModel.impl";
 
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
+
 type Props = {
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  activeAccountDefaultTaxRatePercent: number | null;
+  activeAccountDefaultTaxMode: TaxModeValue | null;
 };
 
 export function GetTaxCalculatorSettingsScreenFactory({
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  activeAccountDefaultTaxRatePercent,
+  activeAccountDefaultTaxMode,
 }: Props) {
   const datasource = React.useMemo(() => createLocalTaxCalculatorDatasource(), []);
   const repository = React.useMemo(
@@ -32,6 +38,8 @@ export function GetTaxCalculatorSettingsScreenFactory({
   const viewModel = useTaxCalculatorViewModel({
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDefaultTaxRatePercent,
+    activeAccountDefaultTaxMode,
     getTaxCalculatorPresetsUseCase,
     calculateTaxBreakdownUseCase,
   });
