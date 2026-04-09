@@ -10,6 +10,7 @@ import {
 
 export interface LedgerEditorViewModel {
   state: LedgerEditorFormState;
+  partySuggestions: readonly string[];
   availableEntryTypes: readonly LedgerEntryTypeOptionState[];
   availablePaymentModes: readonly LedgerPaymentModeOptionState[];
   openCreate: (entryType: LedgerEntryTypeValue) => void;
@@ -20,6 +21,7 @@ export interface LedgerEditorViewModel {
   openEdit: (remoteId: string) => Promise<void>;
   close: () => void;
   onChangeEntryType: (entryType: LedgerEntryTypeValue) => void;
+  onSelectPartySuggestion: (value: string) => void;
   onChangePartyName: (value: string) => void;
   onChangeAmount: (value: string) => void;
   onChangeHappenedAt: (value: string) => void;

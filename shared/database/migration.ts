@@ -744,5 +744,16 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 31,
+      steps: [
+        addColumns({
+          table: "ledger_entries",
+          columns: [
+            { name: "linked_transaction_remote_id", type: "string", isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });

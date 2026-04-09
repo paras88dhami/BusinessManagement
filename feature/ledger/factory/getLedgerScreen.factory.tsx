@@ -20,6 +20,11 @@ import { useLedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.vi
 import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
+import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
+import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
+import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
+import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
+import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
@@ -111,6 +116,26 @@ export function GetLedgerScreenFactory({
     () => createGetLedgerEntriesByPartyUseCase(ledgerRepository),
     [ledgerRepository],
   );
+  const transactionDatasource = useMemo(
+    () => createLocalTransactionDatasource(appDatabase),
+    [],
+  );
+  const transactionRepository = useMemo(
+    () => createTransactionRepository(transactionDatasource),
+    [transactionDatasource],
+  );
+  const addTransactionUseCase = useMemo(
+    () => createAddTransactionUseCase(transactionRepository),
+    [transactionRepository],
+  );
+  const updateTransactionUseCase = useMemo(
+    () => createUpdateTransactionUseCase(transactionRepository),
+    [transactionRepository],
+  );
+  const deleteTransactionUseCase = useMemo(
+    () => createDeleteTransactionUseCase(transactionRepository),
+    [transactionRepository],
+  );
 
   const [accounts, setAccounts] = React.useState<readonly Account[]>([]);
 
@@ -180,10 +205,16 @@ export function GetLedgerScreenFactory({
   const editorViewModel = useLedgerEditorViewModel({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     activeBusinessAccountRemoteId,
+    activeBusinessAccountDisplayName:
+      activeBusinessAccount?.displayName ?? "Business Account",
     activeBusinessCurrencyCode: resolvedBusinessCurrencyCode,
+    getLedgerEntriesUseCase,
     getLedgerEntryByRemoteIdUseCase,
     addLedgerEntryUseCase,
     updateLedgerEntryUseCase,
+    addTransactionUseCase,
+    updateTransactionUseCase,
+    deleteTransactionUseCase,
     onSaved: handleReload,
   });
 

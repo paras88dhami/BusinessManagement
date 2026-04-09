@@ -39,6 +39,7 @@ export function LedgerEntryEditorModal({
   const actionLabel = getLedgerEntryTypeLabel(state.entryType);
   const shouldShowDueDate = requiresDueDate(state.entryType);
   const shouldShowPaymentMode = requiresPaymentMode(state.entryType);
+  const shouldShowPartySuggestions = viewModel.partySuggestions.length > 0;
 
   return (
     <FormSheetModal
@@ -86,6 +87,20 @@ export function LedgerEntryEditorModal({
         errorText={state.fieldErrors.partyName}
         editable={!state.isSaving}
       />
+      {shouldShowPartySuggestions ? (
+        <View style={styles.partySuggestionsWrap}>
+          {viewModel.partySuggestions.map((partyName) => (
+            <Pressable
+              key={partyName}
+              style={styles.partySuggestionButton}
+              onPress={() => viewModel.onSelectPartySuggestion(partyName)}
+              disabled={state.isSaving}
+            >
+              <Text style={styles.partySuggestionText}>{partyName}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <LabeledTextInput
         label="Amount"
@@ -239,6 +254,26 @@ const styles = StyleSheet.create({
   },
   fieldWrap: {
     gap: 6,
+  },
+  partySuggestionsWrap: {
+    marginTop: -spacing.xs,
+    marginBottom: spacing.xs,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  partySuggestionButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  partySuggestionText: {
+    color: colors.cardForeground,
+    fontSize: 12,
+    fontFamily: "InterMedium",
   },
   inputLabel: {
     color: colors.mutedForeground,

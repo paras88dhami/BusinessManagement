@@ -1,4 +1,5 @@
 import {
+  LedgerEntry,
   LedgerEntryType,
   LedgerEntryTypeValue,
   LedgerPaymentMode,
@@ -12,6 +13,7 @@ import {
   LedgerPaymentModeOptionState,
 } from "@/feature/ledger/types/ledger.state.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { GetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
 import { useCallback, useMemo, useState } from "react";
@@ -26,6 +28,14 @@ import {
 import { LedgerEditorViewModel } from "./ledgerEditor.viewModel";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import { AddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase";
+import { UpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase";
+import { DeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase";
+import {
+  SaveTransactionPayload,
+  TransactionDirection,
+  TransactionType,
+} from "@/feature/transactions/types/transaction.entity.types";
 
 const DEFAULT_LEDGER_STATE: LedgerEditorFormState = {
   visible: false,
@@ -41,6 +51,7 @@ const DEFAULT_LEDGER_STATE: LedgerEditorFormState = {
   note: "",
   reminderAt: "",
   attachmentUri: "",
+  linkedTransactionRemoteId: null,
   showMoreDetails: false,
   fieldErrors: {},
   isSaving: false,
@@ -51,13 +62,22 @@ const createLedgerRemoteId = (): string => {
   return `led-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const createTransactionRemoteId = (): string => {
+  return `txn-ledger-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 type UseLedgerEditorViewModelParams = {
   ownerUserRemoteId: string;
   activeBusinessAccountRemoteId: string | null;
+  activeBusinessAccountDisplayName: string;
   activeBusinessCurrencyCode: string | null;
+  getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
   getLedgerEntryByRemoteIdUseCase: GetLedgerEntryByRemoteIdUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
   updateLedgerEntryUseCase: UpdateLedgerEntryUseCase;
+  addTransactionUseCase: AddTransactionUseCase;
+  updateTransactionUseCase: UpdateTransactionUseCase;
+  deleteTransactionUseCase: DeleteTransactionUseCase;
   onSaved: () => void;
 };
 
@@ -76,6 +96,8 @@ const paymentModeOptions: readonly LedgerPaymentModeOptionState[] = [
   { value: LedgerPaymentMode.Cheque, label: "Cheque" },
   { value: LedgerPaymentMode.Other, label: "Other" },
 ] as const;
+
+const normalizePartyName = (value: string): string => value.trim().toLowerCase();
 
 const buildAutoTitle = (entryType: LedgerEntryTypeValue, partyName: string): string => {
   const actionLabel = getLedgerEntryTypeLabel(entryType);
@@ -100,17 +122,135 @@ const clearFieldError = (
   };
 };
 
+const buildSettlementTransactionPayload = ({
+  remoteId,
+  ownerUserRemoteId,
+  businessAccountRemoteId,
+  businessAccountDisplayName,
+  entryType,
+  partyName,
+  amount,
+  currencyCode,
+  note,
+  happenedAt,
+}: {
+  remoteId: string;
+  ownerUserRemoteId: string;
+  businessAccountRemoteId: string;
+  businessAccountDisplayName: string;
+  entryType: LedgerEntryTypeValue;
+  partyName: string;
+  amount: number;
+  currencyCode: string | null;
+  note: string | null;
+  happenedAt: number;
+}): SaveTransactionPayload => {
+  const isReceive = entryType === LedgerEntryType.Collection;
+
+  return {
+    remoteId,
+    ownerUserRemoteId,
+    accountRemoteId: businessAccountRemoteId,
+    accountDisplayNameSnapshot: businessAccountDisplayName,
+    transactionType: isReceive ? TransactionType.Income : TransactionType.Expense,
+    direction: isReceive ? TransactionDirection.In : TransactionDirection.Out,
+    title: `${isReceive ? "Received from" : "Paid to"} ${partyName}`,
+    amount,
+    currencyCode,
+    categoryLabel: "Ledger",
+    note,
+    happenedAt,
+  };
+};
+
+const isLikelyDuplicate = ({
+  entries,
+  editingRemoteId,
+  entryType,
+  partyName,
+  amount,
+  happenedAtInput,
+}: {
+  entries: readonly LedgerEntry[];
+  editingRemoteId: string | null;
+  entryType: LedgerEntryTypeValue;
+  partyName: string;
+  amount: number;
+  happenedAtInput: string;
+}): boolean => {
+  const normalizedPartyName = normalizePartyName(partyName);
+  const normalizedDate = happenedAtInput.trim();
+
+  return entries.some((entry) => {
+    if (editingRemoteId && entry.remoteId === editingRemoteId) {
+      return false;
+    }
+
+    return (
+      entry.entryType === entryType &&
+      normalizePartyName(entry.partyName) === normalizedPartyName &&
+      Math.abs(entry.amount - amount) < 0.0001 &&
+      formatDateInput(entry.happenedAt) === normalizedDate
+    );
+  });
+};
+
 export const useLedgerEditorViewModel = ({
   ownerUserRemoteId,
   activeBusinessAccountRemoteId,
+  activeBusinessAccountDisplayName,
   activeBusinessCurrencyCode,
+  getLedgerEntriesUseCase,
   getLedgerEntryByRemoteIdUseCase,
   addLedgerEntryUseCase,
   updateLedgerEntryUseCase,
+  addTransactionUseCase,
+  updateTransactionUseCase,
+  deleteTransactionUseCase,
   onSaved,
 }: UseLedgerEditorViewModelParams): LedgerEditorViewModel => {
   const [state, setState] =
     useState<LedgerEditorFormState>(DEFAULT_LEDGER_STATE);
+  const [knownParties, setKnownParties] = useState<readonly string[]>([]);
+
+  const loadKnownParties = useCallback(async () => {
+    if (!activeBusinessAccountRemoteId) {
+      setKnownParties([]);
+      return;
+    }
+
+    const result = await getLedgerEntriesUseCase.execute({
+      businessAccountRemoteId: activeBusinessAccountRemoteId,
+    });
+
+    if (!result.success) {
+      return;
+    }
+
+    const deduped = new Set<string>();
+    result.value.forEach((entry) => {
+      const name = entry.partyName.trim();
+      if (name.length > 0) {
+        deduped.add(name);
+      }
+    });
+
+    setKnownParties(Array.from(deduped.values()).sort((a, b) => a.localeCompare(b)));
+  }, [activeBusinessAccountRemoteId, getLedgerEntriesUseCase]);
+
+  const partySuggestions = useMemo(() => {
+    const query = state.partyName.trim().toLowerCase();
+    if (query.length === 0) {
+      return [] as string[];
+    }
+
+    return knownParties
+      .filter((partyName) => {
+        const normalized = partyName.toLowerCase();
+        return normalized.includes(query) && normalized !== query;
+      })
+      .slice(0, 6);
+  }, [knownParties, state.partyName]);
 
   const buildCreateState = useCallback(
     (entryType: LedgerEntryTypeValue, partyName = ""): LedgerEditorFormState => {
@@ -132,15 +272,17 @@ export const useLedgerEditorViewModel = ({
   const openCreate = useCallback(
     (entryType: LedgerEntryTypeValue) => {
       setState(buildCreateState(entryType));
+      void loadKnownParties();
     },
-    [buildCreateState],
+    [buildCreateState, loadKnownParties],
   );
 
   const openCreateForParty = useCallback(
     (partyName: string, entryType: LedgerEntryTypeValue) => {
       setState(buildCreateState(entryType, partyName));
+      void loadKnownParties();
     },
-    [buildCreateState],
+    [buildCreateState, loadKnownParties],
   );
 
   const openEdit = useCallback(
@@ -183,13 +325,16 @@ export const useLedgerEditorViewModel = ({
         note: result.value.note ?? "",
         reminderAt: formatDateInput(result.value.reminderAt),
         attachmentUri: result.value.attachmentUri ?? "",
+        linkedTransactionRemoteId: result.value.linkedTransactionRemoteId,
         showMoreDetails,
         fieldErrors: {},
         isSaving: false,
         errorMessage: null,
       });
+
+      void loadKnownParties();
     },
-    [getLedgerEntryByRemoteIdUseCase],
+    [getLedgerEntryByRemoteIdUseCase, loadKnownParties],
   );
 
   const close = useCallback(() => {
@@ -292,6 +437,40 @@ export const useLedgerEditorViewModel = ({
       return;
     }
 
+    const duplicateCheckResult = await getLedgerEntriesUseCase.execute({
+      businessAccountRemoteId,
+    });
+
+    if (!duplicateCheckResult.success) {
+      setState((currentState) => ({
+        ...currentState,
+        fieldErrors: {},
+        errorMessage: duplicateCheckResult.error.message,
+      }));
+      return;
+    }
+
+    if (
+      isLikelyDuplicate({
+        entries: duplicateCheckResult.value,
+        editingRemoteId: state.mode === "edit" ? state.editingRemoteId : null,
+        entryType: state.entryType,
+        partyName: normalizedPartyName,
+        amount,
+        happenedAtInput: state.happenedAt,
+      })
+    ) {
+      setState((currentState) => ({
+        ...currentState,
+        fieldErrors: {
+          ...currentState.fieldErrors,
+          partyName: "A similar entry already exists for this party/date/amount.",
+        },
+        errorMessage: null,
+      }));
+      return;
+    }
+
     setState((currentState) => ({
       ...currentState,
       isSaving: true,
@@ -311,6 +490,54 @@ export const useLedgerEditorViewModel = ({
       : null;
     const resolvedReminderAt = state.reminderAt.trim().length === 0 ? null : reminderAt;
 
+    const resolvedCurrencyCode = resolveCurrencyCode({
+      currencyCode: activeBusinessCurrencyCode,
+    });
+
+    const transactionNote = state.note.trim() || null;
+    const shouldSyncTransaction = requiresPaymentMode(state.entryType);
+    let linkedTransactionRemoteId = state.linkedTransactionRemoteId;
+    let createdTransactionRemoteId: string | null = null;
+    let transactionToDeleteAfterSave: string | null = null;
+
+    if (shouldSyncTransaction) {
+      const transactionRemoteId = linkedTransactionRemoteId ?? createTransactionRemoteId();
+      const transactionPayload = buildSettlementTransactionPayload({
+        remoteId: transactionRemoteId,
+        ownerUserRemoteId,
+        businessAccountRemoteId,
+        businessAccountDisplayName: activeBusinessAccountDisplayName,
+        entryType: state.entryType,
+        partyName: normalizedPartyName,
+        amount,
+        currencyCode: resolvedCurrencyCode,
+        note: transactionNote,
+        happenedAt: resolvedHappenedAt,
+      });
+
+      const transactionResult = linkedTransactionRemoteId
+        ? await updateTransactionUseCase.execute(transactionPayload)
+        : await addTransactionUseCase.execute(transactionPayload);
+
+      if (!transactionResult.success) {
+        setState((currentState) => ({
+          ...currentState,
+          isSaving: false,
+          fieldErrors: {},
+          errorMessage: transactionResult.error.message,
+        }));
+        return;
+      }
+
+      if (!linkedTransactionRemoteId) {
+        linkedTransactionRemoteId = transactionRemoteId;
+        createdTransactionRemoteId = transactionRemoteId;
+      }
+    } else if (linkedTransactionRemoteId) {
+      transactionToDeleteAfterSave = linkedTransactionRemoteId;
+      linkedTransactionRemoteId = null;
+    }
+
     const payload: SaveLedgerEntryPayload = {
       remoteId:
         state.mode === "create"
@@ -324,16 +551,15 @@ export const useLedgerEditorViewModel = ({
       balanceDirection: resolveDefaultDirectionForEntryType(state.entryType),
       title: buildAutoTitle(state.entryType, normalizedPartyName),
       amount,
-      currencyCode: resolveCurrencyCode({
-        currencyCode: activeBusinessCurrencyCode,
-      }),
-      note: state.note.trim() || null,
+      currencyCode: resolvedCurrencyCode,
+      note: transactionNote,
       happenedAt: resolvedHappenedAt,
       dueAt: resolvedDueAt,
       paymentMode: resolvedPaymentMode,
       referenceNumber: state.referenceNumber.trim() || null,
       reminderAt: resolvedReminderAt,
       attachmentUri: state.attachmentUri.trim() || null,
+      linkedTransactionRemoteId,
       settlementAccountRemoteId: null,
       settlementAccountDisplayNameSnapshot: null,
     };
@@ -344,6 +570,10 @@ export const useLedgerEditorViewModel = ({
         : await updateLedgerEntryUseCase.execute(payload);
 
     if (!result.success) {
+      if (createdTransactionRemoteId) {
+        await deleteTransactionUseCase.execute(createdTransactionRemoteId);
+      }
+
       setState((currentState) => ({
         ...currentState,
         isSaving: false,
@@ -353,13 +583,21 @@ export const useLedgerEditorViewModel = ({
       return;
     }
 
+    if (transactionToDeleteAfterSave) {
+      await deleteTransactionUseCase.execute(transactionToDeleteAfterSave);
+    }
+
     close();
     onSaved();
   }, [
+    activeBusinessAccountDisplayName,
     activeBusinessAccountRemoteId,
     activeBusinessCurrencyCode,
     addLedgerEntryUseCase,
+    addTransactionUseCase,
     close,
+    deleteTransactionUseCase,
+    getLedgerEntriesUseCase,
     onSaved,
     ownerUserRemoteId,
     state.amount,
@@ -368,6 +606,7 @@ export const useLedgerEditorViewModel = ({
     state.editingRemoteId,
     state.entryType,
     state.happenedAt,
+    state.linkedTransactionRemoteId,
     state.mode,
     state.note,
     state.partyName,
@@ -375,11 +614,13 @@ export const useLedgerEditorViewModel = ({
     state.referenceNumber,
     state.reminderAt,
     updateLedgerEntryUseCase,
+    updateTransactionUseCase,
   ]);
 
   return useMemo(
     () => ({
       state,
+      partySuggestions,
       availableEntryTypes: entryTypeOptions,
       availablePaymentModes: paymentModeOptions,
       openCreate,
@@ -387,6 +628,16 @@ export const useLedgerEditorViewModel = ({
       openEdit,
       close,
       onChangeEntryType: handleChangeEntryType,
+      onSelectPartySuggestion: (partyName: string) =>
+        setState((currentState) => ({
+          ...currentState,
+          partyName,
+          fieldErrors: {
+            ...currentState.fieldErrors,
+            partyName: undefined,
+          },
+          errorMessage: null,
+        })),
       onChangePartyName: (partyName: string) =>
         setState((currentState) => ({
           ...currentState,
@@ -481,6 +732,7 @@ export const useLedgerEditorViewModel = ({
       openCreate,
       openCreateForParty,
       openEdit,
+      partySuggestions,
       state,
     ],
   );

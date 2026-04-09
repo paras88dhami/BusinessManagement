@@ -20,6 +20,7 @@ export const ledgerEntriesTable = tableSchema({
     { name: "reference_number", type: "string", isOptional: true },
     { name: "reminder_at", type: "number", isOptional: true, isIndexed: true },
     { name: "attachment_uri", type: "string", isOptional: true },
+    { name: "linked_transaction_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "settlement_account_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "settlement_account_display_name_snapshot", type: "string", isOptional: true },
     { name: "sync_status", type: "string", isIndexed: true },

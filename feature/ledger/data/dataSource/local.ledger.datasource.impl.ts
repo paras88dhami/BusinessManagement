@@ -62,6 +62,7 @@ export const createLocalLedgerDatasource = (
             record.referenceNumber = payload.referenceNumber;
             record.reminderAt = payload.reminderAt;
             record.attachmentUri = payload.attachmentUri;
+            record.linkedTransactionRemoteId = payload.linkedTransactionRemoteId;
             record.settlementAccountRemoteId = payload.settlementAccountRemoteId;
             record.settlementAccountDisplayNameSnapshot =
               payload.settlementAccountDisplayNameSnapshot;
@@ -97,6 +98,7 @@ export const createLocalLedgerDatasource = (
           record.referenceNumber = payload.referenceNumber;
           record.reminderAt = payload.reminderAt;
           record.attachmentUri = payload.attachmentUri;
+          record.linkedTransactionRemoteId = payload.linkedTransactionRemoteId;
           record.settlementAccountRemoteId = payload.settlementAccountRemoteId;
           record.settlementAccountDisplayNameSnapshot =
             payload.settlementAccountDisplayNameSnapshot;

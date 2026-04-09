@@ -22,6 +22,7 @@ export const mapLedgerEntryModelToDomain = async (
     referenceNumber: model.referenceNumber,
     reminderAt: model.reminderAt,
     attachmentUri: model.attachmentUri,
+    linkedTransactionRemoteId: model.linkedTransactionRemoteId,
     settlementAccountRemoteId: model.settlementAccountRemoteId,
     settlementAccountDisplayNameSnapshot: model.settlementAccountDisplayNameSnapshot,
     createdAt: model.createdAt.getTime(),
