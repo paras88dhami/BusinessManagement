@@ -3,23 +3,24 @@ import { createMoneyAccountRepository } from "@/feature/accounts/data/repository
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
+import {
+    Account,
+    AccountType,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
 import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase.impl";
 import { createReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
-import {
-  Account,
-  AccountType,
-} from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
-import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
-import { createSaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase.impl";
+import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { syncLedgerReminderNotifications } from "@/feature/ledger/reminder/ledgerReminder.scheduler";
+import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerScreen } from "@/feature/ledger/ui/LedgerScreen";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
 import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
@@ -31,8 +32,6 @@ import { useLedgerDeleteViewModel } from "@/feature/ledger/viewModel/ledgerDelet
 import { useLedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel.impl";
 import { useLedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.viewModel.impl";
 import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
-import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
-import { syncLedgerReminderNotifications } from "@/feature/ledger/reminder/ledgerReminder.scheduler";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
@@ -40,8 +39,8 @@ import { createPostBusinessTransactionUseCase } from "@/feature/transactions/use
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
-import React, { useCallback, useMemo, useState } from "react";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
+import React, { useCallback, useMemo, useState } from "react";
 
 export type GetLedgerScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -136,12 +135,8 @@ export function GetLedgerScreenFactory({
     () => createContactRepository(contactDatasource),
     [contactDatasource],
   );
-  const getContactsUseCase = useMemo(
-    () => createGetContactsUseCase(contactRepository),
-    [contactRepository],
-  );
-  const saveContactUseCase = useMemo(
-    () => createSaveContactUseCase(contactRepository),
+  const getOrCreateContactUseCase = useMemo(
+    () => createGetOrCreateContactUseCase(contactRepository),
     [contactRepository],
   );
   const moneyAccountDatasource = useMemo(
@@ -277,7 +272,8 @@ export function GetLedgerScreenFactory({
     () =>
       resolveCurrencyCode({
         currencyCode:
-          activeBusinessAccount?.currencyCode ?? activeBusinessAccountCurrencyCode,
+          activeBusinessAccount?.currencyCode ??
+          activeBusinessAccountCurrencyCode,
         countryCode: activeBusinessAccountCountryCode,
       }),
     [
@@ -297,8 +293,7 @@ export function GetLedgerScreenFactory({
     getLedgerEntryByRemoteIdUseCase,
     addLedgerEntryUseCase,
     updateLedgerEntryUseCase,
-    getContactsUseCase,
-    saveContactUseCase,
+    getOrCreateContactUseCase,
     getMoneyAccountsUseCase,
     postBusinessTransactionUseCase,
     deleteBusinessTransactionUseCase,

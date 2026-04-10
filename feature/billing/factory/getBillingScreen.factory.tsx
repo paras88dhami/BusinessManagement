@@ -1,23 +1,22 @@
-import React from "react";
-import { Database } from "@nozbe/watermelondb";
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
-import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
-import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
-import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
-import { createSaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
+import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
-import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createSaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase.impl";
+import { useBillingViewModel } from "@/feature/billing/viewModel/billing.viewModel.impl";
+import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
+import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
+import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
-import { useBillingViewModel } from "@/feature/billing/viewModel/billing.viewModel.impl";
-import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
+import { Database } from "@nozbe/watermelondb";
+import React from "react";
 
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 
@@ -99,12 +98,8 @@ export function GetBillingScreenFactory({
     () => createContactRepository(contactDatasource),
     [contactDatasource],
   );
-  const getContactsUseCase = React.useMemo(
-    () => createGetContactsUseCase(contactRepository),
-    [contactRepository],
-  );
-  const saveContactUseCase = React.useMemo(
-    () => createSaveContactUseCase(contactRepository),
+  const getOrCreateContactUseCase = React.useMemo(
+    () => createGetOrCreateContactUseCase(contactRepository),
     [contactRepository],
   );
 
@@ -131,8 +126,7 @@ export function GetBillingScreenFactory({
     saveBillingDocumentAllocationsUseCase,
     deleteBillingDocumentUseCase,
     saveBillPhotoUseCase,
-    getContactsUseCase,
-    saveContactUseCase,
+    getOrCreateContactUseCase,
     getMoneyAccountsUseCase,
     postBusinessTransactionUseCase,
     deleteBusinessTransactionUseCase,

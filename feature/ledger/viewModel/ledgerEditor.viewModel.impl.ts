@@ -1,19 +1,26 @@
 import {
+  MoneyAccount,
+  MoneyAccountType,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+  BillingDocumentStatus,
+  BillingDocumentType,
+  BillingTemplateType,
+} from "@/feature/billing/types/billing.types";
+import { DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase";
+import { ReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase";
+import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
+import { ContactType } from "@/feature/contacts/types/contact.types";
+import { GetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase";
+import {
   LedgerEntry,
   LedgerEntryType,
   LedgerEntryTypeValue,
   LedgerPaymentMode,
   SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
-import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
-import {
-  MoneyAccount,
-  MoneyAccountType,
-} from "@/feature/accounts/types/moneyAccount.types";
-import { ContactType } from "@/feature/contacts/types/contact.types";
-import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
-import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
 import {
   LedgerAccountOptionState,
   LedgerEditorFieldErrors,
@@ -25,6 +32,16 @@ import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.u
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { GetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
+import {
+  SaveTransactionPayload,
+  TransactionDirection,
+  TransactionSourceModule,
+  TransactionType,
+} from "@/feature/transactions/types/transaction.entity.types";
+import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
+import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 import { useCallback, useMemo, useState } from "react";
 import {
   buildSettlementLinkCandidates,
@@ -36,24 +53,6 @@ import {
   resolveDefaultDirectionForEntryType,
 } from "./ledger.shared";
 import { LedgerEditorViewModel } from "./ledgerEditor.viewModel";
-import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
-import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
-import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
-import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
-import {
-  SaveTransactionPayload,
-  TransactionDirection,
-  TransactionType,
-  TransactionSourceModule,
-} from "@/feature/transactions/types/transaction.entity.types";
-import {
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingTemplateType,
-} from "@/feature/billing/types/billing.types";
-import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
-import { ReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase";
-import { DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase";
 
 const DEFAULT_LEDGER_STATE: LedgerEditorFormState = {
   visible: false,
@@ -129,7 +128,9 @@ const resolveBillingTemplateTypeForEntryType = (
   return BillingTemplateType.DetailedInvoice;
 };
 
-const buildLedgerDocumentItemName = (entryType: LedgerEntryTypeValue): string => {
+const buildLedgerDocumentItemName = (
+  entryType: LedgerEntryTypeValue,
+): string => {
   if (entryType === LedgerEntryType.Sale) {
     return "Sale Due";
   }
@@ -150,8 +151,7 @@ type UseLedgerEditorViewModelParams = {
   getLedgerEntryByRemoteIdUseCase: GetLedgerEntryByRemoteIdUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
   updateLedgerEntryUseCase: UpdateLedgerEntryUseCase;
-  getContactsUseCase: GetContactsUseCase;
-  saveContactUseCase: SaveContactUseCase;
+  getOrCreateContactUseCase: GetOrCreateContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
@@ -168,32 +168,16 @@ const entryTypeOptions: readonly LedgerEntryTypeOptionState[] = [
   { value: LedgerEntryType.PaymentOut, label: "Pay Money" },
 ] as const;
 
-const normalizePartyName = (value: string): string => value.trim().toLowerCase();
-
-const hasPartyContactMatchByNameAndType = ({
-  contacts,
-  partyName,
-  contactType,
-}: {
-  contacts: readonly {
-    fullName: string;
-    contactType: (typeof ContactType)[keyof typeof ContactType];
-  }[];
-  partyName: string;
-  contactType: (typeof ContactType)[keyof typeof ContactType];
-}): boolean => {
-  const normalizedPartyName = normalizePartyName(partyName);
-  return contacts.some(
-    (contact) =>
-      normalizePartyName(contact.fullName) === normalizedPartyName &&
-      contact.contactType === contactType,
-  );
-};
+const normalizePartyName = (value: string): string =>
+  value.trim().toLowerCase();
 
 const resolveContactTypeForEntryType = (
   entryType: LedgerEntryTypeValue,
 ): (typeof ContactType)[keyof typeof ContactType] => {
-  if (entryType === LedgerEntryType.Sale || entryType === LedgerEntryType.Collection) {
+  if (
+    entryType === LedgerEntryType.Sale ||
+    entryType === LedgerEntryType.Collection
+  ) {
     return ContactType.Customer;
   }
 
@@ -220,7 +204,7 @@ const mapMoneyAccountToSettlementOption = (
 
   return {
     remoteId: moneyAccount.remoteId,
-    label: `${moneyAccount.name} | ${accountTypeLabel}${primaryTag}`, 
+    label: `${moneyAccount.name} | ${accountTypeLabel}${primaryTag}`,
     currencyCode: moneyAccount.currencyCode,
   };
 };
@@ -239,7 +223,10 @@ const derivePaymentModeFromMoneyAccount = (
   return LedgerPaymentMode.BankTransfer;
 };
 
-const buildAutoTitle = (entryType: LedgerEntryTypeValue, partyName: string): string => {
+const buildAutoTitle = (
+  entryType: LedgerEntryTypeValue,
+  partyName: string,
+): string => {
   const actionLabel = getLedgerEntryTypeLabel(entryType);
   if (!partyName.trim()) {
     return actionLabel;
@@ -298,7 +285,9 @@ const buildSettlementTransactionPayload = ({
     ownerUserRemoteId,
     accountRemoteId: businessAccountRemoteId,
     accountDisplayNameSnapshot: businessAccountDisplayName,
-    transactionType: isReceive ? TransactionType.Income : TransactionType.Expense,
+    transactionType: isReceive
+      ? TransactionType.Income
+      : TransactionType.Expense,
     direction: isReceive ? TransactionDirection.In : TransactionDirection.Out,
     title: `${isReceive ? "Received from" : "Paid to"} ${partyName}`,
     amount,
@@ -367,7 +356,10 @@ const buildDocumentAllocationPlan = ({
   const documentAmountMap = new Map<string, number>();
   let remainingAmount = Number(amount.toFixed(2));
 
-  const allocateToCandidate = (candidateRemoteId: string, maxAmount: number) => {
+  const allocateToCandidate = (
+    candidateRemoteId: string,
+    maxAmount: number,
+  ) => {
     if (remainingAmount <= 0 || maxAmount <= 0) {
       return;
     }
@@ -410,10 +402,12 @@ const buildDocumentAllocationPlan = ({
     }
   }
 
-  return Array.from(documentAmountMap.entries()).map(([documentRemoteId, allocatedAmount]) => ({
-    documentRemoteId,
-    amount: allocatedAmount,
-  }));
+  return Array.from(documentAmountMap.entries()).map(
+    ([documentRemoteId, allocatedAmount]) => ({
+      documentRemoteId,
+      amount: allocatedAmount,
+    }),
+  );
 };
 
 export const useLedgerEditorViewModel = ({
@@ -425,8 +419,7 @@ export const useLedgerEditorViewModel = ({
   getLedgerEntryByRemoteIdUseCase,
   addLedgerEntryUseCase,
   updateLedgerEntryUseCase,
-  getContactsUseCase,
-  saveContactUseCase,
+  getOrCreateContactUseCase,
   getMoneyAccountsUseCase,
   postBusinessTransactionUseCase,
   deleteBusinessTransactionUseCase,
@@ -438,11 +431,14 @@ export const useLedgerEditorViewModel = ({
   const [state, setState] =
     useState<LedgerEditorFormState>(DEFAULT_LEDGER_STATE);
   const [knownParties, setKnownParties] = useState<readonly string[]>([]);
-  const [knownLedgerEntries, setKnownLedgerEntries] = useState<readonly LedgerEntry[]>([]);
-  const [availableSettlementAccounts, setAvailableSettlementAccounts] = useState<
-    readonly LedgerAccountOptionState[]
+  const [knownLedgerEntries, setKnownLedgerEntries] = useState<
+    readonly LedgerEntry[]
   >([]);
-  const [knownMoneyAccounts, setKnownMoneyAccounts] = useState<readonly MoneyAccount[]>([]);
+  const [availableSettlementAccounts, setAvailableSettlementAccounts] =
+    useState<readonly LedgerAccountOptionState[]>([]);
+  const [knownMoneyAccounts, setKnownMoneyAccounts] = useState<
+    readonly MoneyAccount[]
+  >([]);
 
   const loadMoneyAccounts = useCallback(async () => {
     if (!activeBusinessAccountRemoteId) {
@@ -463,11 +459,13 @@ export const useLedgerEditorViewModel = ({
     const activeMoneyAccounts = moneyAccountsResult.value.filter(
       (moneyAccount) => moneyAccount.isActive,
     );
-    const sortedActiveMoneyAccounts = [...activeMoneyAccounts].sort((left, right) => {
-      if (left.isPrimary && !right.isPrimary) return -1;
-      if (!left.isPrimary && right.isPrimary) return 1;
-      return left.name.localeCompare(right.name);
-    });
+    const sortedActiveMoneyAccounts = [...activeMoneyAccounts].sort(
+      (left, right) => {
+        if (left.isPrimary && !right.isPrimary) return -1;
+        if (!left.isPrimary && right.isPrimary) return 1;
+        return left.name.localeCompare(right.name);
+      },
+    );
 
     setKnownMoneyAccounts(sortedActiveMoneyAccounts);
     setAvailableSettlementAccounts(
@@ -516,7 +514,9 @@ export const useLedgerEditorViewModel = ({
       }
     });
 
-    setKnownParties(Array.from(deduped.values()).sort((a, b) => a.localeCompare(b)));
+    setKnownParties(
+      Array.from(deduped.values()).sort((a, b) => a.localeCompare(b)),
+    );
     setKnownLedgerEntries(result.value);
   }, [activeBusinessAccountRemoteId, getLedgerEntriesUseCase]);
 
@@ -583,7 +583,10 @@ export const useLedgerEditorViewModel = ({
   }, [knownMoneyAccounts]);
 
   const buildCreateState = useCallback(
-    (entryType: LedgerEntryTypeValue, partyName = ""): LedgerEditorFormState => {
+    (
+      entryType: LedgerEntryTypeValue,
+      partyName = "",
+    ): LedgerEditorFormState => {
       return {
         ...DEFAULT_LEDGER_STATE,
         visible: true,
@@ -649,15 +652,15 @@ export const useLedgerEditorViewModel = ({
         amount: String(result.value.amount),
         happenedAt: formatDateInput(result.value.happenedAt),
         dueAt: formatDateInput(result.value.dueAt),
-        settlementAccountRemoteId:
-          requiresPaymentMode(result.value.entryType)
-            ? (result.value.settlementAccountRemoteId ?? "")
-            : "",
+        settlementAccountRemoteId: requiresPaymentMode(result.value.entryType)
+          ? (result.value.settlementAccountRemoteId ?? "")
+          : "",
         referenceNumber: result.value.referenceNumber ?? "",
         note: result.value.note ?? "",
         reminderAt: formatDateInput(result.value.reminderAt),
         attachmentUri: result.value.attachmentUri ?? "",
-        settledAgainstEntryRemoteId: result.value.settledAgainstEntryRemoteId ?? "",
+        settledAgainstEntryRemoteId:
+          result.value.settledAgainstEntryRemoteId ?? "",
         linkedDocumentRemoteId: result.value.linkedDocumentRemoteId,
         linkedTransactionRemoteId: result.value.linkedTransactionRemoteId,
         showMoreDetails,
@@ -743,7 +746,11 @@ export const useLedgerEditorViewModel = ({
       nextFieldErrors.dueAt = "Due date is required for this action.";
     }
 
-    if (!requiresDueDate(state.entryType) && state.dueAt.trim().length > 0 && dueAt === null) {
+    if (
+      !requiresDueDate(state.entryType) &&
+      state.dueAt.trim().length > 0 &&
+      dueAt === null
+    ) {
       nextFieldErrors.dueAt = "Enter a valid due date in YYYY-MM-DD format.";
     }
 
@@ -756,7 +763,8 @@ export const useLedgerEditorViewModel = ({
     }
 
     if (state.reminderAt.trim().length > 0 && reminderAt === null) {
-      nextFieldErrors.reminderAt = "Enter a valid reminder date in YYYY-MM-DD format.";
+      nextFieldErrors.reminderAt =
+        "Enter a valid reminder date in YYYY-MM-DD format.";
     }
 
     if (Object.values(nextFieldErrors).some(Boolean)) {
@@ -806,7 +814,8 @@ export const useLedgerEditorViewModel = ({
         ...currentState,
         fieldErrors: {
           ...currentState.fieldErrors,
-          partyName: "A similar entry already exists for this party/date/amount.",
+          partyName:
+            "A similar entry already exists for this party/date/amount.",
         },
         errorMessage: null,
       }));
@@ -873,15 +882,16 @@ export const useLedgerEditorViewModel = ({
       errorMessage: null,
     }));
 
-    const resolvedDueAt =
-      isDueAction
-        ? (dueAt as number)
-        : state.dueAt.trim().length === 0
-          ? null
-          : dueAt;
+    const resolvedDueAt = isDueAction
+      ? (dueAt as number)
+      : state.dueAt.trim().length === 0
+        ? null
+        : dueAt;
     const resolvedHappenedAt = happenedAt as number;
-    const resolvedReminderAt = state.reminderAt.trim().length === 0 ? null : reminderAt;
-    const selectedSettlementAccountRemoteId = state.settlementAccountRemoteId.trim();
+    const resolvedReminderAt =
+      state.reminderAt.trim().length === 0 ? null : reminderAt;
+    const selectedSettlementAccountRemoteId =
+      state.settlementAccountRemoteId.trim();
     let settlementMoneyAccountRemoteId: string | null = null;
     let settlementMoneyAccountDisplayNameSnapshot: string | null = null;
     let resolvedPaymentMode: SaveLedgerEntryPayload["paymentMode"] = null;
@@ -892,7 +902,9 @@ export const useLedgerEditorViewModel = ({
 
     const transactionNote = state.note.trim() || null;
     const ledgerRemoteId =
-      state.mode === "create" ? createLedgerRemoteId() : (state.editingRemoteId ?? "");
+      state.mode === "create"
+        ? createLedgerRemoteId()
+        : (state.editingRemoteId ?? "");
     if (!ledgerRemoteId) {
       setState((currentState) => ({
         ...currentState,
@@ -904,7 +916,9 @@ export const useLedgerEditorViewModel = ({
     }
     const shouldSyncTransaction = isSettlementAction;
     let linkedTransactionRemoteId = state.linkedTransactionRemoteId;
-    let linkedDocumentRemoteId = isDueAction ? state.linkedDocumentRemoteId : null;
+    let linkedDocumentRemoteId = isDueAction
+      ? state.linkedDocumentRemoteId
+      : null;
     let createdTransactionRemoteId: string | null = null;
     let transactionToDeleteAfterSave: string | null = null;
     let hasPreparedSettlementAllocations = false;
@@ -927,7 +941,8 @@ export const useLedgerEditorViewModel = ({
         (moneyAccount) => moneyAccount.isActive,
       );
       const settlementMoneyAccount = activeMoneyAccounts.find(
-        (moneyAccount) => moneyAccount.remoteId === selectedSettlementAccountRemoteId,
+        (moneyAccount) =>
+          moneyAccount.remoteId === selectedSettlementAccountRemoteId,
       );
       if (!settlementMoneyAccount) {
         setState((currentState) => ({
@@ -944,58 +959,41 @@ export const useLedgerEditorViewModel = ({
 
       settlementMoneyAccountRemoteId = settlementMoneyAccount.remoteId;
       settlementMoneyAccountDisplayNameSnapshot = settlementMoneyAccount.name;
-      resolvedPaymentMode = derivePaymentModeFromMoneyAccount(settlementMoneyAccount);
+      resolvedPaymentMode = derivePaymentModeFromMoneyAccount(
+        settlementMoneyAccount,
+      );
     }
 
-    const contactsResult = await getContactsUseCase.execute({
+    const expectedContactType = resolveContactTypeForEntryType(state.entryType);
+    const contactResult = await getOrCreateContactUseCase.execute({
       accountRemoteId: businessAccountRemoteId,
+      accountType: AccountType.Business,
+      contactType: expectedContactType,
+      fullName: normalizedPartyName,
+      ownerUserRemoteId,
+      phoneNumber: null,
+      emailAddress: null,
+      address: null,
+      taxId: null,
+      openingBalanceAmount: 0,
+      openingBalanceDirection: null,
+      notes: null,
+      isArchived: false,
     });
-    if (!contactsResult.success) {
+
+    if (!contactResult.success) {
       setState((currentState) => ({
         ...currentState,
         isSaving: false,
         fieldErrors: {},
-        errorMessage: contactsResult.error.message,
+        errorMessage: contactResult.error.message,
       }));
       return;
     }
 
-    const expectedContactType = resolveContactTypeForEntryType(state.entryType);
-    const hasMatchingPartyContact = hasPartyContactMatchByNameAndType({
-      contacts: contactsResult.value,
-      partyName: normalizedPartyName,
-      contactType: expectedContactType,
-    });
-    if (!hasMatchingPartyContact) {
-      const saveContactResult = await saveContactUseCase.execute({
-        remoteId: createContactRemoteId(),
-        ownerUserRemoteId,
-        accountRemoteId: businessAccountRemoteId,
-        accountType: AccountType.Business,
-        contactType: expectedContactType,
-        fullName: normalizedPartyName,
-        phoneNumber: null,
-        emailAddress: null,
-        address: null,
-        taxId: null,
-        openingBalanceAmount: 0,
-        openingBalanceDirection: null,
-        notes: null,
-        isArchived: false,
-      });
-      if (!saveContactResult.success) {
-        setState((currentState) => ({
-          ...currentState,
-          isSaving: false,
-          fieldErrors: {},
-          errorMessage: saveContactResult.error.message,
-        }));
-        return;
-      }
-    }
-
     if (shouldSyncTransaction) {
-      const transactionRemoteId = linkedTransactionRemoteId ?? createTransactionRemoteId();
+      const transactionRemoteId =
+        linkedTransactionRemoteId ?? createTransactionRemoteId();
       const transactionPayload = buildSettlementTransactionPayload({
         remoteId: transactionRemoteId,
         ownerUserRemoteId,
@@ -1012,7 +1010,8 @@ export const useLedgerEditorViewModel = ({
         settlementMoneyAccountDisplayNameSnapshot,
       });
 
-      const transactionResult = await postBusinessTransactionUseCase.execute(transactionPayload);
+      const transactionResult =
+        await postBusinessTransactionUseCase.execute(transactionPayload);
 
       if (!transactionResult.success) {
         setState((currentState) => ({
@@ -1068,7 +1067,9 @@ export const useLedgerEditorViewModel = ({
 
       if (!saveDocumentResult.success) {
         if (createdTransactionRemoteId) {
-          await deleteBusinessTransactionUseCase.execute(createdTransactionRemoteId);
+          await deleteBusinessTransactionUseCase.execute(
+            createdTransactionRemoteId,
+          );
         }
         setState((currentState) => ({
           ...currentState,
@@ -1098,18 +1099,22 @@ export const useLedgerEditorViewModel = ({
       });
 
       const replaceAllocationsResult =
-        await replaceBillingDocumentAllocationsForSettlementEntryUseCase.execute({
-          accountRemoteId: businessAccountRemoteId,
-          settlementLedgerEntryRemoteId: ledgerRemoteId,
-          settlementTransactionRemoteId: linkedTransactionRemoteId,
-          settledAt: resolvedHappenedAt,
-          note: transactionNote,
-          allocations: allocationPlan,
-        });
+        await replaceBillingDocumentAllocationsForSettlementEntryUseCase.execute(
+          {
+            accountRemoteId: businessAccountRemoteId,
+            settlementLedgerEntryRemoteId: ledgerRemoteId,
+            settlementTransactionRemoteId: linkedTransactionRemoteId,
+            settledAt: resolvedHappenedAt,
+            note: transactionNote,
+            allocations: allocationPlan,
+          },
+        );
 
       if (!replaceAllocationsResult.success) {
         if (createdTransactionRemoteId) {
-          await deleteBusinessTransactionUseCase.execute(createdTransactionRemoteId);
+          await deleteBusinessTransactionUseCase.execute(
+            createdTransactionRemoteId,
+          );
         }
         setState((currentState) => ({
           ...currentState,
@@ -1145,7 +1150,8 @@ export const useLedgerEditorViewModel = ({
       linkedDocumentRemoteId,
       linkedTransactionRemoteId,
       settlementAccountRemoteId: settlementMoneyAccountRemoteId,
-      settlementAccountDisplayNameSnapshot: settlementMoneyAccountDisplayNameSnapshot,
+      settlementAccountDisplayNameSnapshot:
+        settlementMoneyAccountDisplayNameSnapshot,
     };
 
     const result =
@@ -1155,7 +1161,9 @@ export const useLedgerEditorViewModel = ({
 
     if (!result.success) {
       if (createdTransactionRemoteId) {
-        await deleteBusinessTransactionUseCase.execute(createdTransactionRemoteId);
+        await deleteBusinessTransactionUseCase.execute(
+          createdTransactionRemoteId,
+        );
       }
       if (hasPreparedSettlementAllocations) {
         await deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase.execute(
@@ -1173,7 +1181,9 @@ export const useLedgerEditorViewModel = ({
     }
 
     if (transactionToDeleteAfterSave) {
-      await deleteBusinessTransactionUseCase.execute(transactionToDeleteAfterSave);
+      await deleteBusinessTransactionUseCase.execute(
+        transactionToDeleteAfterSave,
+      );
     }
     if (!isSettlementAction) {
       await deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase.execute(
@@ -1192,9 +1202,8 @@ export const useLedgerEditorViewModel = ({
     replaceBillingDocumentAllocationsForSettlementEntryUseCase,
     postBusinessTransactionUseCase,
     close,
-    getContactsUseCase,
+    getOrCreateContactUseCase,
     getMoneyAccountsUseCase,
-    saveContactUseCase,
     deleteBusinessTransactionUseCase,
     deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
     getLedgerEntriesUseCase,
@@ -1295,7 +1304,9 @@ export const useLedgerEditorViewModel = ({
           },
           errorMessage: null,
         })),
-      onChangeSettledAgainstEntryRemoteId: (settledAgainstEntryRemoteId: string) =>
+      onChangeSettledAgainstEntryRemoteId: (
+        settledAgainstEntryRemoteId: string,
+      ) =>
         setState((currentState) => ({
           ...currentState,
           settledAgainstEntryRemoteId,
@@ -1356,4 +1367,3 @@ export const useLedgerEditorViewModel = ({
     ],
   );
 };
-

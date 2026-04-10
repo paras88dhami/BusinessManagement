@@ -1,40 +1,45 @@
+import {
+    MoneyAccount,
+    MoneyAccountType,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+    BillingDocument,
+    BillingDocumentStatus,
+    BillingDocumentType,
+    BillingTemplateType,
+    BillPhoto,
+} from "@/feature/billing/types/billing.types";
+import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
+import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
+import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
+import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
+import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
+import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
+import { ContactType } from "@/feature/contacts/types/contact.types";
+import { GetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase";
+import {
+    SaveTransactionPayload,
+    TransactionDirection,
+    TransactionSourceModule,
+    TransactionType,
+} from "@/feature/transactions/types/transaction.entity.types";
+import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
+import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
+import { exportDocument } from "@/shared/utils/document/exportDocument";
+import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
+import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
-import * as Crypto from "expo-crypto";
 import {
-  BillingDocument,
-  BillPhoto,
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingTemplateType,
-} from "@/feature/billing/types/billing.types";
-import { BillingViewModel, BillingDocumentFormState, BillingLineItemFormState, BillingTabValue } from "./billing.viewModel";
-import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
-import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
-import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
-import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
-import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
-import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { ContactType } from "@/feature/contacts/types/contact.types";
-import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
-import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
-import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
-import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
-import { exportDocument } from "@/shared/utils/document/exportDocument";
-import {
-  resolveRegionalFinancePolicy,
-} from "@/shared/utils/finance/regionalFinancePolicy";
-import { TaxModeValue } from "@/shared/types/regionalFinance.types";
-import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
-import { MoneyAccount, MoneyAccountType } from "@/feature/accounts/types/moneyAccount.types";
-import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
-import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
-import {
-  SaveTransactionPayload,
-  TransactionDirection,
-  TransactionSourceModule,
-  TransactionType,
-} from "@/feature/transactions/types/transaction.entity.types";
+    BillingDocumentFormState,
+    BillingLineItemFormState,
+    BillingTabValue,
+    BillingViewModel,
+} from "./billing.viewModel";
 
 const createEmptyLineItem = (): BillingLineItemFormState => ({
   remoteId: Crypto.randomUUID(),
@@ -43,7 +48,9 @@ const createEmptyLineItem = (): BillingLineItemFormState => ({
   unitRate: "0",
 });
 
-const createEmptyForm = (defaultTaxRatePercent: string): BillingDocumentFormState => ({
+const createEmptyForm = (
+  defaultTaxRatePercent: string,
+): BillingDocumentFormState => ({
   remoteId: null,
   documentType: BillingDocumentType.Invoice,
   customerName: "",
@@ -65,35 +72,9 @@ const createAllocationRemoteId = (): string => {
   return `alloc-billing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const createContactRemoteId = (): string => {
-  return `con-billing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-};
-
 const parseNumber = (value: string): number => {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const normalizeContactName = (value: string): string => value.trim().toLowerCase();
-
-const hasContactMatchByNameAndType = ({
-  contacts,
-  partyName,
-  contactType,
-}: {
-  contacts: readonly {
-    fullName: string;
-    contactType: (typeof ContactType)[keyof typeof ContactType];
-  }[];
-  partyName: string;
-  contactType: (typeof ContactType)[keyof typeof ContactType];
-}): boolean => {
-  const normalizedPartyName = normalizeContactName(partyName);
-  return contacts.some(
-    (contact) =>
-      normalizeContactName(contact.fullName) === normalizedPartyName &&
-      contact.contactType === contactType,
-  );
 };
 
 const resolveContactTypeForDocumentType = (
@@ -116,7 +97,9 @@ const resolveTemplateTypeForDocumentType = (
   return BillingTemplateType.StandardInvoice;
 };
 
-const mapMoneyAccountToOption = (moneyAccount: MoneyAccount): {
+const mapMoneyAccountToOption = (
+  moneyAccount: MoneyAccount,
+): {
   remoteId: string;
   label: string;
 } => {
@@ -142,8 +125,7 @@ const buildDocumentNumber = ({
   remoteId: string;
   issuedAt: number;
 }): string => {
-  const prefix =
-    documentType === BillingDocumentType.Receipt ? "RCPT" : "INV";
+  const prefix = documentType === BillingDocumentType.Receipt ? "RCPT" : "INV";
   const year = new Date(issuedAt).getUTCFullYear();
   const token = remoteId.replace(/-/g, "").slice(-8).toUpperCase();
 
@@ -161,7 +143,9 @@ const formatDateInput = (timestamp: number | null): string => {
   return value.toISOString().slice(0, 10);
 };
 
-const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState => ({
+const mapDocumentToForm = (
+  document: BillingDocument,
+): BillingDocumentFormState => ({
   remoteId: document.remoteId,
   documentType: document.documentType,
   customerName: document.customerName,
@@ -172,14 +156,15 @@ const mapDocumentToForm = (document: BillingDocument): BillingDocumentFormState 
   dueAt: formatDateInput(document.dueAt),
   paidNowAmount: "0",
   settlementAccountRemoteId: "",
-  items: document.items.length > 0
-    ? document.items.map((item) => ({
-        remoteId: item.remoteId,
-        itemName: item.itemName,
-        quantity: String(item.quantity),
-        unitRate: String(item.unitRate),
-      }))
-    : [createEmptyLineItem()],
+  items:
+    document.items.length > 0
+      ? document.items.map((item) => ({
+          remoteId: item.remoteId,
+          itemName: item.itemName,
+          quantity: String(item.quantity),
+          unitRate: String(item.unitRate),
+        }))
+      : [createEmptyLineItem()],
 });
 
 type Params = {
@@ -196,8 +181,7 @@ type Params = {
   saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
   saveBillPhotoUseCase: SaveBillPhotoUseCase;
-  getContactsUseCase: GetContactsUseCase;
-  saveContactUseCase: SaveContactUseCase;
+  getOrCreateContactUseCase: GetOrCreateContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
@@ -217,8 +201,7 @@ export const useBillingViewModel = ({
   saveBillingDocumentAllocationsUseCase,
   deleteBillingDocumentUseCase,
   saveBillPhotoUseCase,
-  getContactsUseCase,
-  saveContactUseCase,
+  getOrCreateContactUseCase,
   getMoneyAccountsUseCase,
   postBusinessTransactionUseCase,
   deleteBusinessTransactionUseCase,
@@ -253,12 +236,15 @@ export const useBillingViewModel = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [documents, setDocuments] = useState<BillingDocument[]>([]);
   const [billPhotos, setBillPhotos] = useState<BillPhoto[]>([]);
-  const [summary, setSummary] = useState({ totalDocuments: 0, pendingAmount: 0, overdueAmount: 0 });
+  const [summary, setSummary] = useState({
+    totalDocuments: 0,
+    pendingAmount: 0,
+    overdueAmount: 0,
+  });
   const [activeTab, setActiveTab] = useState<BillingTabValue>("invoices");
   const [isEditorVisible, setIsEditorVisible] = useState(false);
-  const [availableSettlementAccounts, setAvailableSettlementAccounts] = useState<
-    readonly { remoteId: string; label: string }[]
-  >([]);
+  const [availableSettlementAccounts, setAvailableSettlementAccounts] =
+    useState<readonly { remoteId: string; label: string }[]>([]);
   const [form, setForm] = useState<BillingDocumentFormState>(
     createEmptyForm(defaultTaxRatePercent),
   );
@@ -296,9 +282,17 @@ export const useBillingViewModel = ({
 
   const draftTotals = useMemo(() => {
     const subtotalAmount = Number(
-      form.items.reduce((sum, item) => sum + parseNumber(item.quantity) * parseNumber(item.unitRate), 0).toFixed(2),
+      form.items
+        .reduce(
+          (sum, item) =>
+            sum + parseNumber(item.quantity) * parseNumber(item.unitRate),
+          0,
+        )
+        .toFixed(2),
     );
-    const taxAmount = Number(((subtotalAmount * parseNumber(form.taxRatePercent)) / 100).toFixed(2));
+    const taxAmount = Number(
+      ((subtotalAmount * parseNumber(form.taxRatePercent)) / 100).toFixed(2),
+    );
     const totalAmount = Number((subtotalAmount + taxAmount).toFixed(2));
     return { subtotalAmount, taxAmount, totalAmount };
   }, [form.items, form.taxRatePercent]);
@@ -348,18 +342,26 @@ export const useBillingViewModel = ({
 
   const filteredDocuments = useMemo(() => {
     if (activeTab === "receipts") {
-      return documents.filter((item) => item.documentType === BillingDocumentType.Receipt);
+      return documents.filter(
+        (item) => item.documentType === BillingDocumentType.Receipt,
+      );
     }
-    return documents.filter((item) => item.documentType === BillingDocumentType.Invoice);
+    return documents.filter(
+      (item) => item.documentType === BillingDocumentType.Invoice,
+    );
   }, [activeTab, documents]);
 
   const editorTitle = useMemo(() => {
-    const prefix = form.documentType === BillingDocumentType.Invoice ? "Invoice" : "Receipt";
+    const prefix =
+      form.documentType === BillingDocumentType.Invoice ? "Invoice" : "Receipt";
     return form.remoteId ? `Edit ${prefix}` : `Create ${prefix}`;
   }, [form.documentType, form.remoteId]);
 
   const onOpenCreate = useCallback(() => {
-    const nextDocumentType = activeTab === "receipts" ? BillingDocumentType.Receipt : BillingDocumentType.Invoice;
+    const nextDocumentType =
+      activeTab === "receipts"
+        ? BillingDocumentType.Receipt
+        : BillingDocumentType.Invoice;
     const baseForm = createEmptyForm(defaultTaxRatePercent);
     setForm({
       ...baseForm,
@@ -374,39 +376,61 @@ export const useBillingViewModel = ({
     setIsEditorVisible(true);
   }, [activeTab, availableSettlementAccounts, defaultTaxRatePercent]);
 
-  const onOpenEdit = useCallback((document: BillingDocument) => {
-    setForm({
-      ...mapDocumentToForm(document),
-      settlementAccountRemoteId: availableSettlementAccounts[0]?.remoteId ?? "",
-    });
-    setErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [availableSettlementAccounts]);
+  const onOpenEdit = useCallback(
+    (document: BillingDocument) => {
+      setForm({
+        ...mapDocumentToForm(document),
+        settlementAccountRemoteId:
+          availableSettlementAccounts[0]?.remoteId ?? "",
+      });
+      setErrorMessage(null);
+      setIsEditorVisible(true);
+    },
+    [availableSettlementAccounts],
+  );
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
     setForm(createEmptyForm(defaultTaxRatePercent));
   }, [defaultTaxRatePercent]);
 
-  const onFormChange = useCallback((field: keyof Omit<BillingDocumentFormState, "items">, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  }, []);
+  const onFormChange = useCallback(
+    (field: keyof Omit<BillingDocumentFormState, "items">, value: string) => {
+      setForm((current) => ({ ...current, [field]: value }));
+    },
+    [],
+  );
 
-  const onLineItemChange = useCallback((remoteId: string, field: keyof BillingLineItemFormState, value: string) => {
-    setForm((current) => ({
-      ...current,
-      items: current.items.map((item) => item.remoteId === remoteId ? { ...item, [field]: value } : item),
-    }));
-  }, []);
+  const onLineItemChange = useCallback(
+    (
+      remoteId: string,
+      field: keyof BillingLineItemFormState,
+      value: string,
+    ) => {
+      setForm((current) => ({
+        ...current,
+        items: current.items.map((item) =>
+          item.remoteId === remoteId ? { ...item, [field]: value } : item,
+        ),
+      }));
+    },
+    [],
+  );
 
   const onAddLineItem = useCallback(() => {
-    setForm((current) => ({ ...current, items: [...current.items, createEmptyLineItem()] }));
+    setForm((current) => ({
+      ...current,
+      items: [...current.items, createEmptyLineItem()],
+    }));
   }, []);
 
   const onRemoveLineItem = useCallback((remoteId: string) => {
     setForm((current) => ({
       ...current,
-      items: current.items.length > 1 ? current.items.filter((item) => item.remoteId !== remoteId) : current.items,
+      items:
+        current.items.length > 1
+          ? current.items.filter((item) => item.remoteId !== remoteId)
+          : current.items,
     }));
   }, []);
 
@@ -451,7 +475,10 @@ export const useBillingViewModel = ({
       setErrorMessage("Paid amount cannot be greater than total amount.");
       return;
     }
-    if (paidNowAmount > 0 && form.settlementAccountRemoteId.trim().length === 0) {
+    if (
+      paidNowAmount > 0 &&
+      form.settlementAccountRemoteId.trim().length === 0
+    ) {
       setErrorMessage("Money account is required when paid amount is entered.");
       return;
     }
@@ -460,12 +487,18 @@ export const useBillingViewModel = ({
       Math.max(draftTotals.totalAmount - paidNowAmount, 0).toFixed(2),
     );
 
-    const issuedAt = new Date(form.issuedAt || new Date().toISOString()).getTime();
-    const normalizedIssuedAt = Number.isFinite(issuedAt) ? issuedAt : Date.now();
-    const dueAt = form.dueAt.trim().length > 0
-      ? new Date(form.dueAt).getTime()
-      : null;
-    if (form.dueAt.trim().length > 0 && (!Number.isFinite(dueAt) || dueAt === null)) {
+    const issuedAt = new Date(
+      form.issuedAt || new Date().toISOString(),
+    ).getTime();
+    const normalizedIssuedAt = Number.isFinite(issuedAt)
+      ? issuedAt
+      : Date.now();
+    const dueAt =
+      form.dueAt.trim().length > 0 ? new Date(form.dueAt).getTime() : null;
+    if (
+      form.dueAt.trim().length > 0 &&
+      (!Number.isFinite(dueAt) || dueAt === null)
+    ) {
       setErrorMessage("Enter a valid due date in YYYY-MM-DD format.");
       return;
     }
@@ -475,7 +508,8 @@ export const useBillingViewModel = ({
     }
     const resolvedRemoteId = form.remoteId ?? Crypto.randomUUID();
     const existingDocumentNumber = form.remoteId
-      ? documents.find((item) => item.remoteId === form.remoteId)?.documentNumber
+      ? documents.find((item) => item.remoteId === form.remoteId)
+          ?.documentNumber
       : null;
     const result = await saveBillingDocumentUseCase.execute({
       remoteId: resolvedRemoteId,
@@ -507,48 +541,33 @@ export const useBillingViewModel = ({
 
     let contactSyncWarningMessage: string | null = null;
     const normalizedContactName = form.customerName.trim();
-    const expectedContactType = resolveContactTypeForDocumentType(form.documentType);
+    const expectedContactType = resolveContactTypeForDocumentType(
+      form.documentType,
+    );
     const normalizedOwnerUserRemoteId = ownerUserRemoteId?.trim() ?? "";
 
     if (!normalizedOwnerUserRemoteId) {
       contactSyncWarningMessage =
         "Bill saved, but contact auto-create was skipped because user context is missing.";
     } else {
-      const contactsResult = await getContactsUseCase.execute({
+      const contactResult = await getOrCreateContactUseCase.execute({
         accountRemoteId,
+        accountType: AccountType.Business,
+        contactType: expectedContactType,
+        fullName: normalizedContactName,
+        ownerUserRemoteId: normalizedOwnerUserRemoteId,
+        phoneNumber: null,
+        emailAddress: null,
+        address: null,
+        taxId: null,
+        openingBalanceAmount: 0,
+        openingBalanceDirection: null,
+        notes: form.notes.trim() || null,
+        isArchived: false,
       });
 
-      if (!contactsResult.success) {
-        contactSyncWarningMessage = `Bill saved, but contact sync failed: ${contactsResult.error.message}`;
-      } else {
-        const hasMatchingContact = hasContactMatchByNameAndType({
-          contacts: contactsResult.value,
-          partyName: normalizedContactName,
-          contactType: expectedContactType,
-        });
-
-        if (!hasMatchingContact) {
-          const saveContactResult = await saveContactUseCase.execute({
-            remoteId: createContactRemoteId(),
-            ownerUserRemoteId: normalizedOwnerUserRemoteId,
-            accountRemoteId,
-            accountType: AccountType.Business,
-            contactType: expectedContactType,
-            fullName: normalizedContactName,
-            phoneNumber: null,
-            emailAddress: null,
-            address: null,
-            taxId: null,
-            openingBalanceAmount: 0,
-            openingBalanceDirection: null,
-            notes: form.notes.trim() || null,
-            isArchived: false,
-          });
-
-          if (!saveContactResult.success) {
-            contactSyncWarningMessage = `Bill saved, but contact auto-create failed: ${saveContactResult.error.message}`;
-          }
-        }
+      if (!contactResult.success) {
+        contactSyncWarningMessage = `Bill saved, but contact sync failed: ${contactResult.error.message}`;
       }
     }
 
@@ -565,7 +584,9 @@ export const useBillingViewModel = ({
         (account) => account.remoteId === form.settlementAccountRemoteId.trim(),
       );
       if (!selectedSettlementAccount) {
-        setErrorMessage("Bill saved, but selected money account is not available.");
+        setErrorMessage(
+          "Bill saved, but selected money account is not available.",
+        );
         await loadOverview();
         return;
       }
@@ -576,7 +597,8 @@ export const useBillingViewModel = ({
         remoteId: transactionRemoteId,
         ownerUserRemoteId: ownerUserRemoteId.trim(),
         accountRemoteId,
-        accountDisplayNameSnapshot: accountDisplayNameSnapshot || "Business Account",
+        accountDisplayNameSnapshot:
+          accountDisplayNameSnapshot || "Business Account",
         transactionType: isSaleDocument
           ? TransactionType.Income
           : TransactionType.Expense,
@@ -592,7 +614,8 @@ export const useBillingViewModel = ({
         note: form.notes.trim() || null,
         happenedAt: normalizedIssuedAt,
         settlementMoneyAccountRemoteId: selectedSettlementAccount.remoteId,
-        settlementMoneyAccountDisplayNameSnapshot: selectedSettlementAccount.label,
+        settlementMoneyAccountDisplayNameSnapshot:
+          selectedSettlementAccount.label,
         sourceModule: TransactionSourceModule.Billing,
         sourceRemoteId: result.value.remoteId,
         sourceAction: "document_payment",
@@ -609,18 +632,19 @@ export const useBillingViewModel = ({
         return;
       }
 
-      const allocationResult = await saveBillingDocumentAllocationsUseCase.execute([
-        {
-          remoteId: createAllocationRemoteId(),
-          accountRemoteId: result.value.accountRemoteId,
-          documentRemoteId: result.value.remoteId,
-          settlementLedgerEntryRemoteId: null,
-          settlementTransactionRemoteId: transactionRemoteId,
-          amount: paidNowAmount,
-          settledAt: normalizedIssuedAt,
-          note: form.notes.trim() || null,
-        },
-      ]);
+      const allocationResult =
+        await saveBillingDocumentAllocationsUseCase.execute([
+          {
+            remoteId: createAllocationRemoteId(),
+            accountRemoteId: result.value.accountRemoteId,
+            documentRemoteId: result.value.remoteId,
+            settlementLedgerEntryRemoteId: null,
+            settlementTransactionRemoteId: transactionRemoteId,
+            amount: paidNowAmount,
+            settledAt: normalizedIssuedAt,
+            note: form.notes.trim() || null,
+          },
+        ]);
 
       if (!allocationResult.success) {
         await deleteBusinessTransactionUseCase.execute(transactionRemoteId);
@@ -646,24 +670,28 @@ export const useBillingViewModel = ({
     documents,
     draftTotals.totalAmount,
     form,
-    getContactsUseCase,
+    getOrCreateContactUseCase,
     loadOverview,
     ownerUserRemoteId,
     postBusinessTransactionUseCase,
-    saveContactUseCase,
     saveBillingDocumentAllocationsUseCase,
     saveBillingDocumentUseCase,
     currencyCode,
   ]);
 
-  const onDelete = useCallback(async (document: BillingDocument) => {
-    const result = await deleteBillingDocumentUseCase.execute(document.remoteId);
-    if (!result.success) {
-      setErrorMessage(result.error.message);
-      return;
-    }
-    await loadOverview();
-  }, [deleteBillingDocumentUseCase, loadOverview]);
+  const onDelete = useCallback(
+    async (document: BillingDocument) => {
+      const result = await deleteBillingDocumentUseCase.execute(
+        document.remoteId,
+      );
+      if (!result.success) {
+        setErrorMessage(result.error.message);
+        return;
+      }
+      await loadOverview();
+    },
+    [deleteBillingDocumentUseCase, loadOverview],
+  );
 
   const onPrintPreview = useCallback(async () => {
     const html = buildBillingDraftHtml(
@@ -674,7 +702,8 @@ export const useBillingViewModel = ({
       currencyCode,
       regionalFinancePolicy.countryCode,
     );
-    const titlePrefix = form.documentType === BillingDocumentType.Receipt ? "receipt" : "invoice";
+    const titlePrefix =
+      form.documentType === BillingDocumentType.Receipt ? "receipt" : "invoice";
     const result = await exportDocument({
       html,
       action: "print",
@@ -774,64 +803,67 @@ export const useBillingViewModel = ({
     });
   }, [accountRemoteId, canManage, loadOverview, saveBillPhotoUseCase]);
 
-  return useMemo(() => ({
-    isLoading,
-    errorMessage,
-    activeTab,
-    summary,
-    documents: filteredDocuments,
-    billPhotos,
-    isEditorVisible,
-    editorTitle,
-    form,
-    currencyCode,
-    countryCode: regionalFinancePolicy.countryCode,
-    taxLabel: regionalFinancePolicy.taxLabel,
-    taxRateOptions,
-    availableSettlementAccounts,
-    canManage,
-    onRefresh: loadOverview,
-    onTabChange: setActiveTab,
-    onOpenCreate,
-    onOpenEdit,
-    onCloseEditor,
-    onFormChange,
-    onLineItemChange,
-    onAddLineItem,
-    onRemoveLineItem,
-    onSubmit,
-    onDelete,
-    onPrintPreview,
-    onUploadBillPhoto,
-    draftTotals,
-  }), [
-    activeTab,
-    billPhotos,
-    canManage,
-    currencyCode,
-    draftTotals,
-    editorTitle,
-    errorMessage,
-    filteredDocuments,
-    form,
-    isEditorVisible,
-    isLoading,
-    loadOverview,
-    onAddLineItem,
-    onCloseEditor,
-    onDelete,
-    onFormChange,
-    onLineItemChange,
-    onOpenCreate,
-    onOpenEdit,
-    onPrintPreview,
-    onRemoveLineItem,
-    onSubmit,
-    onUploadBillPhoto,
-    regionalFinancePolicy.countryCode,
-    regionalFinancePolicy.taxLabel,
-    summary,
-    taxRateOptions,
-    availableSettlementAccounts,
-  ]);
+  return useMemo(
+    () => ({
+      isLoading,
+      errorMessage,
+      activeTab,
+      summary,
+      documents: filteredDocuments,
+      billPhotos,
+      isEditorVisible,
+      editorTitle,
+      form,
+      currencyCode,
+      countryCode: regionalFinancePolicy.countryCode,
+      taxLabel: regionalFinancePolicy.taxLabel,
+      taxRateOptions,
+      availableSettlementAccounts,
+      canManage,
+      onRefresh: loadOverview,
+      onTabChange: setActiveTab,
+      onOpenCreate,
+      onOpenEdit,
+      onCloseEditor,
+      onFormChange,
+      onLineItemChange,
+      onAddLineItem,
+      onRemoveLineItem,
+      onSubmit,
+      onDelete,
+      onPrintPreview,
+      onUploadBillPhoto,
+      draftTotals,
+    }),
+    [
+      activeTab,
+      billPhotos,
+      canManage,
+      currencyCode,
+      draftTotals,
+      editorTitle,
+      errorMessage,
+      filteredDocuments,
+      form,
+      isEditorVisible,
+      isLoading,
+      loadOverview,
+      onAddLineItem,
+      onCloseEditor,
+      onDelete,
+      onFormChange,
+      onLineItemChange,
+      onOpenCreate,
+      onOpenEdit,
+      onPrintPreview,
+      onRemoveLineItem,
+      onSubmit,
+      onUploadBillPhoto,
+      regionalFinancePolicy.countryCode,
+      regionalFinancePolicy.taxLabel,
+      summary,
+      taxRateOptions,
+      availableSettlementAccounts,
+    ],
+  );
 };
