@@ -814,7 +814,10 @@ export const useLedgerEditorViewModel = ({
         0,
       );
 
-      if (totalOutstandingAmount > 0 && amount > totalOutstandingAmount + 0.0001) {
+      if (totalOutstandingAmount <= 0.0001) {
+        nextFieldErrors.partyName =
+          "No pending due found for this party. Create due entry first.";
+      } else if (amount > totalOutstandingAmount + 0.0001) {
         nextFieldErrors.amount =
           "Amount is more than pending due for this party. Use a due action for advance.";
       }
@@ -825,11 +828,9 @@ export const useLedgerEditorViewModel = ({
         );
 
         if (!linkedCandidate) {
-          nextFieldErrors.settledAgainstEntryRemoteId =
-            "Selected bill/due is already settled. Choose another one.";
+          resolvedSettledAgainstEntryRemoteId = null;
         } else if (amount > linkedCandidate.outstandingAmount + 0.0001) {
-          nextFieldErrors.settledAgainstEntryRemoteId =
-            "Amount cannot exceed pending amount of selected bill/due.";
+          resolvedSettledAgainstEntryRemoteId = null;
         }
       } else if (settlementCandidates.length === 1) {
         resolvedSettledAgainstEntryRemoteId = settlementCandidates[0].remoteId;

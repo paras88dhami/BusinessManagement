@@ -34,26 +34,23 @@ export function LedgerEntryEditorModal({
       label: account.label,
       value: account.remoteId,
     }));
-  const settlementLinkOptions: DropdownOption[] = [
-    { label: "Not linked (auto allocate)", value: "" },
-    ...viewModel.settlementLinkOptions.map((option) => ({
-      label: option.label,
-      value: option.value,
-    })),
-  ];
 
-  const title = state.mode === "create" ? "New Ledger Entry" : "Edit Ledger Entry";
+  const title = state.mode === "create" ? "Quick Ledger Entry" : "Edit Ledger Entry";
   const partyLabel = getLedgerPartyLabel(state.entryType);
   const actionLabel = getLedgerEntryTypeLabel(state.entryType);
   const shouldShowDueDate = requiresDueDate(state.entryType);
   const shouldShowSettlementAccount = requiresPaymentMode(state.entryType);
   const shouldShowPartySuggestions = viewModel.partySuggestions.length > 0;
+  const submitLabel =
+    state.mode === "create"
+      ? `Create ${actionLabel}`
+      : `Update ${actionLabel}`;
 
   return (
     <FormSheetModal
       visible={state.visible}
       title={title}
-      subtitle="Quick entry for dues and payments"
+      subtitle="Action-first entry for dues and settlements"
       onClose={viewModel.close}
       closeAccessibilityLabel="Close ledger entry editor"
       contentContainerStyle={styles.content}
@@ -69,7 +66,7 @@ export function LedgerEntryEditorModal({
             disabled={state.isSaving}
           />
           <AppButton
-            label={state.isSaving ? "Saving..." : "Save"}
+            label={state.isSaving ? "Saving..." : submitLabel}
             variant="primary"
             size="lg"
             style={styles.actionButton}
@@ -162,11 +159,6 @@ export function LedgerEntryEditorModal({
         </View>
       ) : null}
 
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Selected Action</Text>
-        <Text style={styles.summaryValue}>{actionLabel}</Text>
-      </View>
-
       <Pressable
         style={styles.moreDetailsToggle}
         onPress={viewModel.onToggleMoreDetails}
@@ -185,28 +177,6 @@ export function LedgerEntryEditorModal({
 
       {state.showMoreDetails ? (
         <View style={styles.moreDetailsContent}>
-          {shouldShowSettlementAccount ? (
-            <View style={styles.fieldWrap}>
-              <Text style={styles.inputLabel}>Against Bill / Due (Optional)</Text>
-              <Dropdown
-                value={state.settledAgainstEntryRemoteId}
-                options={settlementLinkOptions}
-                onChange={viewModel.onChangeSettledAgainstEntryRemoteId}
-                placeholder="Select bill/due to link"
-                modalTitle="Choose bill/due"
-                showLeadingIcon={false}
-                triggerStyle={styles.dropdownTrigger}
-                triggerTextStyle={styles.dropdownTriggerText}
-                disabled={state.isSaving}
-              />
-              {state.fieldErrors.settledAgainstEntryRemoteId ? (
-                <Text style={styles.fieldErrorText}>
-                  {state.fieldErrors.settledAgainstEntryRemoteId}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
           <LabeledTextInput
             label="Bill No / Ref No"
             value={state.referenceNumber}
@@ -320,26 +290,6 @@ const styles = StyleSheet.create({
     color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterMedium",
-  },
-  summaryCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: 3,
-  },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterSemiBold",
-    textTransform: "uppercase",
-  },
-  summaryValue: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
   },
   moreDetailsToggle: {
     borderWidth: 1,
