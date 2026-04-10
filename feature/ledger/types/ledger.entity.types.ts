@@ -50,6 +50,7 @@ export type LedgerEntry = {
   ownerUserRemoteId: string;
   partyName: string;
   partyPhone: string | null;
+  contactRemoteId: string | null;
   entryType: LedgerEntryTypeValue;
   balanceDirection: LedgerBalanceDirectionValue;
   title: string;
@@ -77,6 +78,7 @@ export type SaveLedgerEntryPayload = {
   ownerUserRemoteId: string;
   partyName: string;
   partyPhone: string | null;
+  contactRemoteId?: string | null;
   entryType: LedgerEntryTypeValue;
   balanceDirection: LedgerBalanceDirectionValue;
   title: string;

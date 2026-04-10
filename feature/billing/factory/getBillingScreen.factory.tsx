@@ -6,6 +6,7 @@ import { createBillingRepository } from "@/feature/billing/data/repository/billi
 import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
 import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
+import { createLinkBillingDocumentContactUseCase } from "@/feature/billing/useCase/linkBillingDocumentContact.useCase.impl";
 import { createPayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
@@ -13,6 +14,7 @@ import { createSaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPh
 import { useBillingViewModel } from "@/feature/billing/viewModel/billing.viewModel.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
+import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase.impl";
 import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
@@ -68,6 +70,10 @@ export function GetBillingScreenFactory({
     () => createDeleteBillingDocumentUseCase(repository),
     [repository],
   );
+  const linkBillingDocumentContactUseCase = React.useMemo(
+    () => createLinkBillingDocumentContactUseCase(repository),
+    [repository],
+  );
 
   const saveBillPhotoUseCase = React.useMemo(
     () => createSaveBillPhotoUseCase(repository),
@@ -102,6 +108,10 @@ export function GetBillingScreenFactory({
   const getOrCreateContactUseCase = React.useMemo(
     () => createGetOrCreateContactUseCase(contactRepository),
     [contactRepository],
+  );
+  const getOrCreateBusinessContactUseCase = React.useMemo(
+    () => createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase),
+    [getOrCreateContactUseCase],
   );
 
   const postBusinessTransactionUseCase = React.useMemo(
@@ -138,8 +148,9 @@ export function GetBillingScreenFactory({
     getBillingOverviewUseCase,
     saveBillingDocumentUseCase,
     deleteBillingDocumentUseCase,
+    linkBillingDocumentContactUseCase,
     saveBillPhotoUseCase,
-    getOrCreateContactUseCase,
+    getOrCreateBusinessContactUseCase,
     getMoneyAccountsUseCase,
     payBillingDocumentUseCase,
   });

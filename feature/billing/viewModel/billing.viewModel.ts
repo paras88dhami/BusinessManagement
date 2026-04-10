@@ -1,7 +1,6 @@
 import {
   BillPhoto,
   BillingDocument,
-  BillingDocumentStatusValue,
   BillingDocumentTypeValue,
 } from "@/feature/billing/types/billing.types";
 
@@ -15,10 +14,8 @@ export type BillingLineItemFormState = {
 };
 
 export type BillingDocumentFormState = {
-  remoteId: string | null;
   documentType: BillingDocumentTypeValue;
   customerName: string;
-  status: BillingDocumentStatusValue;
   taxRatePercent: string;
   notes: string;
   issuedAt: string;

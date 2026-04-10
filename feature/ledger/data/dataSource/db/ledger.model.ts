@@ -15,6 +15,7 @@ export class LedgerEntryModel extends Model {
   @field("owner_user_remote_id") ownerUserRemoteId!: string;
   @field("party_name") partyName!: string;
   @field("party_phone") partyPhone!: string | null;
+  @field("contact_remote_id") contactRemoteId!: string | null;
   @field("entry_type") entryType!: LedgerEntryTypeValue;
   @field("balance_direction") balanceDirection!: LedgerBalanceDirectionValue;
   @field("title") title!: string;

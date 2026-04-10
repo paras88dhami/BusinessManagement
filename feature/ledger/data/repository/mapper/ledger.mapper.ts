@@ -10,6 +10,7 @@ export const mapLedgerEntryModelToDomain = async (
     ownerUserRemoteId: model.ownerUserRemoteId,
     partyName: model.partyName,
     partyPhone: model.partyPhone,
+    contactRemoteId: model.contactRemoteId,
     entryType: model.entryType,
     balanceDirection: model.balanceDirection,
     title: model.title,

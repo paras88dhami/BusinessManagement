@@ -11,6 +11,10 @@ export interface BillingRepository {
   getBillingOverviewByAccountRemoteId(accountRemoteId: string): Promise<BillingOverviewResult>;
   saveBillingDocument(payload: SaveBillingDocumentPayload): Promise<BillingDocumentResult>;
   deleteBillingDocumentByRemoteId(remoteId: string): Promise<BillingOperationResult>;
+  linkBillingDocumentContactRemoteId(
+    documentRemoteId: string,
+    contactRemoteId: string | null,
+  ): Promise<BillingOperationResult>;
   saveBillPhoto(payload: SaveBillPhotoPayload): Promise<BillingOperationResult>;
   saveBillingDocumentAllocations(
     payloads: readonly SaveBillingDocumentAllocationPayload[],

@@ -191,6 +191,17 @@ export const createBillingRepository = (datasource: BillingDatasource): BillingR
     if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
     return result;
   },
+  async linkBillingDocumentContactRemoteId(
+    documentRemoteId: string,
+    contactRemoteId: string | null,
+  ) {
+    const result = await datasource.linkBillingDocumentContactRemoteId(
+      documentRemoteId,
+      contactRemoteId,
+    );
+    if (!result.success) return { success: false, error: mapDatasourceError(result.error) };
+    return result;
+  },
   async saveBillPhoto(payload: SaveBillPhotoPayload) {
     const result = await datasource.saveBillPhoto(payload);
     if (!result.success) return { success: false, error: mapDatasourceError(result.error) };

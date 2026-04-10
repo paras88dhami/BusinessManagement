@@ -8,6 +8,7 @@ export const ledgerEntriesTable = tableSchema({
     { name: "owner_user_remote_id", type: "string", isIndexed: true },
     { name: "party_name", type: "string", isIndexed: true },
     { name: "party_phone", type: "string", isOptional: true },
+    { name: "contact_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "entry_type", type: "string", isIndexed: true },
     { name: "balance_direction", type: "string", isIndexed: true },
     { name: "title", type: "string" },

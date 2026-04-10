@@ -849,5 +849,32 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 35,
+      steps: [
+        addColumns({
+          table: "billing_documents",
+          columns: [
+            {
+              name: "contact_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+        addColumns({
+          table: "ledger_entries",
+          columns: [
+            {
+              name: "contact_remote_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+      ],
+    },
   ],
 });

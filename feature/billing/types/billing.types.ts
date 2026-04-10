@@ -41,6 +41,7 @@ export type BillingDocument = {
   documentType: BillingDocumentTypeValue;
   templateType: BillingTemplateTypeValue;
   customerName: string;
+  contactRemoteId: string | null;
   status: BillingDocumentStatusValue;
   taxRatePercent: number;
   notes: string | null;
@@ -100,6 +101,7 @@ export type SaveBillingDocumentPayload = {
   documentType: BillingDocumentTypeValue;
   templateType: BillingTemplateTypeValue;
   customerName: string;
+  contactRemoteId?: string | null;
   status: BillingDocumentStatusValue;
   taxRatePercent: number;
   notes: string | null;

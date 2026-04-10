@@ -3,22 +3,23 @@ import {
   MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
-import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
   BillingDocument,
   BillingDocumentStatus,
   BillingDocumentType,
   BillingTemplateType,
+  BillingDocumentStatusValue,
   BillPhoto,
 } from "@/feature/billing/types/billing.types";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
+import { LinkBillingDocumentContactUseCase } from "@/feature/billing/useCase/linkBillingDocumentContact.useCase";
 import { PayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { ContactType } from "@/feature/contacts/types/contact.types";
-import { GetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase";
+import { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { exportDocument } from "@/shared/utils/document/exportDocument";
 import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
@@ -40,9 +41,14 @@ const createEmptyLineItem = (): BillingLineItemFormState => ({
   unitRate: "0",
 });
 
+type BillingDocumentEditorInternalState = BillingDocumentFormState & {
+  remoteId: string | null;
+  status: BillingDocumentStatusValue;
+};
+
 const createEmptyForm = (
   defaultTaxRatePercent: string,
-): BillingDocumentFormState => ({
+): BillingDocumentEditorInternalState => ({
   remoteId: null,
   documentType: BillingDocumentType.Invoice,
   customerName: "",
@@ -129,7 +135,7 @@ const formatDateInput = (timestamp: number | null): string => {
 
 const mapDocumentToForm = (
   document: BillingDocument,
-): BillingDocumentFormState => ({
+): BillingDocumentEditorInternalState => ({
   remoteId: document.remoteId,
   documentType: document.documentType,
   customerName: document.customerName,
@@ -163,8 +169,9 @@ type Params = {
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+  linkBillingDocumentContactUseCase: LinkBillingDocumentContactUseCase;
   saveBillPhotoUseCase: SaveBillPhotoUseCase;
-  getOrCreateContactUseCase: GetOrCreateContactUseCase;
+  getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   payBillingDocumentUseCase: PayBillingDocumentUseCase;
 };
@@ -181,8 +188,9 @@ export const useBillingViewModel = ({
   getBillingOverviewUseCase,
   saveBillingDocumentUseCase,
   deleteBillingDocumentUseCase,
+  linkBillingDocumentContactUseCase,
   saveBillPhotoUseCase,
-  getOrCreateContactUseCase,
+  getOrCreateBusinessContactUseCase,
   getMoneyAccountsUseCase,
   payBillingDocumentUseCase,
 }: Params): BillingViewModel => {
@@ -225,7 +233,7 @@ export const useBillingViewModel = ({
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [availableSettlementAccounts, setAvailableSettlementAccounts] =
     useState<readonly { remoteId: string; label: string }[]>([]);
-  const [form, setForm] = useState<BillingDocumentFormState>(
+  const [form, setForm] = useState<BillingDocumentEditorInternalState>(
     createEmptyForm(defaultTaxRatePercent),
   );
   const currencyCode = regionalFinancePolicy.currencyCode;
@@ -336,6 +344,21 @@ export const useBillingViewModel = ({
       form.documentType === BillingDocumentType.Invoice ? "Invoice" : "Receipt";
     return form.remoteId ? `Edit ${prefix}` : `Create ${prefix}`;
   }, [form.documentType, form.remoteId]);
+
+  const editorForm = useMemo<BillingDocumentFormState>(
+    () => ({
+      documentType: form.documentType,
+      customerName: form.customerName,
+      taxRatePercent: form.taxRatePercent,
+      notes: form.notes,
+      issuedAt: form.issuedAt,
+      dueAt: form.dueAt,
+      paidNowAmount: form.paidNowAmount,
+      settlementAccountRemoteId: form.settlementAccountRemoteId,
+      items: form.items,
+    }),
+    [form],
+  );
 
   const onOpenCreate = useCallback(() => {
     const nextDocumentType =
@@ -530,24 +553,26 @@ export const useBillingViewModel = ({
       contactSyncWarningMessage =
         "Bill saved, but contact auto-create was skipped because user context is missing.";
     } else {
-      const contactResult = await getOrCreateContactUseCase.execute({
+      const contactResult = await getOrCreateBusinessContactUseCase.execute({
         accountRemoteId,
-        accountType: AccountType.Business,
         contactType: expectedContactType,
         fullName: normalizedContactName,
         ownerUserRemoteId: normalizedOwnerUserRemoteId,
-        phoneNumber: null,
-        emailAddress: null,
-        address: null,
-        taxId: null,
-        openingBalanceAmount: 0,
-        openingBalanceDirection: null,
         notes: form.notes.trim() || null,
-        isArchived: false,
       });
 
       if (!contactResult.success) {
         contactSyncWarningMessage = `Bill saved, but contact sync failed: ${contactResult.error.message}`;
+      } else {
+        const linkContactResult =
+          await linkBillingDocumentContactUseCase.execute({
+            billingDocumentRemoteId: result.value.remoteId,
+            contactRemoteId: contactResult.value.remoteId,
+          });
+
+        if (!linkContactResult.success) {
+          contactSyncWarningMessage = `Bill saved, but contact link failed: ${linkContactResult.error.message}`;
+        }
       }
     }
 
@@ -609,12 +634,12 @@ export const useBillingViewModel = ({
     documents,
     draftTotals.totalAmount,
     form,
-    getOrCreateContactUseCase,
+    getOrCreateBusinessContactUseCase,
+    linkBillingDocumentContactUseCase,
     loadOverview,
     ownerUserRemoteId,
     payBillingDocumentUseCase,
     saveBillingDocumentUseCase,
-    currencyCode,
   ]);
 
   const onDelete = useCallback(
@@ -633,7 +658,7 @@ export const useBillingViewModel = ({
 
   const onPrintPreview = useCallback(async () => {
     const html = buildBillingDraftHtml(
-      form,
+      editorForm,
       draftTotals.subtotalAmount,
       draftTotals.taxAmount,
       draftTotals.totalAmount,
@@ -641,11 +666,13 @@ export const useBillingViewModel = ({
       regionalFinancePolicy.countryCode,
     );
     const titlePrefix =
-      form.documentType === BillingDocumentType.Receipt ? "receipt" : "invoice";
+      editorForm.documentType === BillingDocumentType.Receipt
+        ? "receipt"
+        : "invoice";
     const result = await exportDocument({
       html,
       action: "print",
-      fileName: `${titlePrefix}_${form.customerName || "document"}_${form.issuedAt || Date.now()}`,
+      fileName: `${titlePrefix}_${editorForm.customerName || "document"}_${editorForm.issuedAt || Date.now()}`,
       title: `eLekha ${titlePrefix}`,
     });
     if (!result.success) {
@@ -658,7 +685,7 @@ export const useBillingViewModel = ({
     draftTotals.subtotalAmount,
     draftTotals.taxAmount,
     draftTotals.totalAmount,
-    form,
+    editorForm,
     regionalFinancePolicy.countryCode,
   ]);
 
@@ -751,7 +778,7 @@ export const useBillingViewModel = ({
       billPhotos,
       isEditorVisible,
       editorTitle,
-      form,
+      form: editorForm,
       currencyCode,
       countryCode: regionalFinancePolicy.countryCode,
       taxLabel: regionalFinancePolicy.taxLabel,
@@ -780,9 +807,9 @@ export const useBillingViewModel = ({
       currencyCode,
       draftTotals,
       editorTitle,
+      editorForm,
       errorMessage,
       filteredDocuments,
-      form,
       isEditorVisible,
       isLoading,
       loadOverview,

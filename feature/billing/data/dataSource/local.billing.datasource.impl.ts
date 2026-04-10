@@ -134,6 +134,9 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
         payload.documentNumber,
       ).toUpperCase();
       const normalizedCustomerName = normalizeRequired(payload.customerName);
+      const normalizedContactRemoteId = normalizeOptional(
+        payload.contactRemoteId ?? null,
+      );
       const normalizedNotes = normalizeOptional(payload.notes);
       const normalizedSourceModule = normalizeOptional(payload.sourceModule ?? null);
       const normalizedSourceRemoteId = normalizeOptional(
@@ -194,6 +197,10 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
             record.documentType = payload.documentType;
             record.templateType = payload.templateType;
             record.customerName = normalizedCustomerName;
+            record.contactRemoteId =
+              payload.contactRemoteId === undefined
+                ? record.contactRemoteId
+                : normalizedContactRemoteId;
             record.status = payload.status;
             record.taxRatePercent = payload.taxRatePercent;
             record.notes = normalizedNotes;
@@ -227,6 +234,7 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
             record.documentType = payload.documentType;
             record.templateType = payload.templateType;
             record.customerName = normalizedCustomerName;
+            record.contactRemoteId = normalizedContactRemoteId;
             record.status = payload.status;
             record.taxRatePercent = payload.taxRatePercent;
             record.notes = normalizedNotes;
@@ -327,6 +335,45 @@ export const createLocalBillingDatasource = (database: Database): BillingDatasou
       return { success: true, value: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error : new Error("Unknown error") };
+    }
+  },
+
+  async linkBillingDocumentContactRemoteId(
+    documentRemoteId: string,
+    contactRemoteId: string | null,
+  ): Promise<Result<boolean>> {
+    try {
+      const normalizedDocumentRemoteId = normalizeRequired(documentRemoteId);
+      const normalizedContactRemoteId = normalizeOptional(contactRemoteId);
+      if (!normalizedDocumentRemoteId) {
+        throw new Error("Billing document remote id is required");
+      }
+      const existingDocument = await findDocumentByRemoteId(
+        database,
+        normalizedDocumentRemoteId,
+      );
+      if (!existingDocument) {
+        throw new Error("Billing document not found");
+      }
+
+      await database.write(async () => {
+        const now = Date.now();
+        await existingDocument.update((record) => {
+          record.contactRemoteId = normalizedContactRemoteId;
+          touchSync(record);
+          markUpdated(
+            record as unknown as { _raw: Record<string, number> },
+            now,
+          );
+        });
+      });
+
+      return { success: true, value: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
     }
   },
 

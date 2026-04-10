@@ -29,6 +29,7 @@ export const mapBillingDocumentModelToDomain = (
   documentType: document.documentType,
   templateType: document.templateType,
   customerName: document.customerName,
+  contactRemoteId: document.contactRemoteId,
   status: document.status,
   taxRatePercent: document.taxRatePercent,
   notes: document.notes,

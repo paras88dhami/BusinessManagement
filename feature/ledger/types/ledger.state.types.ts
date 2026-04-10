@@ -85,7 +85,6 @@ export type LedgerEditorFieldErrors = Partial<
 export type LedgerEditorFormState = {
   visible: boolean;
   mode: LedgerEditorMode;
-  editingRemoteId: string | null;
   entryType: LedgerEntryTypeValue;
   partyName: string;
   amount: string;
@@ -97,8 +96,6 @@ export type LedgerEditorFormState = {
   reminderAt: string;
   attachmentUri: string;
   settledAgainstEntryRemoteId: string;
-  linkedDocumentRemoteId: string | null;
-  linkedTransactionRemoteId: string | null;
   showMoreDetails: boolean;
   fieldErrors: LedgerEditorFieldErrors;
   isSaving: boolean;

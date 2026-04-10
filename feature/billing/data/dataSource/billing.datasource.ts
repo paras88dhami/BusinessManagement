@@ -34,6 +34,10 @@ export interface BillingDatasource {
     accountRemoteId: string,
   ): Promise<Result<BillingDocumentRecord[]>>;
   deleteBillingDocumentByRemoteId(remoteId: string): Promise<Result<boolean>>;
+  linkBillingDocumentContactRemoteId(
+    documentRemoteId: string,
+    contactRemoteId: string | null,
+  ): Promise<Result<boolean>>;
   saveBillPhoto(payload: SaveBillPhotoPayload): Promise<Result<BillPhotoModel>>;
   getBillPhotosByAccountRemoteId(accountRemoteId: string): Promise<Result<BillPhotoModel[]>>;
   saveBillingDocumentAllocations(

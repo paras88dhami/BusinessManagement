@@ -9,6 +9,15 @@ import { LedgerEntryModel } from "./db/ledger.model";
 
 const LEDGER_ENTRIES_TABLE = "ledger_entries";
 
+const normalizeOptional = (value: string | null | undefined): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
 const setCreatedAndUpdatedAt = (record: LedgerEntryModel, now: number) => {
   (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
   (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
@@ -50,6 +59,10 @@ export const createLocalLedgerDatasource = (
             record.ownerUserRemoteId = payload.ownerUserRemoteId;
             record.partyName = payload.partyName;
             record.partyPhone = payload.partyPhone;
+            record.contactRemoteId =
+              payload.contactRemoteId === undefined
+                ? record.contactRemoteId
+                : normalizeOptional(payload.contactRemoteId);
             record.entryType = payload.entryType;
             record.balanceDirection = payload.balanceDirection;
             record.title = payload.title;
@@ -88,6 +101,7 @@ export const createLocalLedgerDatasource = (
           record.ownerUserRemoteId = payload.ownerUserRemoteId;
           record.partyName = payload.partyName;
           record.partyPhone = payload.partyPhone;
+          record.contactRemoteId = normalizeOptional(payload.contactRemoteId);
           record.entryType = payload.entryType;
           record.balanceDirection = payload.balanceDirection;
           record.title = payload.title;

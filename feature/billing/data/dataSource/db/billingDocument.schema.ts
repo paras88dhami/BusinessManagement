@@ -10,6 +10,7 @@ export const billingDocumentsTable = tableSchema({
     { name: "document_type", type: "string", isIndexed: true },
     { name: "template_type", type: "string", isIndexed: true },
     { name: "customer_name", type: "string" },
+    { name: "contact_remote_id", type: "string", isOptional: true, isIndexed: true },
     { name: "status", type: "string", isIndexed: true },
     { name: "tax_rate_percent", type: "number" },
     { name: "notes", type: "string", isOptional: true },

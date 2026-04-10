@@ -15,6 +15,7 @@ export class BillingDocumentModel extends Model {
   @field("document_type") documentType!: BillingDocumentTypeValue;
   @field("template_type") templateType!: BillingTemplateTypeValue;
   @field("customer_name") customerName!: string;
+  @field("contact_remote_id") contactRemoteId!: string | null;
   @field("status") status!: BillingDocumentStatusValue;
   @field("tax_rate_percent") taxRatePercent!: number;
   @field("notes") notes!: string | null;
