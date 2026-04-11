@@ -97,11 +97,11 @@ const castTableColumns = (
           string,
           { name: string; type: unknown; isOptional?: boolean }
         >,
-      )) as ReadonlyArray<{
+      )) as readonly {
     name: string;
     type: unknown;
     isOptional?: boolean;
-  }>;
+  }[];
 
   return columnList
     .filter(

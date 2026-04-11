@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  TaxBreakdown,
-  TaxCalculationMode,
-  TaxCalculationModeValue,
-  TaxToolPreset,
+    TaxBreakdown,
+    TaxCalculationMode,
+    TaxCalculationModeValue,
+    TaxToolPreset,
 } from "@/feature/appSettings/taxCalculator/types/taxCalculator.types";
 import { CalculateTaxBreakdownUseCase } from "@/feature/appSettings/taxCalculator/useCase/calculateTaxBreakdown.useCase";
 import { GetTaxCalculatorPresetsUseCase } from "@/feature/appSettings/taxCalculator/useCase/getTaxCalculatorPresets.useCase";
 import {
-  TaxCalculatorScreenViewModel,
-  TaxCalculationSummaryState,
-} from "./taxCalculator.viewModel";
-import {
-  formatCurrencyAmount,
-  resolveCurrencyPrefix,
+    formatCurrencyAmount,
+    resolveCurrencyPrefix,
 } from "@/shared/utils/currency/accountCurrency";
 import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    TaxCalculationSummaryState,
+    TaxCalculatorScreenViewModel,
+} from "./taxCalculator.viewModel";
 
 const parseAmountInput = (value: string): number | null => {
   const normalized = value.replace(/,/g, "").trim();
@@ -96,8 +96,9 @@ export const useTaxCalculatorViewModel = ({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
-  const [calculationErrorMessage, setCalculationErrorMessage] =
-    useState<string | null>(null);
+  const [calculationErrorMessage, setCalculationErrorMessage] = useState<
+    string | null
+  >(null);
   const [presets, setPresets] = useState<readonly TaxToolPreset[]>([]);
   const [selectedPresetCode, setSelectedPresetCode] = useState("");
   const [selectedMode, setSelectedMode] = useState<TaxCalculationModeValue>(
@@ -140,7 +141,8 @@ export const useTaxCalculatorViewModel = ({
     const filteredPresets = regionalFinancePolicy.taxRateOptions
       .map((ratePercent) => presetsByRate.get(ratePercent))
       .filter((preset): preset is TaxToolPreset => Boolean(preset));
-    const nextPresets = filteredPresets.length > 0 ? filteredPresets : result.value;
+    const nextPresets =
+      filteredPresets.length > 0 ? filteredPresets : result.value;
 
     setPresets(nextPresets);
     setSelectedPresetCode((current) => {
@@ -302,11 +304,9 @@ export const useTaxCalculatorViewModel = ({
       amountInput,
       amountInputPlaceholder,
       calculationSummary,
-      calculationErrorMessage,
       errorMessage,
       isCalculatorVisible,
       isLoading,
-      loadErrorMessage,
       loadPresets,
       onAmountChange,
       onCloseCalculator,

@@ -1,15 +1,15 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  ReportHomeTab,
-  ReportPeriod,
-  ReportQuery,
-  ReportScope,
+    ReportHomeTab,
+    ReportPeriod,
+    ReportQuery,
+    ReportScope,
 } from "@/feature/reports/types/report.entity.types";
 import { ReportsViewState } from "@/feature/reports/types/report.state.types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ReportsViewModel,
-  UseReportsViewModelParams,
+    ReportsViewModel,
+    UseReportsViewModelParams,
 } from "./reports.viewModel";
 
 const buildQuery = (params: {
@@ -68,7 +68,11 @@ export const useReportsViewModel = (
 
       const requestId = activeLoadRequestRef.current + 1;
       activeLoadRequestRef.current = requestId;
-      setState((current) => ({ ...current, isLoading: true, errorMessage: null }));
+      setState((current) => ({
+        ...current,
+        isLoading: true,
+        errorMessage: null,
+      }));
       const result = await getReportsDashboardUseCase.execute(
         buildQuery({
           accountType,
@@ -99,11 +103,19 @@ export const useReportsViewModel = (
         activePeriod: period,
       }));
     },
-    [accountRemoteId, accountType, getReportsDashboardUseCase, ownerUserRemoteId],
+    [
+      accountRemoteId,
+      accountType,
+      getReportsDashboardUseCase,
+      ownerUserRemoteId,
+    ],
   );
 
   const loadDetail = useCallback(
-    async (reportId: NonNullable<ReportQuery["reportId"]>, period: ReportQuery["period"]) => {
+    async (
+      reportId: NonNullable<ReportQuery["reportId"]>,
+      period: ReportQuery["period"],
+    ) => {
       if (
         (accountType === AccountType.Business && !accountRemoteId) ||
         (!ownerUserRemoteId && !accountRemoteId)
@@ -170,11 +182,20 @@ export const useReportsViewModel = (
     }
 
     await loadDashboard(state.activePeriod);
-  }, [loadDashboard, loadDetail, state.activePeriod, state.selectedReportId]);
+  }, [
+    loadDashboard,
+    loadDetail,
+    state.activePeriod,
+    state.detail,
+    state.selectedReportId,
+  ]);
 
-  const onSelectHomeTab = useCallback((tab: ReportsViewState["activeHomeTab"]) => {
-    setState((current) => ({ ...current, activeHomeTab: tab }));
-  }, []);
+  const onSelectHomeTab = useCallback(
+    (tab: ReportsViewState["activeHomeTab"]) => {
+      setState((current) => ({ ...current, activeHomeTab: tab }));
+    },
+    [],
+  );
 
   const onSelectPeriod = useCallback(
     async (period: ReportQuery["period"]) => {
@@ -185,7 +206,7 @@ export const useReportsViewModel = (
 
       await loadDashboard(period);
     },
-    [loadDashboard, loadDetail, state.selectedReportId],
+    [loadDashboard, loadDetail, state.detail, state.selectedReportId],
   );
 
   const onOpenReport = useCallback(
@@ -214,6 +235,14 @@ export const useReportsViewModel = (
       onOpenReport,
       onBackToReports,
     }),
-    [accountType, onBackToReports, onOpenReport, onRefresh, onSelectHomeTab, onSelectPeriod, state],
+    [
+      accountType,
+      onBackToReports,
+      onOpenReport,
+      onRefresh,
+      onSelectHomeTab,
+      onSelectPeriod,
+      state,
+    ],
   );
 };

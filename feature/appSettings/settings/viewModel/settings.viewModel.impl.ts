@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   APPEARANCE_TEXT_SIZE_OPTIONS,
   APPEARANCE_THEME_OPTIONS,

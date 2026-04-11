@@ -1,4 +1,4 @@
-﻿import { BudgetEditorModal } from "@/feature/budget/ui/components/BudgetEditorModal";
+import { BudgetEditorModal } from "@/feature/budget/ui/components/BudgetEditorModal";
 import { BudgetDetailModal } from "@/feature/budget/ui/components/BudgetDetailModal";
 import {
   BudgetListFilter,

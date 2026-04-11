@@ -1,5 +1,8 @@
-﻿import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
-import { OrderStatus, OrderStatusValue } from "@/feature/orders/types/order.types";
+import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
+import {
+    OrderStatus,
+    OrderStatusValue,
+} from "@/feature/orders/types/order.types";
 import { OrdersViewModel } from "@/feature/orders/viewModel/orders.viewModel";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { Pill } from "@/shared/components/reusable/List/Pill";
@@ -9,13 +12,13 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Download, Plus, Search, Upload } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { OrderDetailModal } from "./components/OrderDetailModal";
 import { OrderEditorModal } from "./components/OrderEditorModal";
@@ -24,7 +27,10 @@ import { OrderStatusModal } from "./components/OrderStatusModal";
 
 type StatusFilterValue = "all" | OrderStatusValue;
 
-const STATUS_FILTER_OPTIONS: readonly { label: string; value: StatusFilterValue }[] = [
+const STATUS_FILTER_OPTIONS: readonly {
+  label: string;
+  value: StatusFilterValue;
+}[] = [
   { label: "All", value: "all" },
   { label: "Pending", value: OrderStatus.Pending },
   { label: "Confirmed", value: OrderStatus.Confirmed },
@@ -69,7 +75,10 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all");
 
-  const orderItems = Array.isArray(viewModel.orders) ? viewModel.orders : [];
+  const orderItems = useMemo(
+    () => (Array.isArray(viewModel.orders) ? viewModel.orders : []),
+    [viewModel.orders],
+  );
 
   const filteredOrders = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
@@ -183,16 +192,22 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
             <Text style={styles.summaryLabel}>Active</Text>
           </View>
           <View style={styles.summaryCard}>
-            <Text style={styles.deliveredSummaryValue}>{summary.deliveredCount}</Text>
+            <Text style={styles.deliveredSummaryValue}>
+              {summary.deliveredCount}
+            </Text>
             <Text style={styles.summaryLabel}>Delivered</Text>
           </View>
           <View style={styles.summaryCard}>
-            <Text style={styles.cancelledSummaryValue}>{summary.cancelledCount}</Text>
+            <Text style={styles.cancelledSummaryValue}>
+              {summary.cancelledCount}
+            </Text>
             <Text style={styles.summaryLabel}>Cancelled</Text>
           </View>
         </View>
 
-        <Text style={styles.listHeaderText}>Orders ({filteredOrders.length})</Text>
+        <Text style={styles.listHeaderText}>
+          Orders ({filteredOrders.length})
+        </Text>
 
         {viewModel.errorMessage ? (
           <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
@@ -225,12 +240,18 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
                         tone={getStatusPillTone(order.status)}
                       />
                     </View>
-                    <Text style={styles.orderSubtitle}>{order.customerName}</Text>
+                    <Text style={styles.orderSubtitle}>
+                      {order.customerName}
+                    </Text>
                   </View>
 
                   <View style={styles.orderAmountWrap}>
-                    <Text style={styles.orderTotalLabel}>{order.totalLabel}</Text>
-                    <Text style={styles.orderDateLabel}>{order.orderDateLabel}</Text>
+                    <Text style={styles.orderTotalLabel}>
+                      {order.totalLabel}
+                    </Text>
+                    <Text style={styles.orderDateLabel}>
+                      {order.orderDateLabel}
+                    </Text>
                   </View>
                 </View>
 

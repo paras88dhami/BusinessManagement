@@ -1,31 +1,46 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
+import {
+    ReportListItem,
+    ReportMenuSection,
+    ReportSummaryCard,
+} from "@/feature/reports/types/report.entity.types";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ListRow } from "@/shared/components/reusable/List/ListRow";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
-import { ReportListItem, ReportMenuSection, ReportSummaryCard } from "@/feature/reports/types/report.entity.types";
 import {
-  BarChart3,
-  Boxes,
-  CircleDollarSign,
-  CreditCard,
-  Download,
-  FileBarChart,
-  PieChart,
-  Receipt,
-  Users,
+    BarChart3,
+    Boxes,
+    CircleDollarSign,
+    CreditCard,
+    Download,
+    FileBarChart,
+    PieChart,
+    Receipt,
+    Users,
 } from "lucide-react-native";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-export function ReportsSummaryRow({ cards }: { cards: readonly ReportSummaryCard[] }) {
+export function ReportsSummaryRow({
+  cards,
+}: {
+  cards: readonly ReportSummaryCard[];
+}) {
   return (
     <View style={styles.summaryRow}>
       {cards.map((card) => {
-        const valueColor = card.tone === "positive" ? colors.success : card.tone === "negative" ? colors.destructive : colors.cardForeground;
+        const valueColor =
+          card.tone === "positive"
+            ? colors.success
+            : card.tone === "negative"
+              ? colors.destructive
+              : colors.cardForeground;
         return (
           <Card key={card.id} style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{card.label}</Text>
-            <Text style={[styles.summaryValue, { color: valueColor }]}>{card.value}</Text>
+            <Text style={[styles.summaryValue, { color: valueColor }]}>
+              {card.value}
+            </Text>
           </Card>
         );
       })}
@@ -33,7 +48,13 @@ export function ReportsSummaryRow({ cards }: { cards: readonly ReportSummaryCard
   );
 }
 
-export function ReportMenuSections({ sections, onOpen }: { sections: readonly ReportMenuSection[]; onOpen: (id: ReportMenuSection["items"][number]["id"]) => void; }) {
+export function ReportMenuSections({
+  sections,
+  onOpen,
+}: {
+  sections: readonly ReportMenuSection[];
+  onOpen: (id: ReportMenuSection["items"][number]["id"]) => void;
+}) {
   return (
     <View style={styles.sectionsWrap}>
       {sections.map((section) => (
@@ -54,11 +75,20 @@ export function ReportMenuSections({ sections, onOpen }: { sections: readonly Re
   );
 }
 
-export function ReportListItems({ items }: { items: readonly ReportListItem[] }) {
+export function ReportListItems({
+  items,
+}: {
+  items: readonly ReportListItem[];
+}) {
   return (
     <View style={styles.listWrap}>
       {items.map((item) => {
-        const valueColor = item.tone === "positive" ? colors.success : item.tone === "negative" ? colors.destructive : colors.cardForeground;
+        const valueColor =
+          item.tone === "positive"
+            ? colors.success
+            : item.tone === "negative"
+              ? colors.destructive
+              : colors.cardForeground;
         return (
           <Card key={item.id} style={styles.listCard}>
             <View style={styles.listTopRow}>
@@ -66,11 +96,20 @@ export function ReportListItems({ items }: { items: readonly ReportListItem[] })
                 <Text style={styles.listTitle}>{item.title}</Text>
                 <Text style={styles.listSubtitle}>{item.subtitle}</Text>
               </View>
-              <Text style={[styles.listValue, { color: valueColor }]}>{item.value}</Text>
+              <Text style={[styles.listValue, { color: valueColor }]}>
+                {item.value}
+              </Text>
             </View>
             {typeof item.progressRatio === "number" ? (
               <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(item.progressRatio, 1)) * 100}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.max(0, Math.min(item.progressRatio, 1)) * 100}%`,
+                    },
+                  ]}
+                />
               </View>
             ) : null}
           </Card>

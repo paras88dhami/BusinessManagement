@@ -18,6 +18,8 @@ import {
   LedgerEntryTypeOptionState,
   LedgerSettlementLinkOptionState,
 } from "@/feature/ledger/types/ledger.state.types";
+import { BuildSettlementLinkCandidatesUseCase } from "@/feature/ledger/useCase/buildSettlementLinkCandidates.useCase";
+import { CheckDuplicateLedgerEntryUseCase } from "@/feature/ledger/useCase/checkDuplicateLedgerEntry.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { GetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase";
 import {
@@ -26,9 +28,8 @@ import {
 } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  buildSettlementLinkCandidates,
   formatDateInput,
   getLedgerEntryTypeLabel,
   parseDateInput,
@@ -81,6 +82,8 @@ type UseLedgerEditorViewModelParams = {
   getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   saveLedgerEntryWithSettlementUseCase: SaveLedgerEntryWithSettlementUseCase;
+  checkDuplicateLedgerEntryUseCase: CheckDuplicateLedgerEntryUseCase;
+  buildSettlementLinkCandidatesUseCase: BuildSettlementLinkCandidatesUseCase;
   onSaved: () => void;
 };
 
@@ -90,9 +93,6 @@ const entryTypeOptions: readonly LedgerEntryTypeOptionState[] = [
   { value: LedgerEntryType.Collection, label: "Receive Money" },
   { value: LedgerEntryType.PaymentOut, label: "Pay Money" },
 ] as const;
-
-const normalizePartyName = (value: string): string =>
-  value.trim().toLowerCase();
 
 const resolveContactTypeForEntryType = (
   entryType: LedgerEntryTypeValue,
@@ -158,38 +158,6 @@ const clearFieldError = (
   };
 };
 
-const isLikelyDuplicate = ({
-  entries,
-  editingRemoteId,
-  entryType,
-  partyName,
-  amount,
-  happenedAtInput,
-}: {
-  entries: readonly LedgerEntry[];
-  editingRemoteId: string | null;
-  entryType: LedgerEntryTypeValue;
-  partyName: string;
-  amount: number;
-  happenedAtInput: string;
-}): boolean => {
-  const normalizedPartyName = normalizePartyName(partyName);
-  const normalizedDate = happenedAtInput.trim();
-
-  return entries.some((entry) => {
-    if (editingRemoteId && entry.remoteId === editingRemoteId) {
-      return false;
-    }
-
-    return (
-      entry.entryType === entryType &&
-      normalizePartyName(entry.partyName) === normalizedPartyName &&
-      Math.abs(entry.amount - amount) < 0.0001 &&
-      formatDateInput(entry.happenedAt) === normalizedDate
-    );
-  });
-};
-
 export const useLedgerEditorViewModel = ({
   ownerUserRemoteId,
   activeBusinessAccountRemoteId,
@@ -200,6 +168,8 @@ export const useLedgerEditorViewModel = ({
   getOrCreateBusinessContactUseCase,
   getMoneyAccountsUseCase,
   saveLedgerEntryWithSettlementUseCase,
+  checkDuplicateLedgerEntryUseCase,
+  buildSettlementLinkCandidatesUseCase,
   onSaved,
 }: UseLedgerEditorViewModelParams): LedgerEditorViewModel => {
   const [state, setState] =
@@ -308,45 +278,56 @@ export const useLedgerEditorViewModel = ({
       .slice(0, 6);
   }, [knownParties, state.partyName]);
 
-  const settlementLinkOptions = useMemo<
+  const [settlementLinkOptions, setSettlementLinkOptions] = useState<
     readonly LedgerSettlementLinkOptionState[]
-  >(() => {
-    const baseOptions = buildSettlementLinkCandidates({
-      entries: knownLedgerEntries,
-      settlementEntryType: state.entryType,
-      partyName: state.partyName,
-      fallbackCurrencyCode: activeBusinessCurrencyCode,
-    }).map((candidate) => ({
+  >([]);
+
+  const loadSettlementLinkOptions = useCallback(async () => {
+    const baseOptions = (
+      await buildSettlementLinkCandidatesUseCase.execute({
+        entries: knownLedgerEntries,
+        settlementEntryType: state.entryType,
+        partyName: state.partyName,
+        fallbackCurrencyCode: activeBusinessCurrencyCode,
+      })
+    ).map((candidate) => ({
       value: candidate.remoteId,
       label: candidate.label,
     }));
 
     const selectedRemoteId = state.settledAgainstEntryRemoteId.trim();
     if (!selectedRemoteId) {
-      return baseOptions;
+      setSettlementLinkOptions(baseOptions);
+      return;
     }
 
     const selectedStillPresent = baseOptions.some(
       (option) => option.value === selectedRemoteId,
     );
     if (selectedStillPresent) {
-      return baseOptions;
+      setSettlementLinkOptions(baseOptions);
+      return;
     }
 
-    return [
+    setSettlementLinkOptions([
       {
         value: selectedRemoteId,
         label: "Previously linked due (settled/closed)",
       },
       ...baseOptions,
-    ];
+    ]);
   }, [
     activeBusinessCurrencyCode,
+    buildSettlementLinkCandidatesUseCase,
     knownLedgerEntries,
     state.entryType,
     state.partyName,
     state.settledAgainstEntryRemoteId,
   ]);
+
+  useEffect(() => {
+    void loadSettlementLinkOptions();
+  }, [loadSettlementLinkOptions]);
 
   const resolveDefaultSettlementAccountRemoteId = useCallback((): string => {
     if (knownMoneyAccounts.length === 0) {
@@ -574,16 +555,18 @@ export const useLedgerEditorViewModel = ({
       return;
     }
 
-    if (
-      isLikelyDuplicate({
+    const checkDuplicateResult = await checkDuplicateLedgerEntryUseCase.execute(
+      {
         entries: duplicateCheckResult.value,
         editingRemoteId: state.mode === "edit" ? state.editingRemoteId : null,
         entryType: state.entryType,
         partyName: normalizedPartyName,
         amount,
-        happenedAtInput: state.happenedAt,
-      })
-    ) {
+        happenedAt: happenedAt as number,
+      },
+    );
+
+    if (checkDuplicateResult.isDuplicate) {
       setState((currentState) => ({
         ...currentState,
         fieldErrors: {
@@ -598,12 +581,13 @@ export const useLedgerEditorViewModel = ({
 
     const isSettlementAction = requiresPaymentMode(state.entryType);
     const isDueAction = requiresDueDate(state.entryType);
-    const settlementCandidates = buildSettlementLinkCandidates({
-      entries: duplicateCheckResult.value,
-      settlementEntryType: state.entryType,
-      partyName: normalizedPartyName,
-      fallbackCurrencyCode: activeBusinessCurrencyCode,
-    });
+    const settlementCandidates =
+      await buildSettlementLinkCandidatesUseCase.execute({
+        entries: duplicateCheckResult.value,
+        settlementEntryType: state.entryType,
+        partyName: normalizedPartyName,
+        fallbackCurrencyCode: activeBusinessCurrencyCode,
+      });
     const settlementCandidatesById = new Map(
       settlementCandidates.map((candidate) => [candidate.remoteId, candidate]),
     );
@@ -765,6 +749,8 @@ export const useLedgerEditorViewModel = ({
     activeBusinessAccountDisplayName,
     activeBusinessAccountRemoteId,
     activeBusinessCurrencyCode,
+    buildSettlementLinkCandidatesUseCase,
+    checkDuplicateLedgerEntryUseCase,
     close,
     getOrCreateBusinessContactUseCase,
     getLedgerEntriesUseCase,

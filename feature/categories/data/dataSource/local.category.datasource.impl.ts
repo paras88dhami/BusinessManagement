@@ -1,14 +1,13 @@
 import {
-  CategoryKind,
-  CategoryScope,
-  SaveCategoryPayload,
+    AccountType,
+    AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
+import {
+    CategoryKind,
+    CategoryScope,
+    SaveCategoryPayload,
 } from "@/feature/categories/types/category.types";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
-import {
-  AccountType,
-  AccountTypeValue,
-} from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import { CategoryDatasource } from "./category.datasource";
 import { CategoryModel } from "./db/category.model";
@@ -74,18 +73,23 @@ const dedupeCategoriesByRemoteId = (
       continue;
     }
 
-    if (resolveCategoryRecencyScore(category) > resolveCategoryRecencyScore(current)) {
+    if (
+      resolveCategoryRecencyScore(category) >
+      resolveCategoryRecencyScore(current)
+    ) {
       canonicalByRemoteId.set(category.remoteId, category);
     }
   }
 
-  return Array.from(canonicalByRemoteId.values()).sort((leftCategory, rightCategory) => {
-    const kindSort = leftCategory.kind.localeCompare(rightCategory.kind);
-    if (kindSort !== 0) {
-      return kindSort;
-    }
-    return leftCategory.name.localeCompare(rightCategory.name);
-  });
+  return Array.from(canonicalByRemoteId.values()).sort(
+    (leftCategory, rightCategory) => {
+      const kindSort = leftCategory.kind.localeCompare(rightCategory.kind);
+      if (kindSort !== 0) {
+        return kindSort;
+      }
+      return leftCategory.name.localeCompare(rightCategory.name);
+    },
+  );
 };
 
 const getSystemCategorySeed = (
@@ -111,7 +115,11 @@ const getSystemCategorySeed = (
       isSystem: true,
     },
     {
-      remoteId: buildRemoteId(accountRemoteId, CategoryKind.Expense, "Food & Dining"),
+      remoteId: buildRemoteId(
+        accountRemoteId,
+        CategoryKind.Expense,
+        "Food & Dining",
+      ),
       ownerUserRemoteId,
       accountRemoteId,
       accountType,
@@ -152,7 +160,11 @@ const getSystemCategorySeed = (
       isSystem: true,
     },
     {
-      remoteId: buildRemoteId(accountRemoteId, CategoryKind.Business, "Collection"),
+      remoteId: buildRemoteId(
+        accountRemoteId,
+        CategoryKind.Business,
+        "Collection",
+      ),
       ownerUserRemoteId,
       accountRemoteId,
       accountType,
@@ -174,7 +186,11 @@ const getSystemCategorySeed = (
       isSystem: true,
     },
     {
-      remoteId: buildRemoteId(accountRemoteId, CategoryKind.Product, "Beverages"),
+      remoteId: buildRemoteId(
+        accountRemoteId,
+        CategoryKind.Product,
+        "Beverages",
+      ),
       ownerUserRemoteId,
       accountRemoteId,
       accountType,
@@ -196,7 +212,11 @@ const getSystemCategorySeed = (
       isSystem: true,
     },
     {
-      remoteId: buildRemoteId(accountRemoteId, CategoryKind.Product, "Electronics"),
+      remoteId: buildRemoteId(
+        accountRemoteId,
+        CategoryKind.Product,
+        "Electronics",
+      ),
       ownerUserRemoteId,
       accountRemoteId,
       accountType,
@@ -207,7 +227,11 @@ const getSystemCategorySeed = (
       isSystem: true,
     },
     {
-      remoteId: buildRemoteId(accountRemoteId, CategoryKind.Product, "Services"),
+      remoteId: buildRemoteId(
+        accountRemoteId,
+        CategoryKind.Product,
+        "Services",
+      ),
       ownerUserRemoteId,
       accountRemoteId,
       accountType,
@@ -225,10 +249,9 @@ const findByRemoteId = async (
   remoteId: string,
 ): Promise<CategoryModel | null> => {
   const collection = database.get<CategoryModel>(CATEGORIES_TABLE);
-  const matching = await collection.query(
-    Q.where("remote_id", remoteId),
-    Q.where("deleted_at", Q.eq(null)),
-  ).fetch();
+  const matching = await collection
+    .query(Q.where("remote_id", remoteId), Q.where("deleted_at", Q.eq(null)))
+    .fetch();
   const deduped = dedupeCategoriesByRemoteId(matching);
   return deduped[0] ?? null;
 };
@@ -361,14 +384,21 @@ export const createLocalCategoryDatasource = (
   async saveCategory(payload: SaveCategoryPayload) {
     try {
       const normalizedRemoteId = normalizeRequired(payload.remoteId);
-      const normalizedOwnerUserRemoteId = normalizeRequired(payload.ownerUserRemoteId);
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
+      const normalizedOwnerUserRemoteId = normalizeRequired(
+        payload.ownerUserRemoteId,
+      );
+      const normalizedAccountRemoteId = normalizeRequired(
+        payload.accountRemoteId,
+      );
       const normalizedName = normalizeRequired(payload.name);
       const normalizedDescription = normalizeOptional(payload.description);
 
-      if (!normalizedRemoteId) throw new Error("Category remote id is required");
-      if (!normalizedOwnerUserRemoteId) throw new Error("Owner user remote id is required");
-      if (!normalizedAccountRemoteId) throw new Error("Account remote id is required");
+      if (!normalizedRemoteId)
+        throw new Error("Category remote id is required");
+      if (!normalizedOwnerUserRemoteId)
+        throw new Error("Owner user remote id is required");
+      if (!normalizedAccountRemoteId)
+        throw new Error("Account remote id is required");
       if (!normalizedName) throw new Error("Category name is required");
 
       const collection = database.get<CategoryModel>(CATEGORIES_TABLE);
@@ -389,7 +419,10 @@ export const createLocalCategoryDatasource = (
         throw new Error("Category name already exists in this scope");
       }
 
-      const existingCategory = await findByRemoteId(database, normalizedRemoteId);
+      const existingCategory = await findByRemoteId(
+        database,
+        normalizedRemoteId,
+      );
       if (existingCategory) {
         await database.write(async () => {
           await existingCategory.update((record) => {
@@ -439,7 +472,10 @@ export const createLocalCategoryDatasource = (
         throw new Error("Category remote id is required");
       }
 
-      const existingCategory = await findByRemoteId(database, normalizedRemoteId);
+      const existingCategory = await findByRemoteId(
+        database,
+        normalizedRemoteId,
+      );
       if (!existingCategory) {
         throw new Error("Category not found");
       }

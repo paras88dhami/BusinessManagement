@@ -11,9 +11,9 @@ import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
   BillingDocumentFormState,
   BillingLineItemFormState,
-} from "@/feature/billing/viewModel/billing.viewModel";
+ BillingSettlementAccountOption } from "@/feature/billing/viewModel/billing.viewModel";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
-import { BillingSettlementAccountOption } from "@/feature/billing/viewModel/billing.viewModel";
+
 
 export function BillingDocumentEditorModal({
   visible,

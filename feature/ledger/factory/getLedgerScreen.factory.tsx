@@ -4,8 +4,8 @@ import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMon
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
-    Account,
-    AccountType,
+  Account,
+  AccountType,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { createGetAccessibleAccountsByUserRemoteIdUseCase } from "@/feature/auth/accountSelection/useCase/getAccessibleAccountsByUserRemoteId.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
@@ -24,6 +24,8 @@ import { syncLedgerReminderNotifications } from "@/feature/ledger/reminder/ledge
 import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerScreen } from "@/feature/ledger/ui/LedgerScreen";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createBuildSettlementLinkCandidatesUseCase } from "@/feature/ledger/useCase/buildSettlementLinkCandidates.useCase.impl";
+import { createCheckDuplicateLedgerEntryUseCase } from "@/feature/ledger/useCase/checkDuplicateLedgerEntry.useCase.impl";
 import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
 import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
 import { createGetLedgerEntriesByPartyUseCase } from "@/feature/ledger/useCase/getLedgerEntriesByParty.useCase.impl";
@@ -128,6 +130,14 @@ export function GetLedgerScreenFactory({
   const getLedgerEntriesByPartyUseCase = useMemo(
     () => createGetLedgerEntriesByPartyUseCase(ledgerRepository),
     [ledgerRepository],
+  );
+  const checkDuplicateLedgerEntryUseCase = useMemo(
+    () => createCheckDuplicateLedgerEntryUseCase(),
+    [],
+  );
+  const buildSettlementLinkCandidatesUseCase = useMemo(
+    () => createBuildSettlementLinkCandidatesUseCase(),
+    [],
   );
   const contactDatasource = useMemo(
     () => createLocalContactDatasource(appDatabase),
@@ -323,6 +333,8 @@ export function GetLedgerScreenFactory({
     getOrCreateBusinessContactUseCase,
     getMoneyAccountsUseCase,
     saveLedgerEntryWithSettlementUseCase,
+    checkDuplicateLedgerEntryUseCase,
+    buildSettlementLinkCandidatesUseCase,
     onSaved: handleLedgerMutation,
   });
 
