@@ -30,6 +30,12 @@ export function TransactionEditorModal({
       value: account.remoteId,
     }),
   );
+  const moneyAccountOptions: DropdownOption[] = viewModel.moneyAccountOptions.map(
+    (account) => ({
+      label: account.label,
+      value: account.remoteId,
+    }),
+  );
 
   const directionOptions: DropdownOption[] = viewModel.availableDirections.map(
     (option) => ({
@@ -146,6 +152,16 @@ export function TransactionEditorModal({
         onChange={viewModel.onChangeAccountRemoteId}
         placeholder="Select account"
         modalTitle="Select account"
+        showLeadingIcon={false}
+      />
+
+      <Text style={styles.inputLabel}>Money Account</Text>
+      <Dropdown
+        value={state.settlementMoneyAccountRemoteId}
+        options={moneyAccountOptions}
+        onChange={viewModel.onChangeSettlementMoneyAccountRemoteId}
+        placeholder="Select money account"
+        modalTitle="Select money account"
         showLeadingIcon={false}
       />
 

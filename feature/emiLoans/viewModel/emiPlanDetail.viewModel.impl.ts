@@ -1,11 +1,32 @@
-import { useCallback, useState } from "react";
+import {
+  MoneyAccount,
+  MoneyAccountType,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { GetEmiPlanByRemoteIdUseCase } from "@/feature/emiLoans/useCase/getEmiPlanByRemoteId.useCase";
 import { PayEmiInstallmentUseCase } from "@/feature/emiLoans/useCase/payEmiInstallment.useCase";
+import { useCallback, useState } from "react";
 import { buildEmiPlanDetailState } from "./emi.shared";
 import { EmiPlanDetailViewModel } from "./emiPlanDetail.viewModel";
 
+const mapMoneyAccountToOption = (moneyAccount: MoneyAccount) => {
+  const accountTypeLabel =
+    moneyAccount.type === MoneyAccountType.Cash
+      ? "Cash"
+      : moneyAccount.type === MoneyAccountType.Bank
+        ? "Bank"
+        : "Wallet";
+  const primarySuffix = moneyAccount.isPrimary ? " (Primary)" : "";
+
+  return {
+    label: `${moneyAccount.name} | ${accountTypeLabel}${primarySuffix}`,
+    value: moneyAccount.remoteId,
+  };
+};
+
 export const useEmiPlanDetailViewModel = (
   getEmiPlanByRemoteIdUseCase: GetEmiPlanByRemoteIdUseCase,
+  getMoneyAccountsUseCase: GetMoneyAccountsUseCase,
   payEmiInstallmentUseCase: PayEmiInstallmentUseCase,
   onChanged: () => void,
 ): EmiPlanDetailViewModel => {
@@ -13,7 +34,14 @@ export const useEmiPlanDetailViewModel = (
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [state, setState] = useState<ReturnType<typeof buildEmiPlanDetailState> | null>(null);
+  const [state, setState] = useState<ReturnType<
+    typeof buildEmiPlanDetailState
+  > | null>(null);
+  const [settlementAccountOptions, setSettlementAccountOptions] = useState<
+    readonly { label: string; value: string }[]
+  >([]);
+  const [selectedSettlementAccountRemoteId, setSelectedSettlementAccountRemoteId] =
+    useState("");
 
   const loadPlan = useCallback(
     async (remoteId: string) => {
@@ -22,16 +50,41 @@ export const useEmiPlanDetailViewModel = (
 
       if (!result.success) {
         setState(null);
+        setSettlementAccountOptions([]);
+        setSelectedSettlementAccountRemoteId("");
         setErrorMessage(result.error.message);
         setIsLoading(false);
         return;
       }
 
-      setState(buildEmiPlanDetailState(result.value.plan, result.value.installments));
+      const scopeAccountRemoteId =
+        result.value.plan.businessAccountRemoteId ??
+        result.value.plan.linkedAccountRemoteId;
+      const moneyAccountsResult = await getMoneyAccountsUseCase.execute(
+        scopeAccountRemoteId,
+      );
+      const moneyAccountOptions = moneyAccountsResult.success
+        ? moneyAccountsResult.value
+            .filter((moneyAccount) => moneyAccount.isActive)
+            .sort((left, right) => {
+              if (left.isPrimary && !right.isPrimary) return -1;
+              if (!left.isPrimary && right.isPrimary) return 1;
+              return left.name.localeCompare(right.name);
+            })
+            .map(mapMoneyAccountToOption)
+        : [];
+
+      setState(
+        buildEmiPlanDetailState(result.value.plan, result.value.installments),
+      );
+      setSettlementAccountOptions(moneyAccountOptions);
+      setSelectedSettlementAccountRemoteId(
+        moneyAccountOptions[0]?.value ?? "",
+      );
       setErrorMessage(null);
       setIsLoading(false);
     },
-    [getEmiPlanByRemoteIdUseCase],
+    [getEmiPlanByRemoteIdUseCase, getMoneyAccountsUseCase],
   );
 
   const open = useCallback(
@@ -45,6 +98,8 @@ export const useEmiPlanDetailViewModel = (
   const close = useCallback(() => {
     setVisible(false);
     setErrorMessage(null);
+    setSettlementAccountOptions([]);
+    setSelectedSettlementAccountRemoteId("");
   }, []);
 
   const payInstallment = useCallback(
@@ -53,11 +108,17 @@ export const useEmiPlanDetailViewModel = (
         return;
       }
 
+      if (!selectedSettlementAccountRemoteId.trim()) {
+        setErrorMessage("Choose a valid active money account.");
+        return;
+      }
+
       setIsSubmittingPayment(true);
       const result = await payEmiInstallmentUseCase.execute({
         planRemoteId: state.remoteId,
         installmentRemoteId,
         paidAt: Date.now(),
+        selectedSettlementAccountRemoteId,
       });
 
       if (!result.success) {
@@ -70,7 +131,13 @@ export const useEmiPlanDetailViewModel = (
       onChanged();
       setIsSubmittingPayment(false);
     },
-    [loadPlan, onChanged, payEmiInstallmentUseCase, state],
+    [
+      loadPlan,
+      onChanged,
+      payEmiInstallmentUseCase,
+      selectedSettlementAccountRemoteId,
+      state,
+    ],
   );
 
   return {
@@ -79,8 +146,11 @@ export const useEmiPlanDetailViewModel = (
     isSubmittingPayment,
     errorMessage,
     state,
+    settlementAccountOptions,
+    selectedSettlementAccountRemoteId,
     close,
     open,
+    onChangeSettlementAccountRemoteId: setSelectedSettlementAccountRemoteId,
     payInstallment,
   };
 };

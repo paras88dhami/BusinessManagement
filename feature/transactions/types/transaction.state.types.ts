@@ -75,6 +75,11 @@ export type TransactionAccountOption = {
   currencyCode: string | null;
 };
 
+export type TransactionMoneyAccountOption = {
+  remoteId: string;
+  label: string;
+};
+
 export type TransactionFilterOption = {
   value: string;
   label: string;
@@ -91,6 +96,7 @@ export type TransactionEditorState = {
   title: string;
   amount: string;
   accountRemoteId: string;
+  settlementMoneyAccountRemoteId: string;
   categoryLabel: string;
   note: string;
   happenedAt: string;

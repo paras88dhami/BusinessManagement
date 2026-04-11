@@ -333,6 +333,7 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
 
       <OrderMoneyActionModal
         form={viewModel.moneyForm}
+        moneyAccountOptions={viewModel.moneyAccountOptions}
         onClose={viewModel.onCloseMoneyAction}
         onChange={viewModel.onMoneyFormChange}
         onSubmit={viewModel.onSubmitMoneyAction}

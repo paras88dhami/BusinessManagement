@@ -1,10 +1,10 @@
-import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
 import { TransactionValidationError } from "@/feature/transactions/types/transaction.error.types";
 import { TransactionOperationResult } from "@/feature/transactions/types/transaction.entity.types";
+import { DeleteBusinessTransactionUseCase } from "./deleteBusinessTransaction.useCase";
 import { DeleteTransactionUseCase } from "./deleteTransaction.useCase";
 
 export const createDeleteTransactionUseCase = (
-  transactionRepository: TransactionRepository,
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase,
 ): DeleteTransactionUseCase => ({
   async execute(remoteId: string): Promise<TransactionOperationResult> {
     const normalizedRemoteId = remoteId.trim();
@@ -16,6 +16,6 @@ export const createDeleteTransactionUseCase = (
       };
     }
 
-    return transactionRepository.deleteTransactionByRemoteId(normalizedRemoteId);
+    return deleteBusinessTransactionUseCase.execute(normalizedRemoteId);
   },
 });

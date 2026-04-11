@@ -1,3 +1,8 @@
+import {
+  MoneyAccount,
+  MoneyAccountType,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import {
@@ -66,6 +71,7 @@ const EMPTY_MONEY_FORM: OrderMoneyFormState = {
   orderNumber: "",
   amount: "",
   happenedAt: new Date().toISOString().slice(0, 10),
+  settlementMoneyAccountRemoteId: "",
   note: "",
 };
 
@@ -80,6 +86,21 @@ const ORDER_PAYMENT_METHOD_OPTIONS: readonly DropdownOption[] = [
   { label: "Credit", value: "Credit" },
   { label: "UPI/QR", value: "UPI/QR" },
 ] as const;
+
+const mapMoneyAccountToOption = (moneyAccount: MoneyAccount): DropdownOption => {
+  const accountTypeLabel =
+    moneyAccount.type === MoneyAccountType.Cash
+      ? "Cash"
+      : moneyAccount.type === MoneyAccountType.Bank
+        ? "Bank"
+        : "Wallet";
+  const primarySuffix = moneyAccount.isPrimary ? " (Primary)" : "";
+
+  return {
+    label: `${moneyAccount.name} | ${accountTypeLabel}${primarySuffix}`,
+    value: moneyAccount.remoteId,
+  };
+};
 
 type OrderFinancialSnapshot = {
   subtotalAmount: number;
@@ -416,6 +437,7 @@ type Params = {
   refundOrderUseCase: RefundOrderUseCase;
   getContactsUseCase: GetContactsUseCase;
   getProductsUseCase: GetProductsUseCase;
+  getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   getTransactionsUseCase: GetTransactionsUseCase;
 };
 
@@ -439,6 +461,7 @@ export const useOrdersViewModel = ({
   refundOrderUseCase,
   getContactsUseCase,
   getProductsUseCase,
+  getMoneyAccountsUseCase,
   getTransactionsUseCase,
 }: Params): OrdersViewModel => {
   const [isLoading, setIsLoading] = useState(true);
@@ -455,6 +478,9 @@ export const useOrdersViewModel = ({
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [statusDraft, setStatusDraft] = useState<OrderStatusValue>(OrderStatus.Draft);
   const [moneyForm, setMoneyForm] = useState<OrderMoneyFormState>(EMPTY_MONEY_FORM);
+  const [moneyAccountOptions, setMoneyAccountOptions] = useState<DropdownOption[]>(
+    [],
+  );
 
   const contactsByRemoteId = useMemo(
     () => new Map(contacts.map((contact) => [contact.remoteId, contact])),
@@ -542,13 +568,20 @@ export const useOrdersViewModel = ({
 
     setIsLoading(true);
 
-    const [ordersResult, contactsResult, productsResult, transactionsResult] = await Promise.all([
+    const [
+      ordersResult,
+      contactsResult,
+      productsResult,
+      transactionsResult,
+      moneyAccountsResult,
+    ] = await Promise.all([
       getOrdersUseCase.execute({ accountRemoteId }),
       getContactsUseCase.execute({ accountRemoteId }),
       getProductsUseCase.execute(accountRemoteId),
       ownerUserRemoteId
         ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
         : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
+      getMoneyAccountsUseCase.execute(accountRemoteId),
     ]);
 
     if (!ordersResult.success) {
@@ -585,11 +618,24 @@ export const useOrdersViewModel = ({
     setTransactions(
       Array.isArray(transactionsResult.value) ? transactionsResult.value : [],
     );
+    setMoneyAccountOptions(
+      moneyAccountsResult.success
+        ? moneyAccountsResult.value
+            .filter((moneyAccount) => moneyAccount.isActive)
+            .sort((left, right) => {
+              if (left.isPrimary && !right.isPrimary) return -1;
+              if (!left.isPrimary && right.isPrimary) return 1;
+              return left.name.localeCompare(right.name);
+            })
+            .map(mapMoneyAccountToOption)
+        : [],
+    );
     setErrorMessage(null);
     setIsLoading(false);
   }, [
     accountRemoteId,
     getContactsUseCase,
+    getMoneyAccountsUseCase,
     getOrdersUseCase,
     getProductsUseCase,
     getTransactionsUseCase,
@@ -1037,9 +1083,10 @@ export const useOrdersViewModel = ({
       orderNumber: detail.order.orderNumber,
       amount: "",
       happenedAt: new Date().toISOString().slice(0, 10),
+      settlementMoneyAccountRemoteId: moneyAccountOptions[0]?.value ?? "",
       note: "",
     });
-  }, [canManage, detail]);
+  }, [canManage, detail, moneyAccountOptions]);
 
   const onCloseMoneyAction = useCallback(() => {
     setMoneyForm(EMPTY_MONEY_FORM);
@@ -1069,6 +1116,13 @@ export const useOrdersViewModel = ({
       setErrorMessage("Amount must be greater than zero.");
       return;
     }
+    const selectedMoneyAccount = moneyAccountOptions.find(
+      (option) => option.value === moneyForm.settlementMoneyAccountRemoteId,
+    );
+    if (!selectedMoneyAccount) {
+      setErrorMessage("Choose a valid money account.");
+      return;
+    }
     const happenedAt = new Date(moneyForm.happenedAt || new Date().toISOString()).getTime();
     if (!Number.isFinite(happenedAt) || happenedAt <= 0) {
       setErrorMessage("Enter a valid date.");
@@ -1084,6 +1138,8 @@ export const useOrdersViewModel = ({
       currencyCode: resolvedCurrencyCode,
       amount,
       happenedAt,
+      settlementMoneyAccountRemoteId: selectedMoneyAccount.value,
+      settlementMoneyAccountDisplayNameSnapshot: selectedMoneyAccount.label,
       note: moneyForm.note.trim() || null,
     };
 
@@ -1105,6 +1161,7 @@ export const useOrdersViewModel = ({
     accountRemoteId,
     detail,
     loadAll,
+    moneyAccountOptions,
     moneyForm,
     ownerUserRemoteId,
     recordOrderPaymentUseCase,
@@ -1126,6 +1183,7 @@ export const useOrdersViewModel = ({
       productPriceByRemoteId,
       statusOptions,
       paymentMethodOptions: ORDER_PAYMENT_METHOD_OPTIONS,
+      moneyAccountOptions,
       isEditorVisible,
       editorMode,
       form,
@@ -1194,6 +1252,7 @@ export const useOrdersViewModel = ({
       onSubmitMoneyAction,
       onSubmitStatus,
       orderList,
+      moneyAccountOptions,
       productPriceByRemoteId,
       productOptions,
       statusDraft,

@@ -1,3 +1,6 @@
+import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
+import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
@@ -22,6 +25,7 @@ import { createLocalTransactionDatasource } from "@/feature/transactions/data/da
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
+import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
 
@@ -110,6 +114,18 @@ export function GetOrdersScreenFactory({
     () => createGetProductsUseCase(productRepository),
     [productRepository],
   );
+  const moneyAccountDatasource = React.useMemo(
+    () => createLocalMoneyAccountDatasource(appDatabase),
+    [],
+  );
+  const moneyAccountRepository = React.useMemo(
+    () => createMoneyAccountRepository(moneyAccountDatasource),
+    [moneyAccountDatasource],
+  );
+  const getMoneyAccountsUseCase = React.useMemo(
+    () => createGetMoneyAccountsUseCase(moneyAccountRepository),
+    [moneyAccountRepository],
+  );
 
   const transactionDatasource = React.useMemo(
     () => createLocalTransactionDatasource(appDatabase),
@@ -119,9 +135,13 @@ export function GetOrdersScreenFactory({
     () => createTransactionRepository(transactionDatasource),
     [transactionDatasource],
   );
+  const postBusinessTransactionUseCase = React.useMemo(
+    () => createPostBusinessTransactionUseCase(appDatabase),
+    [],
+  );
   const addTransactionUseCase = React.useMemo(
-    () => createAddTransactionUseCase(transactionRepository),
-    [transactionRepository],
+    () => createAddTransactionUseCase(postBusinessTransactionUseCase),
+    [postBusinessTransactionUseCase],
   );
   const getTransactionsUseCase = React.useMemo(
     () => createGetTransactionsUseCase(transactionRepository),
@@ -162,6 +182,7 @@ export function GetOrdersScreenFactory({
     refundOrderUseCase,
     getContactsUseCase,
     getProductsUseCase,
+    getMoneyAccountsUseCase,
     getTransactionsUseCase,
   });
 

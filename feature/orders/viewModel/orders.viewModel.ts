@@ -99,6 +99,7 @@ export type OrderMoneyFormState = {
   orderNumber: string;
   amount: string;
   happenedAt: string;
+  settlementMoneyAccountRemoteId: string;
   note: string;
 };
 
@@ -123,6 +124,7 @@ export interface OrdersViewModel {
   isStatusModalVisible: boolean;
   statusDraft: OrderStatusValue;
   moneyForm: OrderMoneyFormState;
+  moneyAccountOptions: DropdownOption[];
   onRefresh: () => Promise<void>;
   onOpenCreate: () => void;
   onOpenEdit: (remoteId: string) => Promise<void>;
@@ -143,6 +145,9 @@ export interface OrdersViewModel {
   onReturnOrder: () => Promise<void>;
   onOpenMoneyAction: (action: OrderMoneyActionValue) => void;
   onCloseMoneyAction: () => void;
-  onMoneyFormChange: (field: keyof Omit<OrderMoneyFormState, "visible" | "action">, value: string) => void;
+  onMoneyFormChange: (
+    field: keyof Omit<OrderMoneyFormState, "visible" | "action">,
+    value: string,
+  ) => void;
   onSubmitMoneyAction: () => Promise<void>;
 }

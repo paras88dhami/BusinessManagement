@@ -4,6 +4,7 @@ export type PayEmiInstallmentInput = {
   planRemoteId: string;
   installmentRemoteId: string;
   paidAt: number;
+  selectedSettlementAccountRemoteId: string;
 };
 
 export interface PayEmiInstallmentUseCase {

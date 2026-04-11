@@ -1,13 +1,13 @@
-import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
 import {
   TransactionDirection,
   SaveTransactionPayload,
   TransactionResult,
+  TransactionPostingStatus,
   TransactionSourceModule,
   TransactionType,
-  TransactionPostingStatus,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { TransactionValidationError } from "@/feature/transactions/types/transaction.error.types";
+import { PostBusinessTransactionUseCase } from "./postBusinessTransaction.useCase";
 import { AddTransactionUseCase } from "./addTransaction.useCase";
 
 const normalizePayload = (
@@ -88,7 +88,7 @@ const validatePayload = (payload: SaveTransactionPayload): string | null => {
 };
 
 export const createAddTransactionUseCase = (
-  transactionRepository: TransactionRepository,
+  postBusinessTransactionUseCase: PostBusinessTransactionUseCase,
 ): AddTransactionUseCase => ({
   async execute(payload: SaveTransactionPayload): Promise<TransactionResult> {
     const normalizedPayload = normalizePayload(payload);
@@ -101,6 +101,6 @@ export const createAddTransactionUseCase = (
       };
     }
 
-    return transactionRepository.saveTransaction(normalizedPayload);
+    return postBusinessTransactionUseCase.execute(normalizedPayload);
   },
 });

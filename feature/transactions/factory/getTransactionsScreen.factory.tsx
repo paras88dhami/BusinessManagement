@@ -1,3 +1,6 @@
+import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
+import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
@@ -17,6 +20,8 @@ import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addT
 import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
 import { createGetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
+import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
+import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
 import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
 import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
@@ -80,6 +85,18 @@ export function GetTransactionsScreenFactory({
       }),
     [accountRepository, userManagementRepository],
   );
+  const moneyAccountDatasource = useMemo(
+    () => createLocalMoneyAccountDatasource(appDatabase),
+    [],
+  );
+  const moneyAccountRepository = useMemo(
+    () => createMoneyAccountRepository(moneyAccountDatasource),
+    [moneyAccountDatasource],
+  );
+  const getMoneyAccountsUseCase = useMemo(
+    () => createGetMoneyAccountsUseCase(moneyAccountRepository),
+    [moneyAccountRepository],
+  );
 
   const transactionDatasource = useMemo(
     () => createLocalTransactionDatasource(appDatabase),
@@ -97,17 +114,25 @@ export function GetTransactionsScreenFactory({
     () => createGetTransactionByIdUseCase(transactionRepository),
     [transactionRepository],
   );
+  const postBusinessTransactionUseCase = useMemo(
+    () => createPostBusinessTransactionUseCase(appDatabase),
+    [],
+  );
+  const deleteBusinessTransactionUseCase = useMemo(
+    () => createDeleteBusinessTransactionUseCase(appDatabase),
+    [],
+  );
   const addTransactionUseCase = useMemo(
-    () => createAddTransactionUseCase(transactionRepository),
-    [transactionRepository],
+    () => createAddTransactionUseCase(postBusinessTransactionUseCase),
+    [postBusinessTransactionUseCase],
   );
   const updateTransactionUseCase = useMemo(
-    () => createUpdateTransactionUseCase(transactionRepository),
-    [transactionRepository],
+    () => createUpdateTransactionUseCase(postBusinessTransactionUseCase),
+    [postBusinessTransactionUseCase],
   );
   const deleteTransactionUseCase = useMemo(
-    () => createDeleteTransactionUseCase(transactionRepository),
-    [transactionRepository],
+    () => createDeleteTransactionUseCase(deleteBusinessTransactionUseCase),
+    [deleteBusinessTransactionUseCase],
   );
 
   const [accounts, setAccounts] = useState<readonly Account[]>([]);
@@ -163,6 +188,7 @@ export function GetTransactionsScreenFactory({
     ownerUserRemoteId: activeUserRemoteId ?? "",
     accounts,
     activeAccountRemoteId,
+    getMoneyAccountsUseCase,
     getTransactionByIdUseCase,
     addTransactionUseCase,
     updateTransactionUseCase,

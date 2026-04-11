@@ -1,12 +1,14 @@
 import { createAddTransactionUseCase } from "./addTransaction.useCase.impl";
-import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
+import { PostBusinessTransactionUseCase } from "./postBusinessTransaction.useCase";
 import { UpdateTransactionUseCase } from "./updateTransaction.useCase";
 
 export const createUpdateTransactionUseCase = (
-  transactionRepository: TransactionRepository,
+  postBusinessTransactionUseCase: PostBusinessTransactionUseCase,
 ): UpdateTransactionUseCase => ({
   async execute(payload) {
-    const addTransactionUseCase = createAddTransactionUseCase(transactionRepository);
+    const addTransactionUseCase = createAddTransactionUseCase(
+      postBusinessTransactionUseCase,
+    );
     return addTransactionUseCase.execute(payload);
   },
 });

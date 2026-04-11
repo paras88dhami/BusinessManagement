@@ -3,16 +3,25 @@ import {
   OrderMoneyFormState,
 } from "@/feature/orders/viewModel/orders.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import {
+  Dropdown,
+  DropdownOption,
+} from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { spacing } from "@/shared/components/theme/spacing";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { colors } from "@/shared/components/theme/colors";
 
 type Props = {
   form: OrderMoneyFormState;
+  moneyAccountOptions: DropdownOption[];
   onClose: () => void;
-  onChange: (field: keyof Omit<OrderMoneyFormState, "visible" | "action">, value: string) => void;
+  onChange: (
+    field: keyof Omit<OrderMoneyFormState, "visible" | "action">,
+    value: string,
+  ) => void;
   onSubmit: () => Promise<void>;
 };
 
@@ -22,7 +31,13 @@ const getTitle = (action: OrderMoneyActionValue): string =>
 const getSubmitLabel = (action: OrderMoneyActionValue): string =>
   action === "payment" ? "Record Payment" : "Save Refund";
 
-export function OrderMoneyActionModal({ form, onClose, onChange, onSubmit }: Props) {
+export function OrderMoneyActionModal({
+  form,
+  moneyAccountOptions,
+  onClose,
+  onChange,
+  onSubmit,
+}: Props) {
   return (
     <FormSheetModal
       visible={form.visible}
@@ -45,6 +60,15 @@ export function OrderMoneyActionModal({ form, onClose, onChange, onSubmit }: Pro
         onChangeText={(value) => onChange("happenedAt", value)}
         placeholder="YYYY-MM-DD"
       />
+      <Text style={styles.label}>Money Account</Text>
+      <Dropdown
+        value={form.settlementMoneyAccountRemoteId}
+        options={moneyAccountOptions}
+        onChange={(value) => onChange("settlementMoneyAccountRemoteId", value)}
+        placeholder="Select money account"
+        modalTitle="Select money account"
+        showLeadingIcon={false}
+      />
       <LabeledTextInput
         label="Note"
         value={form.note}
@@ -63,6 +87,11 @@ export function OrderMoneyActionModal({ form, onClose, onChange, onSubmit }: Pro
 const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
+  },
+  label: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    marginBottom: -4,
   },
   actionRow: {
     flexDirection: "row",

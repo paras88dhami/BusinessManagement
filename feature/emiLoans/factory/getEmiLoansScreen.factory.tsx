@@ -1,3 +1,6 @@
+import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
+import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalAccountDatasource } from "@/feature/auth/accountSelection/data/dataSource/local.account.datasource.impl";
 import { createAccountRepository } from "@/feature/auth/accountSelection/data/repository/account.repository.impl";
 import {
@@ -17,14 +20,24 @@ import { createPayEmiInstallmentUseCase } from "@/feature/emiLoans/useCase/payEm
 import { useEmiListViewModel } from "@/feature/emiLoans/viewModel/emiList.viewModel.impl";
 import { useEmiPlanDetailViewModel } from "@/feature/emiLoans/viewModel/emiPlanDetail.viewModel.impl";
 import { useEmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel.impl";
+import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
+import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase.impl";
+import { createReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase.impl";
+import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
+import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
+import { createSaveLedgerEntryWithSettlementUseCase } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase.impl";
+import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
-import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
-import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
+import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
+import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React, { useCallback, useMemo, useState } from "react";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
@@ -105,14 +118,6 @@ export function GetEmiLoansScreenFactory({
     [emiRepository],
   );
 
-  const transactionDatasource = useMemo(
-    () => createLocalTransactionDatasource(appDatabase),
-    [],
-  );
-  const transactionRepository = useMemo(
-    () => createTransactionRepository(transactionDatasource),
-    [transactionDatasource],
-  );
   const ledgerDatasource = useMemo(
     () => createLocalLedgerDatasource(appDatabase),
     [],
@@ -121,14 +126,114 @@ export function GetEmiLoansScreenFactory({
     () => createLedgerRepository(ledgerDatasource),
     [ledgerDatasource],
   );
+  const getLedgerEntriesUseCase = useMemo(
+    () => createGetLedgerEntriesUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const addLedgerEntryUseCase = useMemo(
+    () => createAddLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const updateLedgerEntryUseCase = useMemo(
+    () => createUpdateLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const deleteLedgerEntryUseCase = useMemo(
+    () => createDeleteLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+  const moneyAccountDatasource = useMemo(
+    () => createLocalMoneyAccountDatasource(appDatabase),
+    [],
+  );
+  const moneyAccountRepository = useMemo(
+    () => createMoneyAccountRepository(moneyAccountDatasource),
+    [moneyAccountDatasource],
+  );
+  const getMoneyAccountsUseCase = useMemo(
+    () => createGetMoneyAccountsUseCase(moneyAccountRepository),
+    [moneyAccountRepository],
+  );
+  const postBusinessTransactionUseCase = useMemo(
+    () => createPostBusinessTransactionUseCase(appDatabase),
+    [],
+  );
+  const deleteBusinessTransactionUseCase = useMemo(
+    () => createDeleteBusinessTransactionUseCase(appDatabase),
+    [],
+  );
+  const billingDatasource = useMemo(
+    () => createLocalBillingDatasource(appDatabase),
+    [],
+  );
+  const billingRepository = useMemo(
+    () => createBillingRepository(billingDatasource),
+    [billingDatasource],
+  );
+  const saveBillingDocumentUseCase = useMemo(
+    () => createSaveBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
+  const replaceBillingDocumentAllocationsForSettlementEntryUseCase = useMemo(
+    () =>
+      createReplaceBillingDocumentAllocationsForSettlementEntryUseCase(
+        billingRepository,
+      ),
+    [billingRepository],
+  );
+  const deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase =
+    useMemo(
+      () =>
+        createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase(
+          billingRepository,
+        ),
+      [billingRepository],
+    );
+  const saveLedgerEntryWithSettlementUseCase = useMemo(
+    () =>
+      createSaveLedgerEntryWithSettlementUseCase({
+        addLedgerEntryUseCase,
+        updateLedgerEntryUseCase,
+        getMoneyAccountsUseCase,
+        postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
+        saveBillingDocumentUseCase,
+        replaceBillingDocumentAllocationsForSettlementEntryUseCase,
+        deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      }),
+    [
+      addLedgerEntryUseCase,
+      deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      deleteBusinessTransactionUseCase,
+      getMoneyAccountsUseCase,
+      postBusinessTransactionUseCase,
+      replaceBillingDocumentAllocationsForSettlementEntryUseCase,
+      saveBillingDocumentUseCase,
+      updateLedgerEntryUseCase,
+    ],
+  );
   const payEmiInstallmentUseCase = useMemo(
     () =>
       createPayEmiInstallmentUseCase(
         emiRepository,
-        transactionRepository,
-        ledgerRepository,
+        getMoneyAccountsUseCase,
+        postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
+        getLedgerEntriesUseCase,
+        saveLedgerEntryWithSettlementUseCase,
+        deleteLedgerEntryUseCase,
+        deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
       ),
-    [emiRepository, ledgerRepository, transactionRepository],
+    [
+      deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      deleteBusinessTransactionUseCase,
+      deleteLedgerEntryUseCase,
+      emiRepository,
+      getLedgerEntriesUseCase,
+      getMoneyAccountsUseCase,
+      postBusinessTransactionUseCase,
+      saveLedgerEntryWithSettlementUseCase,
+    ],
   );
 
   const [accounts, setAccounts] = useState<readonly Account[]>([]);
@@ -210,6 +315,7 @@ export function GetEmiLoansScreenFactory({
 
   const detailViewModel = useEmiPlanDetailViewModel(
     getEmiPlanByRemoteIdUseCase,
+    getMoneyAccountsUseCase,
     payEmiInstallmentUseCase,
     handleReload,
   );

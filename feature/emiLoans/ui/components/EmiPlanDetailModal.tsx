@@ -11,6 +11,7 @@ import {
 import { BellRing, Phone, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { EmiPaymentDirection } from "@/feature/emiLoans/types/emi.entity.types";
@@ -117,6 +118,25 @@ export function EmiPlanDetailModal({
                 </View>
               </Card>
 
+              <Card style={styles.infoCard}>
+                <View style={styles.infoBlock}>
+                  <Text style={styles.infoLabel}>Money Account</Text>
+                  <Dropdown
+                    value={viewModel.selectedSettlementAccountRemoteId}
+                    options={[...viewModel.settlementAccountOptions]}
+                    onChange={viewModel.onChangeSettlementAccountRemoteId}
+                    placeholder="Select money account"
+                    modalTitle="Select money account"
+                    showLeadingIcon={false}
+                  />
+                  {viewModel.settlementAccountOptions.length === 0 ? (
+                    <Text style={styles.helperText}>
+                      No active money accounts available for this plan.
+                    </Text>
+                  ) : null}
+                </View>
+              </Card>
+
               <Text style={styles.sectionTitle}>Schedule</Text>
 
               {detailState.installmentItems.map((installment) => (
@@ -159,7 +179,11 @@ export function EmiPlanDetailModal({
                         size="md"
                         style={styles.installmentActionButton}
                         onPress={() => void viewModel.payInstallment(installment.remoteId)}
-                        disabled={viewModel.isSubmittingPayment}
+                        disabled={
+                          viewModel.isSubmittingPayment ||
+                          viewModel.selectedSettlementAccountRemoteId.trim()
+                            .length === 0
+                        }
                       />
                     </View>
                   ) : null}
@@ -278,6 +302,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.sm,
   },
+  infoBlock: {
+    gap: spacing.xs,
+  },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -302,6 +329,10 @@ const styles = StyleSheet.create({
     color: colors.cardForeground,
     fontSize: 14,
     fontFamily: "InterBold",
+  },
+  helperText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
   },
   installmentCard: {
     paddingHorizontal: spacing.md,

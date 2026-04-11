@@ -1,19 +1,25 @@
+import {
+  MoneyAccount,
+  MoneyAccountType,
+} from "@/feature/accounts/types/moneyAccount.types";
+import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { Account } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-    SaveTransactionPayload,
-    TransactionDirection,
-    TransactionDirectionValue,
-    TransactionType,
-    TransactionTypeValue,
+  SaveTransactionPayload,
+  TransactionDirection,
+  TransactionDirectionValue,
+  TransactionType,
+  TransactionTypeValue,
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
-    TransactionAccountOption,
-    TransactionEditorState,
+  TransactionAccountOption,
+  TransactionEditorState,
+  TransactionMoneyAccountOption,
 } from "@/feature/transactions/types/transaction.state.types";
 import { AddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase";
 import { GetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase";
 import { UpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { TransactionEditorViewModel } from "./transactionEditor.viewModel";
 
 const DEFAULT_EDITOR_STATE: TransactionEditorState = {
@@ -25,6 +31,7 @@ const DEFAULT_EDITOR_STATE: TransactionEditorState = {
   title: "",
   amount: "0",
   accountRemoteId: "",
+  settlementMoneyAccountRemoteId: "",
   categoryLabel: "",
   note: "",
   happenedAt: new Date().toISOString().slice(0, 10),
@@ -71,10 +78,28 @@ const parseDateInput = (value: string): number | null => {
   return parsedDate.getTime();
 };
 
+const mapMoneyAccountToOption = (
+  moneyAccount: MoneyAccount,
+): TransactionMoneyAccountOption => {
+  const accountTypeLabel =
+    moneyAccount.type === MoneyAccountType.Cash
+      ? "Cash"
+      : moneyAccount.type === MoneyAccountType.Bank
+        ? "Bank"
+        : "Wallet";
+  const primaryLabel = moneyAccount.isPrimary ? " (Primary)" : "";
+
+  return {
+    remoteId: moneyAccount.remoteId,
+    label: `${moneyAccount.name} | ${accountTypeLabel}${primaryLabel}`,
+  };
+};
+
 type UseTransactionEditorViewModelParams = {
   ownerUserRemoteId: string;
   accounts: readonly Account[];
   activeAccountRemoteId: string | null;
+  getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   getTransactionByIdUseCase: GetTransactionByIdUseCase;
   addTransactionUseCase: AddTransactionUseCase;
   updateTransactionUseCase: UpdateTransactionUseCase;
@@ -85,6 +110,7 @@ export const useTransactionEditorViewModel = ({
   ownerUserRemoteId,
   accounts,
   activeAccountRemoteId,
+  getMoneyAccountsUseCase,
   getTransactionByIdUseCase,
   addTransactionUseCase,
   updateTransactionUseCase,
@@ -92,6 +118,10 @@ export const useTransactionEditorViewModel = ({
 }: UseTransactionEditorViewModelParams): TransactionEditorViewModel => {
   const [state, setState] =
     useState<TransactionEditorState>(DEFAULT_EDITOR_STATE);
+  const [moneyAccountOptions, setMoneyAccountOptions] = useState<
+    readonly TransactionMoneyAccountOption[]
+  >([]);
+  const moneyAccountLoadRequestIdRef = useRef(0);
 
   const accountOptions = useMemo<readonly TransactionAccountOption[]>(() => {
     return accounts.map((account) => ({
@@ -100,6 +130,91 @@ export const useTransactionEditorViewModel = ({
       currencyCode: account.currencyCode,
     }));
   }, [accounts]);
+
+  const loadMoneyAccountOptions = useCallback(
+    async ({
+      accountRemoteId,
+      preferredSettlementMoneyAccountRemoteId,
+      allowAutoSelect,
+    }: {
+      accountRemoteId: string;
+      preferredSettlementMoneyAccountRemoteId?: string | null;
+      allowAutoSelect: boolean;
+    }) => {
+      const normalizedAccountRemoteId = accountRemoteId.trim();
+      const requestId = moneyAccountLoadRequestIdRef.current + 1;
+      moneyAccountLoadRequestIdRef.current = requestId;
+
+      if (!normalizedAccountRemoteId) {
+        setMoneyAccountOptions([]);
+        setState((currentState) => ({
+          ...currentState,
+          settlementMoneyAccountRemoteId: "",
+        }));
+        return;
+      }
+
+      const result = await getMoneyAccountsUseCase.execute(normalizedAccountRemoteId);
+
+      if (moneyAccountLoadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (!result.success) {
+        setMoneyAccountOptions([]);
+        setState((currentState) => {
+          if (currentState.accountRemoteId !== normalizedAccountRemoteId) {
+            return currentState;
+          }
+
+          return {
+            ...currentState,
+            settlementMoneyAccountRemoteId: "",
+          };
+        });
+        return;
+      }
+
+      const options = result.value
+        .filter((moneyAccount) => moneyAccount.isActive)
+        .sort((left, right) => {
+          if (left.isPrimary && !right.isPrimary) return -1;
+          if (!left.isPrimary && right.isPrimary) return 1;
+          return left.name.localeCompare(right.name);
+        })
+        .map(mapMoneyAccountToOption);
+
+      setMoneyAccountOptions(options);
+      setState((currentState) => {
+        if (currentState.accountRemoteId !== normalizedAccountRemoteId) {
+          return currentState;
+        }
+
+        const preferredRemoteId =
+          preferredSettlementMoneyAccountRemoteId?.trim() ?? "";
+        const nextSettlementMoneyAccountRemoteId = options.some(
+          (option) => option.remoteId === preferredRemoteId,
+        )
+          ? preferredRemoteId
+          : allowAutoSelect
+            ? (options[0]?.remoteId ?? "")
+            : "";
+
+        if (
+          currentState.settlementMoneyAccountRemoteId ===
+          nextSettlementMoneyAccountRemoteId
+        ) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          settlementMoneyAccountRemoteId: nextSettlementMoneyAccountRemoteId,
+        };
+      });
+    },
+    [getMoneyAccountsUseCase],
+  );
 
   const openCreate = useCallback(
     (type: TransactionTypeValue) => {
@@ -118,8 +233,12 @@ export const useTransactionEditorViewModel = ({
         accountRemoteId: preferredAccountRemoteId,
         happenedAt: new Date().toISOString().slice(0, 10),
       });
+      void loadMoneyAccountOptions({
+        accountRemoteId: preferredAccountRemoteId,
+        allowAutoSelect: true,
+      });
     },
-    [accountOptions, activeAccountRemoteId],
+    [accountOptions, activeAccountRemoteId, loadMoneyAccountOptions],
   );
 
   const openEdit = useCallback(
@@ -146,17 +265,27 @@ export const useTransactionEditorViewModel = ({
         title: result.value.title,
         amount: String(result.value.amount),
         accountRemoteId: result.value.accountRemoteId,
+        settlementMoneyAccountRemoteId:
+          result.value.settlementMoneyAccountRemoteId ?? "",
         categoryLabel: result.value.categoryLabel ?? "",
         note: result.value.note ?? "",
         happenedAt: formatDateInput(result.value.happenedAt),
         errorMessage: null,
         isSaving: false,
       });
+      void loadMoneyAccountOptions({
+        accountRemoteId: result.value.accountRemoteId,
+        preferredSettlementMoneyAccountRemoteId:
+          result.value.settlementMoneyAccountRemoteId,
+        allowAutoSelect: false,
+      });
     },
-    [getTransactionByIdUseCase],
+    [getTransactionByIdUseCase, loadMoneyAccountOptions],
   );
 
   const close = useCallback(() => {
+    moneyAccountLoadRequestIdRef.current += 1;
+    setMoneyAccountOptions([]);
     setState(DEFAULT_EDITOR_STATE);
   }, []);
 
@@ -196,13 +325,32 @@ export const useTransactionEditorViewModel = ({
     }));
   }, []);
 
-  const handleChangeAccountRemoteId = useCallback((accountRemoteId: string) => {
-    setState((currentState) => ({
-      ...currentState,
-      accountRemoteId,
-      errorMessage: null,
-    }));
-  }, []);
+  const handleChangeAccountRemoteId = useCallback(
+    (accountRemoteId: string) => {
+      setState((currentState) => ({
+        ...currentState,
+        accountRemoteId,
+        settlementMoneyAccountRemoteId: "",
+        errorMessage: null,
+      }));
+      void loadMoneyAccountOptions({
+        accountRemoteId,
+        allowAutoSelect: true,
+      });
+    },
+    [loadMoneyAccountOptions],
+  );
+
+  const handleChangeSettlementMoneyAccountRemoteId = useCallback(
+    (settlementMoneyAccountRemoteId: string) => {
+      setState((currentState) => ({
+        ...currentState,
+        settlementMoneyAccountRemoteId,
+        errorMessage: null,
+      }));
+    },
+    [],
+  );
 
   const handleChangeCategoryLabel = useCallback((categoryLabel: string) => {
     setState((currentState) => ({
@@ -232,7 +380,9 @@ export const useTransactionEditorViewModel = ({
     const selectedAccount = accountOptions.find(
       (accountOption) => accountOption.remoteId === state.accountRemoteId,
     );
-
+    const selectedMoneyAccount = moneyAccountOptions.find(
+      (option) => option.remoteId === state.settlementMoneyAccountRemoteId,
+    );
     const parsedAmount = Number(state.amount.replace(/,/g, "").trim());
     const parsedDate = parseDateInput(state.happenedAt);
 
@@ -240,6 +390,28 @@ export const useTransactionEditorViewModel = ({
       setState((currentState) => ({
         ...currentState,
         errorMessage: "Please select an account.",
+      }));
+      return;
+    }
+
+    if (
+      state.mode === "create" &&
+      state.settlementMoneyAccountRemoteId.trim().length === 0
+    ) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Please select a money account.",
+      }));
+      return;
+    }
+
+    if (
+      state.settlementMoneyAccountRemoteId.trim().length > 0 &&
+      !selectedMoneyAccount
+    ) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Please select a valid money account.",
       }));
       return;
     }
@@ -273,6 +445,9 @@ export const useTransactionEditorViewModel = ({
       categoryLabel: state.categoryLabel,
       note: state.note,
       happenedAt: parsedDate,
+      settlementMoneyAccountRemoteId: selectedMoneyAccount?.remoteId ?? null,
+      settlementMoneyAccountDisplayNameSnapshot:
+        selectedMoneyAccount?.label ?? null,
     };
 
     setState((currentState) => ({
@@ -301,6 +476,7 @@ export const useTransactionEditorViewModel = ({
     accountOptions,
     addTransactionUseCase,
     close,
+    moneyAccountOptions,
     onSaved,
     ownerUserRemoteId,
     state.accountRemoteId,
@@ -311,6 +487,7 @@ export const useTransactionEditorViewModel = ({
     state.mode,
     state.note,
     state.remoteId,
+    state.settlementMoneyAccountRemoteId,
     state.title,
     state.type,
     updateTransactionUseCase,
@@ -340,6 +517,7 @@ export const useTransactionEditorViewModel = ({
     () => ({
       state,
       accountOptions,
+      moneyAccountOptions,
       availableTypes,
       availableDirections,
       openCreate,
@@ -350,6 +528,8 @@ export const useTransactionEditorViewModel = ({
       onChangeTitle: handleChangeTitle,
       onChangeAmount: handleChangeAmount,
       onChangeAccountRemoteId: handleChangeAccountRemoteId,
+      onChangeSettlementMoneyAccountRemoteId:
+        handleChangeSettlementMoneyAccountRemoteId,
       onChangeCategoryLabel: handleChangeCategoryLabel,
       onChangeNote: handleChangeNote,
       onChangeHappenedAt: handleChangeHappenedAt,
@@ -366,8 +546,10 @@ export const useTransactionEditorViewModel = ({
       handleChangeDirection,
       handleChangeHappenedAt,
       handleChangeNote,
+      handleChangeSettlementMoneyAccountRemoteId,
       handleChangeTitle,
       handleChangeType,
+      moneyAccountOptions,
       openCreate,
       openEdit,
       state,
