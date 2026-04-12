@@ -1,8 +1,6 @@
 import {
-  SaveTransactionPayload,
-  TransactionOperationResult,
-  TransactionResult,
   TransactionsResult,
+  TransactionResult,
 } from "@/feature/transactions/types/transaction.entity.types";
 import {
   TransactionDatabaseError,
@@ -17,19 +15,6 @@ import { mapTransactionModelToDomain } from "./mapper/transaction.mapper";
 export const createTransactionRepository = (
   localDatasource: TransactionDatasource,
 ): TransactionRepository => ({
-  async saveTransaction(payload: SaveTransactionPayload): Promise<TransactionResult> {
-    const result = await localDatasource.saveTransaction(payload);
-
-    if (result.success) {
-      return mapTransactionModel(result.value);
-    }
-
-    return {
-      success: false,
-      error: mapTransactionError(result.error),
-    };
-  },
-
   async getTransactionsByOwnerUserRemoteId(
     ownerUserRemoteId: string,
   ): Promise<TransactionsResult> {
@@ -81,21 +66,6 @@ export const createTransactionRepository = (
     }
 
     return mapTransactionModel(result.value);
-  },
-
-  async deleteTransactionByRemoteId(
-    remoteId: string,
-  ): Promise<TransactionOperationResult> {
-    const result = await localDatasource.deleteTransactionByRemoteId(remoteId);
-
-    if (result.success) {
-      return result;
-    }
-
-    return {
-      success: false,
-      error: mapTransactionError(result.error),
-    };
   },
 });
 

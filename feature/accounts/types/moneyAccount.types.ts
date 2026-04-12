@@ -48,6 +48,7 @@ export type SaveMoneyAccountPayload = {
   remoteId: string;
   ownerUserRemoteId: string;
   scopeAccountRemoteId: string;
+  scopeAccountDisplayNameSnapshot?: string | null;
   name: string;
   type: MoneyAccountTypeValue;
   currentBalance: number;
@@ -55,6 +56,16 @@ export type SaveMoneyAccountPayload = {
   currencyCode: string | null;
   isPrimary: boolean;
   isActive: boolean;
+};
+
+export type AdjustMoneyAccountBalancePayload = {
+  ownerUserRemoteId: string;
+  scopeAccountRemoteId: string;
+  scopeAccountDisplayNameSnapshot: string;
+  moneyAccountRemoteId: string;
+  targetBalance: number;
+  reason: string;
+  adjustedAt: number;
 };
 
 export const MoneyAccountErrorType = {

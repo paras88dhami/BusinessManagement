@@ -172,6 +172,45 @@ export function TransactionsScreen({
           selectedChipTextStyle={styles.filterChipTextSelected}
         />
 
+        <Text style={styles.filterLabel}>Money Account</Text>
+        <FilterChipGroup
+          options={listViewModel.moneyAccountFilterOptions}
+          selectedValue={listViewModel.selectedMoneyAccountFilter}
+          onSelect={listViewModel.onChangeMoneyAccountFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
+
+        <Text style={styles.filterLabel}>Source</Text>
+        <FilterChipGroup
+          options={listViewModel.sourceFilterOptions}
+          selectedValue={listViewModel.selectedSourceFilter}
+          onSelect={listViewModel.onChangeSourceFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
+
+        <Text style={styles.filterLabel}>Status</Text>
+        <FilterChipGroup
+          options={listViewModel.postingFilterOptions}
+          selectedValue={listViewModel.selectedPostingFilter}
+          onSelect={listViewModel.onChangePostingFilter}
+          scrollStyle={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+          chipStyle={styles.filterChip}
+          selectedChipStyle={styles.filterChipSelected}
+          chipTextStyle={styles.filterChipText}
+          selectedChipTextStyle={styles.filterChipTextSelected}
+        />
+
         {listViewModel.errorMessage ? (
           <Card style={styles.messageCard}>
             <Text style={styles.errorText}>{listViewModel.errorMessage}</Text>
@@ -189,13 +228,20 @@ export function TransactionsScreen({
         ) : (
           <Card style={styles.listCard}>
             {listViewModel.transactionItems.map((transactionItem, index) => {
+              const iconColor = transactionItem.isVoided
+                ? colors.mutedForeground
+                : transactionItem.transactionType === TransactionType.Transfer
+                  ? colors.primary
+                  : transactionItem.tone === "income"
+                    ? colors.success
+                    : colors.destructive;
               const icon =
                 transactionItem.transactionType === TransactionType.Transfer ? (
-                  <ArrowLeftRight size={16} color={colors.primary} />
+                  <ArrowLeftRight size={16} color={iconColor} />
                 ) : transactionItem.tone === "income" ? (
-                  <ArrowDownLeft size={16} color={colors.success} />
+                  <ArrowDownLeft size={16} color={iconColor} />
                 ) : (
-                  <ArrowUpRight size={16} color={colors.destructive} />
+                  <ArrowUpRight size={16} color={iconColor} />
                 );
 
               return (
@@ -211,16 +257,18 @@ export function TransactionsScreen({
                   <Pressable
                     style={styles.transactionMainPressable}
                     onPress={
-                      canManage
+                      canManage && !transactionItem.isVoided
                         ? () => listViewModel.onOpenEdit(transactionItem.remoteId)
                         : undefined
                     }
-                    disabled={!canManage}
+                    disabled={!canManage || transactionItem.isVoided}
                   >
                     <View
                       style={[
                         styles.transactionIconWrap,
-                        transactionItem.tone === "income"
+                        transactionItem.isVoided
+                          ? styles.voidedIconWrap
+                          : transactionItem.tone === "income"
                           ? styles.incomeIconWrap
                           : styles.expenseIconWrap,
                       ]}
@@ -229,7 +277,14 @@ export function TransactionsScreen({
                     </View>
 
                     <View style={styles.transactionBody}>
-                      <Text style={styles.transactionTitle}>{transactionItem.title}</Text>
+                      <Text
+                        style={[
+                          styles.transactionTitle,
+                          transactionItem.isVoided ? styles.voidedText : null,
+                        ]}
+                      >
+                        {transactionItem.title}
+                      </Text>
                       {transactionItem.partyLabel ? (
                         <Text style={styles.partyLabel}>
                           Party: {transactionItem.partyLabel}
@@ -243,7 +298,9 @@ export function TransactionsScreen({
                     <Text
                       style={[
                         styles.transactionAmount,
-                        transactionItem.tone === "income"
+                        transactionItem.isVoided
+                          ? styles.voidedAmount
+                          : transactionItem.tone === "income"
                           ? styles.incomeValue
                           : styles.expenseValue,
                       ]}
@@ -285,7 +342,7 @@ export function TransactionsScreen({
                     ))}
                   </View>
 
-                  {canManage ? (
+                  {canManage && !transactionItem.isVoided ? (
                     <View style={styles.transactionActions}>
                       <Pressable
                         style={styles.rowActionButton}
@@ -351,6 +408,9 @@ const styles = StyleSheet.create({
   },
   neutralIconWrap: {
     backgroundColor: colors.accent,
+  },
+  voidedIconWrap: {
+    backgroundColor: colors.muted,
   },
   summaryTextWrap: {
     flex: 1,
@@ -480,6 +540,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "InterBold",
   },
+  voidedText: {
+    color: colors.mutedForeground,
+  },
   partyLabel: {
     color: colors.primary,
     fontSize: 11,
@@ -534,6 +597,10 @@ const styles = StyleSheet.create({
     fontFamily: "InterBold",
     minWidth: 90,
     textAlign: "right",
+  },
+  voidedAmount: {
+    color: colors.mutedForeground,
+    textDecorationLine: "line-through",
   },
   transactionActions: {
     flexDirection: "row",

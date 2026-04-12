@@ -1,13 +1,13 @@
 import { createAddTransactionUseCase } from "./addTransaction.useCase.impl";
-import { PostBusinessTransactionUseCase } from "./postBusinessTransaction.useCase";
+import { PostMoneyMovementUseCase } from "./postMoneyMovement.useCase";
 import { UpdateTransactionUseCase } from "./updateTransaction.useCase";
 
 export const createUpdateTransactionUseCase = (
-  postBusinessTransactionUseCase: PostBusinessTransactionUseCase,
+  postMoneyMovementUseCase: PostMoneyMovementUseCase,
 ): UpdateTransactionUseCase => ({
   async execute(payload) {
     const addTransactionUseCase = createAddTransactionUseCase(
-      postBusinessTransactionUseCase,
+      postMoneyMovementUseCase,
     );
     return addTransactionUseCase.execute(payload);
   },

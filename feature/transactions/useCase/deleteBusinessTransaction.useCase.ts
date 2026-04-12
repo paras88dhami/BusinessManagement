@@ -1,5 +1,3 @@
-import { TransactionOperationResult } from "@/feature/transactions/types/transaction.entity.types";
+import { DeleteMoneyMovementUseCase } from "./deleteMoneyMovement.useCase";
 
-export interface DeleteBusinessTransactionUseCase {
-  execute(remoteId: string): Promise<TransactionOperationResult>;
-}
+export type DeleteBusinessTransactionUseCase = DeleteMoneyMovementUseCase;

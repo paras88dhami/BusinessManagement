@@ -20,6 +20,7 @@ export type TransactionDirectionValue =
 
 export const TransactionSourceModule = {
   Manual: "manual",
+  MoneyAccounts: "money_accounts",
   Ledger: "ledger",
   Billing: "billing",
   Pos: "pos",

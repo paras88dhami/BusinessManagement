@@ -23,10 +23,10 @@ export function TransactionDeleteModal({
         <Pressable style={styles.dismissArea} onPress={viewModel.closeDelete} />
 
         <View style={styles.card}>
-          <Text style={styles.title}>Delete transaction?</Text>
+          <Text style={styles.title}>Void transaction?</Text>
           <Text style={styles.subtitle}>
-            This will remove the transaction from the list. You can not undo this from
-            the current screen.
+            This reverses the money movement and keeps a voided entry in
+            history. You can not undo this from the current screen.
           </Text>
 
           {viewModel.errorMessage ? (
@@ -43,7 +43,7 @@ export function TransactionDeleteModal({
               disabled={viewModel.isDeleting}
             />
             <AppButton
-              label={viewModel.isDeleting ? "Deleting..." : "Delete"}
+              label={viewModel.isDeleting ? "Voiding..." : "Void"}
               variant="primary"
               size="md"
               style={[styles.actionButton, styles.deleteButton]}

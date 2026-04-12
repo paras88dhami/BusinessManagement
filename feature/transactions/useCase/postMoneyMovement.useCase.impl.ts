@@ -1,34 +1,50 @@
+import { MoneyPostingRepository } from "@/feature/transactions/data/repository/moneyPosting.repository";
 import {
-  TransactionDirection,
   SaveTransactionPayload,
-  TransactionResult,
+  TransactionDirection,
   TransactionPostingStatus,
+  TransactionResult,
   TransactionSourceModule,
   TransactionType,
 } from "@/feature/transactions/types/transaction.entity.types";
 import { TransactionValidationError } from "@/feature/transactions/types/transaction.error.types";
 import { PostMoneyMovementUseCase } from "./postMoneyMovement.useCase";
-import { AddTransactionUseCase } from "./addTransaction.useCase";
+
+const normalizeRequired = (value: string): string => value.trim();
+
+const normalizeOptional = (value: string | null | undefined): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
 
 const normalizePayload = (
   payload: SaveTransactionPayload,
 ): SaveTransactionPayload => ({
   ...payload,
-  remoteId: payload.remoteId.trim(),
-  ownerUserRemoteId: payload.ownerUserRemoteId.trim(),
-  accountRemoteId: payload.accountRemoteId.trim(),
-  accountDisplayNameSnapshot: payload.accountDisplayNameSnapshot.trim(),
-  title: payload.title.trim(),
-  categoryLabel: payload.categoryLabel?.trim() || null,
-  note: payload.note?.trim() || null,
-  settlementMoneyAccountRemoteId:
-    payload.settlementMoneyAccountRemoteId?.trim() || null,
-  settlementMoneyAccountDisplayNameSnapshot:
-    payload.settlementMoneyAccountDisplayNameSnapshot?.trim() || null,
+  remoteId: normalizeRequired(payload.remoteId),
+  ownerUserRemoteId: normalizeRequired(payload.ownerUserRemoteId),
+  accountRemoteId: normalizeRequired(payload.accountRemoteId),
+  accountDisplayNameSnapshot: normalizeRequired(
+    payload.accountDisplayNameSnapshot,
+  ),
+  title: normalizeRequired(payload.title),
+  currencyCode: normalizeOptional(payload.currencyCode),
+  categoryLabel: normalizeOptional(payload.categoryLabel),
+  note: normalizeOptional(payload.note),
+  settlementMoneyAccountRemoteId: normalizeOptional(
+    payload.settlementMoneyAccountRemoteId,
+  ),
+  settlementMoneyAccountDisplayNameSnapshot: normalizeOptional(
+    payload.settlementMoneyAccountDisplayNameSnapshot,
+  ),
   sourceModule: payload.sourceModule ?? TransactionSourceModule.Manual,
-  sourceRemoteId: payload.sourceRemoteId?.trim() || null,
-  sourceAction: payload.sourceAction?.trim() || null,
-  idempotencyKey: payload.idempotencyKey?.trim() || null,
+  sourceRemoteId: normalizeOptional(payload.sourceRemoteId),
+  sourceAction: normalizeOptional(payload.sourceAction),
+  idempotencyKey: normalizeOptional(payload.idempotencyKey),
   postingStatus: payload.postingStatus ?? TransactionPostingStatus.Posted,
 });
 
@@ -42,15 +58,15 @@ const validatePayload = (payload: SaveTransactionPayload): string | null => {
   }
 
   if (!payload.accountRemoteId) {
-    return "Please select an account.";
+    return "Active account is required.";
   }
 
   if (!payload.accountDisplayNameSnapshot) {
-    return "Account label is required.";
+    return "Account display name is required.";
   }
 
   if (!payload.title) {
-    return "Please enter a title.";
+    return "Transaction title is required.";
   }
 
   if (!Number.isFinite(payload.amount) || payload.amount <= 0) {
@@ -58,7 +74,7 @@ const validatePayload = (payload: SaveTransactionPayload): string | null => {
   }
 
   if (!Number.isFinite(payload.happenedAt) || payload.happenedAt <= 0) {
-    return "Please enter a valid date.";
+    return "Transaction date is required.";
   }
 
   if (
@@ -75,21 +91,12 @@ const validatePayload = (payload: SaveTransactionPayload): string | null => {
     return "Expense must move money out.";
   }
 
-  if (
-    payload.transactionType === TransactionType.Refund &&
-    ![TransactionDirection.In, TransactionDirection.Out].includes(
-      payload.direction,
-    )
-  ) {
-    return "Refund direction is invalid.";
-  }
-
   return null;
 };
 
-export const createAddTransactionUseCase = (
-  postMoneyMovementUseCase: PostMoneyMovementUseCase,
-): AddTransactionUseCase => ({
+export const createPostMoneyMovementUseCase = (
+  repository: MoneyPostingRepository,
+): PostMoneyMovementUseCase => ({
   async execute(payload: SaveTransactionPayload): Promise<TransactionResult> {
     const normalizedPayload = normalizePayload(payload);
     const validationError = validatePayload(normalizedPayload);
@@ -101,6 +108,6 @@ export const createAddTransactionUseCase = (
       };
     }
 
-    return postMoneyMovementUseCase.execute(normalizedPayload);
+    return repository.postMoneyMovement(normalizedPayload);
   },
 });

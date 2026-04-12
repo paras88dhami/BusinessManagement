@@ -26,6 +26,7 @@ import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/u
 import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
 import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
 import { useTransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel.impl";
+import { TransactionFilterOption } from "@/feature/transactions/types/transaction.state.types";
 import appDatabase from "@/shared/database/appDatabase";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -36,6 +37,7 @@ export type GetTransactionsScreenFactoryProps = {
   activeAccountCountryCode: string | null;
   accountTypeScope?: AccountTypeValue;
   canManage?: boolean;
+  initialMoneyAccountFilter?: TransactionFilterOption | null;
 };
 
 export function GetTransactionsScreenFactory({
@@ -45,6 +47,7 @@ export function GetTransactionsScreenFactory({
   activeAccountCountryCode,
   accountTypeScope = AccountType.Personal,
   canManage = true,
+  initialMoneyAccountFilter = null,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
 
@@ -205,6 +208,7 @@ export function GetTransactionsScreenFactory({
     activeAccountRemoteId,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    initialMoneyAccountFilter,
     getTransactionsUseCase,
     onOpenCreate: editorViewModel.openCreate,
     onOpenEdit: editorViewModel.openEdit,

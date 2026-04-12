@@ -16,6 +16,7 @@ export type TransactionListFilterValue =
 export const TransactionSourceFilter = {
   All: "all",
   Manual: "manual",
+  MoneyAccounts: "money_accounts",
   Ledger: "ledger",
   Billing: "billing",
   Pos: "pos",
@@ -66,6 +67,7 @@ export type TransactionListItemState = {
   amountLabel: string;
   tone: "income" | "expense";
   transactionType: TransactionTypeValue;
+  isVoided: boolean;
   metaChips: readonly TransactionMetaChipState[];
 };
 

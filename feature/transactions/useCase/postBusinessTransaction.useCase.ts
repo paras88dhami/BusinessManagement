@@ -1,8 +1,3 @@
-import {
-  SaveTransactionPayload,
-  TransactionResult,
-} from "@/feature/transactions/types/transaction.entity.types";
+import { PostMoneyMovementUseCase } from "./postMoneyMovement.useCase";
 
-export interface PostBusinessTransactionUseCase {
-  execute(payload: SaveTransactionPayload): Promise<TransactionResult>;
-}
+export type PostBusinessTransactionUseCase = PostMoneyMovementUseCase;

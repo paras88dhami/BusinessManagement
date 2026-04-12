@@ -4,6 +4,7 @@ import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboard
 import { GetTransactionsScreenFactory } from "@/feature/transactions/factory/getTransactionsScreen.factory";
 import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 
 const TRANSACTIONS_VIEW_PERMISSION_CODE = "transactions.view";
@@ -11,6 +12,10 @@ const TRANSACTIONS_MANAGE_PERMISSION_CODE = "transactions.manage";
 
 export default function BusinessTransactionsDashboardRoute() {
   const navigation = useSmoothNavigation();
+  const params = useLocalSearchParams<{
+    moneyAccountFilter?: string | string[];
+    moneyAccountLabel?: string | string[];
+  }>();
   const {
     isLoading,
     hasActiveSession,
@@ -33,6 +38,19 @@ export default function BusinessTransactionsDashboardRoute() {
   const canManageTransactions = permissionAccess.hasPermission(
     TRANSACTIONS_MANAGE_PERMISSION_CODE,
   );
+  const moneyAccountFilter = Array.isArray(params.moneyAccountFilter)
+    ? params.moneyAccountFilter[0]
+    : params.moneyAccountFilter;
+  const moneyAccountLabel = Array.isArray(params.moneyAccountLabel)
+    ? params.moneyAccountLabel[0]
+    : params.moneyAccountLabel;
+  const initialMoneyAccountFilter =
+    moneyAccountFilter && moneyAccountLabel
+      ? {
+          value: moneyAccountFilter,
+          label: moneyAccountLabel,
+        }
+      : null;
 
   useEffect(() => {
     if (isLoading || !hasActiveSession || !hasActiveAccount) {
@@ -82,6 +100,7 @@ export default function BusinessTransactionsDashboardRoute() {
       activeAccountCountryCode={activeAccountCountryCode}
       accountTypeScope={AccountType.Business}
       canManage={canManageTransactions}
+      initialMoneyAccountFilter={initialMoneyAccountFilter}
     />
   );
 }

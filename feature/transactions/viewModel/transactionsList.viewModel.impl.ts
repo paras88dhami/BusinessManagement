@@ -28,6 +28,12 @@ import {
   formatCurrencyAmount,
   resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
+import {
+  getTransactionActionLabel,
+  getTransactionSourceLabel,
+  getTransactionStatementLabel,
+  getTransactionStatusLabel,
+} from "./transactionAuditDisplay.util";
 
 const MONEY_ACCOUNT_FILTER_ALL = "all";
 
@@ -40,6 +46,7 @@ const SOURCE_FILTER_OPTIONS: readonly {
   { label: "Billing", value: TransactionSourceFilter.Billing },
   { label: "POS", value: TransactionSourceFilter.Pos },
   { label: "Manual", value: TransactionSourceFilter.Manual },
+  { label: "Money Accounts", value: TransactionSourceFilter.MoneyAccounts },
   { label: "EMI", value: TransactionSourceFilter.Emi },
   { label: "Orders", value: TransactionSourceFilter.Orders },
 ];
@@ -84,40 +91,8 @@ const formatTransactionDate = (happenedAt: number): string => {
   });
 };
 
-const getTransactionTypeLabel = (transactionType: TransactionTypeValue): string => {
-  switch (transactionType) {
-    case TransactionType.Income:
-      return "Income";
-    case TransactionType.Expense:
-      return "Expense";
-    case TransactionType.Transfer:
-      return "Transfer";
-    case TransactionType.Refund:
-      return "Refund";
-    default:
-      return "Transaction";
-  }
-};
-
 const normalizeSourceModule = (transaction: Transaction): TransactionSourceModuleValue => {
   return transaction.sourceModule ?? TransactionSourceModule.Manual;
-};
-
-const getSourceLabel = (sourceModule: TransactionSourceModuleValue): string => {
-  switch (sourceModule) {
-    case TransactionSourceModule.Ledger:
-      return "Ledger";
-    case TransactionSourceModule.Billing:
-      return "Billing";
-    case TransactionSourceModule.Pos:
-      return "POS";
-    case TransactionSourceModule.Emi:
-      return "EMI";
-    case TransactionSourceModule.Orders:
-      return "Orders";
-    default:
-      return "Manual";
-  }
 };
 
 const getPartyLabel = (transaction: Transaction): string | null => {
@@ -148,10 +123,14 @@ const getPartyLabel = (transaction: Transaction): string | null => {
 
 const buildSubtitle = (transaction: Transaction): string => {
   const dateLabel = formatTransactionDate(transaction.happenedAt);
-  const typeLabel = getTransactionTypeLabel(transaction.transactionType);
+  const statementLabel = getTransactionStatementLabel(transaction);
   const accountLabel = transaction.accountDisplayNameSnapshot || "Account";
+  const statusSuffix =
+    transaction.postingStatus === TransactionPostingStatus.Voided
+      ? " - No longer affects balance"
+      : "";
 
-  return `${dateLabel} - ${typeLabel} - ${accountLabel}`;
+  return `${dateLabel} - ${statementLabel} - ${accountLabel}${statusSuffix}`;
 };
 
 const buildAmountLabel = (
@@ -165,9 +144,13 @@ const buildAmountLabel = (
     countryCode: fallbackCountryCode,
   });
 
-  return transaction.direction === TransactionDirection.In
+  const signedAmount = transaction.direction === TransactionDirection.In
     ? `+${amountLabel}`
     : `-${amountLabel}`;
+
+  return transaction.postingStatus === TransactionPostingStatus.Voided
+    ? `Voided ${signedAmount}`
+    : signedAmount;
 };
 
 const resolveMoneyAccountFilterKey = (transaction: Transaction): string | null => {
@@ -219,6 +202,7 @@ type UseTransactionsListViewModelParams = {
   activeAccountRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  initialMoneyAccountFilter?: TransactionFilterOption | null;
   getTransactionsUseCase: GetTransactionsUseCase;
   onOpenCreate: (type: TransactionTypeValue) => void;
   onOpenEdit: (remoteId: string) => void;
@@ -230,6 +214,7 @@ export const useTransactionsListViewModel = ({
   activeAccountRemoteId,
   activeAccountCurrencyCode,
   activeAccountCountryCode,
+  initialMoneyAccountFilter,
   getTransactionsUseCase,
   onOpenCreate,
   onOpenEdit,
@@ -249,7 +234,9 @@ export const useTransactionsListViewModel = ({
   const [selectedPostingFilter, setSelectedPostingFilter] =
     useState<TransactionPostingFilterValue>(TransactionPostingFilter.All);
   const [selectedMoneyAccountFilter, setSelectedMoneyAccountFilter] =
-    useState<string>(MONEY_ACCOUNT_FILTER_ALL);
+    useState<string>(
+      initialMoneyAccountFilter?.value.trim() || MONEY_ACCOUNT_FILTER_ALL,
+    );
 
   const resolvedCurrencyCode = useMemo(
     () =>
@@ -291,6 +278,19 @@ export const useTransactionsListViewModel = ({
       label: "All Money Accounts",
     });
 
+    const initialFilterValue = initialMoneyAccountFilter?.value.trim() ?? "";
+    const initialFilterLabel = initialMoneyAccountFilter?.label.trim() ?? "";
+    if (
+      initialFilterValue &&
+      initialFilterValue !== MONEY_ACCOUNT_FILTER_ALL &&
+      initialFilterLabel
+    ) {
+      optionByValue.set(initialFilterValue, {
+        value: initialFilterValue,
+        label: initialFilterLabel,
+      });
+    }
+
     for (const transaction of transactions) {
       const key = resolveMoneyAccountFilterKey(transaction);
       if (!key) {
@@ -310,23 +310,36 @@ export const useTransactionsListViewModel = ({
     }
 
     return Array.from(optionByValue.values());
-  }, [transactions]);
+  }, [initialMoneyAccountFilter, transactions]);
 
   useEffect(() => {
+    const nextInitialFilter =
+      initialMoneyAccountFilter?.value.trim() || MONEY_ACCOUNT_FILTER_ALL;
+    setSelectedMoneyAccountFilter(nextInitialFilter);
+  }, [initialMoneyAccountFilter?.value]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     const hasSelectedOption = moneyAccountFilterOptions.some(
       (option) => option.value === selectedMoneyAccountFilter,
     );
     if (!hasSelectedOption) {
       setSelectedMoneyAccountFilter(MONEY_ACCOUNT_FILTER_ALL);
     }
-  }, [moneyAccountFilterOptions, selectedMoneyAccountFilter]);
+  }, [isLoading, moneyAccountFilterOptions, selectedMoneyAccountFilter]);
 
   const filteredTransactions = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return transactions.filter((transaction) => {
       const normalizedSourceModule = normalizeSourceModule(transaction);
-      const sourceLabel = getSourceLabel(normalizedSourceModule).toLowerCase();
+      const sourceLabel = getTransactionSourceLabel(
+        normalizedSourceModule,
+      ).toLowerCase();
+      const actionLabel = getTransactionActionLabel(transaction)?.toLowerCase() ?? "";
       const partyLabel = getPartyLabel(transaction)?.toLowerCase() ?? "";
       const moneyAccountLabel =
         transaction.settlementMoneyAccountDisplayNameSnapshot?.toLowerCase() ?? "";
@@ -339,6 +352,7 @@ export const useTransactionsListViewModel = ({
         (transaction.note ?? "").toLowerCase().includes(normalizedSearch) ||
         (transaction.categoryLabel ?? "").toLowerCase().includes(normalizedSearch) ||
         sourceLabel.includes(normalizedSearch) ||
+        actionLabel.includes(normalizedSearch) ||
         partyLabel.includes(normalizedSearch) ||
         moneyAccountLabel.includes(normalizedSearch) ||
         accountLabel.includes(normalizedSearch) ||
@@ -401,12 +415,20 @@ export const useTransactionsListViewModel = ({
 
   const summaryCards = useMemo<readonly TransactionSummaryCardState[]>(() => {
     const moneyIn = filteredTransactions.reduce((sum, transaction) => {
+      if (transaction.postingStatus === TransactionPostingStatus.Voided) {
+        return sum;
+      }
+
       return transaction.direction === TransactionDirection.In
         ? sum + transaction.amount
         : sum;
     }, 0);
 
     const moneyOut = filteredTransactions.reduce((sum, transaction) => {
+      if (transaction.postingStatus === TransactionPostingStatus.Voided) {
+        return sum;
+      }
+
       return transaction.direction === TransactionDirection.Out
         ? sum + transaction.amount
         : sum;
@@ -460,28 +482,35 @@ export const useTransactionsListViewModel = ({
   const transactionItems = useMemo<readonly TransactionListItemState[]>(() => {
     return filteredTransactions.map((transaction) => {
       const normalizedSource = normalizeSourceModule(transaction);
-      const sourceLabel = getSourceLabel(normalizedSource);
+      const sourceLabel = getTransactionSourceLabel(normalizedSource);
+      const actionLabel = getTransactionActionLabel(transaction);
       const moneyAccountLabel =
         transaction.settlementMoneyAccountDisplayNameSnapshot?.trim() ?? null;
       const partyLabel = getPartyLabel(transaction);
+      const isVoided =
+        transaction.postingStatus === TransactionPostingStatus.Voided;
 
       const metaChips: TransactionMetaChipState[] = [
         { label: sourceLabel, tone: "neutral" },
       ];
+
+      if (actionLabel) {
+        metaChips.push({
+          label: actionLabel,
+          tone:
+            normalizedSource === TransactionSourceModule.MoneyAccounts
+              ? "warning"
+              : "neutral",
+        });
+      }
 
       if (moneyAccountLabel) {
         metaChips.push({ label: moneyAccountLabel, tone: "neutral" });
       }
 
       metaChips.push({
-        label:
-          transaction.postingStatus === TransactionPostingStatus.Voided
-            ? "Voided"
-            : "Posted",
-        tone:
-          transaction.postingStatus === TransactionPostingStatus.Voided
-            ? "danger"
-            : "success",
+        label: getTransactionStatusLabel(transaction),
+        tone: isVoided ? "danger" : "success",
       });
 
       return {
@@ -497,6 +526,7 @@ export const useTransactionsListViewModel = ({
         tone:
           transaction.direction === TransactionDirection.In ? "income" : "expense",
         transactionType: transaction.transactionType,
+        isVoided,
         metaChips,
       };
     });

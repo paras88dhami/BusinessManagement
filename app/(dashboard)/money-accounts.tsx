@@ -4,7 +4,7 @@ import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDa
 import { getDashboardHomePath } from "@/feature/dashboard/shared/utils/dashboardNavigation.util";
 import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 
 const MONEY_ACCOUNTS_VIEW_PERMISSION_CODE = "money_accounts.view";
 const MONEY_ACCOUNTS_MANAGE_PERMISSION_CODE = "money_accounts.manage";
@@ -20,6 +20,7 @@ export default function MoneyAccountsDashboardRoute() {
     activeAccountType,
     activeAccountCurrencyCode,
     activeAccountCountryCode,
+    activeAccountDisplayName,
   } = useDashboardRouteContext();
 
   const permissionAccess = useAccountPermissionAccess({
@@ -38,6 +39,16 @@ export default function MoneyAccountsDashboardRoute() {
   const canManageMoneyAccounts = shouldEnforceBusinessPermission
     ? permissionAccess.hasPermission(MONEY_ACCOUNTS_MANAGE_PERMISSION_CODE)
     : true;
+  const handleOpenAccountHistory = useCallback(
+    (moneyAccountRemoteId: string, moneyAccountName: string) => {
+      const query = new URLSearchParams({
+        moneyAccountFilter: `id:${moneyAccountRemoteId}`,
+        moneyAccountLabel: moneyAccountName,
+      });
+      navigation.push(`/(dashboard)/transactions?${query.toString()}`);
+    },
+    [navigation],
+  );
 
   useEffect(() => {
     if (isLoading || !hasActiveSession || !hasActiveAccount) {
@@ -79,9 +90,11 @@ export default function MoneyAccountsDashboardRoute() {
     <GetMoneyAccountsScreenFactory
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountDisplayName={activeAccountDisplayName}
       activeAccountCurrencyCode={activeAccountCurrencyCode}
       activeAccountCountryCode={activeAccountCountryCode}
       canManage={canManageMoneyAccounts}
+      onOpenAccountHistory={handleOpenAccountHistory}
     />
   );
 }

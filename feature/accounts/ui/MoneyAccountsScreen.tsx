@@ -18,6 +18,7 @@ import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmD
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { MoneyAccountAdjustmentModal } from "./components/MoneyAccountAdjustmentModal";
 import { MoneyAccountEditorModal } from "./components/MoneyAccountEditorModal";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 
@@ -149,6 +150,7 @@ export function MoneyAccountsScreen({
       ) : null}
 
       <MoneyAccountEditorModal viewModel={viewModel} />
+      <MoneyAccountAdjustmentModal viewModel={viewModel} />
 
       <ConfirmDeleteModal
         visible={viewModel.isDeleteModalVisible}

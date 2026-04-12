@@ -31,6 +31,7 @@ export function MoneyAccountEditorModal({
 
   const title =
     viewModel.editorMode === "create" ? "New Account" : "Edit Account";
+  const isOpeningBalanceEditable = viewModel.editorMode === "create";
 
   return (
     <FormSheetModal
@@ -98,12 +99,40 @@ export function MoneyAccountEditorModal({
       </View>
 
       <LabeledTextInput
-        label={`Balance (${viewModel.currencyLabel})`}
+        label={`${
+          isOpeningBalanceEditable ? "Opening Balance" : "Current Balance"
+        } (${viewModel.currencyLabel})`}
         value={viewModel.form.balance}
         onChangeText={(value) => viewModel.onFormChange("balance", value)}
         placeholder="0"
         keyboardType="decimal-pad"
+        editable={isOpeningBalanceEditable}
+        helperText={
+          isOpeningBalanceEditable
+            ? "Set the starting amount for this cash, bank, or wallet account."
+            : "Current balance changes through posted money movements."
+        }
       />
+
+      {!isOpeningBalanceEditable ? (
+        <View style={styles.balanceActionRow}>
+          <AppButton
+            label="View History"
+            variant="secondary"
+            size="md"
+            style={styles.balanceActionButton}
+            onPress={viewModel.onOpenHistoryForCurrent}
+          />
+          <AppButton
+            label="Correct Balance"
+            variant="secondary"
+            size="md"
+            style={styles.balanceActionButton}
+            onPress={viewModel.onOpenAdjustmentForCurrent}
+            disabled={!viewModel.canManage}
+          />
+        </View>
+      ) : null}
 
       <LabeledTextInput
         label="Description"
@@ -144,6 +173,13 @@ const styles = StyleSheet.create({
     fontFamily: "InterSemiBold",
   },
   actionButton: {
+    flex: 1,
+  },
+  balanceActionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  balanceActionButton: {
     flex: 1,
   },
   deleteActionButton: {

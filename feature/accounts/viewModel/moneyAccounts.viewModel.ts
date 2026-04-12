@@ -11,6 +11,16 @@ export type MoneyAccountFormState = {
   description: string;
 };
 
+export type MoneyAccountAdjustmentFormState = {
+  moneyAccountRemoteId: string | null;
+  accountName: string;
+  currentBalanceLabel: string;
+  targetBalance: string;
+  reason: string;
+  errorMessage: string | null;
+  isSaving: boolean;
+};
+
 export interface MoneyAccountsViewModel {
   isLoading: boolean;
   errorMessage: string | null;
@@ -23,8 +33,10 @@ export interface MoneyAccountsViewModel {
   isEditorVisible: boolean;
   editorMode: "create" | "edit";
   form: MoneyAccountFormState;
+  adjustmentForm: MoneyAccountAdjustmentFormState;
   canDeleteCurrent: boolean;
   isDeleteModalVisible: boolean;
+  isAdjustmentModalVisible: boolean;
   pendingDeleteAccountName: string | null;
   deleteErrorMessage: string | null;
   isDeleting: boolean;
@@ -34,6 +46,14 @@ export interface MoneyAccountsViewModel {
   onCloseEditor: () => void;
   onFormChange: (field: keyof MoneyAccountFormState, value: string) => void;
   onSubmit: () => Promise<void>;
+  onOpenHistoryForCurrent: () => void;
+  onOpenAdjustmentForCurrent: () => void;
+  onCloseAdjustment: () => void;
+  onAdjustmentFormChange: (
+    field: keyof Pick<MoneyAccountAdjustmentFormState, "targetBalance" | "reason">,
+    value: string,
+  ) => void;
+  onSubmitAdjustment: () => Promise<void>;
   onRequestDeleteCurrent: () => void;
   onCloseDeleteModal: () => void;
   onConfirmDelete: () => Promise<void>;
