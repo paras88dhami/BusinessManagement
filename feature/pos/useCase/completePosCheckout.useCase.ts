@@ -6,6 +6,7 @@ export type CompletePosCheckoutParams = PosCompletePaymentParams & {
   activeOwnerUserRemoteId: string | null;
   activeAccountCurrencyCode: string | null;
   activeAccountCountryCode: string | null;
+  selectedCustomer: import("../types/pos.entity.types").PosCustomer | null;
 };
 
 export interface CompletePosCheckoutUseCase {

@@ -237,6 +237,13 @@ export const createLocalLedgerDatasource = (
     linkedDocumentRemoteId: string,
   ): Promise<Result<LedgerEntryModel | null>> {
     try {
+      if (!linkedDocumentRemoteId || linkedDocumentRemoteId.trim() === "") {
+        return {
+          success: true,
+          value: null,
+        };
+      }
+
       const ledgerCollection =
         database.get<LedgerEntryModel>(LEDGER_ENTRIES_TABLE);
       const matchingEntries = await ledgerCollection

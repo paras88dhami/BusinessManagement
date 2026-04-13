@@ -1,17 +1,17 @@
-import React from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { Printer, X } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { PosTotals } from "../types/pos.entity.types";
+import { Printer, X } from "lucide-react-native";
+import React from "react";
+import {
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
+import { PosCustomer, PosTotals } from "../types/pos.entity.types";
 import { formatCurrency } from "./posScreen.shared";
 
 type PosPaymentModalProps = {
@@ -21,6 +21,7 @@ type PosPaymentModalProps = {
   countryCode: string | null;
   paidAmount: string;
   splitCount: string;
+  selectedCustomer: PosCustomer | null;
   onPaidAmountChange: (value: string) => void;
   onSplitCountChange: (value: string) => void;
   onSplitPreview: () => void;
@@ -35,6 +36,7 @@ export function PosPaymentModal({
   countryCode,
   paidAmount,
   splitCount,
+  selectedCustomer,
   onPaidAmountChange,
   onSplitCountChange,
   onSplitPreview,
@@ -91,12 +93,32 @@ export function PosPaymentModal({
             />
           </View>
 
-          <AppButton
-            label="Complete Sale"
-            size="lg"
-            leadingIcon={<Printer size={18} color={colors.primaryForeground} />}
-            onPress={onConfirm}
-          />
+          <View>
+            {(() => {
+              const dueAmount = totals.grandTotal - Number(paidAmount || "0");
+              const requiresCustomer = dueAmount > 0;
+              const customerValid = !requiresCustomer || selectedCustomer !== null;
+
+              return (
+                <>
+                  {requiresCustomer && !customerValid && (
+                    <View style={styles.errorCard}>
+                      <Text style={styles.errorText}>
+                        Customer selection is required for unpaid sales
+                      </Text>
+                    </View>
+                  )}
+                  <AppButton
+                    label="Complete Sale"
+                    size="lg"
+                    leadingIcon={<Printer size={18} color={colors.primaryForeground} />}
+                    onPress={onConfirm}
+                    disabled={!customerValid}
+                  />
+                </>
+              );
+            })()}
+          </View>
         </View>
       </View>
     </Modal>
@@ -179,5 +201,18 @@ const styles = StyleSheet.create({
   },
   splitButton: {
     minWidth: 120,
+  },
+  errorCard: {
+    backgroundColor: "#FDF1F1",
+    borderRadius: radius.lg,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: "#F2C7C7",
+  },
+  errorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterMedium",
+    textAlign: "center",
   },
 });

@@ -1,28 +1,30 @@
-import React, { useCallback, useMemo, useRef } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import {
-  Minus,
-  Percent,
-  Plus,
-  ShoppingCart,
-  Trash2,
-  WalletCards,
-  X,
-} from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import {
+    Minus,
+    Percent,
+    Plus,
+    ShoppingCart,
+    Trash2,
+    WalletCards,
+    X,
+} from "lucide-react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
-import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
-import { PosProductSelectionModal } from "./PosProductSelectionModal";
+import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
+import { PosCustomerSelector } from "./components/PosCustomerSelector";
 import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
 import { PosPaymentModal } from "./PosPaymentModal";
-import { PosReceiptModal } from "./PosReceiptModal";
+import { PosProductSelectionModal } from "./PosProductSelectionModal";
 import { PosQuickProductModal } from "./PosQuickProductModal";
+import { PosReceiptModal } from "./PosReceiptModal";
+import { buildSlotProductLookup, formatCurrency } from "./posScreen.shared";
 
 type PosScreenProps = {
   viewModel: PosScreenViewModel;
@@ -334,6 +336,18 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           </View>
         </Card>
 
+        <Card style={styles.customerCard}>
+          <PosCustomerSelector
+            selectedCustomer={viewModel.selectedCustomer}
+            customerSearchTerm={viewModel.customerSearchTerm}
+            customerOptions={[]} // TODO: Add customer search logic
+            onCustomerSearchChange={viewModel.onCustomerSearchChange}
+            onSelectCustomer={viewModel.onSelectCustomer}
+            onClearCustomer={viewModel.onClearCustomer}
+            onOpenCustomerCreateModal={viewModel.onOpenCustomerCreateModal}
+          />
+        </Card>
+
         <Card style={styles.actionCard}>
           <View style={styles.actionRowPrimary}>
             <AppButton
@@ -462,6 +476,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         countryCode={viewModel.countryCode}
         paidAmount={viewModel.paymentInput}
         splitCount={viewModel.paymentSplitCountInput}
+        selectedCustomer={viewModel.selectedCustomer}
         onPaidAmountChange={viewModel.onPaymentInputChange}
         onSplitCountChange={viewModel.onPaymentSplitCountInputChange}
         onSplitPreview={viewModel.onOpenSplitBillModal}
@@ -481,6 +496,14 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         onPrint={() => {
           void viewModel.onPrintReceipt();
         }}
+      />
+
+      <PosCustomerCreateModal
+        visible={viewModel.activeModal === "customer-create"}
+        form={viewModel.customerCreateForm}
+        onFormChange={viewModel.onCustomerCreateFormChange}
+        onSubmit={viewModel.onCreateCustomer}
+        onClose={viewModel.onCloseCustomerCreateModal}
       />
     </>
   );
@@ -757,6 +780,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 20,
     fontFamily: "InterBold",
+  },
+  customerCard: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   actionCard: {
     paddingHorizontal: spacing.md,

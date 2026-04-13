@@ -5,6 +5,7 @@ import {
 } from "@/feature/billing/types/billing.types";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
+import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
   LedgerBalanceDirection,
   LedgerEntryType,
@@ -19,7 +20,7 @@ import {
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import { PosReceipt } from "../types/pos.entity.types";
-import { PosPaymentResult } from "../types/pos.error.types";
+import { PosErrorType, PosPaymentResult } from "../types/pos.error.types";
 import { CompletePaymentUseCase } from "./completePayment.useCase";
 import {
   CompletePosCheckoutParams,
@@ -32,6 +33,7 @@ type CreateCompletePosCheckoutUseCaseParams = {
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
   saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase;
   postBusinessTransactionUseCase: PostBusinessTransactionUseCase;
+  getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
 };
 
 const createLedgerEntryRemoteId = (): string => {
@@ -133,6 +135,7 @@ export const createCompletePosCheckoutUseCase = ({
   saveBillingDocumentUseCase,
   saveBillingDocumentAllocationsUseCase,
   postBusinessTransactionUseCase,
+  getOrCreateBusinessContactUseCase,
 }: CreateCompletePosCheckoutUseCaseParams): CompletePosCheckoutUseCase => ({
   async execute(params: CompletePosCheckoutParams): Promise<PosPaymentResult> {
     const currencyCode = resolveCurrencyCode({
@@ -216,7 +219,7 @@ export const createCompletePosCheckoutUseCase = ({
       documentNumber: buildPosDocumentNumber(receipt.receiptNumber),
       documentType: BillingDocumentType.Receipt,
       templateType: BillingTemplateType.PosReceipt,
-      customerName: "Walk-in Customer",
+      customerName: params.selectedCustomer?.fullName ?? "Walk-in Customer",
       status: BillingDocumentStatus.Pending,
       taxRatePercent: pricingForDocument.taxRatePercent,
       notes: posDocumentNote,
@@ -226,6 +229,7 @@ export const createCompletePosCheckoutUseCase = ({
       sourceRemoteId: receipt.receiptNumber,
       linkedLedgerEntryRemoteId: dueLedgerRemoteId,
       items: posLineItems,
+      contactRemoteId: params.selectedCustomer?.remoteId ?? null,
     });
 
     if (!saveDocumentResult.success) {
@@ -259,6 +263,7 @@ export const createCompletePosCheckoutUseCase = ({
         sourceRemoteId: billingDocumentRemoteId,
         sourceAction: "checkout_payment",
         idempotencyKey: `pos:${receipt.receiptNumber}:payment`,
+        contactRemoteId: params.selectedCustomer?.remoteId ?? null,
       };
 
       const postTransactionResult =
@@ -291,12 +296,23 @@ export const createCompletePosCheckoutUseCase = ({
       return paymentResult;
     }
 
+    // REQUIRE: Customer must be selected for due balance checkout
+    if (!params.selectedCustomer) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.ContextRequired,
+          message: "Customer selection is required for unpaid sales",
+        },
+      };
+    }
+
     const ledgerResult = await addLedgerEntryUseCase.execute({
       remoteId: dueLedgerRemoteId as string,
       businessAccountRemoteId,
       ownerUserRemoteId,
-      partyName: "Walk-in Customer",
-      partyPhone: null,
+      partyName: params.selectedCustomer.fullName,
+      partyPhone: params.selectedCustomer.phone,
       entryType: LedgerEntryType.Sale,
       balanceDirection: LedgerBalanceDirection.Receive,
       title: `POS Sale ${receipt.receiptNumber}`,
@@ -314,6 +330,7 @@ export const createCompletePosCheckoutUseCase = ({
       linkedTransactionRemoteId: null,
       settlementAccountRemoteId: settlementAccountRemoteId,
       settlementAccountDisplayNameSnapshot: null,
+      contactRemoteId: params.selectedCustomer.remoteId,
     });
 
     if (!ledgerResult.success) {
@@ -327,6 +344,25 @@ export const createCompletePosCheckoutUseCase = ({
           },
         },
       };
+    }
+
+    // VERIFY: Ensure Billing ↔ Ledger linkage is consistent
+    // Check that the ledger entry can be found by the billing document remote ID
+    if (dueLedgerRemoteId) {
+      const linkageVerificationResult = await addLedgerEntryUseCase.verifyLinkedDocument(
+        billingDocumentRemoteId,
+        dueLedgerRemoteId,
+      );
+
+      if (!linkageVerificationResult.success) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.Unknown,
+            message: `Billing-Ledger linkage verification failed: ${linkageVerificationResult.error?.message || 'Unknown error'}`,
+          },
+        };
+      }
     }
 
     return {

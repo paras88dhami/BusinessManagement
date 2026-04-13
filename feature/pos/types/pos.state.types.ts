@@ -15,7 +15,8 @@ export type PosModalType =
   | "discount"
   | "surcharge"
   | "payment"
-  | "receipt";
+  | "receipt"
+  | "customer-create";
 
 export type PosScreenState = {
   status: StatusType;
@@ -39,6 +40,13 @@ export type PosScreenState = {
   receipt: PosReceipt | null;
   infoMessage: string | null;
   errorMessage: string | null;
+  selectedCustomer: import("./pos.entity.types").PosCustomer | null;
+  customerSearchTerm: string;
+  customerCreateForm: {
+    fullName: string;
+    phone: string;
+    address: string;
+  };
 };
 
 export type PosScreenViewModel = {
@@ -65,6 +73,13 @@ export type PosScreenViewModel = {
   receipt: PosReceipt | null;
   infoMessage: string | null;
   errorMessage: string | null;
+  selectedCustomer: import("./pos.entity.types").PosCustomer | null;
+  customerSearchTerm: string;
+  customerCreateForm: {
+    fullName: string;
+    phone: string;
+    address: string;
+  };
   isBusinessContextResolved: boolean;
   load: () => Promise<void>;
   onPressSlot: (slotId: string) => Promise<void>;
@@ -95,5 +110,12 @@ export type PosScreenViewModel = {
   onClearCart: () => Promise<void>;
   onCompletePayment: () => Promise<void>;
   onPrintReceipt: () => Promise<void>;
+  onSelectCustomer: (customer: import("./pos.entity.types").PosCustomer) => void;
+  onClearCustomer: () => void;
+  onCustomerSearchChange: (searchTerm: string) => void;
+  onOpenCustomerCreateModal: () => void;
+  onCloseCustomerCreateModal: () => void;
+  onCustomerCreateFormChange: (field: "fullName" | "phone" | "address", value: string) => void;
+  onCreateCustomer: () => Promise<void>;
 };
 

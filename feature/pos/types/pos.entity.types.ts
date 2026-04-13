@@ -56,6 +56,13 @@ export type PosReceipt = {
   ledgerEffect: PosLedgerEffect;
 };
 
+export type PosCustomer = {
+  remoteId: string;
+  fullName: string;
+  phone: string | null;
+  address: string | null;
+};
+
 export type PosBootstrap = {
   products: readonly PosProduct[];
   slots: readonly PosSlot[];

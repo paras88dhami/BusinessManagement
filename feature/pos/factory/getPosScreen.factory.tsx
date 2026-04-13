@@ -1,9 +1,27 @@
+import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
+import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
+import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
+import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
+import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
+import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase.impl";
+import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
+import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
+import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
+import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
+import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
+import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
+import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import appDatabase from "@/shared/database/appDatabase";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import React from "react";
 import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
-import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
+import { PosScreen } from "../ui/PosScreen";
 import { createApplyDiscountUseCase } from "../useCase/applyDiscount.useCase.impl";
 import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.impl";
+import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
 import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase.impl";
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
 import { createCompletePaymentUseCase } from "../useCase/completePayment.useCase.impl";
@@ -12,21 +30,7 @@ import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase
 import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
 import { createRemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
-import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
-import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
-import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
-import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
-import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
-import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
-import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
-import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
-import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
-import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
-import { TaxModeValue } from "@/shared/types/regionalFinance.types";
-import { PosScreen } from "../ui/PosScreen";
 import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
-import appDatabase from "@/shared/database/appDatabase";
 
 type GetPosScreenFactoryProps = {
   activeBusinessAccountRemoteId: string | null;
@@ -121,6 +125,22 @@ export function GetPosScreenFactory({
     () => createPostBusinessTransactionUseCase(appDatabase),
     [],
   );
+  const contactDatasource = React.useMemo(
+    () => createLocalContactDatasource(appDatabase),
+    [],
+  );
+  const contactRepository = React.useMemo(
+    () => createContactRepository(contactDatasource),
+    [contactDatasource],
+  );
+  const getOrCreateContactUseCase = React.useMemo(
+    () => createGetOrCreateContactUseCase(contactRepository),
+    [contactRepository],
+  );
+  const getOrCreateBusinessContactUseCase = React.useMemo(
+    () => createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase),
+    [getOrCreateContactUseCase],
+  );
   const completePosCheckoutUseCase = React.useMemo(
     () =>
       createCompletePosCheckoutUseCase({
@@ -129,6 +149,7 @@ export function GetPosScreenFactory({
         saveBillingDocumentUseCase,
         saveBillingDocumentAllocationsUseCase,
         postBusinessTransactionUseCase,
+        getOrCreateBusinessContactUseCase,
       }),
     [
       addLedgerEntryUseCase,
@@ -136,6 +157,7 @@ export function GetPosScreenFactory({
       postBusinessTransactionUseCase,
       saveBillingDocumentAllocationsUseCase,
       saveBillingDocumentUseCase,
+      getOrCreateBusinessContactUseCase,
     ],
   );
   const printReceiptUseCase = React.useMemo(
@@ -170,6 +192,7 @@ export function GetPosScreenFactory({
     changeCartLineQuantityUseCase,
     applyDiscountUseCase,
     applySurchargeUseCase,
+    getOrCreateBusinessContactUseCase,
     clearCartUseCase,
     completePosCheckoutUseCase,
     printReceiptUseCase,

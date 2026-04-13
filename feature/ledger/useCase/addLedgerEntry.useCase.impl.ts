@@ -1,8 +1,8 @@
 import { LedgerRepository } from "@/feature/ledger/data/repository/ledger.repository";
 import {
-  LedgerEntryResult,
-  LedgerEntryType,
-  SaveLedgerEntryPayload,
+    LedgerEntryResult,
+    LedgerEntryType,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerValidationError } from "@/feature/ledger/types/ledger.error.types";
 import { AddLedgerEntryUseCase } from "./addLedgerEntry.useCase";
@@ -75,5 +75,44 @@ export const createAddLedgerEntryUseCase = (
     }
 
     return ledgerRepository.saveLedgerEntry(payload);
+  },
+
+  async verifyLinkedDocument(
+    billingDocumentRemoteId: string,
+    expectedLedgerEntryRemoteId: string,
+  ): Promise<LedgerEntryResult> {
+    if (!billingDocumentRemoteId?.trim() || !expectedLedgerEntryRemoteId?.trim()) {
+      return {
+        success: false,
+        error: LedgerValidationError("Document and ledger remote IDs are required for verification."),
+      };
+    }
+
+    const result = await ledgerRepository.getLedgerEntryByLinkedDocumentRemoteId(
+      billingDocumentRemoteId,
+    );
+
+    if (!result.success) {
+      return result;
+    }
+
+    if (!result.value) {
+      return {
+        success: false,
+        error: LedgerValidationError("No ledger entry found linked to this billing document."),
+      };
+    }
+
+    if (result.value.remoteId !== expectedLedgerEntryRemoteId) {
+      return {
+        success: false,
+        error: LedgerValidationError("Ledger entry remote ID mismatch in billing linkage."),
+      };
+    }
+
+    return {
+      success: true,
+      value: result.value,
+    };
   },
 });

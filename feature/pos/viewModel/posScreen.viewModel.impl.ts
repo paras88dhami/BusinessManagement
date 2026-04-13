@@ -1,8 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
+import { ProductKind, ProductStatus } from "@/feature/products/types/product.types";
+import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
+import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
-import { AssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase";
+import {
+    formatCurrencyAmount,
+} from "@/shared/utils/currency/accountCurrency";
+import {
+    buildTaxRateLabel,
+    buildTaxSummaryLabel,
+    resolveRegionalFinancePolicy,
+} from "@/shared/utils/finance/regionalFinancePolicy";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { PosCartLine, PosSlot, PosTotals } from "../types/pos.entity.types";
+import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
+import { AssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase";
 import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase";
 import { ClearCartUseCase } from "../useCase/clearCart.useCase";
 import { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase";
@@ -10,20 +24,6 @@ import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
 import { PrintReceiptUseCase } from "../useCase/printReceipt.useCase";
 import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
-import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
-import { PosCartLine, PosSlot, PosTotals } from "../types/pos.entity.types";
-import {
-  formatCurrencyAmount,
-} from "@/shared/utils/currency/accountCurrency";
-import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
-import { ProductKind, ProductStatus } from "@/feature/products/types/product.types";
-import * as Crypto from "expo-crypto";
-import { TaxModeValue } from "@/shared/types/regionalFinance.types";
-import {
-  buildTaxRateLabel,
-  buildTaxSummaryLabel,
-  resolveRegionalFinancePolicy,
-} from "@/shared/utils/finance/regionalFinancePolicy";
 
 const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -56,6 +56,13 @@ const INITIAL_STATE: PosScreenState = {
   receipt: null,
   infoMessage: null,
   errorMessage: null,
+  selectedCustomer: null,
+  customerSearchTerm: "",
+  customerCreateForm: {
+    fullName: "",
+    phone: "",
+    address: "",
+  },
 };
 
 const calculateTotals = (
@@ -120,6 +127,7 @@ export type UsePosScreenViewModelParams = {
   changeCartLineQuantityUseCase: ChangeCartLineQuantityUseCase;
   applyDiscountUseCase: ApplyDiscountUseCase;
   applySurchargeUseCase: ApplySurchargeUseCase;
+  getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
   clearCartUseCase: ClearCartUseCase;
   completePosCheckoutUseCase: CompletePosCheckoutUseCase;
   printReceiptUseCase: PrintReceiptUseCase;
@@ -144,6 +152,7 @@ export function usePosScreenViewModel(
     changeCartLineQuantityUseCase,
     applyDiscountUseCase,
     applySurchargeUseCase,
+    getOrCreateBusinessContactUseCase,
     clearCartUseCase,
     completePosCheckoutUseCase,
     printReceiptUseCase,
@@ -434,15 +443,10 @@ export function usePosScreenViewModel(
   }, []);
 
   const onCreateProductFromPos = useCallback(async () => {
-    if (!activeBusinessAccountRemoteId) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Active business account is required to create product.",
-      }));
-      return;
-    }
-
     const normalizedName = state.quickProductNameInput.trim();
+    const normalizedPrice = state.quickProductPriceInput.trim();
+    const parsedPrice = parseAmountInput(normalizedPrice);
+
     if (!normalizedName) {
       setState((currentState) => ({
         ...currentState,
@@ -451,8 +455,7 @@ export function usePosScreenViewModel(
       return;
     }
 
-    const parsedPrice = Number(state.quickProductPriceInput.trim());
-    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+    if (parsedPrice < 0) {
       setState((currentState) => ({
         ...currentState,
         errorMessage: "Enter a valid sale price (0 or higher).",
@@ -460,8 +463,16 @@ export function usePosScreenViewModel(
       return;
     }
 
+    if (!activeBusinessAccountRemoteId) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Business context is required for product creation.",
+      }));
+      return;
+    }
+
     const result = await saveProductUseCase.execute({
-      remoteId: Crypto.randomUUID(),
+      remoteId: `product-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       accountRemoteId: activeBusinessAccountRemoteId,
       name: normalizedName,
       kind: ProductKind.Item,
@@ -488,14 +499,14 @@ export function usePosScreenViewModel(
     const products = await searchPosProductsUseCase.execute("");
     setState((currentState) => ({
       ...currentState,
-      activeModal: "product-selection",
-      filteredProducts: products,
-      productSearchTerm: "",
+      activeModal: "none",
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
-      infoMessage: `Product "${normalizedName}" created. You can assign it now.`,
+      filteredProducts: products,
+      products,
       errorMessage: null,
+      infoMessage: `Product "${normalizedName}" created successfully.`,
     }));
   }, [
     activeBusinessAccountRemoteId,
@@ -692,6 +703,7 @@ export function usePosScreenViewModel(
       activeSettlementAccountRemoteId,
       activeAccountCurrencyCode: currencyCode,
       activeAccountCountryCode: regionalFinancePolicy.countryCode,
+      selectedCustomer: state.selectedCustomer,
     });
 
     if (!result.success) {
@@ -744,8 +756,9 @@ export function usePosScreenViewModel(
     activeSettlementAccountRemoteId,
     completePosCheckoutUseCase,
     currencyCode,
-    regionalFinancePolicy.countryCode,
+    regionalFinancePolicy,
     searchPosProductsUseCase,
+    state.selectedCustomer,
     state.paymentInput,
   ]);
 
@@ -765,6 +778,164 @@ export function usePosScreenViewModel(
       infoMessage: `Receipt ${state.receipt?.receiptNumber ?? ""} sent to print.`,
     }));
   }, [printReceiptUseCase, state.receipt]);
+
+  const onSelectCustomer = useCallback((customer: import("../types/pos.entity.types").PosCustomer) => {
+    setState((currentState) => ({
+      ...currentState,
+      selectedCustomer: customer,
+      customerSearchTerm: "",
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onClearCustomer = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      selectedCustomer: null,
+      customerSearchTerm: "",
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onCustomerSearchChange = useCallback((searchTerm: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      customerSearchTerm: searchTerm,
+    }));
+  }, []);
+
+  const onOpenCustomerCreateModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "customer-create",
+      customerCreateForm: {
+        fullName: "",
+        phone: "",
+        address: "",
+      },
+    }));
+  }, []);
+
+  const onCreateCustomer = useCallback(async () => {
+    const { fullName, phone, address } = state.customerCreateForm;
+    
+    // Validate form
+    if (!fullName.trim()) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Customer name is required.",
+      }));
+      return;
+    }
+    
+    if (!phone.trim()) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Customer phone is required.",
+      }));
+      return;
+    }
+
+    if (!activeBusinessAccountRemoteId || !activeOwnerUserRemoteId) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Business context is required for customer creation.",
+      }));
+      return;
+    }
+
+    // Create customer
+    const result = await getOrCreateBusinessContactUseCase.execute({
+      accountRemoteId: activeBusinessAccountRemoteId,
+      contactType: "customer",
+      fullName: fullName.trim(),
+      ownerUserRemoteId: activeOwnerUserRemoteId,
+      notes: address.trim() || null,
+    });
+
+    if (!result.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: result.error.message,
+      }));
+      return;
+    }
+
+    // Auto-select the newly created customer
+    const newCustomer = {
+      remoteId: result.value.remoteId,
+      fullName: result.value.fullName,
+      phone: result.value.phoneNumber,
+      address: result.value.address,
+    };
+
+    setState((currentState) => ({
+      ...currentState,
+      selectedCustomer: newCustomer,
+      activeModal: "none",
+      customerCreateForm: {
+        fullName: "",
+        phone: "",
+        address: "",
+      },
+      errorMessage: null,
+      infoMessage: `Customer "${fullName}" created and selected successfully.`,
+    }));
+  }, [
+    getOrCreateBusinessContactUseCase,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
+    state.customerCreateForm.fullName,
+    state.customerCreateForm.phone,
+    state.customerCreateForm.address,
+  ]);
+
+  const onCloseCustomerCreateModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "none",
+      customerCreateForm: {
+        fullName: "",
+        phone: "",
+        address: "",
+      },
+    }));
+  }, []);
+
+  const onCustomerCreateFormChange = useCallback((field: keyof typeof state.customerCreateForm, value: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      customerCreateForm: {
+        ...currentState.customerCreateForm,
+        [field]: value,
+      },
+    }));
+  }, [state]);
+
+  const onClosePaymentModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "none",
+    }));
+  }, []);
+
+  const onConfirmPayment = useCallback(async () => {
+    await onCompletePayment();
+  }, [onCompletePayment]);
+
+  const onOpenReceiptModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "receipt",
+    }));
+  }, []);
+
+  const onCloseReceiptModal = useCallback(() => {
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "none",
+    }));
+  }, []);
 
   return useMemo<PosScreenViewModel>(
     () => ({
@@ -793,6 +964,9 @@ export function usePosScreenViewModel(
       receipt: state.receipt,
       infoMessage: state.infoMessage,
       errorMessage: state.errorMessage,
+      selectedCustomer: state.selectedCustomer,
+      customerSearchTerm: state.customerSearchTerm,
+      customerCreateForm: state.customerCreateForm,
       isBusinessContextResolved:
         Boolean(activeBusinessAccountRemoteId) &&
         Boolean(activeOwnerUserRemoteId) &&
@@ -820,12 +994,23 @@ export function usePosScreenViewModel(
       onOpenDiscountModal,
       onOpenSurchargeModal,
       onOpenPaymentModal,
+      onClosePaymentModal,
+      onConfirmPayment,
+      onOpenReceiptModal,
+      onCloseReceiptModal,
+      onPrintReceipt,
+      onSelectCustomer,
+      onClearCustomer,
+      onCustomerSearchChange,
+      onOpenCustomerCreateModal,
+      onCloseCustomerCreateModal,
+      onCustomerCreateFormChange,
+      onCreateCustomer,
       onOpenSplitBillModal,
       onApplyDiscount,
       onApplySurcharge,
       onClearCart,
       onCompletePayment,
-      onPrintReceipt,
     }),
     [
       activeBusinessAccountRemoteId,
@@ -860,11 +1045,24 @@ export function usePosScreenViewModel(
       onRemoveCartLine,
       onRemoveSlotProduct,
       onSelectProduct,
+      state.customerCreateForm,
+      state.customerSearchTerm,
+      state.selectedCustomer,
+      onClearCustomer,
+      onCloseCustomerCreateModal,
+      onClosePaymentModal,
+      onCloseReceiptModal,
+      onConfirmPayment,
+      onCustomerCreateFormChange,
+      onCustomerSearchChange,
+      onOpenCustomerCreateModal,
+      onCreateCustomer,
+      onOpenReceiptModal,
+      onSelectCustomer,
       onSurchargeInputChange,
       regionalFinancePolicy.countryCode,
       state.activeModal,
       state.activeSlotId,
-      state.selectedSlotId,
       state.cartLines,
       state.discountInput,
       state.errorMessage,
@@ -873,17 +1071,17 @@ export function usePosScreenViewModel(
       state.paymentInput,
       state.paymentSplitCountInput,
       state.productSearchTerm,
+      state.products,
       state.quickProductCategoryInput,
       state.quickProductNameInput,
       state.quickProductPriceInput,
-      state.products,
       state.receipt,
+      state.selectedSlotId,
       state.slots,
       state.status,
       state.surchargeInput,
-      taxSummaryLabel,
       state.totals,
+      taxSummaryLabel,
     ],
   );
 }
-

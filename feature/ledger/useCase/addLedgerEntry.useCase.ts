@@ -2,4 +2,8 @@ import { LedgerEntryResult, SaveLedgerEntryPayload } from "@/feature/ledger/type
 
 export interface AddLedgerEntryUseCase {
   execute(payload: SaveLedgerEntryPayload): Promise<LedgerEntryResult>;
+  verifyLinkedDocument(
+    billingDocumentRemoteId: string,
+    expectedLedgerEntryRemoteId: string,
+  ): Promise<LedgerEntryResult>;
 }
