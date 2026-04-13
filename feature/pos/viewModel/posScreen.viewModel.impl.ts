@@ -15,8 +15,8 @@ import {
     buildTaxSummaryLabel,
     resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { PosCartLine, PosSlot, PosTotals } from "../types/pos.entity.types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PosCartLine, PosCustomer, PosSlot, PosTotals } from "../types/pos.entity.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
@@ -200,6 +200,7 @@ export function usePosScreenViewModel(
     ],
   );
   const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
+  const customerSearchRequestRef = useRef(0);
   const currencyCode = useMemo(
     () => regionalFinancePolicy.currencyCode,
     [regionalFinancePolicy.currencyCode],
@@ -880,111 +881,111 @@ export function usePosScreenViewModel(
     }));
   }, [printReceiptUseCase, state.receipt]);
 
-  const onSelectCustomer = useCallback(
-    (customer: import("../types/pos.entity.types").PosCustomer) => {
-      setState((currentState) => ({
-        ...currentState,
-        selectedCustomer: customer,
-        customerSearchTerm: "",
-        customerOptions: [],
-        errorMessage: null,
-      }));
-    },
-    [],
-  );
+  const onSelectCustomer = useCallback((customer: PosCustomer) => {
+  setState((currentState) => ({
+    ...currentState,
+    selectedCustomer: customer,
+    customerSearchTerm: "",
+    customerOptions: [],
+    errorMessage: null,
+  }));
+}, []);
 
   const onClearCustomer = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      selectedCustomer: null,
-      customerSearchTerm: "",
-      customerOptions: [],
-      errorMessage: null,
-    }));
-  }, []);
+  customerSearchRequestRef.current += 1;
+  setState((currentState) => ({
+    ...currentState,
+    selectedCustomer: null,
+    customerSearchTerm: "",
+    customerOptions: [],
+    errorMessage: null,
+  }));
+}, []);
 
   const onCustomerSearchChange = useCallback(
-    async (value: string) => {
+  async (value: string) => {
+    const trimmedValue = value.trim();
+
+    setState((currentState) => ({
+      ...currentState,
+      customerSearchTerm: value,
+      errorMessage: null,
+    }));
+
+    if (!activeBusinessAccountRemoteId || trimmedValue === "") {
+      customerSearchRequestRef.current += 1;
       setState((currentState) => ({
         ...currentState,
-        customerSearchTerm: value,
+        customerOptions: [],
       }));
+      return;
+    }
 
-      if (!activeBusinessAccountRemoteId || value.trim() === "") {
+    const requestId = ++customerSearchRequestRef.current;
+    const searchTerm = trimmedValue.toLowerCase();
+
+    try {
+      const result = await getContactsUseCase.execute({
+        accountRemoteId: activeBusinessAccountRemoteId,
+      });
+
+      if (requestId !== customerSearchRequestRef.current) {
+        return;
+      }
+
+      if (!result.success) {
         setState((currentState) => ({
           ...currentState,
           customerOptions: [],
+          errorMessage: result.error.message,
         }));
         return;
       }
 
-      // Simple stale-async guard using the search term
-      const currentSearchTerm = value.trim();
-      
-      try {
-        const result = await getContactsUseCase.execute({
-          accountRemoteId: activeBusinessAccountRemoteId,
-        });
+      const customerOptions = result.value
+        .filter((contact: Contact) => contact.contactType === ContactType.Customer)
+        .filter((contact: Contact) => {
+          const nameMatch = contact.fullName.toLowerCase().includes(searchTerm);
+          const phoneMatch =
+            contact.phoneNumber?.toLowerCase().includes(searchTerm) ?? false;
 
-        // Guard against stale responses - only update if search term hasn't changed
-        if (state.customerSearchTerm !== currentSearchTerm) {
-          return;
-        }
-
-        if (!result.success) {
-          setState((currentState) => ({
-            ...currentState,
-            errorMessage: result.error.message,
-          }));
-          return;
-        }
-
-        const searchTerm = currentSearchTerm.toLowerCase();
-        const customerOptions = result.value
-          .filter((contact: Contact) => {
-            // Only customer contacts
-            if (contact.contactType !== ContactType.Customer) {
-              return false;
-            }
-            
-            // Filter by search term in name or phone
-            const nameMatch = contact.fullName.toLowerCase().includes(searchTerm);
-            const phoneMatch = contact.phoneNumber && contact.phoneNumber.toLowerCase().includes(searchTerm);
-            
-            return nameMatch || phoneMatch;
-          })
-          .map((contact: Contact) => ({
-            label:
-              contact.fullName +
-              (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
-            value: contact.remoteId,
-            customerData: {
-              remoteId: contact.remoteId,
-              fullName: contact.fullName,
-              phone: contact.phoneNumber,
-              address: contact.address,
-            },
-          }));
-
-        // Final guard against stale responses
-        if (state.customerSearchTerm === currentSearchTerm) {
-          setState((currentState) => ({
-            ...currentState,
-            customerOptions,
-          }));
-        }
-      } catch (error) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage:
-            error instanceof Error
-              ? error.message
-              : "Failed to search customers",
+          return nameMatch || phoneMatch;
+        })
+        .slice(0, 10)
+        .map((contact: Contact) => ({
+          label:
+            contact.fullName +
+            (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
+          value: contact.remoteId,
+          customerData: {
+            remoteId: contact.remoteId,
+            fullName: contact.fullName,
+            phone: contact.phoneNumber,
+            address: contact.address,
+          },
         }));
+
+      setState((currentState) => ({
+        ...currentState,
+        customerOptions,
+      }));
+    } catch (error) {
+      if (requestId !== customerSearchRequestRef.current) {
+        return;
       }
-    },
-    [activeBusinessAccountRemoteId, getContactsUseCase, state.customerSearchTerm],
-  );
+
+      setState((currentState) => ({
+        ...currentState,
+        customerOptions: [],
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "Failed to search customers",
+      }));
+    }
+  },
+  [activeBusinessAccountRemoteId, getContactsUseCase],
+);
 
   const onOpenCustomerCreateModal = useCallback(() => {
     setState((currentState) => ({
