@@ -886,6 +886,7 @@ export function usePosScreenViewModel(
         ...currentState,
         selectedCustomer: customer,
         customerSearchTerm: "",
+        customerOptions: [],
         errorMessage: null,
       }));
     },
@@ -897,6 +898,7 @@ export function usePosScreenViewModel(
       ...currentState,
       selectedCustomer: null,
       customerSearchTerm: "",
+      customerOptions: [],
       errorMessage: null,
     }));
   }, []);
@@ -916,10 +918,18 @@ export function usePosScreenViewModel(
         return;
       }
 
+      // Simple stale-async guard using the search term
+      const currentSearchTerm = value.trim();
+      
       try {
         const result = await getContactsUseCase.execute({
           accountRemoteId: activeBusinessAccountRemoteId,
         });
+
+        // Guard against stale responses - only update if search term hasn't changed
+        if (state.customerSearchTerm !== currentSearchTerm) {
+          return;
+        }
 
         if (!result.success) {
           setState((currentState) => ({
@@ -929,7 +939,7 @@ export function usePosScreenViewModel(
           return;
         }
 
-        const searchTerm = value.trim().toLowerCase();
+        const searchTerm = currentSearchTerm.toLowerCase();
         const customerOptions = result.value
           .filter((contact: Contact) => {
             // Only customer contacts
@@ -956,10 +966,13 @@ export function usePosScreenViewModel(
             },
           }));
 
-        setState((currentState) => ({
-          ...currentState,
-          customerOptions,
-        }));
+        // Final guard against stale responses
+        if (state.customerSearchTerm === currentSearchTerm) {
+          setState((currentState) => ({
+            ...currentState,
+            customerOptions,
+          }));
+        }
       } catch (error) {
         setState((currentState) => ({
           ...currentState,
@@ -970,7 +983,7 @@ export function usePosScreenViewModel(
         }));
       }
     },
-    [activeBusinessAccountRemoteId, getContactsUseCase],
+    [activeBusinessAccountRemoteId, getContactsUseCase, state.customerSearchTerm],
   );
 
   const onOpenCustomerCreateModal = useCallback(() => {

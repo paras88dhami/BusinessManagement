@@ -1,5 +1,4 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -40,7 +39,6 @@ export function PosCustomerSelector({
   onOpenCustomerCreateModal,
   disabled = false,
 }: PosCustomerSelectorProps) {
-  const selectedValue = selectedCustomer?.remoteId ?? "";
 
   return (
     <View style={styles.container}>
@@ -63,27 +61,35 @@ export function PosCustomerSelector({
         />
       </View>
 
-      {customerOptions.length > 0 && (
-        <Dropdown
-          value={selectedValue}
-          options={customerOptions}
-          onChange={(value) => {
-            const customer = customerOptions.find(opt => opt.value === value);
-            if (customer && customer.customerData) {
-              // Use full customer data from customerData field
-              onSelectCustomer({
-                remoteId: customer.customerData.remoteId,
-                fullName: customer.customerData.fullName,
-                phone: customer.customerData.phone,
-                address: customer.customerData.address,
-              });
-            }
-          }}
-          placeholder="Select customer"
-          disabled={disabled}
-          modalTitle="Select Customer"
-          triggerStyle={styles.dropdownTrigger}
-        />
+      {customerSearchTerm.trim() !== "" && (
+        <View style={styles.resultsContainer}>
+          {customerOptions.length > 0 ? (
+            customerOptions.slice(0, 10).map((option) => (
+              <Pressable
+                key={option.value}
+                style={styles.resultRow}
+                onPress={() => {
+                  if (option.customerData) {
+                    onSelectCustomer({
+                      remoteId: option.customerData.remoteId,
+                      fullName: option.customerData.fullName,
+                      phone: option.customerData.phone,
+                      address: option.customerData.address,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              >
+                <Text style={styles.resultName}>{option.customerData?.fullName}</Text>
+                {option.customerData?.phone && (
+                  <Text style={styles.resultPhone}>{option.customerData.phone}</Text>
+                )}
+              </Pressable>
+            ))
+          ) : (
+            <Text style={styles.noResultsText}>No customers found</Text>
+          )}
+        </View>
       )}
 
       {selectedCustomer && (
@@ -134,9 +140,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  dropdownTrigger: {
-    minHeight: 44,
-  },
   selectedCustomer: {
     flexDirection: "row",
     alignItems: "center",
@@ -165,5 +168,34 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: spacing.xs,
+  },
+  resultsContainer: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    maxHeight: 200,
+  },
+  resultRow: {
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  resultName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.foreground,
+  },
+  resultPhone: {
+    fontSize: 12,
+    color: colors.mutedForeground,
+    marginTop: 2,
+  },
+  noResultsText: {
+    fontSize: 12,
+    color: colors.mutedForeground,
+    fontStyle: "italic",
+    padding: spacing.sm,
+    textAlign: "center",
   },
 });
