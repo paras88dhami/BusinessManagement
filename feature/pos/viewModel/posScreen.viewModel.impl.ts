@@ -1,3 +1,4 @@
+import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import { ProductKind, ProductStatus } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
@@ -58,6 +59,7 @@ const INITIAL_STATE: PosScreenState = {
   errorMessage: null,
   selectedCustomer: null,
   customerSearchTerm: "",
+  customerOptions: [],
   customerCreateForm: {
     fullName: "",
     phone: "",
@@ -128,6 +130,7 @@ export type UsePosScreenViewModelParams = {
   applyDiscountUseCase: ApplyDiscountUseCase;
   applySurchargeUseCase: ApplySurchargeUseCase;
   getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
+  getContactsUseCase: GetContactsUseCase;
   clearCartUseCase: ClearCartUseCase;
   completePosCheckoutUseCase: CompletePosCheckoutUseCase;
   printReceiptUseCase: PrintReceiptUseCase;
@@ -153,6 +156,7 @@ export function usePosScreenViewModel(
     applyDiscountUseCase,
     applySurchargeUseCase,
     getOrCreateBusinessContactUseCase,
+    getContactsUseCase,
     clearCartUseCase,
     completePosCheckoutUseCase,
     printReceiptUseCase,
@@ -797,12 +801,51 @@ export function usePosScreenViewModel(
     }));
   }, []);
 
-  const onCustomerSearchChange = useCallback((searchTerm: string) => {
+  const onCustomerSearchChange = useCallback(async (value: string) => {
     setState((currentState) => ({
       ...currentState,
-      customerSearchTerm: searchTerm,
+      customerSearchTerm: value,
     }));
-  }, []);
+
+    if (!activeBusinessAccountRemoteId || value.trim() === "") {
+      setState((currentState) => ({
+        ...currentState,
+        customerOptions: [],
+      }));
+      return;
+    }
+
+    try {
+      const result = await getContactsUseCase.execute({
+        accountRemoteId: activeBusinessAccountRemoteId,
+      });
+
+      if (!result.success) {
+        setState((currentState) => ({
+          ...currentState,
+          errorMessage: result.error.message,
+        }));
+        return;
+      }
+
+      const customerOptions = result.value
+        .filter((contact: any) => contact.contactType === "customer")
+        .map((contact: any) => ({
+          label: contact.fullName + (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
+          value: contact.remoteId,
+        }));
+
+      setState((currentState) => ({
+        ...currentState,
+        customerOptions,
+      }));
+    } catch (error) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: error instanceof Error ? error.message : "Failed to search customers",
+      }));
+    }
+  }, [activeBusinessAccountRemoteId, getContactsUseCase]);
 
   const onOpenCustomerCreateModal = useCallback(() => {
     setState((currentState) => ({
@@ -827,14 +870,6 @@ export function usePosScreenViewModel(
       }));
       return;
     }
-    
-    if (!phone.trim()) {
-      setState((currentState) => ({
-        ...currentState,
-        errorMessage: "Customer phone is required.",
-      }));
-      return;
-    }
 
     if (!activeBusinessAccountRemoteId || !activeOwnerUserRemoteId) {
       setState((currentState) => ({
@@ -850,7 +885,9 @@ export function usePosScreenViewModel(
       contactType: "customer",
       fullName: fullName.trim(),
       ownerUserRemoteId: activeOwnerUserRemoteId,
-      notes: address.trim() || null,
+      phoneNumber: phone.trim() || null,
+      address: address.trim() || null,
+      notes: null,
     });
 
     if (!result.success) {
@@ -885,9 +922,7 @@ export function usePosScreenViewModel(
     getOrCreateBusinessContactUseCase,
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
-    state.customerCreateForm.fullName,
-    state.customerCreateForm.phone,
-    state.customerCreateForm.address,
+    state.customerCreateForm,
   ]);
 
   const onCloseCustomerCreateModal = useCallback(() => {
@@ -1011,6 +1046,7 @@ export function usePosScreenViewModel(
       onApplySurcharge,
       onClearCart,
       onCompletePayment,
+      customerOptions: state.customerOptions,
     }),
     [
       activeBusinessAccountRemoteId,
@@ -1082,6 +1118,7 @@ export function usePosScreenViewModel(
       state.surchargeInput,
       state.totals,
       taxSummaryLabel,
+      state.customerOptions,
     ],
   );
 }

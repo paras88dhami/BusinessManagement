@@ -504,6 +504,8 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         onFormChange={viewModel.onCustomerCreateFormChange}
         onSubmit={viewModel.onCreateCustomer}
         onClose={viewModel.onCloseCustomerCreateModal}
+        isSubmitting={viewModel.activeModal === "customer-create" && viewModel.errorMessage === null && viewModel.infoMessage?.includes("Creating")}
+        canSubmit={viewModel.customerCreateForm.fullName.trim().length > 0}
       />
     </>
   );

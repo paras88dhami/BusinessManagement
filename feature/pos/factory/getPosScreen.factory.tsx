@@ -4,6 +4,7 @@ import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/save
 import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
+import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
 import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase.impl";
 import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
@@ -137,6 +138,10 @@ export function GetPosScreenFactory({
     () => createGetOrCreateContactUseCase(contactRepository),
     [contactRepository],
   );
+  const getContactsUseCase = React.useMemo(
+    () => createGetContactsUseCase(contactRepository),
+    [contactRepository],
+  );
   const getOrCreateBusinessContactUseCase = React.useMemo(
     () => createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase),
     [getOrCreateContactUseCase],
@@ -193,6 +198,7 @@ export function GetPosScreenFactory({
     applyDiscountUseCase,
     applySurchargeUseCase,
     getOrCreateBusinessContactUseCase,
+    getContactsUseCase,
     clearCartUseCase,
     completePosCheckoutUseCase,
     printReceiptUseCase,

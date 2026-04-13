@@ -1,7 +1,7 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
-  GetOrCreateBusinessContactPayload,
-  GetOrCreateBusinessContactUseCase,
+    GetOrCreateBusinessContactPayload,
+    GetOrCreateBusinessContactUseCase,
 } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import { GetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase";
 
@@ -15,9 +15,9 @@ export const createGetOrCreateBusinessContactUseCase = (
       contactType: payload.contactType,
       fullName: payload.fullName,
       ownerUserRemoteId: payload.ownerUserRemoteId,
-      phoneNumber: null,
+      phoneNumber: payload.phoneNumber ?? null,
       emailAddress: null,
-      address: null,
+      address: payload.address ?? null,
       taxId: null,
       openingBalanceAmount: 0,
       openingBalanceDirection: null,

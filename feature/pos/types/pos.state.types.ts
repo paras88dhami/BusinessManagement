@@ -1,11 +1,11 @@
 import { StatusType } from "@/shared/types/status.types";
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-  PosSlot,
-  PosTotals,
+    PosBootstrap,
+    PosCartLine,
+    PosProduct,
+    PosReceipt,
+    PosSlot,
+    PosTotals,
 } from "./pos.entity.types";
 
 export type PosModalType =
@@ -42,6 +42,7 @@ export type PosScreenState = {
   errorMessage: string | null;
   selectedCustomer: import("./pos.entity.types").PosCustomer | null;
   customerSearchTerm: string;
+  customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   customerCreateForm: {
     fullName: string;
     phone: string;
@@ -117,5 +118,5 @@ export type PosScreenViewModel = {
   onCloseCustomerCreateModal: () => void;
   onCustomerCreateFormChange: (field: "fullName" | "phone" | "address", value: string) => void;
   onCreateCustomer: () => Promise<void>;
+  customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
 };
-
