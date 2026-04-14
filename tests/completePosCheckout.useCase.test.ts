@@ -245,7 +245,7 @@ describe("completePosCheckout.useCase", () => {
     }
   });
 
-it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing - OLD)
+it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missing - OLD", async () => {
     const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
@@ -292,7 +292,7 @@ it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing
     // Result should be real failure with our production fix
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.type).toBe("ContextRequired");
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
       expect(result.error.message).toContain("Settlement money account");
     }
   });
@@ -470,7 +470,7 @@ it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing
 
     expect(result1.success).toBe(false);
     if (!result1.success) {
-      expect(result1.error.type).toBe("ContextRequired");
+      expect(result1.error.type).toBe("CONTEXT_REQUIRED");
       expect(result1.error.message).toContain("POS requires active business account and owner user context");
     }
 
@@ -488,7 +488,7 @@ it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing
 
     expect(result2.success).toBe(false);
     if (!result2.success) {
-      expect(result2.error.type).toBe("ContextRequired");
+      expect(result2.error.type).toBe("CONTEXT_REQUIRED");
       expect(result2.error.message).toContain("owner user");
     }
 
@@ -545,7 +545,7 @@ it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.type).toBe("ContextRequired");
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
       expect(result.error.message).toContain("Settlement money account");
     }
 
@@ -602,7 +602,7 @@ it(REAL FIX VERIFICATION: paid checkout fails when settlement account is missing
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.type).toBe("ContextRequired");
+      expect(result.error.type).toBe("CONTEXT_REQUIRED");
       expect(result.error.message).toContain("Customer selection is required for unpaid sales");
     }
 
