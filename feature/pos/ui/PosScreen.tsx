@@ -158,7 +158,15 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </View>
           )}
 
-          {viewModel.productSearchTerm && viewModel.filteredProducts.length > 0 ? (
+          {viewModel.productSearchTerm === "" ? (
+            <View style={styles.emptySearchState}>
+              <Search size={48} color={colors.mutedForeground} />
+              <Text style={styles.emptySearchTitle}>Search for Products</Text>
+              <Text style={styles.emptySearchSubtitle}>
+                Type a product name or category to find and add items to your cart
+              </Text>
+            </View>
+          ) : viewModel.filteredProducts.length > 0 ? (
             <ScrollView style={styles.productsList} nestedScrollEnabled>
               <View style={styles.productsContent}>
                 {viewModel.filteredProducts.map((product: PosProduct) => (
@@ -187,9 +195,9 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           ) : (
             <View style={styles.emptySearchState}>
               <Search size={48} color={colors.mutedForeground} />
-              <Text style={styles.emptySearchTitle}>Search for Products</Text>
+              <Text style={styles.emptySearchTitle}>No Products Found</Text>
               <Text style={styles.emptySearchSubtitle}>
-                Type a product name or category to find and add items to your cart
+                Try searching with different keywords or check the product name spelling
               </Text>
             </View>
           )}

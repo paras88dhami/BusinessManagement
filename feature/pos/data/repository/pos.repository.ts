@@ -1,10 +1,11 @@
 import {
+    PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosAssignProductToSlotParams,
     PosChangeQuantityParams,
     PosCompletePaymentParams,
     PosLoadBootstrapParams,
-    PosRemoveSlotProductParams,
+    PosRemoveSlotProductParams
 } from "../../types/pos.dto.types";
 import {
     PosCartLine,
@@ -25,6 +26,9 @@ export interface PosRepository {
   searchProducts(searchTerm: string): Promise<readonly PosProduct[]>;
   assignProductToSlot(
     params: PosAssignProductToSlotParams,
+  ): Promise<PosCartLinesResult>;
+  addProductToCart(
+    params: PosAddProductToCartParams,
   ): Promise<PosCartLinesResult>;
   removeProductFromSlot(
     params: PosRemoveSlotProductParams,

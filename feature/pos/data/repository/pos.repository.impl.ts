@@ -1,16 +1,17 @@
 import {
-  PosCartLine,
-  PosReceipt,
-  PosSlot,
-} from "../../types/pos.entity.types";
-import {
+  PosAddProductToCartParams,
   PosApplyAmountAdjustmentParams,
   PosAssignProductToSlotParams,
   PosChangeQuantityParams,
   PosCompletePaymentParams,
   PosLoadBootstrapParams,
-  PosRemoveSlotProductParams,
+  PosRemoveSlotProductParams
 } from "../../types/pos.dto.types";
+import {
+  PosCartLine,
+  PosReceipt,
+  PosSlot,
+} from "../../types/pos.entity.types";
 import {
   PosBootstrapResult,
   PosCartLinesResult,
@@ -52,6 +53,17 @@ export const createPosRepository = (
     params: PosAssignProductToSlotParams,
   ): Promise<PosCartLinesResult> {
     const result = await datasource.assignProductToSlot(params);
+    if (!result.success) {
+      return { success: false, error: mapRepositoryError(result.error) };
+    }
+
+    return { success: true, value: mapPosCartLinesToDomain(result.value) };
+  },
+
+  async addProductToCart(
+    params: PosAddProductToCartParams,
+  ): Promise<PosCartLinesResult> {
+    const result = await datasource.addProductToCart(params);
     if (!result.success) {
       return { success: false, error: mapRepositoryError(result.error) };
     }

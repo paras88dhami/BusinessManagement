@@ -131,6 +131,7 @@ export type UsePosScreenViewModelParams = {
   getPosBootstrapUseCase: GetPosBootstrapUseCase;
   searchPosProductsUseCase: SearchPosProductsUseCase;
   assignProductToSlotUseCase: AssignProductToSlotUseCase;
+  addProductToCartUseCase: import("../useCase/addProductToCart.useCase").AddProductToCartUseCase;
   removeProductFromSlotUseCase: RemoveProductFromSlotUseCase;
   changeCartLineQuantityUseCase: ChangeCartLineQuantityUseCase;
   applyDiscountUseCase: ApplyDiscountUseCase;
@@ -158,6 +159,7 @@ export function usePosScreenViewModel(
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
     assignProductToSlotUseCase,
+    addProductToCartUseCase,
     removeProductFromSlotUseCase,
     changeCartLineQuantityUseCase,
     applyDiscountUseCase,
@@ -454,80 +456,41 @@ export function usePosScreenViewModel(
 
   const onAddProductToCart = useCallback(
     async (productId: string) => {
-      // Find the product to get its details
-      const product = state.products.find((p) => p.id === productId);
-      if (!product) {
+      // Use the new direct cart-add use case
+      const result = await addProductToCartUseCase.execute({
+        productId,
+      });
+
+      if (!result.success) {
         setState((currentState) => ({
           ...currentState,
-          errorMessage: "Product not found.",
+          errorMessage: result.error.message,
         }));
         return;
       }
 
-      // Check if product already exists in cart
-      const existingLine = state.cartLines.find((line) => line.productId === productId);
-      
-      if (existingLine) {
-        // Increase quantity if already in cart
-        const result = await changeCartLineQuantityUseCase.execute({
-          lineId: existingLine.lineId,
-          nextQuantity: existingLine.quantity + 1,
-        });
+      recalculateTotals(result.value);
 
-        if (!result.success) {
-          setState((currentState) => ({
-            ...currentState,
-            errorMessage: result.error.message,
-          }));
-          return;
-        }
+      // Track this product as recently used
+      setState((currentState) => {
+        const currentRecent = currentState.recentProducts;
+        const productToAdd = state.products.find((p) => p.id === productId);
+        if (!productToAdd) return currentState;
 
-        recalculateTotals(result.value);
-      } else {
-        // Add new line to cart - we need to create a temporary slot for this
-        // Use the assignProductToSlotUseCase with addToCart: true
-        const tempSlotId = `temp-cart-${Date.now()}`;
-        
-        // Create a temporary slot assignment
-        const result = await assignProductToSlotUseCase.execute({
-          slotId: tempSlotId,
-          productId,
-          addToCart: true,
-        });
+        // Remove if already exists, then add to front
+        const filteredRecent = currentRecent.filter((p) => p.id !== productId);
+        const newRecent = [productToAdd, ...filteredRecent].slice(0, 8);
 
-        if (!result.success) {
-          setState((currentState) => ({
-            ...currentState,
-            errorMessage: result.error.message,
-          }));
-          return;
-        }
-
-        recalculateTotals(result.value);
-
-        // Track this product as recently used
-        setState((currentState) => {
-          const currentRecent = currentState.recentProducts;
-          const productToAdd = state.products.find((p) => p.id === productId);
-          if (!productToAdd) return currentState;
-
-          // Remove if already exists, then add to front
-          const filteredRecent = currentRecent.filter((p) => p.id !== productId);
-          const newRecent = [productToAdd, ...filteredRecent].slice(0, 8);
-
-          return {
-            ...currentState,
-            recentProducts: newRecent,
-          };
-        });
-      }
+        return {
+          ...currentState,
+          recentProducts: newRecent,
+        };
+      });
     },
     [
-      changeCartLineQuantityUseCase,
-      assignProductToSlotUseCase,
+      addProductToCartUseCase,
       recalculateTotals,
       state.products,
-      state.cartLines,
     ],
   );
 
@@ -536,10 +499,7 @@ export function usePosScreenViewModel(
       ...currentState,
       activeModal: "none",
       activeSlotId: null,
-      productSearchTerm:
-        currentState.activeModal === "product-selection"
-          ? ""
-          : currentState.productSearchTerm,
+      productSearchTerm: currentState.productSearchTerm,
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
@@ -562,7 +522,7 @@ export function usePosScreenViewModel(
   const onCloseCreateProductModal = useCallback(() => {
     setState((currentState) => ({
       ...currentState,
-      activeModal: "product-selection",
+      activeModal: "none",
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
@@ -648,6 +608,12 @@ export function usePosScreenViewModel(
       return;
     }
 
+    // Auto-add the newly created product to cart using the returned ID
+    if (result.success) {
+      await onAddProductToCart(result.value.remoteId);
+    }
+
+    // Refresh product lists after auto-add
     const products = await searchPosProductsUseCase.execute("");
     setState((currentState) => ({
       ...currentState,
@@ -660,11 +626,6 @@ export function usePosScreenViewModel(
       errorMessage: null,
       infoMessage: `Product "${normalizedName}" created successfully.`,
     }));
-
-    // Auto-add the newly created product to cart
-    if (result.success) {
-      await onAddProductToCart(result.value.remoteId);
-    }
   }, [
     activeBusinessAccountRemoteId,
     saveProductUseCase,

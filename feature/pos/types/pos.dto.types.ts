@@ -12,6 +12,10 @@ export type PosAssignProductToSlotParams = {
   addToCart: boolean;
 };
 
+export type PosAddProductToCartParams = {
+  productId: string;
+};
+
 export type PosRemoveSlotProductParams = {
   slotId: string;
 };

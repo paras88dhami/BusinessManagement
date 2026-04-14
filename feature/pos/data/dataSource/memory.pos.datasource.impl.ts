@@ -1,28 +1,29 @@
 import {
-    PosApplyAmountAdjustmentParams,
-    PosAssignProductToSlotParams,
-    PosChangeQuantityParams,
-    PosCompletePaymentParams,
-    PosLoadBootstrapParams,
-    PosRemoveSlotProductParams,
+  PosAddProductToCartParams,
+  PosApplyAmountAdjustmentParams,
+  PosAssignProductToSlotParams,
+  PosChangeQuantityParams,
+  PosCompletePaymentParams,
+  PosLoadBootstrapParams,
+  PosRemoveSlotProductParams
 } from "../../types/pos.dto.types";
 import {
-    PosBootstrap,
-    PosCartLine,
-    PosLedgerEffect,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
-    PosTotals,
+  PosBootstrap,
+  PosCartLine,
+  PosLedgerEffect,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosTotals,
 } from "../../types/pos.entity.types";
 import {
-    PosBootstrapResult,
-    PosCartLinesResult,
-    PosError,
-    PosErrorType,
-    PosOperationResult,
-    PosPaymentResult,
-    PosTotalsResult,
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosError,
+  PosErrorType,
+  PosOperationResult,
+  PosPaymentResult,
+  PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "./pos.datasource";
 
@@ -269,6 +270,53 @@ export const createMemoryPosDatasource = (): PosDatasource => {
             lineSubtotal: Number((nextQuantity * line.unitPrice).toFixed(2)),
           };
         });
+      }
+
+      return {
+        success: true,
+        value: cloneCartLines(cartLines),
+      };
+    },
+
+    async addProductToCart(
+      params: PosAddProductToCartParams,
+    ): Promise<PosCartLinesResult> {
+      const product = findProduct(params.productId);
+      if (!product) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.ProductNotFound,
+            message: "The selected product was not found.",
+          },
+        };
+      }
+
+      // Check if product already exists in cart
+      const existingLineIndex = cartLines.findIndex(
+        (line) => line.productId === params.productId,
+      );
+
+      if (existingLineIndex !== -1) {
+        // Product exists in cart, increment quantity
+        const existingLine = cartLines[existingLineIndex];
+        const nextQuantity = existingLine.quantity + 1;
+        
+        cartLines = cartLines.map((line, index) =>
+          index === existingLineIndex
+            ? {
+                ...line,
+                quantity: nextQuantity,
+                lineSubtotal: Number((nextQuantity * line.unitPrice).toFixed(2)),
+              }
+            : line,
+        );
+      } else {
+        // Product not in cart, add new line
+        // Use compatibility slotId for cart line shape but don't treat as real slot
+        const compatibilitySlotId = `direct-${params.productId}`;
+        const newLine = buildCartLine(compatibilitySlotId, product);
+        cartLines = [...cartLines, newLine];
       }
 
       return {

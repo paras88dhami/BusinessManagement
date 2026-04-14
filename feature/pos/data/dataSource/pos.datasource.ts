@@ -1,17 +1,18 @@
 import {
-  PosBootstrap,
-  PosCartLine,
-  PosProduct,
-  PosReceipt,
-} from "../../types/pos.entity.types";
-import {
+  PosAddProductToCartParams,
   PosApplyAmountAdjustmentParams,
   PosAssignProductToSlotParams,
   PosChangeQuantityParams,
   PosCompletePaymentParams,
   PosLoadBootstrapParams,
-  PosRemoveSlotProductParams,
+  PosRemoveSlotProductParams
 } from "../../types/pos.dto.types";
+import {
+  PosBootstrap,
+  PosCartLine,
+  PosProduct,
+  PosReceipt,
+} from "../../types/pos.entity.types";
 import {
   PosBootstrapResult,
   PosCartLinesResult,
@@ -25,6 +26,9 @@ export interface PosDatasource {
   searchProducts(searchTerm: string): Promise<readonly PosProduct[]>;
   assignProductToSlot(
     params: PosAssignProductToSlotParams,
+  ): Promise<PosCartLinesResult>;
+  addProductToCart(
+    params: PosAddProductToCartParams,
   ): Promise<PosCartLinesResult>;
   removeProductFromSlot(
     params: PosRemoveSlotProductParams,

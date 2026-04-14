@@ -20,6 +20,7 @@ import React from "react";
 import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
 import { PosScreen } from "../ui/PosScreen";
+import { createAddProductToCartUseCase } from "../useCase/addProductToCart.useCase.impl";
 import { createApplyDiscountUseCase } from "../useCase/applyDiscount.useCase.impl";
 import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.impl";
 import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
@@ -72,6 +73,10 @@ export function GetPosScreenFactory({
   );
   const assignProductToSlotUseCase = React.useMemo(
     () => createAssignProductToSlotUseCase(repository),
+    [repository],
+  );
+  const addProductToCartUseCase = React.useMemo(
+    () => createAddProductToCartUseCase(repository),
     [repository],
   );
   const removeProductFromSlotUseCase = React.useMemo(
@@ -202,6 +207,7 @@ export function GetPosScreenFactory({
     getPosBootstrapUseCase,
     searchPosProductsUseCase,
     assignProductToSlotUseCase,
+    addProductToCartUseCase,
     removeProductFromSlotUseCase,
     changeCartLineQuantityUseCase,
     applyDiscountUseCase,
