@@ -54,7 +54,6 @@ const INITIAL_STATE: PosScreenState = {
   bootstrap: null,
   products: [],
   filteredProducts: [],
-  quickProducts: [],
   recentProducts: [],
   slots: [],
   cartLines: [],
@@ -232,11 +231,6 @@ export function usePosScreenViewModel(
     // For now, use empty array until products are added/used
     return state.recentProducts;
   }, [state.recentProducts]);
-
-  const quickProducts = useMemo(() => {
-    // Quick products are now the recent products (max 8)
-    return recentProducts.slice(0, 8);
-  }, [recentProducts]);
 
   const updateRecentProducts = useCallback((product: PosProduct) => {
     setState((currentState) => {
@@ -495,8 +489,11 @@ export function usePosScreenViewModel(
         productSearchTerm: value,
         filteredProducts: products,
       }));
+
+      // Save session after product search change
+      await saveCurrentSession();
     },
-    [searchPosProductsUseCase],
+    [searchPosProductsUseCase, saveCurrentSession],
   );
 
   const onSelectProduct = useCallback(
@@ -859,13 +856,19 @@ export function usePosScreenViewModel(
     [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession],
   );
 
-  const onDiscountInputChange = useCallback((value: string) => {
+  const onDiscountInputChange = useCallback(async (value: string) => {
     setState((currentState) => ({ ...currentState, discountInput: value }));
-  }, []);
+    
+    // Save session after discount input change
+    await saveCurrentSession();
+  }, [saveCurrentSession]);
 
-  const onSurchargeInputChange = useCallback((value: string) => {
+  const onSurchargeInputChange = useCallback(async (value: string) => {
     setState((currentState) => ({ ...currentState, surchargeInput: value }));
-  }, []);
+    
+    // Save session after surcharge input change
+    await saveCurrentSession();
+  }, [saveCurrentSession]);
 
   const onPaymentInputChange = useCallback((value: string) => {
     setState((currentState) => ({ ...currentState, paymentInput: value }));
@@ -940,7 +943,10 @@ export function usePosScreenViewModel(
       totals: result.value,
       activeModal: "none",
     }));
-  }, [applyDiscountUseCase, state.discountInput]);
+
+    // Save session after discount change
+    await saveCurrentSession();
+  }, [applyDiscountUseCase, state.discountInput, saveCurrentSession]);
 
   const onApplySurcharge = useCallback(async () => {
     const result = await applySurchargeUseCase.execute({
@@ -960,7 +966,10 @@ export function usePosScreenViewModel(
       totals: result.value,
       activeModal: "none",
     }));
-  }, [applySurchargeUseCase, state.surchargeInput]);
+
+    // Save session after surcharge change
+    await saveCurrentSession();
+  }, [applySurchargeUseCase, state.surchargeInput, saveCurrentSession]);
 
   const onClearCart = useCallback(async () => {
     const result = await clearCartUseCase.execute();
@@ -1110,7 +1119,7 @@ export function usePosScreenViewModel(
     }));
   }, [printReceiptUseCase, state.receipt]);
 
-  const onSelectCustomer = useCallback((customer: PosCustomer) => {
+  const onSelectCustomer = useCallback(async (customer: PosCustomer) => {
     setState((currentState) => ({
       ...currentState,
       selectedCustomer: customer,
@@ -1118,9 +1127,12 @@ export function usePosScreenViewModel(
       customerOptions: [],
       errorMessage: null,
     }));
-  }, []);
 
-  const onClearCustomer = useCallback(() => {
+    // Save session after customer selection
+    await saveCurrentSession();
+  }, [saveCurrentSession]);
+
+  const onClearCustomer = useCallback(async () => {
     customerSearchRequestRef.current += 1;
     setState((currentState) => ({
       ...currentState,
@@ -1129,7 +1141,10 @@ export function usePosScreenViewModel(
       customerOptions: [],
       errorMessage: null,
     }));
-  }, []);
+
+    // Save session after clearing customer
+    await saveCurrentSession();
+  }, [saveCurrentSession]);
 
   const onCustomerSearchChange = useCallback(
     async (value: string) => {
@@ -1369,7 +1384,6 @@ export function usePosScreenViewModel(
       totals: state.totals,
       products: state.filteredProducts, // Only show filtered products, never all products
       filteredProducts: state.filteredProducts,
-      quickProducts,
       recentProducts,
       activeSlotId: state.activeSlotId,
       selectedSlotId: state.selectedSlotId,
@@ -1478,11 +1492,11 @@ export function usePosScreenViewModel(
       onClearCustomer,
       onCloseCustomerCreateModal,
       onClosePaymentModal,
-      onCloseReceiptModal,
       onConfirmPayment,
       onCustomerCreateFormChange,
       onCustomerSearchChange,
       onOpenCustomerCreateModal,
+      onCloseCustomerCreateModal,
       onCreateCustomer,
       onOpenReceiptModal,
       onSelectCustomer,
@@ -1510,7 +1524,6 @@ export function usePosScreenViewModel(
       state.totals,
       taxSummaryLabel,
       state.customerOptions,
-      quickProducts,
       recentProducts,
     ],
   );
