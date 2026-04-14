@@ -3,9 +3,13 @@ import {
   PosApplyAmountAdjustmentParams,
   PosAssignProductToSlotParams,
   PosChangeQuantityParams,
+  PosClearSessionParams,
   PosCompletePaymentParams,
   PosLoadBootstrapParams,
-  PosRemoveSlotProductParams
+  PosLoadSessionParams,
+  PosRemoveSlotProductParams,
+  PosSaveSessionParams,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
 import {
   PosBootstrap,
@@ -493,6 +497,28 @@ export const createMemoryPosDatasource = (): PosDatasource => {
     },
 
     async printReceipt(_: PosReceipt): Promise<PosOperationResult> {
+      return { success: true, value: true };
+    },
+
+    async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {
+      // In memory datasource, we'll store sessions in a simple object
+      // In production, this would use the local datasource implementation
+      return { success: true, value: true };
+    },
+
+    async loadSession(params: PosLoadSessionParams): Promise<PosSessionResult> {
+      // In memory datasource, return no session (starts fresh)
+      return { 
+        success: false, 
+        error: { 
+          type: PosErrorType.Validation, 
+          message: "No session found in memory datasource" 
+        } 
+      };
+    },
+
+    async clearSession(params: PosClearSessionParams): Promise<PosOperationResult> {
+      // In memory datasource, nothing to clear
       return { success: true, value: true };
     },
   };

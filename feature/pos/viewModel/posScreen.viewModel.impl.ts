@@ -3,25 +3,25 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-    ProductKind,
-    ProductStatus,
+  ProductKind,
+  ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-    buildTaxRateLabel,
-    buildTaxSummaryLabel,
-    resolveRegionalFinancePolicy,
+  buildTaxRateLabel,
+  buildTaxSummaryLabel,
+  resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    PosCartLine,
-    PosCustomer,
-    PosProduct,
-    PosSlot,
-    PosTotals,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
+  PosSlot,
+  PosTotals,
 } from "../types/pos.entity.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
@@ -30,10 +30,13 @@ import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
 import { AssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase";
 import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase";
 import { ClearCartUseCase } from "../useCase/clearCart.useCase";
+import { ClearPosSessionUseCase } from "../useCase/clearPosSession.useCase";
 import { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase";
 import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
+import { LoadPosSessionUseCase } from "../useCase/loadPosSession.useCase";
 import { PrintReceiptUseCase } from "../useCase/printReceipt.useCase";
 import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase";
+import { SavePosSessionUseCase } from "../useCase/savePosSession.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import { ShareReceiptUseCase } from "../useCase/shareReceipt.useCase";
 
@@ -151,6 +154,9 @@ export type UsePosScreenViewModelParams = {
   printReceiptUseCase: PrintReceiptUseCase;
   shareReceiptUseCase: ShareReceiptUseCase;
   saveProductUseCase: SaveProductUseCase;
+  savePosSessionUseCase: SavePosSessionUseCase;
+  loadPosSessionUseCase: LoadPosSessionUseCase;
+  clearPosSessionUseCase: ClearPosSessionUseCase;
 };
 
 export function usePosScreenViewModel(
@@ -179,6 +185,9 @@ export function usePosScreenViewModel(
     printReceiptUseCase,
     saveProductUseCase,
     shareReceiptUseCase,
+    savePosSessionUseCase,
+    loadPosSessionUseCase,
+    clearPosSessionUseCase,
   } = params;
 
   const regionalFinancePolicy = useMemo(
@@ -229,18 +238,46 @@ export function usePosScreenViewModel(
     return recentProducts.slice(0, 8);
   }, [recentProducts]);
 
-  const pushRecentProduct = useCallback((product: PosProduct) => {
+  const updateRecentProducts = useCallback((product: PosProduct) => {
     setState((currentState) => {
+      // Remove existing occurrence and add to front (LRU behavior)
       const filteredRecent = currentState.recentProducts.filter(
         (item) => item.id !== product.id,
       );
 
       return {
         ...currentState,
-        recentProducts: [product, ...filteredRecent].slice(0, 8),
+        recentProducts: [product, ...filteredRecent], // No limit - session-only tracking
       };
     });
   }, []);
+
+  const saveCurrentSession = useCallback(async () => {
+    if (!activeBusinessAccountRemoteId) {
+      return;
+    }
+
+    await savePosSessionUseCase.execute({
+      businessAccountRemoteId: activeBusinessAccountRemoteId,
+      sessionData: {
+        cartLines: state.cartLines,
+        recentProducts: state.recentProducts,
+        productSearchTerm: state.productSearchTerm,
+        selectedCustomer: state.selectedCustomer,
+        discountInput: state.discountInput,
+        surchargeInput: state.surchargeInput,
+      },
+    });
+  }, [
+    activeBusinessAccountRemoteId,
+    savePosSessionUseCase,
+    state.cartLines,
+    state.recentProducts,
+    state.productSearchTerm,
+    state.selectedCustomer,
+    state.discountInput,
+    state.surchargeInput,
+  ]);
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -308,16 +345,62 @@ export function usePosScreenViewModel(
       return;
     }
 
-    const products = await searchPosProductsUseCase.execute("");
+    // 2. Load saved session snapshot
+    if (activeBusinessAccountRemoteId) {
+      const sessionResult = await loadPosSessionUseCase.execute({
+        businessAccountRemoteId: activeBusinessAccountRemoteId,
+      });
 
+      if (sessionResult.success && sessionResult.value) {
+        // 3. Hydrate screen state with session data
+        const sessionData = sessionResult.value;
+        setState((currentState) => ({
+          ...currentState,
+          status: Status.Success,
+          bootstrap: result.value,
+          slots: result.value.slots,
+          products: result.value.products,
+          filteredProducts: [], // Start with empty filtered list, require search
+          cartLines: sessionData.cartLines,
+          recentProducts: sessionData.recentProducts,
+          productSearchTerm: sessionData.productSearchTerm,
+          selectedCustomer: sessionData.selectedCustomer,
+          discountInput: sessionData.discountInput,
+          surchargeInput: sessionData.surchargeInput,
+          totals: EMPTY_TOTALS, // Will be recalculated below
+          activeSlotId: null,
+          selectedSlotId: null,
+          errorMessage: null,
+        }));
+
+        // 4. Recompute totals with restored cart lines
+        const restoredTotals = calculateTotals(
+          sessionData.cartLines,
+          parseAmountInput(sessionData.discountInput),
+          parseAmountInput(sessionData.surchargeInput),
+        );
+        setState((currentState) => ({
+          ...currentState,
+          totals: restoredTotals,
+        }));
+        return;
+      }
+    }
+
+    // No session data or failed to load - start fresh
     setState((currentState) => ({
       ...currentState,
       status: Status.Success,
       bootstrap: result.value,
       slots: result.value.slots,
       products: result.value.products,
-      filteredProducts: products,
+      filteredProducts: [], // Start with empty filtered list, require search
       cartLines: [],
+      recentProducts: [],
+      productSearchTerm: "",
+      selectedCustomer: null,
+      discountInput: "",
+      surchargeInput: "",
       totals: EMPTY_TOTALS,
       activeSlotId: null,
       selectedSlotId: null,
@@ -460,11 +543,7 @@ export function usePosScreenViewModel(
         };
       });
 
-      const products = await searchPosProductsUseCase.execute("");
-      setState((currentState) => ({
-        ...currentState,
-        filteredProducts: products,
-      }));
+      // Don't reset filteredProducts - keep current search results
       recalculateTotals(result.value);
     },
     [
@@ -497,17 +576,21 @@ export function usePosScreenViewModel(
       }
 
       recalculateTotals(result.value);
-      pushRecentProduct(product);
+      updateRecentProducts(product);
 
       setState((currentState) => ({
         ...currentState,
         errorMessage: null,
       }));
+
+      // Save session after cart change
+      await saveCurrentSession();
     },
     [
       addProductToCartUseCase,
       recalculateTotals,
-      pushRecentProduct,
+      updateRecentProducts,
+      saveCurrentSession,
       state.products,
     ],
   );
@@ -653,7 +736,7 @@ export function usePosScreenViewModel(
     };
 
     recalculateTotals(addResult.value);
-    pushRecentProduct(createdProduct);
+    updateRecentProducts(createdProduct);
 
     setState((currentState) => ({
       ...currentState,
@@ -661,10 +744,8 @@ export function usePosScreenViewModel(
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
-      products: currentState.productSearchTerm
-        ? currentState.products
-        : refreshedProducts,
-      filteredProducts: refreshedProducts,
+      products: refreshedProducts,
+      filteredProducts: refreshedProducts, // Keep filtered products tied to search term
       errorMessage: null,
       infoMessage: `Product "${normalizedName}" created and added to cart successfully.`,
     }));
@@ -672,7 +753,7 @@ export function usePosScreenViewModel(
     activeBusinessAccountRemoteId,
     addProductToCartUseCase,
     defaultTaxRateLabel,
-    pushRecentProduct,
+    updateRecentProducts,
     recalculateTotals,
     saveProductUseCase,
     searchPosProductsUseCase,
@@ -703,8 +784,11 @@ export function usePosScreenViewModel(
       }
 
       recalculateTotals(result.value);
+      
+      // Save session after cart change
+      await saveCurrentSession();
     },
-    [changeCartLineQuantityUseCase, recalculateTotals, state.cartLines],
+    [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession, state.cartLines],
   );
 
   const onDecreaseQuantity = useCallback(
@@ -727,23 +811,29 @@ export function usePosScreenViewModel(
         return;
       }
 
-      setState((currentState) => ({
-        ...currentState,
-        slots: currentState.slots.map((slot) => {
-          if (slot.slotId !== line.slotId) {
-            return slot;
-          }
+      // Only update slots for actual slot lines, not direct-added lines (direct-{productId})
+      if (line.slotId.startsWith('slot-')) {
+        setState((currentState) => ({
+          ...currentState,
+          slots: currentState.slots.map((slot) => {
+            if (slot.slotId !== line.slotId) {
+              return slot;
+            }
 
-          return result.value.some(
-            (cartLine) => cartLine.slotId === slot.slotId,
-          )
-            ? slot
-            : { ...slot, assignedProductId: null };
-        }),
-      }));
+            return result.value.some(
+              (cartLine) => cartLine.slotId === slot.slotId,
+            )
+              ? slot
+              : { ...slot, assignedProductId: null };
+          }),
+        }));
+      }
       recalculateTotals(result.value);
+      
+      // Save session after cart change
+      await saveCurrentSession();
     },
-    [changeCartLineQuantityUseCase, recalculateTotals, state.cartLines],
+    [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession, state.cartLines],
   );
 
   const onRemoveCartLine = useCallback(
@@ -762,8 +852,11 @@ export function usePosScreenViewModel(
       }
 
       recalculateTotals(result.value);
+      
+      // Save session after cart change
+      await saveCurrentSession();
     },
-    [changeCartLineQuantityUseCase, recalculateTotals],
+    [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession],
   );
 
   const onDiscountInputChange = useCallback((value: string) => {
@@ -879,7 +972,6 @@ export function usePosScreenViewModel(
       return;
     }
 
-    const products = await searchPosProductsUseCase.execute("");
     setState((currentState) => ({
       ...currentState,
       slots: createEmptySlots(),
@@ -891,15 +983,24 @@ export function usePosScreenViewModel(
       discountInput: "",
       surchargeInput: "",
       paymentInput: "",
-      filteredProducts: products,
+      filteredProducts: [], // Clear filtered products when clearing cart
       infoMessage: null,
       errorMessage: null,
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
     }));
+
+    // Clear session after clearing cart
+    if (activeBusinessAccountRemoteId) {
+      await clearPosSessionUseCase.execute({
+        businessAccountRemoteId: activeBusinessAccountRemoteId,
+      });
+    }
   }, [
     clearCartUseCase,
+    clearPosSessionUseCase,
+    activeBusinessAccountRemoteId,
     searchPosProductsUseCase,
     state.totals.grandTotal,
     currencyCode,
@@ -927,7 +1028,6 @@ export function usePosScreenViewModel(
       return;
     }
 
-    const products = await searchPosProductsUseCase.execute("");
     setState((currentState) => ({
       ...currentState,
       slots: createEmptySlots(),
@@ -940,7 +1040,7 @@ export function usePosScreenViewModel(
       surchargeInput: "",
       paymentInput: "",
       receipt: result.value,
-      filteredProducts: products,
+      filteredProducts: [], // Clear filtered products after checkout
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
@@ -966,8 +1066,16 @@ export function usePosScreenViewModel(
               : "Sale completed successfully.",
       errorMessage: null,
     }));
+
+    // Clear session after successful checkout
+    if (activeBusinessAccountRemoteId) {
+      await clearPosSessionUseCase.execute({
+        businessAccountRemoteId: activeBusinessAccountRemoteId,
+      });
+    }
   }, [
     activeBusinessAccountRemoteId,
+    clearPosSessionUseCase,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
     completePosCheckoutUseCase,
@@ -1259,10 +1367,7 @@ export function usePosScreenViewModel(
       slots: state.slots,
       cartLines: state.cartLines,
       totals: state.totals,
-      products:
-        state.filteredProducts.length > 0 || state.productSearchTerm
-          ? state.filteredProducts
-          : state.products,
+      products: state.filteredProducts, // Only show filtered products, never all products
       filteredProducts: state.filteredProducts,
       quickProducts,
       recentProducts,

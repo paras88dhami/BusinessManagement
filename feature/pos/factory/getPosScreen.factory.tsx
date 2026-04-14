@@ -26,11 +26,14 @@ import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.i
 import { createAssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase.impl";
 import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase.impl";
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
+import { createClearPosSessionUseCase } from "../useCase/clearPosSession.useCase.impl";
 import { createCompletePaymentUseCase } from "../useCase/completePayment.useCase.impl";
 import { createCompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase.impl";
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
+import { createLoadPosSessionUseCase } from "../useCase/loadPosSession.useCase.impl";
 import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
 import { createRemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase.impl";
+import { createSavePosSessionUseCase } from "../useCase/savePosSession.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
 import { createShareReceiptUseCase } from "../useCase/shareReceipt.useCase.impl";
 import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
@@ -101,6 +104,18 @@ export function GetPosScreenFactory({
   );
   const completePaymentUseCase = React.useMemo(
     () => createCompletePaymentUseCase(repository),
+    [repository],
+  );
+  const savePosSessionUseCase = React.useMemo(
+    () => createSavePosSessionUseCase(repository),
+    [repository],
+  );
+  const loadPosSessionUseCase = React.useMemo(
+    () => createLoadPosSessionUseCase(repository),
+    [repository],
+  );
+  const clearPosSessionUseCase = React.useMemo(
+    () => createClearPosSessionUseCase(repository),
     [repository],
   );
   const billingDatasource = React.useMemo(
@@ -219,6 +234,9 @@ export function GetPosScreenFactory({
     printReceiptUseCase,
     shareReceiptUseCase,
     saveProductUseCase,
+    savePosSessionUseCase,
+    loadPosSessionUseCase,
+    clearPosSessionUseCase,
   });
 
   return <PosScreen viewModel={viewModel} />;

@@ -1,4 +1,4 @@
-import { PosCustomer } from "./pos.entity.types";
+import { PosCartLine, PosCustomer, PosProduct } from "./pos.entity.types";
 
 export type PosLoadBootstrapParams = {
   activeBusinessAccountRemoteId: string | null;
@@ -34,4 +34,42 @@ export type PosCompletePaymentParams = {
   activeSettlementAccountRemoteId: string | null;
   selectedCustomer: PosCustomer | null;
   grandTotalSnapshot: number;
+};
+
+export type PosSaveSessionParams = {
+  businessAccountRemoteId: string;
+  sessionData: {
+    cartLines: readonly PosCartLine[];
+    recentProducts: readonly PosProduct[];
+    productSearchTerm: string;
+    selectedCustomer: PosCustomer | null;
+    discountInput: string;
+    surchargeInput: string;
+  };
+};
+
+export type PosLoadSessionParams = {
+  businessAccountRemoteId: string;
+};
+
+export type PosClearSessionParams = {
+  businessAccountRemoteId: string;
+};
+
+export type PosSessionData = {
+  cartLines: readonly PosCartLine[];
+  recentProducts: readonly PosProduct[];
+  productSearchTerm: string;
+  selectedCustomer: PosCustomer | null;
+  discountInput: string;
+  surchargeInput: string;
+};
+
+export type PosSessionResult = {
+  success: boolean;
+  value?: PosSessionData;
+  error?: {
+    type: string;
+    message: string;
+  };
 };

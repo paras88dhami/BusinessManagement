@@ -59,6 +59,9 @@ describe("POS Direct Sell Functionality", () => {
         getTotals: vi.fn(),
         completePayment: vi.fn(),
         printReceipt: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
       };
 
       const useCase = createAddProductToCartUseCase(mockRepository);
@@ -106,6 +109,9 @@ describe("POS Direct Sell Functionality", () => {
         getTotals: vi.fn(),
         completePayment: vi.fn(),
         printReceipt: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
       };
 
       const useCase = createAddProductToCartUseCase(mockRepository);
@@ -140,6 +146,9 @@ describe("POS Direct Sell Functionality", () => {
         getTotals: vi.fn(),
         completePayment: vi.fn(),
         printReceipt: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
       };
 
       const useCase = createAddProductToCartUseCase(mockRepository);
@@ -172,6 +181,9 @@ describe("POS Direct Sell Functionality", () => {
         getTotals: vi.fn(),
         completePayment: vi.fn(),
         printReceipt: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
       };
 
       const useCase = createAddProductToCartUseCase(mockRepository);
@@ -383,6 +395,9 @@ describe("POS Direct Sell Functionality", () => {
         getTotals: vi.fn(),
         completePayment: vi.fn(),
         printReceipt: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
       };
 
       const useCase = createAddProductToCartUseCase(mockRepository);

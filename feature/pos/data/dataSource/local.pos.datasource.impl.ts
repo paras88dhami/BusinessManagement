@@ -8,9 +8,14 @@ import {
   PosApplyAmountAdjustmentParams,
   PosAssignProductToSlotParams,
   PosChangeQuantityParams,
+  PosClearSessionParams,
   PosCompletePaymentParams,
   PosLoadBootstrapParams,
+  PosLoadSessionParams,
   PosRemoveSlotProductParams,
+  PosSaveSessionParams,
+  PosSessionData,
+  PosSessionResult
 } from "../../types/pos.dto.types";
 import {
   PosBootstrap,
@@ -744,6 +749,75 @@ export const createLocalPosDatasource = ({
             "Receipt printing is not available in this build yet. Use the on-screen receipt for now.",
         },
       };
+    },
+
+    async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {
+      try {
+        const sessionKey = `pos_session_${params.businessAccountRemoteId}`;
+        const sessionData = JSON.stringify(params.sessionData);
+        
+        await database.write(async () => {
+          await database.adapter.setLocal(sessionKey, sessionData);
+        });
+
+        return { success: true, value: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: createValidationError(
+            error instanceof Error
+              ? error.message
+              : "Failed to save POS session.",
+          ),
+        };
+      }
+    },
+
+    async loadSession(params: PosLoadSessionParams): Promise<PosSessionResult> {
+      try {
+        const sessionKey = `pos_session_${params.businessAccountRemoteId}`;
+        
+        const sessionData = await database.read(async () => {
+          return await database.adapter.getLocal(sessionKey);
+        });
+
+        if (!sessionData) {
+          return { success: false, error: { type: PosErrorType.Validation, message: "No session found" } };
+        }
+
+        const parsedSession = JSON.parse(sessionData) as PosSessionData;
+        return { success: true, value: parsedSession };
+      } catch (error) {
+        return {
+          success: false,
+          error: createValidationError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load POS session.",
+          ),
+        };
+      }
+    },
+
+    async clearSession(params: PosClearSessionParams): Promise<PosOperationResult> {
+      try {
+        const sessionKey = `pos_session_${params.businessAccountRemoteId}`;
+        
+        await database.write(async () => {
+          await database.adapter.removeLocal(sessionKey);
+        });
+
+        return { success: true, value: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: createValidationError(
+            error instanceof Error
+              ? error.message
+              : "Failed to clear POS session.",
+          ),
+        };
+      }
     },
   };
 };

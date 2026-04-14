@@ -3,9 +3,13 @@ import {
   PosApplyAmountAdjustmentParams,
   PosAssignProductToSlotParams,
   PosChangeQuantityParams,
+  PosClearSessionParams,
   PosCompletePaymentParams,
   PosLoadBootstrapParams,
-  PosRemoveSlotProductParams
+  PosLoadSessionParams,
+  PosRemoveSlotProductParams,
+  PosSaveSessionParams,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
 import {
   PosCartLine,
@@ -18,7 +22,7 @@ import {
   PosError,
   PosOperationResult,
   PosPaymentResult,
-  PosTotalsResult,
+  PosTotalsResult
 } from "../../types/pos.error.types";
 import { PosDatasource } from "../dataSource/pos.datasource";
 import {
@@ -151,5 +155,17 @@ export const createPosRepository = (
 
   async printReceipt(receipt: PosReceipt): Promise<PosOperationResult> {
     return datasource.printReceipt(receipt);
+  },
+
+  async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {
+    return datasource.saveSession(params);
+  },
+
+  async loadSession(params: PosLoadSessionParams): Promise<PosSessionResult> {
+    return datasource.loadSession(params);
+  },
+
+  async clearSession(params: PosClearSessionParams): Promise<PosOperationResult> {
+    return datasource.clearSession(params);
   },
 });

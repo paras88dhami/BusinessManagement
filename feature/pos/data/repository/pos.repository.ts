@@ -1,24 +1,28 @@
 import {
-    PosAddProductToCartParams,
-    PosApplyAmountAdjustmentParams,
-    PosAssignProductToSlotParams,
-    PosChangeQuantityParams,
-    PosCompletePaymentParams,
-    PosLoadBootstrapParams,
-    PosRemoveSlotProductParams,
+  PosAddProductToCartParams,
+  PosApplyAmountAdjustmentParams,
+  PosAssignProductToSlotParams,
+  PosChangeQuantityParams,
+  PosClearSessionParams,
+  PosCompletePaymentParams,
+  PosLoadBootstrapParams,
+  PosLoadSessionParams,
+  PosRemoveSlotProductParams,
+  PosSaveSessionParams,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
 import {
-    PosCartLine,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
+  PosCartLine,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
 } from "../../types/pos.entity.types";
 import {
-    PosBootstrapResult,
-    PosCartLinesResult,
-    PosOperationResult,
-    PosPaymentResult,
-    PosTotalsResult,
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosOperationResult,
+  PosPaymentResult,
+  PosTotalsResult
 } from "../../types/pos.error.types";
 
 export interface PosRepository {
@@ -48,4 +52,7 @@ export interface PosRepository {
   getTotals(): Promise<PosTotalsResult>;
   completePayment(params: PosCompletePaymentParams): Promise<PosPaymentResult>;
   printReceipt(receipt: PosReceipt): Promise<PosOperationResult>;
+  saveSession(params: PosSaveSessionParams): Promise<PosOperationResult>;
+  loadSession(params: PosLoadSessionParams): Promise<PosSessionResult>;
+  clearSession(params: PosClearSessionParams): Promise<PosOperationResult>;
 }

@@ -3,9 +3,13 @@ import {
   PosApplyAmountAdjustmentParams,
   PosAssignProductToSlotParams,
   PosChangeQuantityParams,
+  PosClearSessionParams,
   PosCompletePaymentParams,
   PosLoadBootstrapParams,
-  PosRemoveSlotProductParams
+  PosLoadSessionParams,
+  PosRemoveSlotProductParams,
+  PosSaveSessionParams,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
 import {
   PosBootstrap,
@@ -18,7 +22,7 @@ import {
   PosCartLinesResult,
   PosOperationResult,
   PosPaymentResult,
-  PosTotalsResult,
+  PosTotalsResult
 } from "../../types/pos.error.types";
 
 export interface PosDatasource {
@@ -50,4 +54,7 @@ export interface PosDatasource {
     params: PosCompletePaymentParams,
   ): Promise<PosPaymentResult>;
   printReceipt(receipt: PosReceipt): Promise<PosOperationResult>;
+  saveSession(params: PosSaveSessionParams): Promise<PosOperationResult>;
+  loadSession(params: PosLoadSessionParams): Promise<PosSessionResult>;
+  clearSession(params: PosClearSessionParams): Promise<PosOperationResult>;
 }
