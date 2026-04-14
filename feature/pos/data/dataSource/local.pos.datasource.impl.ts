@@ -1,35 +1,34 @@
 import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
-import {
-    InventoryMovementType,
-} from "@/feature/inventory/types/inventory.types";
+import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
-    PosApplyAmountAdjustmentParams,
-    PosAssignProductToSlotParams,
-    PosChangeQuantityParams,
-    PosCompletePaymentParams,
-    PosLoadBootstrapParams,
-    PosRemoveSlotProductParams,
+  PosAddProductToCartParams,
+  PosApplyAmountAdjustmentParams,
+  PosAssignProductToSlotParams,
+  PosChangeQuantityParams,
+  PosCompletePaymentParams,
+  PosLoadBootstrapParams,
+  PosRemoveSlotProductParams,
 } from "../../types/pos.dto.types";
 import {
-    PosBootstrap,
-    PosCartLine,
-    PosLedgerEffect,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
-    PosTotals,
+  PosBootstrap,
+  PosCartLine,
+  PosLedgerEffect,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosTotals,
 } from "../../types/pos.entity.types";
 import {
-    PosBootstrapResult,
-    PosCartLinesResult,
-    PosError,
-    PosErrorType,
-    PosOperationResult,
-    PosPaymentResult,
-    PosTotalsResult,
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosError,
+  PosErrorType,
+  PosOperationResult,
+  PosPaymentResult,
+  PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "./pos.datasource";
 
@@ -258,16 +257,19 @@ export const createLocalPosDatasource = ({
         !params.activeOwnerUserRemoteId ||
         !params.activeSettlementAccountRemoteId
       ) {
-        let errorMessage = "POS requires an active business and settlement account before it can open.";
-        
+        let errorMessage =
+          "POS requires an active business and settlement account before it can open.";
+
         if (!params.activeBusinessAccountRemoteId) {
           errorMessage = "Please select a business account to access POS.";
         } else if (!params.activeOwnerUserRemoteId) {
-          errorMessage = "Please ensure you have a valid user session to access POS.";
+          errorMessage =
+            "Please ensure you have a valid user session to access POS.";
         } else if (!params.activeSettlementAccountRemoteId) {
-          errorMessage = "Please create at least one money account for this business to use POS. Go to Money Accounts to set up a settlement account.";
+          errorMessage =
+            "Please create at least one money account for this business to use POS. Go to Money Accounts to set up a settlement account.";
         }
-        
+
         return {
           success: false,
           error: {
@@ -277,7 +279,9 @@ export const createLocalPosDatasource = ({
         };
       }
 
-      if (activeBusinessAccountRemoteId !== params.activeBusinessAccountRemoteId) {
+      if (
+        activeBusinessAccountRemoteId !== params.activeBusinessAccountRemoteId
+      ) {
         resetSessionState();
       }
       activeBusinessAccountRemoteId = params.activeBusinessAccountRemoteId;
@@ -291,7 +295,8 @@ export const createLocalPosDatasource = ({
           slots: cloneSlots(slots),
           activeBusinessAccountRemoteId: params.activeBusinessAccountRemoteId,
           activeOwnerUserRemoteId: params.activeOwnerUserRemoteId,
-          activeSettlementAccountRemoteId: params.activeSettlementAccountRemoteId,
+          activeSettlementAccountRemoteId:
+            params.activeSettlementAccountRemoteId,
         };
         return { success: true, value: bootstrap };
       } catch (error) {
@@ -347,9 +352,7 @@ export const createLocalPosDatasource = ({
       }
 
       slots = slots.map((slot, index) =>
-        index === slotIndex
-          ? { ...slot, assignedProductId: product.id }
-          : slot,
+        index === slotIndex ? { ...slot, assignedProductId: product.id } : slot,
       );
 
       if (!params.addToCart) {
@@ -384,6 +387,56 @@ export const createLocalPosDatasource = ({
           };
         });
       }
+
+      return {
+        success: true,
+        value: cloneCartLines(cartLines),
+      };
+    },
+
+    async addProductToCart(
+      params: PosAddProductToCartParams,
+    ): Promise<PosCartLinesResult> {
+      const product = await getActiveProductById(params.productId);
+      if (!product) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.ProductNotFound,
+            message: "The selected product was not found.",
+          },
+        };
+      }
+
+      const existingLineIndex = cartLines.findIndex(
+        (line) => line.productId === params.productId,
+      );
+
+      if (existingLineIndex !== -1) {
+        const existingLine = cartLines[existingLineIndex];
+        const nextQuantity = existingLine.quantity + 1;
+
+        cartLines = cartLines.map((line, index) =>
+          index === existingLineIndex
+            ? {
+                ...line,
+                quantity: nextQuantity,
+                lineSubtotal: Number(
+                  (nextQuantity * line.unitPrice).toFixed(2),
+                ),
+              }
+            : line,
+        );
+
+        return {
+          success: true,
+          value: cloneCartLines(cartLines),
+        };
+      }
+
+      const compatibilitySlotId = `direct-${params.productId}`;
+      const newLine = buildCartLine(compatibilitySlotId, product);
+      cartLines = [...cartLines, newLine];
 
       return {
         success: true,
@@ -452,7 +505,9 @@ export const createLocalPosDatasource = ({
         return {
           ...line,
           quantity: params.nextQuantity,
-          lineSubtotal: Number((params.nextQuantity * line.unitPrice).toFixed(2)),
+          lineSubtotal: Number(
+            (params.nextQuantity * line.unitPrice).toFixed(2),
+          ),
         };
       });
 

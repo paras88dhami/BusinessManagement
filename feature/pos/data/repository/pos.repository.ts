@@ -5,7 +5,7 @@ import {
     PosChangeQuantityParams,
     PosCompletePaymentParams,
     PosLoadBootstrapParams,
-    PosRemoveSlotProductParams
+    PosRemoveSlotProductParams,
 } from "../../types/pos.dto.types";
 import {
     PosCartLine,
@@ -46,8 +46,6 @@ export interface PosRepository {
   getSlots(): Promise<readonly PosSlot[]>;
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
-  completePayment(
-    params: PosCompletePaymentParams & { selectedCustomer: any },
-  ): Promise<PosPaymentResult>;
+  completePayment(params: PosCompletePaymentParams): Promise<PosPaymentResult>;
   printReceipt(receipt: PosReceipt): Promise<PosOperationResult>;
 }

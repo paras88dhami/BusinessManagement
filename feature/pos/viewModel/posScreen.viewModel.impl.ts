@@ -16,8 +16,15 @@ import {
     resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PosCartLine, PosCustomer, PosSlot, PosTotals } from "../types/pos.entity.types";
+import {
+    PosCartLine,
+    PosCustomer,
+    PosProduct,
+    PosSlot,
+    PosTotals,
+} from "../types/pos.entity.types";
 import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
+import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
 import { AssignProductToSlotUseCase } from "../useCase/assignProductToSlot.useCase";
@@ -28,6 +35,7 @@ import { GetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase";
 import { PrintReceiptUseCase } from "../useCase/printReceipt.useCase";
 import { RemoveProductFromSlotUseCase } from "../useCase/removeProductFromSlot.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
+import { ShareReceiptUseCase } from "../useCase/shareReceipt.useCase";
 
 const EMPTY_TOTALS: PosTotals = {
   itemCount: 0,
@@ -131,7 +139,7 @@ export type UsePosScreenViewModelParams = {
   getPosBootstrapUseCase: GetPosBootstrapUseCase;
   searchPosProductsUseCase: SearchPosProductsUseCase;
   assignProductToSlotUseCase: AssignProductToSlotUseCase;
-  addProductToCartUseCase: import("../useCase/addProductToCart.useCase").AddProductToCartUseCase;
+  addProductToCartUseCase: AddProductToCartUseCase;
   removeProductFromSlotUseCase: RemoveProductFromSlotUseCase;
   changeCartLineQuantityUseCase: ChangeCartLineQuantityUseCase;
   applyDiscountUseCase: ApplyDiscountUseCase;
@@ -141,7 +149,7 @@ export type UsePosScreenViewModelParams = {
   clearCartUseCase: ClearCartUseCase;
   completePosCheckoutUseCase: CompletePosCheckoutUseCase;
   printReceiptUseCase: PrintReceiptUseCase;
-  shareReceiptUseCase: import("../useCase/shareReceipt.useCase").ShareReceiptUseCase;
+  shareReceiptUseCase: ShareReceiptUseCase;
   saveProductUseCase: SaveProductUseCase;
 };
 
@@ -220,6 +228,19 @@ export function usePosScreenViewModel(
     // Quick products are now the recent products (max 8)
     return recentProducts.slice(0, 8);
   }, [recentProducts]);
+
+  const pushRecentProduct = useCallback((product: PosProduct) => {
+    setState((currentState) => {
+      const filteredRecent = currentState.recentProducts.filter(
+        (item) => item.id !== product.id,
+      );
+
+      return {
+        ...currentState,
+        recentProducts: [product, ...filteredRecent].slice(0, 8),
+      };
+    });
+  }, []);
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -456,10 +477,16 @@ export function usePosScreenViewModel(
 
   const onAddProductToCart = useCallback(
     async (productId: string) => {
-      // Use the new direct cart-add use case
-      const result = await addProductToCartUseCase.execute({
-        productId,
-      });
+      const product = state.products.find((p) => p.id === productId);
+      if (!product) {
+        setState((currentState) => ({
+          ...currentState,
+          errorMessage: "Product not found.",
+        }));
+        return;
+      }
+
+      const result = await addProductToCartUseCase.execute({ productId });
 
       if (!result.success) {
         setState((currentState) => ({
@@ -470,26 +497,17 @@ export function usePosScreenViewModel(
       }
 
       recalculateTotals(result.value);
+      pushRecentProduct(product);
 
-      // Track this product as recently used
-      setState((currentState) => {
-        const currentRecent = currentState.recentProducts;
-        const productToAdd = state.products.find((p) => p.id === productId);
-        if (!productToAdd) return currentState;
-
-        // Remove if already exists, then add to front
-        const filteredRecent = currentRecent.filter((p) => p.id !== productId);
-        const newRecent = [productToAdd, ...filteredRecent].slice(0, 8);
-
-        return {
-          ...currentState,
-          recentProducts: newRecent,
-        };
-      });
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: null,
+      }));
     },
     [
       addProductToCartUseCase,
       recalculateTotals,
+      pushRecentProduct,
       state.products,
     ],
   );
@@ -583,7 +601,7 @@ export function usePosScreenViewModel(
       return;
     }
 
-    const result = await saveProductUseCase.execute({
+    const saveResult = await saveProductUseCase.execute({
       remoteId: `product-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       accountRemoteId: activeBusinessAccountRemoteId,
       name: normalizedName,
@@ -600,41 +618,68 @@ export function usePosScreenViewModel(
       status: ProductStatus.Active,
     });
 
-    if (!result.success) {
+    if (!saveResult.success) {
       setState((currentState) => ({
         ...currentState,
-        errorMessage: result.error.message,
+        errorMessage: saveResult.error.message,
       }));
       return;
     }
 
-    // Auto-add the newly created product to cart using the returned ID
-    if (result.success) {
-      await onAddProductToCart(result.value.remoteId);
+    const addResult = await addProductToCartUseCase.execute({
+      productId: saveResult.value.remoteId,
+    });
+
+    if (!addResult.success) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: addResult.error.message,
+      }));
+      return;
     }
 
-    // Refresh product lists after auto-add
-    const products = await searchPosProductsUseCase.execute("");
+    const refreshedProducts = await searchPosProductsUseCase.execute(
+      state.productSearchTerm,
+    );
+
+    const createdProduct: PosProduct = {
+      id: saveResult.value.remoteId,
+      name: saveResult.value.name,
+      categoryLabel: saveResult.value.categoryName ?? "General",
+      unitLabel: saveResult.value.unitLabel ?? null,
+      price: saveResult.value.salePrice,
+      taxRate: 0,
+      shortCode: saveResult.value.name.trim().slice(0, 1).toUpperCase() || "P",
+    };
+
+    recalculateTotals(addResult.value);
+    pushRecentProduct(createdProduct);
+
     setState((currentState) => ({
       ...currentState,
       activeModal: "none",
       quickProductNameInput: "",
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
-      filteredProducts: products,
-      products,
+      products: currentState.productSearchTerm
+        ? currentState.products
+        : refreshedProducts,
+      filteredProducts: refreshedProducts,
       errorMessage: null,
-      infoMessage: `Product "${normalizedName}" created successfully.`,
+      infoMessage: `Product "${normalizedName}" created and added to cart successfully.`,
     }));
   }, [
     activeBusinessAccountRemoteId,
+    addProductToCartUseCase,
+    defaultTaxRateLabel,
+    pushRecentProduct,
+    recalculateTotals,
     saveProductUseCase,
     searchPosProductsUseCase,
-    onAddProductToCart,
+    state.productSearchTerm,
     state.quickProductCategoryInput,
     state.quickProductNameInput,
     state.quickProductPriceInput,
-    defaultTaxRateLabel,
   ]);
 
   const onIncreaseQuantity = useCallback(
@@ -703,14 +748,22 @@ export function usePosScreenViewModel(
 
   const onRemoveCartLine = useCallback(
     async (lineId: string) => {
-      const line = state.cartLines.find((item) => item.lineId === lineId);
-      if (!line) {
+      const result = await changeCartLineQuantityUseCase.execute({
+        lineId,
+        nextQuantity: 0,
+      });
+
+      if (!result.success) {
+        setState((currentState) => ({
+          ...currentState,
+          errorMessage: result.error.message,
+        }));
         return;
       }
 
-      await onRemoveSlotProduct(line.slotId);
+      recalculateTotals(result.value);
     },
-    [onRemoveSlotProduct, state.cartLines],
+    [changeCartLineQuantityUseCase, recalculateTotals],
   );
 
   const onDiscountInputChange = useCallback((value: string) => {
@@ -845,7 +898,14 @@ export function usePosScreenViewModel(
       quickProductPriceInput: "0",
       quickProductCategoryInput: "",
     }));
-  }, [clearCartUseCase, searchPosProductsUseCase, state.totals.grandTotal, currencyCode, regionalFinancePolicy.countryCode, state.selectedCustomer]);
+  }, [
+    clearCartUseCase,
+    searchPosProductsUseCase,
+    state.totals.grandTotal,
+    currencyCode,
+    regionalFinancePolicy.countryCode,
+    state.selectedCustomer,
+  ]);
 
   const onCompletePayment = useCallback(async () => {
     const result = await completePosCheckoutUseCase.execute({
@@ -943,110 +1003,114 @@ export function usePosScreenViewModel(
   }, [printReceiptUseCase, state.receipt]);
 
   const onSelectCustomer = useCallback((customer: PosCustomer) => {
-  setState((currentState) => ({
-    ...currentState,
-    selectedCustomer: customer,
-    customerSearchTerm: "",
-    customerOptions: [],
-    errorMessage: null,
-  }));
-}, []);
-
-  const onClearCustomer = useCallback(() => {
-  customerSearchRequestRef.current += 1;
-  setState((currentState) => ({
-    ...currentState,
-    selectedCustomer: null,
-    customerSearchTerm: "",
-    customerOptions: [],
-    errorMessage: null,
-  }));
-}, []);
-
-  const onCustomerSearchChange = useCallback(
-  async (value: string) => {
-    const trimmedValue = value.trim();
-
     setState((currentState) => ({
       ...currentState,
-      customerSearchTerm: value,
+      selectedCustomer: customer,
+      customerSearchTerm: "",
+      customerOptions: [],
       errorMessage: null,
     }));
+  }, []);
 
-    if (!activeBusinessAccountRemoteId || trimmedValue === "") {
-      customerSearchRequestRef.current += 1;
+  const onClearCustomer = useCallback(() => {
+    customerSearchRequestRef.current += 1;
+    setState((currentState) => ({
+      ...currentState,
+      selectedCustomer: null,
+      customerSearchTerm: "",
+      customerOptions: [],
+      errorMessage: null,
+    }));
+  }, []);
+
+  const onCustomerSearchChange = useCallback(
+    async (value: string) => {
+      const trimmedValue = value.trim();
+
       setState((currentState) => ({
         ...currentState,
-        customerOptions: [],
+        customerSearchTerm: value,
+        errorMessage: null,
       }));
-      return;
-    }
 
-    const requestId = ++customerSearchRequestRef.current;
-    const searchTerm = trimmedValue.toLowerCase();
-
-    try {
-      const result = await getContactsUseCase.execute({
-        accountRemoteId: activeBusinessAccountRemoteId,
-      });
-
-      if (requestId !== customerSearchRequestRef.current) {
-        return;
-      }
-
-      if (!result.success) {
+      if (!activeBusinessAccountRemoteId || trimmedValue === "") {
+        customerSearchRequestRef.current += 1;
         setState((currentState) => ({
           ...currentState,
           customerOptions: [],
-          errorMessage: result.error.message,
         }));
         return;
       }
 
-      const customerOptions = result.value
-        .filter((contact: Contact) => contact.contactType === ContactType.Customer)
-        .filter((contact: Contact) => {
-          const nameMatch = contact.fullName.toLowerCase().includes(searchTerm);
-          const phoneMatch =
-            contact.phoneNumber?.toLowerCase().includes(searchTerm) ?? false;
+      const requestId = ++customerSearchRequestRef.current;
+      const searchTerm = trimmedValue.toLowerCase();
 
-          return nameMatch || phoneMatch;
-        })
-        .slice(0, 10)
-        .map((contact: Contact) => ({
-          label:
-            contact.fullName +
-            (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
-          value: contact.remoteId,
-          customerData: {
-            remoteId: contact.remoteId,
-            fullName: contact.fullName,
-            phone: contact.phoneNumber,
-            address: contact.address,
-          },
+      try {
+        const result = await getContactsUseCase.execute({
+          accountRemoteId: activeBusinessAccountRemoteId,
+        });
+
+        if (requestId !== customerSearchRequestRef.current) {
+          return;
+        }
+
+        if (!result.success) {
+          setState((currentState) => ({
+            ...currentState,
+            customerOptions: [],
+            errorMessage: result.error.message,
+          }));
+          return;
+        }
+
+        const customerOptions = result.value
+          .filter(
+            (contact: Contact) => contact.contactType === ContactType.Customer,
+          )
+          .filter((contact: Contact) => {
+            const nameMatch = contact.fullName
+              .toLowerCase()
+              .includes(searchTerm);
+            const phoneMatch =
+              contact.phoneNumber?.toLowerCase().includes(searchTerm) ?? false;
+
+            return nameMatch || phoneMatch;
+          })
+          .slice(0, 10)
+          .map((contact: Contact) => ({
+            label:
+              contact.fullName +
+              (contact.phoneNumber ? ` - ${contact.phoneNumber}` : ""),
+            value: contact.remoteId,
+            customerData: {
+              remoteId: contact.remoteId,
+              fullName: contact.fullName,
+              phone: contact.phoneNumber,
+              address: contact.address,
+            },
+          }));
+
+        setState((currentState) => ({
+          ...currentState,
+          customerOptions,
         }));
+      } catch (error) {
+        if (requestId !== customerSearchRequestRef.current) {
+          return;
+        }
 
-      setState((currentState) => ({
-        ...currentState,
-        customerOptions,
-      }));
-    } catch (error) {
-      if (requestId !== customerSearchRequestRef.current) {
-        return;
+        setState((currentState) => ({
+          ...currentState,
+          customerOptions: [],
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Failed to search customers",
+        }));
       }
-
-      setState((currentState) => ({
-        ...currentState,
-        customerOptions: [],
-        errorMessage:
-          error instanceof Error
-            ? error.message
-            : "Failed to search customers",
-      }));
-    }
-  },
-  [activeBusinessAccountRemoteId, getContactsUseCase],
-);
+    },
+    [activeBusinessAccountRemoteId, getContactsUseCase],
+  );
 
   const onOpenCustomerCreateModal = useCallback(() => {
     setState((currentState) => ({
@@ -1059,7 +1123,6 @@ export function usePosScreenViewModel(
       },
     }));
   }, []);
-
 
   const onCreateCustomer = useCallback(async () => {
     const { fullName, phone, address } = state.customerCreateForm;

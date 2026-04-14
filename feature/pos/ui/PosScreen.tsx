@@ -5,14 +5,13 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-    Minus,
-    Percent,
-    Plus,
-    PlusCircle,
-    Search,
-    ShoppingCart,
-    Trash2,
-    WalletCards
+  Minus,
+  Percent,
+  Plus,
+  PlusCircle,
+  ShoppingCart,
+  Trash2,
+  WalletCards
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -117,7 +116,6 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           </View>
 
           <View style={styles.searchWrap}>
-            <Search size={18} color={colors.mutedForeground} />
             <TextInput
               value={viewModel.productSearchTerm}
               onChangeText={(value) => void viewModel.onProductSearchChange(value)}
@@ -160,7 +158,6 @@ export function PosScreen({ viewModel }: PosScreenProps) {
 
           {viewModel.productSearchTerm === "" ? (
             <View style={styles.emptySearchState}>
-              <Search size={48} color={colors.mutedForeground} />
               <Text style={styles.emptySearchTitle}>Search for Products</Text>
               <Text style={styles.emptySearchSubtitle}>
                 Type a product name or category to find and add items to your cart
@@ -194,10 +191,9 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </ScrollView>
           ) : (
             <View style={styles.emptySearchState}>
-              <Search size={48} color={colors.mutedForeground} />
-              <Text style={styles.emptySearchTitle}>No Products Found</Text>
+              <Text style={styles.emptySearchTitle}>No products found</Text>
               <Text style={styles.emptySearchSubtitle}>
-                Try searching with different keywords or check the product name spelling
+                Try a different product name or category, or create a new product from POS
               </Text>
             </View>
           )}
