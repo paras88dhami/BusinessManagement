@@ -127,16 +127,16 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             />
           </View>
 
-          {viewModel.quickProducts.length > 0 && (
+          {viewModel.recentProducts.length > 0 && (
             <View style={styles.quickProductsSection}>
-              <Text style={styles.quickProductsTitle}>Quick Products</Text>
+              <Text style={styles.quickProductsTitle}>Recent Products</Text>
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
                 style={styles.quickProductsScroll}
                 contentContainerStyle={styles.quickProductsContent}
               >
-                {viewModel.quickProducts.map((product) => (
+                {viewModel.recentProducts.map((product) => (
                   <Pressable
                     key={product.id}
                     style={styles.quickProductChip}
@@ -158,34 +158,41 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </View>
           )}
 
-          <ScrollView style={styles.productsList} nestedScrollEnabled>
-            <View style={styles.productsContent}>
-              {(viewModel.productSearchTerm || viewModel.filteredProducts.length > 0 
-                ? viewModel.filteredProducts 
-                : viewModel.products
-              ).map((product: PosProduct) => (
-                <Pressable
-                  key={product.id}
-                  style={styles.productRow}
-                  onPress={() => void viewModel.onAddProductToCart(product.id)}
-                >
-                  <View style={styles.productAvatarWrap}>
-                    <Text style={styles.productAvatarText}>{product.shortCode}</Text>
-                  </View>
-                  <View style={styles.productBody}>
-                    <Text style={styles.productTitle}>{product.name}</Text>
-                    <Text style={styles.productMeta}>{product.categoryLabel}</Text>
-                  </View>
-                  <Text style={styles.productPrice}>
-                    {formatCurrency(product.price, viewModel.currencyCode, viewModel.countryCode)}
-                  </Text>
-                  <View style={styles.productAddButton}>
-                    <Plus size={16} color={colors.primary} />
-                  </View>
-                </Pressable>
-              ))}
+          {viewModel.productSearchTerm && viewModel.filteredProducts.length > 0 ? (
+            <ScrollView style={styles.productsList} nestedScrollEnabled>
+              <View style={styles.productsContent}>
+                {viewModel.filteredProducts.map((product: PosProduct) => (
+                  <Pressable
+                    key={product.id}
+                    style={styles.productRow}
+                    onPress={() => void viewModel.onAddProductToCart(product.id)}
+                  >
+                    <View style={styles.productAvatarWrap}>
+                      <Text style={styles.productAvatarText}>{product.shortCode}</Text>
+                    </View>
+                    <View style={styles.productBody}>
+                      <Text style={styles.productTitle}>{product.name}</Text>
+                      <Text style={styles.productMeta}>{product.categoryLabel}</Text>
+                    </View>
+                    <Text style={styles.productPrice}>
+                      {formatCurrency(product.price, viewModel.currencyCode, viewModel.countryCode)}
+                    </Text>
+                    <View style={styles.productAddButton}>
+                      <Plus size={16} color={colors.primary} />
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          ) : (
+            <View style={styles.emptySearchState}>
+              <Search size={48} color={colors.mutedForeground} />
+              <Text style={styles.emptySearchTitle}>Search for Products</Text>
+              <Text style={styles.emptySearchSubtitle}>
+                Type a product name or category to find and add items to your cart
+              </Text>
             </View>
-          </ScrollView>
+          )}
         </Card>
 
         <Card style={styles.sectionCard}>
@@ -922,5 +929,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
+  },
+  emptySearchState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
+  },
+  emptySearchTitle: {
+    color: colors.cardForeground,
+    fontSize: 18,
+    fontFamily: "InterSemiBold",
+    textAlign: "center",
+  },
+  emptySearchSubtitle: {
+    color: colors.mutedForeground,
+    fontSize: 14,
+    fontFamily: "InterMedium",
+    textAlign: "center",
+    maxWidth: 280,
+    lineHeight: 20,
   },
 });

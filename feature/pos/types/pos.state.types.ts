@@ -24,6 +24,7 @@ export type PosScreenState = {
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   quickProducts: readonly PosProduct[];
+  recentProducts: readonly PosProduct[];
   slots: readonly PosSlot[];
   cartLines: readonly PosCartLine[];
   totals: PosTotals;
@@ -64,6 +65,7 @@ export type PosScreenViewModel = {
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   quickProducts: readonly PosProduct[];
+  recentProducts: readonly PosProduct[];
   activeSlotId: string | null;
   selectedSlotId: string | null;
   activeModal: PosModalType;

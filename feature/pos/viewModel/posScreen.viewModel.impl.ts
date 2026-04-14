@@ -44,6 +44,7 @@ const INITIAL_STATE: PosScreenState = {
   products: [],
   filteredProducts: [],
   quickProducts: [],
+  recentProducts: [],
   slots: [],
   cartLines: [],
   totals: EMPTY_TOTALS,
@@ -207,10 +208,16 @@ export function usePosScreenViewModel(
     [regionalFinancePolicy.currencyCode],
   );
 
+  const recentProducts = useMemo(() => {
+    // For production-grade implementation, track recently used products
+    // For now, use empty array until products are added/used
+    return state.recentProducts;
+  }, [state.recentProducts]);
+
   const quickProducts = useMemo(() => {
-    // Use first 8 available products as quick products for this phase
-    return state.products.slice(0, 8);
-  }, [state.products]);
+    // Quick products are now the recent products (max 8)
+    return recentProducts.slice(0, 8);
+  }, [recentProducts]);
 
   const recalculateTotals = useCallback((cartLines: readonly PosCartLine[]) => {
     setState((currentState) => ({
@@ -497,6 +504,22 @@ export function usePosScreenViewModel(
         }
 
         recalculateTotals(result.value);
+
+        // Track this product as recently used
+        setState((currentState) => {
+          const currentRecent = currentState.recentProducts;
+          const productToAdd = state.products.find((p) => p.id === productId);
+          if (!productToAdd) return currentState;
+
+          // Remove if already exists, then add to front
+          const filteredRecent = currentRecent.filter((p) => p.id !== productId);
+          const newRecent = [productToAdd, ...filteredRecent].slice(0, 8);
+
+          return {
+            ...currentState,
+            recentProducts: newRecent,
+          };
+        });
       }
     },
     [
@@ -1218,6 +1241,7 @@ export function usePosScreenViewModel(
           : state.products,
       filteredProducts: state.filteredProducts,
       quickProducts,
+      recentProducts,
       activeSlotId: state.activeSlotId,
       selectedSlotId: state.selectedSlotId,
       activeModal: state.activeModal,
@@ -1358,6 +1382,7 @@ export function usePosScreenViewModel(
       taxSummaryLabel,
       state.customerOptions,
       quickProducts,
+      recentProducts,
     ],
   );
 }
