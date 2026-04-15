@@ -40,7 +40,6 @@ export type PosScreenState = {
   discountInput: string;
   surchargeInput: string;
   paymentInput: string;
-  paymentSplitCountInput: string;
   quickProductNameInput: string;
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
@@ -83,7 +82,6 @@ export type PosScreenViewModel = {
   discountInput: string;
   surchargeInput: string;
   paymentInput: string;
-  paymentSplitCountInput: string;
   quickProductNameInput: string;
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
@@ -120,7 +118,6 @@ export type PosScreenViewModel = {
   onDiscountInputChange: (value: string) => void;
   onSurchargeInputChange: (value: string) => void;
   onPaymentInputChange: (value: string) => void;
-  onPaymentSplitCountInputChange: (value: string) => void;
   onOpenDiscountModal: () => void;
   onOpenSurchargeModal: () => void;
   onOpenPaymentModal: () => void;
@@ -146,7 +143,6 @@ export type PosScreenViewModel = {
   onApplyDiscount: () => Promise<void>;
   onApplySurcharge: () => Promise<void>;
   onClearCart: () => Promise<void>;
-  onCompletePayment: () => Promise<void>;
   onConfirmPayment: () => Promise<void>;
   onOpenReceiptModal: () => void;
   onCloseReceiptModal: () => void;

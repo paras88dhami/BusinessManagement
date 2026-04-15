@@ -1,6 +1,6 @@
 import {
-    MoneyAccount,
-    MoneyAccountTypeValue,
+  MoneyAccount,
+  MoneyAccountTypeValue,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import type { Contact } from "@/feature/contacts/types/contact.types";
@@ -8,8 +8,8 @@ import { ContactType } from "@/feature/contacts/types/contact.types";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
 import {
-    ProductKind,
-    ProductStatus,
+  ProductKind,
+  ProductStatus,
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
@@ -17,26 +17,26 @@ import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
-    buildTaxRateLabel,
-    buildTaxSummaryLabel,
-    resolveRegionalFinancePolicy,
+  buildTaxRateLabel,
+  buildTaxSummaryLabel,
+  resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PosPaymentPartInput } from "../types/pos.dto.types";
 import {
-    PosCartLine,
-    PosCustomer,
-    PosProduct,
-    PosReceipt,
-    PosSlot,
-    PosSplitDraftPart,
-    PosTotals,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
+  PosReceipt,
+  PosSlot,
+  PosSplitDraftPart,
+  PosTotals,
 } from "../types/pos.entity.types";
 import {
-    PosCheckoutMode,
-    PosCheckoutSubmissionKind,
-    PosScreenState,
-    PosScreenViewModel
+  PosCheckoutMode,
+  PosCheckoutSubmissionKind,
+  PosScreenState,
+  PosScreenViewModel,
 } from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
@@ -79,7 +79,6 @@ const INITIAL_STATE: PosScreenState = {
   discountInput: "",
   surchargeInput: "",
   paymentInput: "",
-  paymentSplitCountInput: "2",
   quickProductNameInput: "",
   quickProductPriceInput: "0",
   quickProductCategoryInput: "",
@@ -598,16 +597,14 @@ export function usePosScreenViewModel(
     state.selectedCustomer,
   ]);
 
-  const buildPaymentCheckoutParts = useCallback(
-    (): readonly PosPaymentPartInput[] => {
+  const buildPaymentCheckoutParts =
+    useCallback((): readonly PosPaymentPartInput[] => {
       const paidAmount = parseAmountInput(state.paymentInput);
       const settlementAccountRemoteId =
         state.selectedSettlementAccountRemoteId.trim();
 
       return buildNormalPaymentParts(paidAmount, settlementAccountRemoteId);
-    },
-    [state.paymentInput, state.selectedSettlementAccountRemoteId],
-  );
+    }, [state.paymentInput, state.selectedSettlementAccountRemoteId]);
 
   const validateCheckoutMode = useCallback(
     (mode: PosCheckoutMode): string | null => {
@@ -1441,13 +1438,6 @@ export function usePosScreenViewModel(
     [saveCurrentSession],
   );
 
-  const onPaymentSplitCountInputChange = useCallback((value: string) => {
-    setState((currentState) => ({
-      ...currentState,
-      paymentSplitCountInput: value,
-    }));
-  }, []);
-
   const onOpenDiscountModal = useCallback(() => {
     setState((currentState) => ({ ...currentState, activeModal: "discount" }));
   }, []);
@@ -1466,7 +1456,8 @@ export function usePosScreenViewModel(
         ...currentState,
         activeModal: "payment",
         paymentInput:
-          currentState.paymentInput || currentState.totals.grandTotal.toFixed(2),
+          currentState.paymentInput ||
+          currentState.totals.grandTotal.toFixed(2),
         errorMessage: null,
         infoMessage: null,
       };
@@ -1565,7 +1556,7 @@ export function usePosScreenViewModel(
     state.selectedCustomer,
   ]);
 
-  const onCompletePayment = useCallback(async () => {
+  const onConfirmPayment = useCallback(async () => {
     await runCheckoutFlow("payment");
   }, [runCheckoutFlow]);
 
@@ -1843,10 +1834,6 @@ export function usePosScreenViewModel(
     });
   }, []);
 
-  const onConfirmPayment = useCallback(async () => {
-    await onCompletePayment();
-  }, [onCompletePayment]);
-
   const onOpenSplitBillModal = useCallback(() => {
     setState((currentState) => {
       if (currentState.isCheckoutSubmitting) {
@@ -2047,7 +2034,6 @@ export function usePosScreenViewModel(
       discountInput: state.discountInput,
       surchargeInput: state.surchargeInput,
       paymentInput: state.paymentInput,
-      paymentSplitCountInput: state.paymentSplitCountInput,
       quickProductNameInput: state.quickProductNameInput,
       quickProductPriceInput: state.quickProductPriceInput,
       quickProductCategoryInput: state.quickProductCategoryInput,
@@ -2081,7 +2067,6 @@ export function usePosScreenViewModel(
       onDiscountInputChange,
       onSurchargeInputChange,
       onPaymentInputChange,
-      onPaymentSplitCountInputChange,
       onOpenDiscountModal,
       onOpenSurchargeModal,
       onOpenPaymentModal,
@@ -2111,7 +2096,6 @@ export function usePosScreenViewModel(
       onApplyDiscount,
       onApplySurcharge,
       onClearCart,
-      onCompletePayment,
       customerOptions: state.customerOptions,
       moneyAccountOptions: state.moneyAccountOptions,
       selectedSettlementAccountRemoteId:
@@ -2140,7 +2124,6 @@ export function usePosScreenViewModel(
       onClearCart,
       onCloseModal,
       onCreateProductFromPos,
-      onCompletePayment,
       onDecreaseQuantity,
       onDiscountInputChange,
       onIncreaseQuantity,
@@ -2151,7 +2134,6 @@ export function usePosScreenViewModel(
       onOpenSplitBillModal,
       onOpenSurchargeModal,
       onPaymentInputChange,
-      onPaymentSplitCountInputChange,
       onPrintReceipt,
       onShareReceipt,
       onProductSearchChange,
@@ -2167,22 +2149,6 @@ export function usePosScreenViewModel(
       state.customerCreateForm,
       state.customerSearchTerm,
       state.selectedCustomer,
-      state.isCheckoutSubmitting,
-      state.checkoutSubmissionKind,
-      onClearCustomer,
-      onCloseCustomerCreateModal,
-      onClosePaymentModal,
-      onConfirmPayment,
-      onCustomerCreateFormChange,
-      onCustomerSearchChange,
-      onOpenCustomerCreateModal,
-      onCloseCustomerCreateModal,
-      onCreateCustomer,
-      onSettlementAccountChange,
-      onOpenReceiptModal,
-      onSelectCustomer,
-      onSurchargeInputChange,
-      regionalFinancePolicy.countryCode,
       state.activeModal,
       state.activeSlotId,
       state.cartLines,
@@ -2191,7 +2157,6 @@ export function usePosScreenViewModel(
       state.filteredProducts,
       state.infoMessage,
       state.paymentInput,
-      state.paymentSplitCountInput,
       state.productSearchTerm,
       state.products,
       state.quickProductCategoryInput,
@@ -2208,6 +2173,15 @@ export function usePosScreenViewModel(
       state.customerOptions,
       state.moneyAccountOptions,
       recentProducts,
+      onClearCustomer,
+      onCloseCustomerCreateModal,
+      onCustomerCreateFormChange,
+      onCustomerSearchChange,
+      onOpenCustomerCreateModal,
+      onCreateCustomer,
+      onSettlementAccountChange,
+      onOpenReceiptModal,
+      onSelectCustomer,
     ],
   );
 }
