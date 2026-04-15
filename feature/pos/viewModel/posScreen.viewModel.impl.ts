@@ -254,7 +254,6 @@ const createEmptySlots = (): readonly PosSlot[] =>
     assignedProductId: null,
   }));
 
-
 export type UsePosScreenViewModelParams = {
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
@@ -503,21 +502,21 @@ export function usePosScreenViewModel(
   );
 
   const buildNormalPaymentParts = (
-  paidAmount: number,
-  settlementAccountRemoteId: string,
-): readonly PosPaymentPartInput[] =>
-  paidAmount > 0
-    ? [
-        {
-          paymentPartId: "part-1",
-          payerLabel: null,
-          amount: paidAmount,
-          settlementAccountRemoteId,
-        },
-      ]
-    : [];
+    paidAmount: number,
+    settlementAccountRemoteId: string,
+  ): readonly PosPaymentPartInput[] =>
+    paidAmount > 0
+      ? [
+          {
+            paymentPartId: "part-1",
+            payerLabel: null,
+            amount: paidAmount,
+            settlementAccountRemoteId,
+          },
+        ]
+      : [];
 
-const submitCheckout = useCallback(
+  const submitCheckout = useCallback(
     async (paymentParts: readonly PosPaymentPartInput[]) => {
       const result = await completePosCheckoutUseCase.execute({
         paymentParts,
@@ -534,11 +533,11 @@ const submitCheckout = useCallback(
           ...currentState,
           errorMessage: result.error.message,
         }));
-        return false;
+        return { success: false as const, error: result.error.message };
       }
 
       await finalizeSuccessfulCheckout(result.value);
-      return true;
+      return { success: true as const };
     },
     [
       completePosCheckoutUseCase,
@@ -1385,29 +1384,32 @@ const submitCheckout = useCallback(
   ]);
 
   const onCompletePayment = useCallback(async () => {
-  const paidAmount = parseAmountInput(state.paymentInput);
-  const settlementAccountRemoteId =
-    state.selectedSettlementAccountRemoteId.trim();
+    const paidAmount = parseAmountInput(state.paymentInput);
+    const settlementAccountRemoteId =
+      state.selectedSettlementAccountRemoteId.trim();
 
-  if (paidAmount > 0 && !settlementAccountRemoteId) {
-    setState((currentState) => ({
-      ...currentState,
-      errorMessage: "Select a settlement money account for paid sales.",
-    }));
-    return;
-  }
+    if (paidAmount > 0 && !settlementAccountRemoteId) {
+      setState((currentState) => ({
+        ...currentState,
+        errorMessage: "Select a settlement money account for paid sales.",
+      }));
+      return;
+    }
 
-  const paymentParts = buildNormalPaymentParts(
-    paidAmount,
-    settlementAccountRemoteId,
-  );
+    const paymentParts = buildNormalPaymentParts(
+      paidAmount,
+      settlementAccountRemoteId,
+    );
 
-  await submitCheckout(paymentParts);
-}, [
-  state.paymentInput,
-  state.selectedSettlementAccountRemoteId,
-  submitCheckout,
-]);
+    const result = await submitCheckout(paymentParts);
+    if (!result.success) {
+      return;
+    }
+  }, [
+    state.paymentInput,
+    state.selectedSettlementAccountRemoteId,
+    submitCheckout,
+  ]);
 
   const onPrintReceipt = useCallback(async () => {
     if (!state.receipt) {
@@ -1682,20 +1684,20 @@ const submitCheckout = useCallback(
   }, [onCompletePayment]);
 
   const onOpenSplitBillModal = useCallback(() => {
-  setState((currentState) => ({
-    ...currentState,
-    activeModal: "split-bill",
-    splitBillDraftParts:
-      currentState.splitBillDraftParts.length > 0
-        ? currentState.splitBillDraftParts
-        : buildEqualSplitDraftParts(
-            2,
-            currentState.totals.grandTotal,
-            currentState.selectedSettlementAccountRemoteId,
-          ),
-    splitBillErrorMessage: null,
-  }));
-}, []);
+    setState((currentState) => ({
+      ...currentState,
+      activeModal: "split-bill",
+      splitBillDraftParts:
+        currentState.splitBillDraftParts.length > 0
+          ? currentState.splitBillDraftParts
+          : buildEqualSplitDraftParts(
+              2,
+              currentState.totals.grandTotal,
+              currentState.selectedSettlementAccountRemoteId,
+            ),
+      splitBillErrorMessage: null,
+    }));
+  }, []);
 
   const onCloseSplitBillModal = useCallback(() => {
     setState((currentState) => ({

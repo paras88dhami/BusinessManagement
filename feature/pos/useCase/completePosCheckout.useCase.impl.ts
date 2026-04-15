@@ -361,9 +361,9 @@ export const createCompletePosCheckoutUseCase = ({
       return {
         success: true,
         value: {
-          ...receipt,
+          ...enrichedReceipt,
           ledgerEffect: {
-            ...receipt.ledgerEffect,
+            ...enrichedReceipt.ledgerEffect,
             type: "due_balance_create_failed",
           },
         },
@@ -393,10 +393,9 @@ export const createCompletePosCheckoutUseCase = ({
     return {
       success: true,
       value: {
-        ...receipt,
-        paymentParts: receiptPaymentParts,
+        ...enrichedReceipt,
         ledgerEffect: {
-          ...receipt.ledgerEffect,
+          ...enrichedReceipt.ledgerEffect,
           type: "due_balance_created",
         },
       },
