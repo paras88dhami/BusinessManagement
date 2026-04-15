@@ -9,6 +9,8 @@ import {
   PosTotals,
 } from "./pos.entity.types";
 
+export type PosCheckoutSubmissionKind = "payment" | "split-bill";
+
 export type PosModalType =
   | "none"
   | "product-selection"
@@ -56,6 +58,8 @@ export type PosScreenState = {
   isCreatingCustomer: boolean;
   splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
   splitBillErrorMessage: string | null;
+  isCheckoutSubmitting: boolean;
+  checkoutSubmissionKind: PosCheckoutSubmissionKind | null;
 };
 
 export type PosScreenViewModel = {
@@ -165,4 +169,7 @@ export type PosScreenViewModel = {
   splitBillAllocatedAmount: number;
   splitBillRemainingAmount: number;
   splitBillErrorMessage: string | null;
+  isCheckoutSubmitting: boolean;
+  isPaymentSubmitting: boolean;
+  isSplitBillSubmitting: boolean;
 };

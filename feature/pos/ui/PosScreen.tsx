@@ -5,23 +5,23 @@ import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/Scre
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-  Minus,
-  Percent,
-  Plus,
-  PlusCircle,
-  ShoppingCart,
-  Trash2,
-  WalletCards,
+    Minus,
+    Percent,
+    Plus,
+    PlusCircle,
+    ShoppingCart,
+    Trash2,
+    WalletCards,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { PosProduct, PosSlot } from "../types/pos.entity.types";
 import { PosScreenViewModel } from "../types/pos.state.types";
@@ -395,6 +395,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               variant="accent"
               style={styles.actionButtonAccent}
               onPress={viewModel.onOpenSplitBillModal}
+              disabled={viewModel.isCheckoutSubmitting}
             />
           </View>
           <View style={styles.actionRowSecondary}>
@@ -426,6 +427,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             <ShoppingCart size={18} color={colors.primaryForeground} />
           }
           onPress={viewModel.onOpenPaymentModal}
+          disabled={viewModel.isCheckoutSubmitting}
         />
 
         {viewModel.infoMessage ? (
@@ -499,10 +501,11 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           viewModel.selectedSettlementAccountRemoteId
         }
         moneyAccountOptions={viewModel.moneyAccountOptions}
+        isSubmitting={viewModel.isPaymentSubmitting}
         onPaidAmountChange={viewModel.onPaymentInputChange}
         onSettlementAccountChange={viewModel.onSettlementAccountChange}
         onConfirm={viewModel.onConfirmPayment}
-        onClose={viewModel.onCloseModal}
+        onClose={viewModel.onClosePaymentModal}
       />
 
       <PosSplitBillModal
@@ -515,6 +518,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
         errorMessage={viewModel.splitBillErrorMessage}
+        isSubmitting={viewModel.isSplitBillSubmitting}
         onClose={viewModel.onCloseSplitBillModal}
         onApplyEqualSplit={viewModel.onApplyEqualSplit}
         onAddPart={viewModel.onAddSplitBillPart}

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   Pressable,
   PressableProps,
   StyleProp,
@@ -22,6 +23,7 @@ type AppButtonProps = Omit<PressableProps, "style" | "children"> & {
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
   leadingIcon?: React.ReactNode;
+  isLoading?: boolean;
 };
 
 const variantStyles = StyleSheet.create({
@@ -50,6 +52,18 @@ const variantLabelStyles = StyleSheet.create({
   },
 });
 
+const resolveSpinnerColor = (variant: AppButtonVariant): string => {
+  if (variant === "primary") {
+    return colors.primaryForeground;
+  }
+
+  if (variant === "accent") {
+    return colors.primary;
+  }
+
+  return colors.foreground;
+};
+
 export function AppButton({
   label,
   variant = "primary",
@@ -58,24 +72,38 @@ export function AppButton({
   labelStyle,
   leadingIcon,
   disabled,
+  isLoading = false,
   accessibilityRole,
   ...props
 }: AppButtonProps) {
+  const isDisabled = disabled || isLoading;
+
   return (
     <Pressable
       {...props}
-      disabled={disabled}
+      disabled={isDisabled}
       accessibilityRole={accessibilityRole ?? "button"}
+      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
       style={({ pressed }) => [
         styles.base,
         styles[size],
         variantStyles[variant],
-        disabled ? styles.disabled : null,
-        pressed && !disabled ? styles.pressed : null,
+        isDisabled ? styles.disabled : null,
+        pressed && !isDisabled ? styles.pressed : null,
         style,
       ]}
     >
-      {leadingIcon ? <View style={styles.iconWrap}>{leadingIcon}</View> : null}
+      {isLoading ? (
+        <View style={styles.iconWrap}>
+          <ActivityIndicator
+            size="small"
+            color={resolveSpinnerColor(variant)}
+          />
+        </View>
+      ) : leadingIcon ? (
+        <View style={styles.iconWrap}>{leadingIcon}</View>
+      ) : null}
+
       <Text style={[styles.label, variantLabelStyles[variant], labelStyle]}>
         {label}
       </Text>
@@ -108,6 +136,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     alignItems: "center",
     justifyContent: "center",
+    minWidth: 16,
   },
   label: {
     fontFamily: "InterBold",
@@ -120,4 +149,3 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
 });
-

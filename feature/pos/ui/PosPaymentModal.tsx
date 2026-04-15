@@ -27,6 +27,7 @@ type PosPaymentModalProps = {
   selectedCustomer: PosCustomer | null;
   selectedSettlementAccountRemoteId: string;
   moneyAccountOptions: readonly DropdownOption[];
+  isSubmitting: boolean;
   onPaidAmountChange: (value: string) => void;
   onSettlementAccountChange: (settlementAccountRemoteId: string) => void;
   onConfirm: () => void;
@@ -42,6 +43,7 @@ export function PosPaymentModal({
   selectedCustomer,
   selectedSettlementAccountRemoteId,
   moneyAccountOptions,
+  isSubmitting,
   onPaidAmountChange,
   onSettlementAccountChange,
   onConfirm,
@@ -52,13 +54,21 @@ export function PosPaymentModal({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        if (!isSubmitting) {
+          onClose();
+        }
+      }}
     >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Take Payment</Text>
-            <Pressable style={styles.closeButton} onPress={onClose}>
+            <Pressable
+              style={styles.closeButton}
+              onPress={onClose}
+              disabled={isSubmitting}
+            >
               <X size={22} color={colors.mutedForeground} />
             </Pressable>
           </View>
@@ -93,6 +103,7 @@ export function PosPaymentModal({
               placeholder="Select settlement account"
               modalTitle="Select settlement account"
               showLeadingIcon={false}
+              disabled={isSubmitting}
             />
           </View>
 
@@ -105,6 +116,7 @@ export function PosPaymentModal({
               placeholder="0"
               placeholderTextColor={colors.mutedForeground}
               style={styles.input}
+              editable={!isSubmitting}
             />
           </View>
 
@@ -193,13 +205,16 @@ export function PosPaymentModal({
                     </View>
                   )}
                   <AppButton
-                    label="Complete Sale"
+                    label={isSubmitting ? "Completing Sale..." : "Complete Sale"}
                     size="lg"
                     leadingIcon={
                       <Printer size={18} color={colors.primaryForeground} />
                     }
                     onPress={onConfirm}
-                    disabled={!customerValid || !settlementAccountValid}
+                    disabled={
+                      isSubmitting || !customerValid || !settlementAccountValid
+                    }
+                    isLoading={isSubmitting}
                   />
                 </>
               );

@@ -31,6 +31,7 @@ type PosSplitBillModalProps = {
   currencyCode: string | null;
   countryCode: string | null;
   errorMessage: string | null;
+  isSubmitting: boolean;
   onClose: () => void;
   onApplyEqualSplit: (count: number) => void;
   onAddPart: () => void;
@@ -59,6 +60,7 @@ export function PosSplitBillModal({
   currencyCode,
   countryCode,
   errorMessage,
+  isSubmitting,
   onClose,
   onApplyEqualSplit,
   onAddPart,
@@ -76,7 +78,7 @@ export function PosSplitBillModal({
     }
   }, [visible]);
 
-  const isSubmitDisabled = parts.length < 2;
+  const isSubmitDisabled = isSubmitting || parts.length < 2;
 
   const paymentProgressText = useMemo(() => {
     const paidLabel = formatCurrency(
@@ -126,7 +128,11 @@ export function PosSplitBillModal({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        if (!isSubmitting) {
+          onClose();
+        }
+      }}
     >
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
@@ -142,7 +148,11 @@ export function PosSplitBillModal({
                 <Text style={styles.subtitle}>{paymentProgressText}</Text>
               </View>
 
-              <Pressable style={styles.closeButton} onPress={onClose}>
+              <Pressable
+                style={styles.closeButton}
+                onPress={onClose}
+                disabled={isSubmitting}
+              >
                 <X size={20} color={colors.mutedForeground} />
               </Pressable>
             </View>
@@ -179,27 +189,46 @@ export function PosSplitBillModal({
               <Text style={styles.sectionTitle}>Quick Split</Text>
               <View style={styles.quickSplitRow}>
                 <Pressable
-                  style={styles.quickChip}
+                  style={[
+                    styles.quickChip,
+                    isSubmitting ? styles.controlDisabled : null,
+                  ]}
                   onPress={() => onApplyEqualSplit(2)}
+                  disabled={isSubmitting}
                 >
                   <Text style={styles.quickChipText}>2</Text>
                 </Pressable>
 
                 <Pressable
-                  style={styles.quickChip}
+                  style={[
+                    styles.quickChip,
+                    isSubmitting ? styles.controlDisabled : null,
+                  ]}
                   onPress={() => onApplyEqualSplit(3)}
+                  disabled={isSubmitting}
                 >
                   <Text style={styles.quickChipText}>3</Text>
                 </Pressable>
 
                 <Pressable
-                  style={styles.quickChip}
+                  style={[
+                    styles.quickChip,
+                    isSubmitting ? styles.controlDisabled : null,
+                  ]}
                   onPress={() => onApplyEqualSplit(4)}
+                  disabled={isSubmitting}
                 >
                   <Text style={styles.quickChipText}>4</Text>
                 </Pressable>
 
-                <Pressable style={styles.addChip} onPress={onAddPart}>
+                <Pressable
+                  style={[
+                    styles.addChip,
+                    isSubmitting ? styles.controlDisabled : null,
+                  ]}
+                  onPress={onAddPart}
+                  disabled={isSubmitting}
+                >
                   <Plus size={16} color={colors.cardForeground} />
                   <Text style={styles.addChipText}>Add</Text>
                 </Pressable>
@@ -246,8 +275,12 @@ export function PosSplitBillModal({
 
                             {parts.length > 2 && (
                               <Pressable
-                                style={styles.removeButton}
+                                style={[
+                                  styles.removeButton,
+                                  isSubmitting ? styles.controlDisabled : null,
+                                ]}
                                 onPress={() => onRemovePart(part.paymentPartId)}
+                                disabled={isSubmitting}
                               >
                                 <X size={16} color={colors.mutedForeground} />
                               </Pressable>
@@ -267,6 +300,7 @@ export function PosSplitBillModal({
                               }
                               keyboardType="numeric"
                               placeholderTextColor={colors.mutedForeground}
+                              editable={!isSubmitting}
                             />
                           </View>
 
@@ -283,6 +317,7 @@ export function PosSplitBillModal({
                                 )
                               }
                               placeholder="Select"
+                              disabled={isSubmitting}
                             />
                           </View>
                         </View>
@@ -325,6 +360,7 @@ export function PosSplitBillModal({
                                 onChangePartPayerLabel(part.paymentPartId, value)
                               }
                               placeholderTextColor={colors.mutedForeground}
+                              editable={!isSubmitting}
                             />
                           </View>
                         )}
@@ -343,10 +379,11 @@ export function PosSplitBillModal({
               ) : null}
 
               <AppButton
-                label="Complete Split Bill"
+                label={isSubmitting ? "Completing Split Bill..." : "Complete Split Bill"}
                 size="lg"
                 onPress={onSubmit}
                 disabled={isSubmitDisabled}
+                isLoading={isSubmitting}
                 style={styles.submitButton}
               />
             </View>
@@ -654,4 +691,7 @@ const styles = StyleSheet.create({
     fontFamily: "InterMedium",
   },
   submitButton: {},
+  controlDisabled: {
+    opacity: 0.6,
+  },
 });

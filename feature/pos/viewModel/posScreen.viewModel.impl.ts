@@ -32,7 +32,11 @@ import {
   PosSplitDraftPart,
   PosTotals,
 } from "../types/pos.entity.types";
-import { PosScreenState, PosScreenViewModel } from "../types/pos.state.types";
+import {
+  PosCheckoutSubmissionKind,
+  PosScreenState,
+  PosScreenViewModel,
+} from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
@@ -94,6 +98,8 @@ const INITIAL_STATE: PosScreenState = {
   isCreatingCustomer: false,
   splitBillDraftParts: [],
   splitBillErrorMessage: null,
+  isCheckoutSubmitting: false,
+  checkoutSubmissionKind: null,
 };
 
 const calculateTotals = (
@@ -347,6 +353,59 @@ export function usePosScreenViewModel(
   );
   const [state, setState] = useState<PosScreenState>(INITIAL_STATE);
   const customerSearchRequestRef = useRef(0);
+
+  const checkoutSubmissionRef = useRef<PosCheckoutSubmissionKind | null>(null);
+
+  const beginCheckoutSubmission = useCallback(
+    (kind: PosCheckoutSubmissionKind): boolean => {
+      if (checkoutSubmissionRef.current !== null) {
+        return false;
+      }
+
+      checkoutSubmissionRef.current = kind;
+
+      setState((currentState) => ({
+        ...currentState,
+        isCheckoutSubmitting: true,
+        checkoutSubmissionKind: kind,
+        errorMessage: null,
+        splitBillErrorMessage: null,
+        infoMessage: null,
+      }));
+
+      return true;
+    },
+    [],
+  );
+
+  const endCheckoutSubmission = useCallback(() => {
+    checkoutSubmissionRef.current = null;
+
+    setState((currentState) => ({
+      ...currentState,
+      isCheckoutSubmitting: false,
+      checkoutSubmissionKind: null,
+    }));
+  }, []);
+
+  const runCheckoutSubmission = useCallback(
+    async (
+      kind: PosCheckoutSubmissionKind,
+      operation: () => Promise<boolean>,
+    ): Promise<boolean> => {
+      if (!beginCheckoutSubmission(kind)) {
+        return false;
+      }
+
+      try {
+        return await operation();
+      } finally {
+        endCheckoutSubmission();
+      }
+    },
+    [beginCheckoutSubmission, endCheckoutSubmission],
+  );
+
   const currencyCode = useMemo(
     () => regionalFinancePolicy.currencyCode,
     [regionalFinancePolicy.currencyCode],
@@ -517,7 +576,7 @@ export function usePosScreenViewModel(
       : [];
 
   const submitCheckout = useCallback(
-    async (paymentParts: readonly PosPaymentPartInput[]) => {
+    async (paymentParts: readonly PosPaymentPartInput[]): Promise<boolean> => {
       const result = await completePosCheckoutUseCase.execute({
         paymentParts,
         selectedCustomer: state.selectedCustomer,
@@ -533,11 +592,11 @@ export function usePosScreenViewModel(
           ...currentState,
           errorMessage: result.error.message,
         }));
-        return { success: false as const, error: result.error.message };
+        return false;
       }
 
       await finalizeSuccessfulCheckout(result.value);
-      return { success: true as const };
+      return true;
     },
     [
       completePosCheckoutUseCase,
@@ -1281,14 +1340,20 @@ export function usePosScreenViewModel(
   }, []);
 
   const onOpenPaymentModal = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      activeModal: "payment",
-      paymentInput:
-        currentState.paymentInput || currentState.totals.grandTotal.toFixed(2),
-      errorMessage: null,
-      infoMessage: null,
-    }));
+    setState((currentState) => {
+      if (currentState.isCheckoutSubmitting) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        activeModal: "payment",
+        paymentInput:
+          currentState.paymentInput || currentState.totals.grandTotal.toFixed(2),
+        errorMessage: null,
+        infoMessage: null,
+      };
+    });
   }, []);
 
   const onApplyDiscount = useCallback(async () => {
@@ -1401,14 +1466,14 @@ export function usePosScreenViewModel(
       settlementAccountRemoteId,
     );
 
-    const result = await submitCheckout(paymentParts);
-    if (!result.success) {
-      return;
-    }
+    await runCheckoutSubmission("payment", async () =>
+      submitCheckout(paymentParts),
+    );
   }, [
     state.paymentInput,
     state.selectedSettlementAccountRemoteId,
     submitCheckout,
+    runCheckoutSubmission,
   ]);
 
   const onPrintReceipt = useCallback(async () => {
@@ -1673,10 +1738,16 @@ export function usePosScreenViewModel(
   );
 
   const onClosePaymentModal = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      activeModal: "none",
-    }));
+    setState((currentState) => {
+      if (currentState.isCheckoutSubmitting) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        activeModal: "none",
+      };
+    });
   }, []);
 
   const onConfirmPayment = useCallback(async () => {
@@ -1684,27 +1755,39 @@ export function usePosScreenViewModel(
   }, [onCompletePayment]);
 
   const onOpenSplitBillModal = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      activeModal: "split-bill",
-      splitBillDraftParts:
-        currentState.splitBillDraftParts.length > 0
-          ? currentState.splitBillDraftParts
-          : buildEqualSplitDraftParts(
-              2,
-              currentState.totals.grandTotal,
-              currentState.selectedSettlementAccountRemoteId,
-            ),
-      splitBillErrorMessage: null,
-    }));
+    setState((currentState) => {
+      if (currentState.isCheckoutSubmitting) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        activeModal: "split-bill",
+        splitBillDraftParts:
+          currentState.splitBillDraftParts.length > 0
+            ? currentState.splitBillDraftParts
+            : buildEqualSplitDraftParts(
+                2,
+                currentState.totals.grandTotal,
+                currentState.selectedSettlementAccountRemoteId,
+              ),
+        splitBillErrorMessage: null,
+      };
+    });
   }, []);
 
   const onCloseSplitBillModal = useCallback(() => {
-    setState((currentState) => ({
-      ...currentState,
-      activeModal: "none",
-      splitBillErrorMessage: null,
-    }));
+    setState((currentState) => {
+      if (currentState.isCheckoutSubmitting) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        activeModal: "none",
+        splitBillErrorMessage: null,
+      };
+    });
   }, []);
 
   const onApplyEqualSplit = useCallback(
@@ -1856,35 +1939,15 @@ export function usePosScreenViewModel(
         settlementAccountRemoteId: part.settlementAccountRemoteId,
       }));
 
-    const result = await completePosCheckoutUseCase.execute({
-      paymentParts,
-      selectedCustomer: state.selectedCustomer,
-      grandTotalSnapshot: state.totals.grandTotal,
-      activeBusinessAccountRemoteId,
-      activeOwnerUserRemoteId,
-      activeAccountCurrencyCode: regionalFinancePolicy.currencyCode,
-      activeAccountCountryCode: regionalFinancePolicy.countryCode,
-    });
-
-    if (!result.success) {
-      setState((currentState) => ({
-        ...currentState,
-        splitBillErrorMessage: result.error.message,
-      }));
-      return;
-    }
-
-    await finalizeSuccessfulCheckout(result.value);
+    await runCheckoutSubmission("split-bill", async () =>
+      submitCheckout(paymentParts),
+    );
   }, [
     state.splitBillDraftParts,
     state.totals.grandTotal,
     state.selectedCustomer,
-    completePosCheckoutUseCase,
-    activeBusinessAccountRemoteId,
-    activeOwnerUserRemoteId,
-    regionalFinancePolicy.currencyCode,
-    regionalFinancePolicy.countryCode,
-    finalizeSuccessfulCheckout,
+    submitCheckout,
+    runCheckoutSubmission,
   ]);
 
   const onOpenReceiptModal = useCallback(() => {
@@ -1995,6 +2058,13 @@ export function usePosScreenViewModel(
       splitBillAllocatedAmount: splitBillSummary.allocatedAmount,
       splitBillRemainingAmount: splitBillSummary.remainingAmount,
       splitBillErrorMessage: state.splitBillErrorMessage || null,
+      isCheckoutSubmitting: state.isCheckoutSubmitting,
+      isPaymentSubmitting:
+        state.isCheckoutSubmitting &&
+        state.checkoutSubmissionKind === "payment",
+      isSplitBillSubmitting:
+        state.isCheckoutSubmitting &&
+        state.checkoutSubmissionKind === "split-bill",
     }),
     [
       activeBusinessAccountRemoteId,
@@ -2034,6 +2104,8 @@ export function usePosScreenViewModel(
       state.customerCreateForm,
       state.customerSearchTerm,
       state.selectedCustomer,
+      state.isCheckoutSubmitting,
+      state.checkoutSubmissionKind,
       onClearCustomer,
       onCloseCustomerCreateModal,
       onClosePaymentModal,
