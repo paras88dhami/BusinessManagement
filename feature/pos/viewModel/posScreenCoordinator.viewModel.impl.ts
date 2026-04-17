@@ -4,21 +4,14 @@ import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCa
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Status } from "@/shared/types/status.types";
-import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import {
   buildTaxRateLabel,
   buildTaxSummaryLabel,
   resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { POS_SCREEN_TITLE } from "../types/pos.constant";
-import type { PosPaymentPartInput } from "../types/pos.dto.types";
-import type { PosReceipt } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorState } from "../types/pos.state.types";
-import type {
-  PosCheckoutMode,
-  PosCheckoutSubmissionKind,
-} from "../types/pos.workflow.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
@@ -34,14 +27,22 @@ import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import { SharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase";
 import { usePosCartViewModel } from "./posCart.viewModel.impl";
 import { usePosCatalogViewModel } from "./posCatalog.viewModel.impl";
-import { usePosCheckoutViewModel } from "./posCheckout.viewModel.impl";
+import {
+  usePosCheckoutFlowController,
+  usePosCheckoutViewModel,
+} from "./posCheckout.viewModel.impl";
 import { usePosCustomerViewModel } from "./posCustomer.viewModel.impl";
 import {
+  buildPosSessionRestoreSnapshot,
+  buildPosSessionDataFromState,
   calculateTotals,
+  EMPTY_POS_SESSION_RESTORE_SNAPSHOT,
   EMPTY_TOTALS,
   INITIAL_POS_SCREEN_COORDINATOR_STATE,
   mapMoneyAccountToOption,
   parseAmountInput,
+  resolveSelectedSettlementAccountRemoteId,
+  sanitizeSplitBillDraftPartSettlementAccounts,
   type PosSessionStateOverrides,
 } from "./internal/posScreen.shared";
 import { usePosReceiptViewModel } from "./posReceipt.viewModel.impl";
@@ -123,10 +124,12 @@ export function usePosScreenCoordinatorViewModel(
       activeAccountDefaultTaxRatePercent,
     ],
   );
+
   const defaultTaxRateLabel = useMemo(
     () => buildTaxRateLabel(regionalFinancePolicy.defaultTaxRatePercent),
     [regionalFinancePolicy.defaultTaxRatePercent],
   );
+
   const taxSummaryLabel = useMemo(
     () =>
       buildTaxSummaryLabel({
@@ -138,6 +141,7 @@ export function usePosScreenCoordinatorViewModel(
       regionalFinancePolicy.taxLabel,
     ],
   );
+
   const currencyCode = useMemo(
     () => regionalFinancePolicy.currencyCode,
     [regionalFinancePolicy.currencyCode],
@@ -145,54 +149,6 @@ export function usePosScreenCoordinatorViewModel(
 
   const [state, setState] = useState<PosScreenCoordinatorState>(
     INITIAL_POS_SCREEN_COORDINATOR_STATE,
-  );
-  const checkoutSubmissionRef = useRef<PosCheckoutSubmissionKind | null>(null);
-
-  const beginCheckoutSubmission = useCallback(
-    (kind: PosCheckoutSubmissionKind): boolean => {
-      if (checkoutSubmissionRef.current !== null) {
-        return false;
-      }
-
-      checkoutSubmissionRef.current = kind;
-      setState((currentState) => ({
-        ...currentState,
-        isCheckoutSubmitting: true,
-        checkoutSubmissionKind: kind,
-        errorMessage: null,
-        splitBillErrorMessage: null,
-        infoMessage: null,
-      }));
-      return true;
-    },
-    [],
-  );
-
-  const endCheckoutSubmission = useCallback(() => {
-    checkoutSubmissionRef.current = null;
-    setState((currentState) => ({
-      ...currentState,
-      isCheckoutSubmitting: false,
-      checkoutSubmissionKind: null,
-    }));
-  }, []);
-
-  const runCheckoutSubmission = useCallback(
-    async (
-      kind: PosCheckoutSubmissionKind,
-      operation: () => Promise<boolean>,
-    ): Promise<boolean> => {
-      if (!beginCheckoutSubmission(kind)) {
-        return false;
-      }
-
-      try {
-        return await operation();
-      } finally {
-        endCheckoutSubmission();
-      }
-    },
-    [beginCheckoutSubmission, endCheckoutSubmission],
   );
 
   const saveCurrentSession = useCallback(
@@ -203,149 +159,10 @@ export function usePosScreenCoordinatorViewModel(
 
       await savePosSessionUseCase.execute({
         businessAccountRemoteId: activeBusinessAccountRemoteId,
-        sessionData: {
-          cartLines: overrides.cartLines ?? state.cartLines,
-          recentProducts: overrides.recentProducts ?? state.recentProducts,
-          productSearchTerm:
-            overrides.productSearchTerm ?? state.productSearchTerm,
-          selectedCustomer:
-            overrides.selectedCustomer ?? state.selectedCustomer,
-          selectedSettlementAccountRemoteId:
-            overrides.selectedSettlementAccountRemoteId ??
-            state.selectedSettlementAccountRemoteId,
-          discountInput: overrides.discountInput ?? state.discountInput,
-          surchargeInput: overrides.surchargeInput ?? state.surchargeInput,
-          splitBillDraftParts:
-            overrides.splitBillDraftParts ?? state.splitBillDraftParts,
-        },
+        sessionData: buildPosSessionDataFromState(state, overrides),
       });
     },
-    [
-      activeBusinessAccountRemoteId,
-      savePosSessionUseCase,
-      state.cartLines,
-      state.discountInput,
-      state.productSearchTerm,
-      state.recentProducts,
-      state.selectedCustomer,
-      state.selectedSettlementAccountRemoteId,
-      state.splitBillDraftParts,
-      state.surchargeInput,
-    ],
-  );
-
-  const recalculateTotals = useCallback((cartLines: readonly import("../types/pos.entity.types").PosCartLine[]) => {
-    setState((currentState) => ({
-      ...currentState,
-      cartLines,
-      totals: calculateTotals(
-        cartLines,
-        parseAmountInput(currentState.discountInput),
-        parseAmountInput(currentState.surchargeInput),
-      ),
-    }));
-  }, []);
-
-  const finalizeSuccessfulCheckout = useCallback(
-    async (receipt: PosReceipt) => {
-      setState((currentState) => ({
-        ...currentState,
-        cartLines: [],
-        totals: EMPTY_TOTALS,
-        activeModal: "receipt",
-        discountInput: "",
-        surchargeInput: "",
-        paymentInput: "",
-        receipt,
-        filteredProducts: [],
-        quickProductNameInput: "",
-        quickProductPriceInput: "0",
-        quickProductCategoryInput: "",
-        splitBillDraftParts: [],
-        splitBillErrorMessage: null,
-        infoMessage:
-          receipt.ledgerEffect.type === "due_balance_created"
-            ? `Sale completed. ${formatCurrencyAmount({
-                amount: receipt.dueAmount,
-                currencyCode,
-                countryCode: regionalFinancePolicy.countryCode,
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} was posted as ledger due.`
-            : receipt.ledgerEffect.type === "due_balance_create_failed"
-              ? `Sale completed. ${formatCurrencyAmount({
-                  amount: receipt.dueAmount,
-                  currencyCode,
-                  countryCode: regionalFinancePolicy.countryCode,
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} due could not be posted automatically. Add it from Ledger.`
-              : receipt.ledgerEffect.type === "posting_sync_failed"
-                ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
-                : "Sale completed successfully.",
-        errorMessage: null,
-      }));
-
-      if (activeBusinessAccountRemoteId) {
-        await clearPosSessionUseCase.execute({
-          businessAccountRemoteId: activeBusinessAccountRemoteId,
-        });
-      }
-    },
-    [
-      activeBusinessAccountRemoteId,
-      clearPosSessionUseCase,
-      currencyCode,
-      regionalFinancePolicy.countryCode,
-    ],
-  );
-
-  const submitCheckout = useCallback(
-    async (
-      mode: PosCheckoutMode,
-      paymentParts: readonly PosPaymentPartInput[],
-    ): Promise<boolean> => {
-      const result = await completePosCheckoutUseCase.execute({
-        paymentParts,
-        selectedCustomer: state.selectedCustomer,
-        grandTotalSnapshot: state.totals.grandTotal,
-        cartLinesSnapshot: state.cartLines,
-        totalsSnapshot: state.totals,
-        activeBusinessAccountRemoteId,
-        activeOwnerUserRemoteId,
-        activeAccountCurrencyCode: regionalFinancePolicy.currencyCode,
-        activeAccountCountryCode: regionalFinancePolicy.countryCode,
-      });
-
-      if (!result.success) {
-        setState((currentState) => ({
-          ...currentState,
-          errorMessage:
-            mode === "payment"
-              ? result.error.message
-              : currentState.errorMessage,
-          splitBillErrorMessage:
-            mode === "split-bill"
-              ? result.error.message
-              : currentState.splitBillErrorMessage,
-        }));
-        return false;
-      }
-
-      await finalizeSuccessfulCheckout(result.value);
-      return true;
-    },
-    [
-      activeBusinessAccountRemoteId,
-      activeOwnerUserRemoteId,
-      completePosCheckoutUseCase,
-      finalizeSuccessfulCheckout,
-      regionalFinancePolicy.countryCode,
-      regionalFinancePolicy.currencyCode,
-      state.cartLines,
-      state.selectedCustomer,
-      state.totals,
-    ],
+    [activeBusinessAccountRemoteId, savePosSessionUseCase, state],
   );
 
   const load = useCallback(async () => {
@@ -385,19 +202,7 @@ export function usePosScreenCoordinatorViewModel(
       }
     }
 
-    let sessionDataSelectedCustomer = null as
-      | null
-      | typeof state.selectedCustomer;
-    let sessionDataCartLines = [] as readonly import("../types/pos.entity.types").PosCartLine[];
-    let sessionDataRecentProducts =
-      [] as readonly import("../types/pos.entity.types").PosProduct[];
-    let sessionDataProductSearchTerm = "";
-    let sessionDataDiscountInput = "";
-    let sessionDataSurchargeInput = "";
-    let sessionDataSettlementAccountRemoteId = "";
-    let sessionDataSplitBillDraftParts =
-      [] as readonly import("../types/pos.entity.types").PosSplitDraftPart[];
-    let didRestoreSession = false;
+    let sessionSnapshot = EMPTY_POS_SESSION_RESTORE_SNAPSHOT;
 
     if (activeBusinessAccountRemoteId) {
       const sessionResult = await loadPosSessionUseCase.execute({
@@ -405,51 +210,40 @@ export function usePosScreenCoordinatorViewModel(
       });
 
       if (sessionResult.success && sessionResult.value) {
-        const sessionData = sessionResult.value;
-        sessionDataCartLines = sessionData.cartLines;
-        sessionDataRecentProducts = sessionData.recentProducts;
-        sessionDataProductSearchTerm = sessionData.productSearchTerm;
-        sessionDataSelectedCustomer = sessionData.selectedCustomer;
-        sessionDataDiscountInput = sessionData.discountInput;
-        sessionDataSurchargeInput = sessionData.surchargeInput;
-        sessionDataSettlementAccountRemoteId =
-          sessionData.selectedSettlementAccountRemoteId?.trim() ?? "";
-        sessionDataSplitBillDraftParts = sessionData.splitBillDraftParts ?? [];
-        didRestoreSession = true;
+        sessionSnapshot = buildPosSessionRestoreSnapshot(sessionResult.value);
       }
     }
 
-    const validSessionSettlementAccountRemoteId =
-      sessionDataSettlementAccountRemoteId &&
-      moneyAccountOptions.some(
-        (option) => option.value === sessionDataSettlementAccountRemoteId,
-      )
-        ? sessionDataSettlementAccountRemoteId
-        : "";
-    const defaultSettlementAccountRemoteId =
-      validSessionSettlementAccountRemoteId ||
-      (activeSettlementAccountRemoteId?.trim() &&
-      moneyAccountOptions.some(
-        (option) => option.value === activeSettlementAccountRemoteId.trim(),
-      )
-        ? activeSettlementAccountRemoteId.trim()
-        : "");
+    const selectedSettlementAccountRemoteId =
+      resolveSelectedSettlementAccountRemoteId({
+        moneyAccountOptions,
+        sessionSelectedSettlementAccountRemoteId:
+          sessionSnapshot.selectedSettlementAccountRemoteId,
+        activeSettlementAccountRemoteId,
+      });
 
-    const sanitizedSplitBillDraftParts = sessionDataSplitBillDraftParts.map(
-      (part) => ({
-        ...part,
-        settlementAccountRemoteId: moneyAccountOptions.some(
-          (option) => option.value === part.settlementAccountRemoteId,
-        )
-          ? part.settlementAccountRemoteId
-          : defaultSettlementAccountRemoteId,
-      }),
-    );
+    const sanitizedSplitBillDraftParts =
+      sanitizeSplitBillDraftPartSettlementAccounts({
+        splitBillDraftParts: sessionSnapshot.splitBillDraftParts,
+        moneyAccountOptions,
+        fallbackSettlementAccountRemoteId: selectedSettlementAccountRemoteId,
+      });
 
     const restoredFilteredProducts =
-      didRestoreSession && sessionDataProductSearchTerm.trim().length > 0
-        ? await searchPosProductsUseCase.execute(sessionDataProductSearchTerm)
+      sessionSnapshot.didRestoreSession &&
+      sessionSnapshot.productSearchTerm.trim().length > 0
+        ? await searchPosProductsUseCase.execute(
+            sessionSnapshot.productSearchTerm,
+          )
         : [];
+
+    const restoredTotals = sessionSnapshot.didRestoreSession
+      ? calculateTotals(
+          sessionSnapshot.cartLines,
+          parseAmountInput(sessionSnapshot.discountInput),
+          parseAmountInput(sessionSnapshot.surchargeInput),
+        )
+      : EMPTY_TOTALS;
 
     setState((currentState) => ({
       ...currentState,
@@ -457,32 +251,30 @@ export function usePosScreenCoordinatorViewModel(
       bootstrap: result.value,
       products: result.value.products,
       filteredProducts: restoredFilteredProducts,
-      cartLines: didRestoreSession ? sessionDataCartLines : [],
-      recentProducts: didRestoreSession ? sessionDataRecentProducts : [],
-      productSearchTerm: didRestoreSession ? sessionDataProductSearchTerm : "",
-      selectedCustomer: didRestoreSession ? sessionDataSelectedCustomer : null,
-      selectedSettlementAccountRemoteId: defaultSettlementAccountRemoteId,
+      cartLines: sessionSnapshot.didRestoreSession ? sessionSnapshot.cartLines : [],
+      recentProducts: sessionSnapshot.didRestoreSession
+        ? sessionSnapshot.recentProducts
+        : [],
+      productSearchTerm: sessionSnapshot.didRestoreSession
+        ? sessionSnapshot.productSearchTerm
+        : "",
+      selectedCustomer: sessionSnapshot.didRestoreSession
+        ? sessionSnapshot.selectedCustomer
+        : null,
+      selectedSettlementAccountRemoteId,
       moneyAccountOptions,
-      discountInput: didRestoreSession ? sessionDataDiscountInput : "",
-      surchargeInput: didRestoreSession ? sessionDataSurchargeInput : "",
-      splitBillDraftParts: didRestoreSession
+      discountInput: sessionSnapshot.didRestoreSession
+        ? sessionSnapshot.discountInput
+        : "",
+      surchargeInput: sessionSnapshot.didRestoreSession
+        ? sessionSnapshot.surchargeInput
+        : "",
+      splitBillDraftParts: sessionSnapshot.didRestoreSession
         ? sanitizedSplitBillDraftParts
         : [],
-      totals: EMPTY_TOTALS,
+      totals: restoredTotals,
       errorMessage: null,
     }));
-
-    if (didRestoreSession) {
-      const restoredTotals = calculateTotals(
-        sessionDataCartLines,
-        parseAmountInput(sessionDataDiscountInput),
-        parseAmountInput(sessionDataSurchargeInput),
-      );
-      setState((currentState) => ({
-        ...currentState,
-        totals: restoredTotals,
-      }));
-    }
   }, [
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
@@ -491,12 +283,22 @@ export function usePosScreenCoordinatorViewModel(
     getPosBootstrapUseCase,
     loadPosSessionUseCase,
     searchPosProductsUseCase,
-    state.selectedCustomer,
   ]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const checkoutFlow = usePosCheckoutFlowController({
+    state,
+    setState,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
+    currencyCode,
+    countryCode: regionalFinancePolicy.countryCode,
+    completePosCheckoutUseCase,
+    clearPosSessionUseCase,
+  });
 
   const catalog = usePosCatalogViewModel({
     state,
@@ -519,7 +321,6 @@ export function usePosScreenCoordinatorViewModel(
     clearCartUseCase,
     clearPosSessionUseCase,
     saveCurrentSession,
-    recalculateTotals,
   });
 
   const customer = usePosCustomerViewModel({
@@ -536,16 +337,14 @@ export function usePosScreenCoordinatorViewModel(
     state,
     setState,
     saveCurrentSession,
-    runCheckoutSubmission,
-    submitCheckout,
+    submitCheckout: checkoutFlow.submitCheckout,
   });
 
   const splitBill = usePosSplitBillViewModel({
     state,
     setState,
     saveCurrentSession,
-    runCheckoutSubmission,
-    submitCheckout,
+    submitCheckout: checkoutFlow.submitCheckout,
   });
 
   const receipt = usePosReceiptViewModel({

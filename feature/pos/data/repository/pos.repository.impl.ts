@@ -2,8 +2,8 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
+    PosCommitCheckoutInventoryParams,
     PosClearSessionParams,
-    PosCompletePaymentParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
     PosSaveSessionParams,
@@ -17,7 +17,6 @@ import {
     PosCartLinesResult,
     PosError,
     PosOperationResult,
-    PosPaymentResult,
     PosTotalsResult
 } from "../../types/pos.error.types";
 import { PosDatasource } from "../dataSource/pos.datasource";
@@ -25,7 +24,6 @@ import {
     mapPosBootstrapToDomain,
     mapPosCartLinesToDomain,
     mapPosProductToDomain,
-    mapPosReceiptToDomain,
     mapPosTotalsToDomain,
 } from "./mapper/pos.mapper";
 import { PosRepository } from "./pos.repository";
@@ -111,15 +109,15 @@ export const createPosRepository = (
     return { success: true, value: mapPosTotalsToDomain(result.value) };
   },
 
-  async completePayment(
-    params: PosCompletePaymentParams,
-  ): Promise<PosPaymentResult> {
-    const result = await datasource.completePayment(params);
+  async commitCheckoutInventory(
+    params: PosCommitCheckoutInventoryParams,
+  ): Promise<PosOperationResult> {
+    const result = await datasource.commitCheckoutInventory(params);
     if (!result.success) {
       return { success: false, error: mapRepositoryError(result.error) };
     }
 
-    return { success: true, value: mapPosReceiptToDomain(result.value) };
+    return { success: true, value: result.value };
   },
 
   async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {

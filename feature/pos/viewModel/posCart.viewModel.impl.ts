@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo } from "react";
-import type { PosCartLine } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorState } from "../types/pos.state.types";
 import { ApplyDiscountUseCase } from "../useCase/applyDiscount.useCase";
 import { ApplySurchargeUseCase } from "../useCase/applySurcharge.useCase";
@@ -7,6 +6,7 @@ import { ChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity
 import { ClearCartUseCase } from "../useCase/clearCart.useCase";
 import { ClearPosSessionUseCase } from "../useCase/clearPosSession.useCase";
 import {
+  calculateTotals,
   EMPTY_TOTALS,
   parseAmountInput,
   type PosSessionStateOverrides,
@@ -25,7 +25,6 @@ interface UsePosCartViewModelParams {
   saveCurrentSession: (
     overrides?: PosSessionStateOverrides,
   ) => Promise<void>;
-  recalculateTotals: (cartLines: readonly PosCartLine[]) => void;
 }
 
 export function usePosCartViewModel({
@@ -38,8 +37,24 @@ export function usePosCartViewModel({
   clearCartUseCase,
   clearPosSessionUseCase,
   saveCurrentSession,
-  recalculateTotals,
 }: UsePosCartViewModelParams): PosCartViewModel {
+  const applyCartLinesToState = useCallback(
+    (
+      cartLines: readonly import("../types/pos.entity.types").PosCartLine[],
+    ) => {
+      setState((currentState) => ({
+        ...currentState,
+        cartLines,
+        totals: calculateTotals(
+          cartLines,
+          parseAmountInput(currentState.discountInput),
+          parseAmountInput(currentState.surchargeInput),
+        ),
+      }));
+    },
+    [setState],
+  );
+
   const onIncreaseQuantity = useCallback(
     async (lineId: string) => {
       const line = state.cartLines.find((item) => item.lineId === lineId);
@@ -59,12 +74,12 @@ export function usePosCartViewModel({
         return;
       }
 
-      recalculateTotals(result.value);
+      applyCartLinesToState(result.value);
       await saveCurrentSession({ cartLines: result.value });
     },
     [
+      applyCartLinesToState,
       changeCartLineQuantityUseCase,
-      recalculateTotals,
       saveCurrentSession,
       setState,
       state.cartLines,
@@ -90,12 +105,12 @@ export function usePosCartViewModel({
         return;
       }
 
-      recalculateTotals(result.value);
+      applyCartLinesToState(result.value);
       await saveCurrentSession({ cartLines: result.value });
     },
     [
+      applyCartLinesToState,
       changeCartLineQuantityUseCase,
-      recalculateTotals,
       saveCurrentSession,
       setState,
       state.cartLines,
@@ -116,10 +131,15 @@ export function usePosCartViewModel({
         return;
       }
 
-      recalculateTotals(result.value);
+      applyCartLinesToState(result.value);
       await saveCurrentSession({ cartLines: result.value });
     },
-    [changeCartLineQuantityUseCase, recalculateTotals, saveCurrentSession, setState],
+    [
+      applyCartLinesToState,
+      changeCartLineQuantityUseCase,
+      saveCurrentSession,
+      setState,
+    ],
   );
 
   const onDiscountInputChange = useCallback(
@@ -212,12 +232,8 @@ export function usePosCartViewModel({
       discountInput: "",
       surchargeInput: "",
       paymentInput: "",
-      filteredProducts: [],
       infoMessage: null,
       errorMessage: null,
-      quickProductNameInput: "",
-      quickProductPriceInput: "0",
-      quickProductCategoryInput: "",
     }));
 
     if (activeBusinessAccountRemoteId) {

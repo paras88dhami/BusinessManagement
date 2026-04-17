@@ -266,9 +266,6 @@ export const createCompletePosCheckoutUseCase = ({
       businessAccountRemoteId,
       cartLines: cartLinesSnapshot,
       receipt: draftReceipt,
-      paymentParts: params.paymentParts,
-      selectedCustomer: params.selectedCustomer,
-      grandTotalSnapshot: params.grandTotalSnapshot,
     });
 
     if (!paymentResult.success) {

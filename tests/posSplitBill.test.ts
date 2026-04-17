@@ -299,41 +299,14 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("total allocated over grand total should be blocked", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
-      async () => ({
-        success: true as const,
-        value: createReceipt(-100, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "Alice",
-            amount: 600,
-            settlementAccountRemoteId: "money-cash-1",
-          },
-          {
-            paymentPartId: "part-2",
-            payerLabel: "Bob",
-            amount: 600,
-            settlementAccountRemoteId: "money-bank-1",
-          },
-        ]),
-      }),
-    );
     const completePaymentUseCase: CompletePaymentUseCase = {
-      execute: vi.fn(async (payload) => {
-        if (payload.paymentParts.reduce((acc: number, part: { paymentPartId: string; payerLabel: string | null; amount: number; settlementAccountRemoteId: string }) => acc + part.amount, 0) > payload.grandTotalSnapshot) {
-          return {
-            success: false as const,
-            error: {
-              type: PosErrorType.ContextRequired,
-              message: "Split payment total cannot exceed grand total.",
-            },
-          };
-        }
-        return {
-          success: true as const,
-          value: createReceipt(0, payload.paymentParts),
-        };
-      }),
+      execute: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: PosErrorType.ContextRequired,
+          message: "Split payment total cannot exceed grand total.",
+        },
+      })),
     };
 
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {

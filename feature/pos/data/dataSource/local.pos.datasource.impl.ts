@@ -7,8 +7,8 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
+    PosCommitCheckoutInventoryParams,
     PosClearSessionParams,
-    PosCompletePaymentParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
     PosSaveSessionParams,
@@ -27,7 +27,6 @@ import {
     PosError,
     PosErrorType,
     PosOperationResult,
-    PosPaymentResult,
     PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "./pos.datasource";
@@ -431,9 +430,9 @@ export const createLocalPosDatasource = ({
       return { success: true, value: getTotalsValue() };
     },
 
-    async completePayment(
-      params: PosCompletePaymentParams,
-    ): Promise<PosPaymentResult> {
+    async commitCheckoutInventory(
+      params: PosCommitCheckoutInventoryParams,
+    ): Promise<PosOperationResult> {
       const businessAccountRemoteId = params.businessAccountRemoteId?.trim();
       if (!businessAccountRemoteId) {
         return {
@@ -446,13 +445,8 @@ export const createLocalPosDatasource = ({
       }
 
       if (params.cartLines.length === 0) {
-        return {
-          success: false,
-          error: {
-            type: PosErrorType.EmptyCart,
-            message: "Add at least one product before taking payment.",
-          },
-        };
+        resetSessionState();
+        return { success: true, value: true };
       }
 
       try {
@@ -525,7 +519,7 @@ export const createLocalPosDatasource = ({
             }
             const now = Date.now();
             await movementCollection.create((record) => {
-              record.remoteId = `${params.receipt.receiptNumber}-${index + 1}-${now}`;
+              record.remoteId = `${params.receiptNumber}-${index + 1}-${now}`;
               record.accountRemoteId = businessAccountRemoteId;
               record.productRemoteId = product.remoteId;
               record.productNameSnapshot = product.name;
@@ -535,7 +529,7 @@ export const createLocalPosDatasource = ({
               record.deltaQuantity = cartLine.quantity * -1;
               record.unitRate = cartLine.unitPrice;
               record.reason = null;
-              record.remark = `POS sale ${params.receipt.receiptNumber}`;
+              record.remark = `POS sale ${params.receiptNumber}`;
               record.movementAt = now;
               record.recordSyncStatus = RecordSyncStatus.PendingCreate;
               record.lastSyncedAt = null;
@@ -550,7 +544,7 @@ export const createLocalPosDatasource = ({
           error: createValidationError(
             error instanceof Error
               ? error.message
-              : "Failed to complete POS payment.",
+              : "Failed to commit POS checkout inventory.",
           ),
         };
       }
@@ -558,7 +552,7 @@ export const createLocalPosDatasource = ({
       activeBusinessAccountRemoteId = businessAccountRemoteId;
       await loadActiveProducts();
       resetSessionState();
-      return { success: true, value: params.receipt };
+      return { success: true, value: true };
     },
 
     async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from "react";
 import type { PosPaymentPartInput } from "../types/pos.dto.types";
 import type { PosSplitDraftPart } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorState } from "../types/pos.state.types";
-import type { PosCheckoutMode, PosCheckoutSubmissionKind } from "../types/pos.workflow.types";
+import type { PosCheckoutMode } from "../types/pos.workflow.types";
 import {
   buildEqualSplitDraftParts,
   getSplitDraftSummary,
@@ -18,10 +18,6 @@ interface UsePosSplitBillViewModelParams {
   saveCurrentSession: (
     overrides?: PosSessionStateOverrides,
   ) => Promise<void>;
-  runCheckoutSubmission: (
-    kind: PosCheckoutSubmissionKind,
-    operation: () => Promise<boolean>,
-  ) => Promise<boolean>;
   submitCheckout: (
     mode: PosCheckoutMode,
     paymentParts: readonly PosPaymentPartInput[],
@@ -35,7 +31,6 @@ export function usePosSplitBillViewModel({
   state,
   setState,
   saveCurrentSession,
-  runCheckoutSubmission,
   submitCheckout,
 }: UsePosSplitBillViewModelParams): PosSplitBillViewModel {
   const splitBillSummary = useMemo(
@@ -218,11 +213,8 @@ export function usePosSplitBillViewModel({
       }),
     );
 
-    await runCheckoutSubmission("split-bill", async () =>
-      submitCheckout("split-bill", paymentParts),
-    );
+    await submitCheckout("split-bill", paymentParts);
   }, [
-    runCheckoutSubmission,
     setState,
     state.selectedCustomer,
     state.splitBillDraftParts,

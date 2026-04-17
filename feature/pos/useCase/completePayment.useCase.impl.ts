@@ -7,6 +7,21 @@ export const createCompletePaymentUseCase = (
   repository: PosRepository,
 ): CompletePaymentUseCase => ({
   async execute(params: PosCompletePaymentParams): Promise<PosPaymentResult> {
-    return repository.completePayment(params);
+    const commitResult = await repository.commitCheckoutInventory({
+      businessAccountRemoteId: params.businessAccountRemoteId,
+      cartLines: params.cartLines,
+      receiptNumber: params.receipt.receiptNumber,
+    });
+    if (!commitResult.success) {
+      return {
+        success: false,
+        error: commitResult.error,
+      };
+    }
+
+    return {
+      success: true,
+      value: params.receipt,
+    };
   },
 });

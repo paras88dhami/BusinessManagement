@@ -2,8 +2,8 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
+    PosCommitCheckoutInventoryParams,
     PosClearSessionParams,
-    PosCompletePaymentParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
     PosSaveSessionParams,
@@ -17,7 +17,6 @@ import {
     PosBootstrapResult,
     PosCartLinesResult,
     PosOperationResult,
-    PosPaymentResult,
     PosTotalsResult
 } from "../../types/pos.error.types";
 
@@ -39,9 +38,9 @@ export interface PosDatasource {
   clearCart(): Promise<PosOperationResult>;
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
-  completePayment(
-    params: PosCompletePaymentParams,
-  ): Promise<PosPaymentResult>;
+  commitCheckoutInventory(
+    params: PosCommitCheckoutInventoryParams,
+  ): Promise<PosOperationResult>;
   saveSession(params: PosSaveSessionParams): Promise<PosOperationResult>;
   loadSession(params: PosLoadSessionParams): Promise<PosSessionResult>;
   clearSession(params: PosClearSessionParams): Promise<PosOperationResult>;

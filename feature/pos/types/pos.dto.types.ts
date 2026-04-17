@@ -32,13 +32,16 @@ export type PosPaymentPartInput = {
   settlementAccountRemoteId: string;
 };
 
+export type PosCommitCheckoutInventoryParams = {
+  businessAccountRemoteId: string;
+  cartLines: readonly PosCartLine[];
+  receiptNumber: string;
+};
+
 export type PosCompletePaymentParams = {
   businessAccountRemoteId: string;
   cartLines: readonly PosCartLine[];
   receipt: PosReceipt;
-  paymentParts?: readonly PosPaymentPartInput[];
-  selectedCustomer?: PosCustomer | null;
-  grandTotalSnapshot?: number;
 };
 
 export type PosReceiptDocumentParams = {

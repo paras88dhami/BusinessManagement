@@ -62,7 +62,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
         saveSession: vi.fn(),
         loadSession: vi.fn(),
         clearSession: vi.fn(),
@@ -107,7 +107,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
         saveSession: vi.fn(),
         loadSession: vi.fn(),
         clearSession: vi.fn(),
@@ -163,7 +163,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -200,7 +200,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
       };
 
       const clearSessionUseCase = createClearPosSessionUseCase(mockRepository);
@@ -228,7 +228,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
       };
 
       const clearSessionUseCase = createClearPosSessionUseCase(mockRepository);
@@ -280,7 +280,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -447,7 +447,7 @@ describe("POS Behavioral Tests", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        completePayment: vi.fn(),
+        commitCheckoutInventory: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);

@@ -3,7 +3,10 @@ import type {
   MoneyAccountTypeValue,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { Status } from "@/shared/types/status.types";
-import type { PosSaveSessionParams } from "../../types/pos.dto.types";
+import type {
+  PosSaveSessionParams,
+  PosSessionData,
+} from "../../types/pos.dto.types";
 import type {
   PosCartLine,
   PosCustomer,
@@ -64,6 +67,131 @@ export const INITIAL_POS_SCREEN_COORDINATOR_STATE: PosScreenCoordinatorState = {
 };
 
 export type PosSessionStateOverrides = Partial<PosSaveSessionParams["sessionData"]>;
+
+export const buildPosSessionDataFromState = (
+  state: PosScreenCoordinatorState,
+  overrides: PosSessionStateOverrides = {},
+): PosSessionData => ({
+  cartLines: overrides.cartLines ?? state.cartLines,
+  recentProducts: overrides.recentProducts ?? state.recentProducts,
+  productSearchTerm: overrides.productSearchTerm ?? state.productSearchTerm,
+  selectedCustomer: Object.prototype.hasOwnProperty.call(
+    overrides,
+    "selectedCustomer",
+  )
+    ? (overrides.selectedCustomer ?? null)
+    : state.selectedCustomer,
+  selectedSettlementAccountRemoteId:
+    overrides.selectedSettlementAccountRemoteId ??
+    state.selectedSettlementAccountRemoteId,
+  discountInput: overrides.discountInput ?? state.discountInput,
+  surchargeInput: overrides.surchargeInput ?? state.surchargeInput,
+  splitBillDraftParts: overrides.splitBillDraftParts ?? state.splitBillDraftParts,
+});
+
+export type PosSessionRestoreSnapshot = {
+  didRestoreSession: boolean;
+  cartLines: readonly PosCartLine[];
+  recentProducts: readonly PosProduct[];
+  productSearchTerm: string;
+  selectedCustomer: PosCustomer | null;
+  discountInput: string;
+  surchargeInput: string;
+  selectedSettlementAccountRemoteId: string;
+  splitBillDraftParts: readonly PosSplitDraftPart[];
+};
+
+export const EMPTY_POS_SESSION_RESTORE_SNAPSHOT: PosSessionRestoreSnapshot = {
+  didRestoreSession: false,
+  cartLines: [],
+  recentProducts: [],
+  productSearchTerm: "",
+  selectedCustomer: null,
+  discountInput: "",
+  surchargeInput: "",
+  selectedSettlementAccountRemoteId: "",
+  splitBillDraftParts: [],
+};
+
+export const buildPosSessionRestoreSnapshot = (
+  sessionData: PosSessionData | null | undefined,
+): PosSessionRestoreSnapshot => {
+  if (!sessionData) {
+    return EMPTY_POS_SESSION_RESTORE_SNAPSHOT;
+  }
+
+  return {
+    didRestoreSession: true,
+    cartLines: sessionData.cartLines,
+    recentProducts: sessionData.recentProducts,
+    productSearchTerm: sessionData.productSearchTerm,
+    selectedCustomer: sessionData.selectedCustomer,
+    discountInput: sessionData.discountInput,
+    surchargeInput: sessionData.surchargeInput,
+    selectedSettlementAccountRemoteId:
+      sessionData.selectedSettlementAccountRemoteId?.trim() ?? "",
+    splitBillDraftParts: sessionData.splitBillDraftParts ?? [],
+  };
+};
+
+const hasSettlementAccountOption = (
+  moneyAccountOptions: readonly PosMoneyAccountOption[],
+  settlementAccountRemoteId: string,
+): boolean =>
+  settlementAccountRemoteId.trim().length > 0 &&
+  moneyAccountOptions.some(
+    (option) => option.value === settlementAccountRemoteId.trim(),
+  );
+
+export const resolveSelectedSettlementAccountRemoteId = ({
+  moneyAccountOptions,
+  sessionSelectedSettlementAccountRemoteId,
+  activeSettlementAccountRemoteId,
+}: {
+  moneyAccountOptions: readonly PosMoneyAccountOption[];
+  sessionSelectedSettlementAccountRemoteId: string;
+  activeSettlementAccountRemoteId: string | null;
+}): string => {
+  if (
+    hasSettlementAccountOption(
+      moneyAccountOptions,
+      sessionSelectedSettlementAccountRemoteId,
+    )
+  ) {
+    return sessionSelectedSettlementAccountRemoteId.trim();
+  }
+
+  if (
+    activeSettlementAccountRemoteId &&
+    hasSettlementAccountOption(
+      moneyAccountOptions,
+      activeSettlementAccountRemoteId,
+    )
+  ) {
+    return activeSettlementAccountRemoteId.trim();
+  }
+
+  return "";
+};
+
+export const sanitizeSplitBillDraftPartSettlementAccounts = ({
+  splitBillDraftParts,
+  moneyAccountOptions,
+  fallbackSettlementAccountRemoteId,
+}: {
+  splitBillDraftParts: readonly PosSplitDraftPart[];
+  moneyAccountOptions: readonly PosMoneyAccountOption[];
+  fallbackSettlementAccountRemoteId: string;
+}): readonly PosSplitDraftPart[] =>
+  splitBillDraftParts.map((part) => ({
+    ...part,
+    settlementAccountRemoteId: hasSettlementAccountOption(
+      moneyAccountOptions,
+      part.settlementAccountRemoteId,
+    )
+      ? part.settlementAccountRemoteId
+      : fallbackSettlementAccountRemoteId,
+  }));
 
 export const parseAmountInput = (value: string): number => {
   const normalizedValue = value.trim();
