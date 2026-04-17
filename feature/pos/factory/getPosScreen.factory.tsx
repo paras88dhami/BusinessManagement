@@ -3,6 +3,7 @@ import { createMoneyAccountRepository } from "@/feature/accounts/data/repository
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
 import { createSaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase.impl";
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
@@ -20,6 +21,7 @@ import { createPostBusinessTransactionUseCase } from "@/feature/transactions/use
 import appDatabase from "@/shared/database/appDatabase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import React from "react";
+import { createPosReceiptDocumentAdapter } from "../adapter/posReceiptDocument.adapter.impl";
 import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
 import { PosScreen } from "../ui/PosScreen";
@@ -32,12 +34,14 @@ import { createClearPosSessionUseCase } from "../useCase/clearPosSession.useCase
 import { createCompletePaymentUseCase } from "../useCase/completePayment.useCase.impl";
 import { createCompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase.impl";
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
+import { createGetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase.impl";
 import { createLoadPosSessionUseCase } from "../useCase/loadPosSession.useCase.impl";
-import { createPrintReceiptUseCase } from "../useCase/printReceipt.useCase.impl";
+import { createPrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase.impl";
 import { createSavePosSessionUseCase } from "../useCase/savePosSession.useCase.impl";
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
-import { createShareReceiptUseCase } from "../useCase/shareReceipt.useCase.impl";
-import { usePosScreenViewModel } from "../viewModel/posScreen.viewModel.impl";
+import { createSharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase.impl";
+import { usePosSaleHistoryViewModel } from "../viewModel/posSaleHistory.viewModel.impl";
+import { usePosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel.impl";
 
 type GetPosScreenFactoryProps = {
   activeBusinessAccountRemoteId: string | null;
@@ -127,6 +131,10 @@ export function GetPosScreenFactory({
     () => createSaveBillingDocumentAllocationsUseCase(billingRepository),
     [billingRepository],
   );
+  const getBillingOverviewUseCase = React.useMemo(
+    () => createGetBillingOverviewUseCase(billingRepository),
+    [billingRepository],
+  );
   const ledgerDatasource = React.useMemo(
     () => createLocalLedgerDatasource(appDatabase),
     [],
@@ -182,15 +190,43 @@ export function GetPosScreenFactory({
       getOrCreateBusinessContactUseCase,
     ],
   );
-  const printReceiptUseCase = React.useMemo(
-    () => createPrintReceiptUseCase(),
+  const receiptDocumentAdapter = React.useMemo(
+    () => createPosReceiptDocumentAdapter(),
     [],
+  );
+  const printPosReceiptUseCase = React.useMemo(
+    () =>
+      createPrintPosReceiptUseCase({
+        receiptDocumentAdapter,
+      }),
+    [receiptDocumentAdapter],
   );
 
-  const shareReceiptUseCase = React.useMemo(
-    () => createShareReceiptUseCase(),
-    [],
+  const sharePosReceiptUseCase = React.useMemo(
+    () =>
+      createSharePosReceiptUseCase({
+        receiptDocumentAdapter,
+      }),
+    [receiptDocumentAdapter],
   );
+
+  const getPosSaleHistoryUseCase = React.useMemo(
+    () =>
+      createGetPosSaleHistoryUseCase({
+        getBillingOverviewUseCase,
+      }),
+    [getBillingOverviewUseCase],
+  );
+
+  const saleHistoryViewModel = usePosSaleHistoryViewModel({
+    accountRemoteId: activeBusinessAccountRemoteId ?? "",
+    currencyCode: activeAccountCurrencyCode ?? "NPR",
+    countryCode: activeAccountCountryCode,
+    getPosSaleHistoryUseCase,
+    printPosReceiptUseCase,
+    sharePosReceiptUseCase,
+  });
+
   const productDatasource = React.useMemo(
     () => createLocalProductDatasource(appDatabase),
     [],
@@ -217,7 +253,7 @@ export function GetPosScreenFactory({
     [moneyAccountRepository],
   );
 
-  const viewModel = usePosScreenViewModel({
+  const viewModel = usePosScreenCoordinatorViewModel({
     activeBusinessAccountRemoteId,
     activeOwnerUserRemoteId,
     activeSettlementAccountRemoteId,
@@ -235,13 +271,14 @@ export function GetPosScreenFactory({
     getContactsUseCase,
     clearCartUseCase,
     completePosCheckoutUseCase,
-    printReceiptUseCase,
-    shareReceiptUseCase,
+    printPosReceiptUseCase,
+    sharePosReceiptUseCase,
     saveProductUseCase,
     savePosSessionUseCase,
     loadPosSessionUseCase,
     clearPosSessionUseCase,
     getMoneyAccountsUseCase,
+    saleHistoryViewModel,
   });
 
   return <PosScreen viewModel={viewModel} />;

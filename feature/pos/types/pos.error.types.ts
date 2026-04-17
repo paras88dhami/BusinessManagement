@@ -1,3 +1,4 @@
+import type { BillingDocument } from "@/feature/billing/types/billing.types";
 import { Result } from "@/shared/types/result.types";
 import {
   PosBootstrap,
@@ -29,3 +30,4 @@ export type PosTotalsResult = Result<PosTotals, PosError>;
 export type PosPaymentResult = Result<PosReceipt, PosError>;
 export type PosLedgerEffectResult = Result<PosLedgerEffect, PosError>;
 export type PosOperationResult = Result<boolean, PosError>;
+export type PosSaleHistoryResult = Result<readonly BillingDocument[], PosError>;

@@ -1,75 +1,86 @@
-import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
+import type { BillingDocument } from "@/feature/billing/types/billing.types";
 import { StatusType } from "@/shared/types/status.types";
-import {
-    PosBootstrap,
-    PosCartLine,
-    PosProduct,
-    PosReceipt,
-    PosTotals,
+import type {
+  PosBootstrap,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
+  PosReceipt,
+  PosSplitDraftPart,
+  PosTotals,
 } from "./pos.entity.types";
+import type { PosMoneyAccountOption, PosCustomerOption } from "./pos.ui.types";
+import type {
+  PosCheckoutSubmissionKind,
+  PosModalType,
+} from "./pos.workflow.types";
 
-export type PosCheckoutMode = "payment" | "split-bill";
-
-export type PosCheckoutSubmissionKind = "payment" | "split-bill";
-
-export type PosModalType =
-  | "none"
-  | "create-product"
-  | "discount"
-  | "surcharge"
-  | "payment"
-  | "split-bill"
-  | "receipt"
-  | "customer-create";
-
-export type PosScreenState = {
-  status: StatusType;
-  bootstrap: PosBootstrap | null;
+export type PosCatalogState = {
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   recentProducts: readonly PosProduct[];
-  cartLines: readonly PosCartLine[];
-  totals: PosTotals;
-  activeModal: PosModalType;
   productSearchTerm: string;
-  discountInput: string;
-  surchargeInput: string;
-  paymentInput: string;
   quickProductNameInput: string;
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
-  receipt: PosReceipt | null;
-  infoMessage: string | null;
-  errorMessage: string | null;
-  selectedCustomer: import("./pos.entity.types").PosCustomer | null;
+};
+
+export type PosCartState = {
+  cartLines: readonly PosCartLine[];
+  totals: PosTotals;
+  discountInput: string;
+  surchargeInput: string;
+};
+
+export type PosCustomerState = {
+  selectedCustomer: PosCustomer | null;
   customerSearchTerm: string;
-  customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
-  selectedSettlementAccountRemoteId: string;
-  moneyAccountOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
+  customerOptions: readonly PosCustomerOption[];
   customerCreateForm: {
     fullName: string;
     phone: string;
     address: string;
   };
   isCreatingCustomer: boolean;
-  splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
-  splitBillErrorMessage: string | null;
+};
+
+export type PosCheckoutState = {
+  paymentInput: string;
+  selectedSettlementAccountRemoteId: string;
+  moneyAccountOptions: readonly PosMoneyAccountOption[];
   isCheckoutSubmitting: boolean;
   checkoutSubmissionKind: PosCheckoutSubmissionKind | null;
 };
 
-export type PosScreenViewModel = {
+export type PosSplitBillState = {
+  splitBillDraftParts: readonly PosSplitDraftPart[];
+  splitBillErrorMessage: string | null;
+};
+
+export type PosReceiptState = {
+  receipt: PosReceipt | null;
+};
+
+export type PosSaleHistoryState = {
+  receipts: readonly BillingDocument[];
+  filteredReceipts: readonly BillingDocument[];
+  isLoading: boolean;
+  searchTerm: string;
+  selectedReceipt: BillingDocument | null;
+  errorMessage: string | null;
+};
+
+export type PosScreenCoordinatorState = {
   status: StatusType;
-  screenTitle: string;
-  currencyCode: string;
-  countryCode: string | null;
-  taxSummaryLabel: string;
-  cartLines: readonly PosCartLine[];
-  totals: PosTotals;
+  bootstrap: PosBootstrap | null;
+  activeModal: PosModalType;
+  infoMessage: string | null;
+  errorMessage: string | null;
   products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   recentProducts: readonly PosProduct[];
-  activeModal: PosModalType;
+  cartLines: readonly PosCartLine[];
+  totals: PosTotals;
   productSearchTerm: string;
   discountInput: string;
   surchargeInput: string;
@@ -78,84 +89,19 @@ export type PosScreenViewModel = {
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
   receipt: PosReceipt | null;
-  infoMessage: string | null;
-  errorMessage: string | null;
-  selectedCustomer: import("./pos.entity.types").PosCustomer | null;
+  selectedCustomer: PosCustomer | null;
   customerSearchTerm: string;
+  customerOptions: readonly PosCustomerOption[];
+  selectedSettlementAccountRemoteId: string;
+  moneyAccountOptions: readonly PosMoneyAccountOption[];
   customerCreateForm: {
     fullName: string;
     phone: string;
     address: string;
   };
-  selectedSettlementAccountRemoteId: string;
-  moneyAccountOptions: readonly DropdownOption[];
-  isBusinessContextResolved: boolean;
-  load: () => Promise<void>;
-  onProductSearchChange: (value: string) => Promise<void>;
-  onAddProductToCart: (productId: string) => Promise<void>;
-  onOpenCreateProductModal: () => void;
-  onCloseCreateProductModal: () => void;
-  onQuickProductNameInputChange: (value: string) => void;
-  onQuickProductPriceInputChange: (value: string) => void;
-  onQuickProductCategoryInputChange: (value: string) => void;
-  onCreateProductFromPos: () => Promise<void>;
-  onCloseModal: () => void;
-  onIncreaseQuantity: (lineId: string) => Promise<void>;
-  onDecreaseQuantity: (lineId: string) => Promise<void>;
-  onRemoveCartLine: (lineId: string) => Promise<void>;
-  onDiscountInputChange: (value: string) => void;
-  onSurchargeInputChange: (value: string) => void;
-  onPaymentInputChange: (value: string) => void;
-  onOpenDiscountModal: () => void;
-  onOpenSurchargeModal: () => void;
-  onOpenPaymentModal: () => void;
-  onClosePaymentModal: () => void;
-  onOpenSplitBillModal: () => void;
-  onCloseSplitBillModal: () => void;
-  onApplyEqualSplit: (count: number) => Promise<void>;
-  onAddSplitBillPart: () => Promise<void>;
-  onRemoveSplitBillPart: (paymentPartId: string) => Promise<void>;
-  onChangeSplitBillPartPayerLabel: (
-    paymentPartId: string,
-    value: string,
-  ) => Promise<void>;
-  onChangeSplitBillPartAmount: (
-    paymentPartId: string,
-    value: string,
-  ) => Promise<void>;
-  onChangeSplitBillPartSettlementAccount: (
-    paymentPartId: string,
-    settlementAccountRemoteId: string,
-  ) => Promise<void>;
-  onCompleteSplitBillPayment: () => Promise<void>;
-  onApplyDiscount: () => Promise<void>;
-  onApplySurcharge: () => Promise<void>;
-  onClearCart: () => Promise<void>;
-  onConfirmPayment: () => Promise<void>;
-  onOpenReceiptModal: () => void;
-  onCloseReceiptModal: () => void;
-  onPrintReceipt: () => Promise<void>;
-  onShareReceipt: () => Promise<void>;
-  onSelectCustomer: (
-    customer: import("./pos.entity.types").PosCustomer,
-  ) => void;
-  onClearCustomer: () => void;
-  onCustomerSearchChange: (searchTerm: string) => void;
-  onOpenCustomerCreateModal: () => void;
-  onCloseCustomerCreateModal: () => void;
-  onCustomerCreateFormChange: (
-    field: "fullName" | "phone" | "address",
-    value: string,
-  ) => void;
-  onCreateCustomer: () => Promise<void>;
-  onSettlementAccountChange: (settlementAccountRemoteId: string) => void;
-  customerOptions: readonly import("../ui/components/PosCustomerSelector").DropdownOption[];
   isCreatingCustomer: boolean;
-  splitBillDraftParts: readonly import("./pos.entity.types").PosSplitDraftPart[];
-  splitBillAllocatedAmount: number;
-  splitBillRemainingAmount: number;
+  splitBillDraftParts: readonly PosSplitDraftPart[];
   splitBillErrorMessage: string | null;
   isCheckoutSubmitting: boolean;
-  isPaymentSubmitting: boolean;
-  isSplitBillSubmitting: boolean;
+  checkoutSubmissionKind: PosCheckoutSubmissionKind | null;
 };

@@ -1,8 +1,9 @@
 import type {
-    PosCartLine,
-    PosCustomer,
-    PosProduct,
-    PosSplitDraftPart,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
+  PosReceipt,
+  PosSplitDraftPart,
 } from "./pos.entity.types";
 
 export type PosLoadBootstrapParams = {
@@ -35,6 +36,17 @@ export type PosCompletePaymentParams = {
   paymentParts: readonly PosPaymentPartInput[];
   selectedCustomer: PosCustomer | null;
   grandTotalSnapshot: number;
+};
+
+export type PosReceiptDocumentParams = {
+  receipt: PosReceipt;
+  currencyCode: string;
+  countryCode: string | null;
+};
+
+export type PosGetSaleHistoryParams = {
+  accountRemoteId: string;
+  searchTerm?: string;
 };
 
 export type PosSaveSessionParams = {

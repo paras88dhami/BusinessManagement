@@ -57,8 +57,8 @@ describe("POS Chips and Remove Cart Behavior", () => {
       recentProducts = updateRecentProducts(recentProducts, mockProducts[0]);
       expect(recentProducts).toHaveLength(3);
       expect(recentProducts[0].id).toBe("product-1"); // Moved to front
-      expect(recentProducts[1].id).toBe("product-2");
-      expect(recentProducts[2].id).toBe("product-3");
+      expect(recentProducts[1].id).toBe("product-3");
+      expect(recentProducts[2].id).toBe("product-2");
     });
 
     it("should not limit to 8 products (session-only tracking)", () => {
@@ -181,8 +181,8 @@ describe("POS Chips and Remove Cart Behavior", () => {
       
       expect(recentProducts).toHaveLength(3);
       expect(recentProducts[0].id).toBe("product-new"); // Created product at front
-      expect(recentProducts[1].id).toBe("product-2");
-      expect(recentProducts[2].id).toBe("product-1");
+      expect(recentProducts[1].id).toBe("product-1");
+      expect(recentProducts[2].id).toBe("product-2");
     });
   });
 });

@@ -40,6 +40,14 @@ export type PosLedgerEffect = {
   accountRemoteId: string | null;
 };
 
+export type PosReceiptPaymentPart = {
+  paymentPartId: string;
+  payerLabel: string | null;
+  amount: number;
+  settlementAccountRemoteId: string;
+  settlementAccountLabel: string | null;
+};
+
 export type PosReceipt = {
   receiptNumber: string;
   issuedAt: string;
@@ -61,14 +69,6 @@ export type PosSplitDraftPart = {
   settlementAccountRemoteId: string;
 };
 
-export type PosReceiptPaymentPart = {
-  paymentPartId: string;
-  payerLabel: string | null;
-  amount: number;
-  settlementAccountRemoteId: string;
-  settlementAccountLabel: string | null;
-};
-
 export type PosCustomer = {
   remoteId: string;
   fullName: string;
@@ -81,4 +81,15 @@ export type PosBootstrap = {
   activeBusinessAccountRemoteId: string | null;
   activeOwnerUserRemoteId: string | null;
   activeSettlementAccountRemoteId: string | null;
+};
+
+export type PosSaleRecord = {
+  remoteId: string;
+  receiptNumber: string;
+  customerName: string;
+  status: string;
+  issuedAt: number;
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
 };

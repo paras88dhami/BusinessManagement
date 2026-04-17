@@ -1,8 +1,5 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import {
-  Dropdown,
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
+import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Printer, X } from "lucide-react-native";
@@ -16,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { PosCustomer, PosTotals } from "../types/pos.entity.types";
+import type { PosMoneyAccountOption } from "../types/pos.ui.types";
 import { formatCurrency } from "./posScreen.shared";
 
 type PosPaymentModalProps = {
@@ -26,7 +24,7 @@ type PosPaymentModalProps = {
   paidAmount: string;
   selectedCustomer: PosCustomer | null;
   selectedSettlementAccountRemoteId: string;
-  moneyAccountOptions: readonly DropdownOption[];
+  moneyAccountOptions: readonly PosMoneyAccountOption[];
   isSubmitting: boolean;
   onPaidAmountChange: (value: string) => void;
   onSettlementAccountChange: (settlementAccountRemoteId: string) => void;

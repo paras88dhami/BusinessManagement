@@ -24,7 +24,7 @@ import {
     View,
 } from "react-native";
 import { PosProduct } from "../types/pos.entity.types";
-import { PosScreenViewModel } from "../types/pos.state.types";
+import type { PosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel";
 import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
 import { PosCustomerSelector } from "./components/PosCustomerSelector";
 import { PosAdjustAmountModal } from "./PosAdjustAmountModal";
@@ -35,12 +35,16 @@ import { formatCurrency } from "./posScreen.shared";
 import { PosSplitBillModal } from "./PosSplitBillModal";
 
 type PosScreenProps = {
-  viewModel: PosScreenViewModel;
+  viewModel: PosScreenCoordinatorViewModel;
 };
 
 export function PosScreen({ viewModel }: PosScreenProps) {
-  const isShareAvailable = Platform.OS !== "web";
-  const cartLines = viewModel.cartLines;
+  const catalog = viewModel.catalog;
+  const cart = viewModel.cart;
+  const customer = viewModel.customer;
+  const checkout = viewModel.checkout;
+  const splitBill = viewModel.splitBill;
+  const receipt = viewModel.receipt;
 
   
   return (
@@ -57,16 +61,16 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 Search and add products directly to cart
               </Text>
             </View>
-            <AppIconButton onPress={viewModel.onOpenCreateProductModal}>
+            <AppIconButton onPress={catalog.onOpenCreateProductModal}>
               <PlusCircle size={20} color={colors.primary} />
             </AppIconButton>
           </View>
 
           <View style={styles.searchWrap}>
             <TextInput
-              value={viewModel.productSearchTerm}
+              value={catalog.productSearchTerm}
               onChangeText={(value) =>
-                void viewModel.onProductSearchChange(value)
+                void catalog.onProductSearchChange(value)
               }
               placeholder="Search products..."
               placeholderTextColor={colors.mutedForeground}
@@ -74,7 +78,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             />
           </View>
 
-          {viewModel.recentProducts.length > 0 && (
+          {catalog.recentProducts.length > 0 && (
             <View style={styles.quickProductsSection}>
               <Text style={styles.quickProductsTitle}>Recent Products</Text>
               <ScrollView
@@ -83,12 +87,12 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 style={styles.quickProductsScroll}
                 contentContainerStyle={styles.quickProductsContent}
               >
-                {viewModel.recentProducts.map((product) => (
+                {catalog.recentProducts.map((product) => (
                   <Pressable
                     key={product.id}
                     style={styles.quickProductChip}
                     onPress={() =>
-                      void viewModel.onAddProductToCart(product.id)
+                      void catalog.onAddProductToCart(product.id)
                     }
                   >
                     <Text style={styles.quickProductChipText}>
@@ -107,7 +111,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             </View>
           )}
 
-          {viewModel.productSearchTerm === "" ? (
+          {catalog.productSearchTerm === "" ? (
             <View style={styles.emptySearchState}>
               <Text style={styles.emptySearchTitle}>Search for Products</Text>
               <Text style={styles.emptySearchSubtitle}>
@@ -115,15 +119,15 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 cart
               </Text>
             </View>
-          ) : viewModel.filteredProducts.length > 0 ? (
+          ) : catalog.filteredProducts.length > 0 ? (
             <ScrollView style={styles.productsList} nestedScrollEnabled>
               <View style={styles.productsContent}>
-                {viewModel.filteredProducts.map((product: PosProduct) => (
+                {catalog.filteredProducts.map((product: PosProduct) => (
                   <Pressable
                     key={product.id}
                     style={styles.productRow}
                     onPress={() =>
-                      void viewModel.onAddProductToCart(product.id)
+                      void catalog.onAddProductToCart(product.id)
                     }
                   >
                     <View style={styles.productAvatarWrap}>
@@ -167,17 +171,17 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             <Text style={styles.cartTitle}>Cart Summary</Text>
             <View style={styles.itemsPill}>
               <Text style={styles.itemsPillText}>
-                {viewModel.totals.itemCount} items
+                {cart.totals.itemCount} items
               </Text>
             </View>
           </View>
 
-          {viewModel.cartLines.length === 0 ? (
+          {cart.cartLines.length === 0 ? (
             <Text style={styles.emptyCartText}>
               Search and tap products to add them to cart.
             </Text>
           ) : (
-            viewModel.cartLines.map((cartLine) => (
+            cart.cartLines.map((cartLine) => (
               <View key={cartLine.lineId} style={styles.cartLineRow}>
                 <View style={styles.cartLineBody}>
                   <Text style={styles.cartLineTitle}>
@@ -195,7 +199,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 <View style={styles.cartLineActions}>
                   <AppIconButton
                     onPress={() => {
-                      void viewModel.onDecreaseQuantity(cartLine.lineId);
+                      void cart.onDecreaseQuantity(cartLine.lineId);
                     }}
                   >
                     <Minus size={14} color={colors.mutedForeground} />
@@ -203,7 +207,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                   <Text style={styles.cartLineQty}>{cartLine.quantity}</Text>
                   <AppIconButton
                     onPress={() => {
-                      void viewModel.onIncreaseQuantity(cartLine.lineId);
+                      void cart.onIncreaseQuantity(cartLine.lineId);
                     }}
                   >
                     <Plus size={14} color={colors.mutedForeground} />
@@ -219,7 +223,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 <Pressable
                   style={styles.cartDeleteButton}
                   onPress={() => {
-                    void viewModel.onRemoveCartLine(cartLine.lineId);
+                    void cart.onRemoveCartLine(cartLine.lineId);
                   }}
                 >
                   <Trash2 size={16} color={colors.destructive} />
@@ -233,31 +237,31 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               <Text style={styles.totalLabel}>Gross</Text>
               <Text style={styles.totalValue}>
                 {formatCurrency(
-                  viewModel.totals.gross,
+                  cart.totals.gross,
                   viewModel.currencyCode,
                   viewModel.countryCode,
                 )}
               </Text>
             </View>
-            {viewModel.totals.discountAmount > 0 ? (
+            {cart.totals.discountAmount > 0 ? (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Discount</Text>
                 <Text style={styles.totalValue}>
                   -{" "}
                   {formatCurrency(
-                    viewModel.totals.discountAmount,
+                    cart.totals.discountAmount,
                     viewModel.currencyCode,
                     viewModel.countryCode,
                   )}
                 </Text>
               </View>
             ) : null}
-            {viewModel.totals.surchargeAmount > 0 ? (
+            {cart.totals.surchargeAmount > 0 ? (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Surcharge</Text>
                 <Text style={styles.totalValue}>
                   {formatCurrency(
-                    viewModel.totals.surchargeAmount,
+                    cart.totals.surchargeAmount,
                     viewModel.currencyCode,
                     viewModel.countryCode,
                   )}
@@ -268,7 +272,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               <Text style={styles.totalLabel}>{viewModel.taxSummaryLabel}</Text>
               <Text style={styles.totalValue}>
                 {formatCurrency(
-                  viewModel.totals.taxAmount,
+                  cart.totals.taxAmount,
                   viewModel.currencyCode,
                   viewModel.countryCode,
                 )}
@@ -279,7 +283,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
             <Text style={styles.grandTotalLabel}>Grand Total</Text>
             <Text style={styles.grandTotalValue}>
               {formatCurrency(
-                viewModel.totals.grandTotal,
+                cart.totals.grandTotal,
                 viewModel.currencyCode,
                 viewModel.countryCode,
               )}
@@ -289,13 +293,13 @@ export function PosScreen({ viewModel }: PosScreenProps) {
 
         <Card style={styles.customerCard}>
           <PosCustomerSelector
-            selectedCustomer={viewModel.selectedCustomer}
-            customerSearchTerm={viewModel.customerSearchTerm}
-            customerOptions={viewModel.customerOptions}
-            onCustomerSearchChange={viewModel.onCustomerSearchChange}
-            onSelectCustomer={viewModel.onSelectCustomer}
-            onClearCustomer={viewModel.onClearCustomer}
-            onOpenCustomerCreateModal={viewModel.onOpenCustomerCreateModal}
+            selectedCustomer={customer.selectedCustomer}
+            customerSearchTerm={customer.customerSearchTerm}
+            customerOptions={customer.customerOptions}
+            onCustomerSearchChange={customer.onCustomerSearchChange}
+            onSelectCustomer={customer.onSelectCustomer}
+            onClearCustomer={customer.onClearCustomer}
+            onOpenCustomerCreateModal={customer.onOpenCustomerCreateModal}
           />
         </Card>
 
@@ -308,7 +312,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               leadingIcon={
                 <WalletCards size={18} color={colors.primaryForeground} />
               }
-              onPress={viewModel.onOpenPaymentModal}
+              onPress={checkout.onOpenPaymentModal}
             />
             <AppButton
               label="Clear"
@@ -318,7 +322,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               labelStyle={styles.clearButtonLabel}
               leadingIcon={<Trash2 size={18} color={colors.destructive} />}
               onPress={() => {
-                void viewModel.onClearCart();
+                void cart.onClearCart();
               }}
             />
             <AppButton
@@ -326,7 +330,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               size="lg"
               variant="accent"
               style={styles.actionButtonAccent}
-              onPress={viewModel.onOpenSplitBillModal}
+              onPress={splitBill.onOpenSplitBillModal}
               disabled={viewModel.isCheckoutSubmitting}
             />
           </View>
@@ -336,20 +340,20 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               variant="secondary"
               style={styles.secondaryActionButton}
               leadingIcon={<Percent size={16} color={colors.mutedForeground} />}
-              onPress={viewModel.onOpenDiscountModal}
+              onPress={cart.onOpenDiscountModal}
             />
             <AppButton
               label="+ Surcharge"
               variant="secondary"
               style={styles.secondaryActionButton}
-              onPress={viewModel.onOpenSurchargeModal}
+              onPress={cart.onOpenSurchargeModal}
             />
           </View>
         </Card>
 
         <AppButton
           label={`Pay ${formatCurrency(
-            viewModel.totals.grandTotal,
+            cart.totals.grandTotal,
             viewModel.currencyCode,
             viewModel.countryCode,
           )}`}
@@ -358,7 +362,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           leadingIcon={
             <ShoppingCart size={18} color={colors.primaryForeground} />
           }
-          onPress={viewModel.onOpenPaymentModal}
+          onPress={checkout.onOpenPaymentModal}
           disabled={viewModel.isCheckoutSubmitting}
         />
 
@@ -371,102 +375,98 @@ export function PosScreen({ viewModel }: PosScreenProps) {
       </ScreenContainer>
 
       <PosQuickProductModal
-        visible={viewModel.activeModal === "create-product"}
-        name={viewModel.quickProductNameInput}
-        salePrice={viewModel.quickProductPriceInput}
-        categoryName={viewModel.quickProductCategoryInput}
-        onNameChange={viewModel.onQuickProductNameInputChange}
-        onSalePriceChange={viewModel.onQuickProductPriceInputChange}
-        onCategoryNameChange={viewModel.onQuickProductCategoryInputChange}
+        visible={catalog.isCreateProductModalVisible}
+        name={catalog.quickProductNameInput}
+        salePrice={catalog.quickProductPriceInput}
+        categoryName={catalog.quickProductCategoryInput}
+        onNameChange={catalog.onQuickProductNameInputChange}
+        onSalePriceChange={catalog.onQuickProductPriceInputChange}
+        onCategoryNameChange={catalog.onQuickProductCategoryInputChange}
         onCreate={() => {
-          void viewModel.onCreateProductFromPos();
+          void catalog.onCreateProductFromPos();
         }}
-        onClose={viewModel.onCloseCreateProductModal}
+        onClose={catalog.onCloseCreateProductModal}
       />
 
       <PosAdjustAmountModal
-        visible={viewModel.activeModal === "discount"}
+        visible={cart.isDiscountModalVisible}
         title="Apply Discount"
-        value={viewModel.discountInput}
-        onChange={viewModel.onDiscountInputChange}
+        value={cart.discountInput}
+        onChange={cart.onDiscountInputChange}
         onConfirm={() => {
-          void viewModel.onApplyDiscount();
+          void cart.onApplyDiscount();
         }}
-        onClose={viewModel.onCloseModal}
+        onClose={cart.onCloseAdjustmentModal}
       />
 
       <PosAdjustAmountModal
-        visible={viewModel.activeModal === "surcharge"}
+        visible={cart.isSurchargeModalVisible}
         title="Apply Surcharge"
-        value={viewModel.surchargeInput}
-        onChange={viewModel.onSurchargeInputChange}
+        value={cart.surchargeInput}
+        onChange={cart.onSurchargeInputChange}
         onConfirm={() => {
-          void viewModel.onApplySurcharge();
+          void cart.onApplySurcharge();
         }}
-        onClose={viewModel.onCloseModal}
+        onClose={cart.onCloseAdjustmentModal}
       />
 
       <PosPaymentModal
-        visible={viewModel.activeModal === "payment"}
-        totals={viewModel.totals}
+        visible={checkout.isPaymentModalVisible}
+        totals={checkout.totals}
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
-        paidAmount={viewModel.paymentInput}
-        selectedCustomer={viewModel.selectedCustomer}
-        selectedSettlementAccountRemoteId={
-          viewModel.selectedSettlementAccountRemoteId
-        }
-        moneyAccountOptions={viewModel.moneyAccountOptions}
-        isSubmitting={viewModel.isPaymentSubmitting}
-        onPaidAmountChange={viewModel.onPaymentInputChange}
-        onSettlementAccountChange={viewModel.onSettlementAccountChange}
-        onConfirm={viewModel.onConfirmPayment}
-        onClose={viewModel.onClosePaymentModal}
+        paidAmount={checkout.paymentInput}
+        selectedCustomer={checkout.selectedCustomer}
+        selectedSettlementAccountRemoteId={checkout.selectedSettlementAccountRemoteId}
+        moneyAccountOptions={checkout.moneyAccountOptions}
+        isSubmitting={checkout.isPaymentSubmitting}
+        onPaidAmountChange={checkout.onPaymentInputChange}
+        onSettlementAccountChange={checkout.onSettlementAccountChange}
+        onConfirm={checkout.onConfirmPayment}
+        onClose={checkout.onClosePaymentModal}
       />
 
       <PosSplitBillModal
-        visible={viewModel.activeModal === "split-bill"}
-        grandTotal={viewModel.totals.grandTotal}
-        allocatedAmount={viewModel.splitBillAllocatedAmount}
-        remainingAmount={viewModel.splitBillRemainingAmount}
-        parts={viewModel.splitBillDraftParts}
-        moneyAccountOptions={viewModel.moneyAccountOptions}
+        visible={splitBill.isSplitBillModalVisible}
+        grandTotal={splitBill.grandTotal}
+        allocatedAmount={splitBill.splitBillAllocatedAmount}
+        remainingAmount={splitBill.splitBillRemainingAmount}
+        parts={splitBill.splitBillDraftParts}
+        moneyAccountOptions={splitBill.moneyAccountOptions}
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
-        errorMessage={viewModel.splitBillErrorMessage}
-        isSubmitting={viewModel.isSplitBillSubmitting}
-        onClose={viewModel.onCloseSplitBillModal}
-        onApplyEqualSplit={viewModel.onApplyEqualSplit}
-        onAddPart={viewModel.onAddSplitBillPart}
-        onRemovePart={viewModel.onRemoveSplitBillPart}
-        onChangePartPayerLabel={viewModel.onChangeSplitBillPartPayerLabel}
-        onChangePartAmount={viewModel.onChangeSplitBillPartAmount}
-        onChangePartSettlementAccount={
-          viewModel.onChangeSplitBillPartSettlementAccount
-        }
-        onSubmit={viewModel.onCompleteSplitBillPayment}
+        errorMessage={splitBill.splitBillErrorMessage}
+        isSubmitting={splitBill.isSplitBillSubmitting}
+        onClose={splitBill.onCloseSplitBillModal}
+        onApplyEqualSplit={splitBill.onApplyEqualSplit}
+        onAddPart={splitBill.onAddSplitBillPart}
+        onRemovePart={splitBill.onRemoveSplitBillPart}
+        onChangePartPayerLabel={splitBill.onChangeSplitBillPartPayerLabel}
+        onChangePartAmount={splitBill.onChangeSplitBillPartAmount}
+        onChangePartSettlementAccount={splitBill.onChangeSplitBillPartSettlementAccount}
+        onSubmit={splitBill.onCompleteSplitBillPayment}
       />
 
       <PosReceiptModal
-        visible={viewModel.activeModal === "receipt"}
-        receipt={viewModel.receipt}
+        visible={receipt.isReceiptModalVisible}
+        receipt={receipt.receipt}
         currencyCode={viewModel.currencyCode}
         countryCode={viewModel.countryCode}
-        onClose={viewModel.onCloseReceiptModal}
-        onPrint={viewModel.onPrintReceipt}
-        onShare={viewModel.onShareReceipt}
+        onClose={receipt.onCloseReceiptModal}
+        onPrint={receipt.onPrintReceipt}
+        onShare={receipt.onShareReceipt}
         isPrintAvailable={true}
         isShareAvailable={Platform.OS !== "web"}
       />
 
       <PosCustomerCreateModal
-        visible={viewModel.activeModal === "customer-create"}
-        form={viewModel.customerCreateForm}
-        onFormChange={viewModel.onCustomerCreateFormChange}
-        onSubmit={viewModel.onCreateCustomer}
-        onClose={viewModel.onCloseCustomerCreateModal}
-        isSubmitting={viewModel.isCreatingCustomer}
-        canSubmit={viewModel.customerCreateForm.fullName.trim().length > 0}
+        visible={customer.isCustomerCreateModalVisible}
+        form={customer.customerCreateForm}
+        onFormChange={customer.onCustomerCreateFormChange}
+        onSubmit={customer.onCreateCustomer}
+        onClose={customer.onCloseCustomerCreateModal}
+        isSubmitting={customer.isCreatingCustomer}
+        canSubmit={customer.customerCreateForm.fullName.trim().length > 0}
       />
     </>
   );

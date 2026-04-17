@@ -5,7 +5,7 @@ import type {
   PosCustomer,
   PosProduct,
 } from "@/feature/pos/types/pos.entity.types";
-import type { PosScreenViewModel } from "@/feature/pos/types/pos.state.types";
+import type { PosScreenViewModel } from "@/feature/pos/viewModel/posScreen.viewModel";
 import { usePosScreenViewModel } from "@/feature/pos/viewModel/posScreen.viewModel.impl";
 import React, { useEffect } from "react";
 import { createRoot, Root } from "react-dom/client";
@@ -112,8 +112,8 @@ const createMockPosViewModelParams = (
         },
       ],
     }),
-    printReceiptUseCase: createMockUseCase({ success: true, value: null }),
-    shareReceiptUseCase: createMockUseCase({ success: true, value: null }),
+    printPosReceiptUseCase: createMockUseCase({ success: true, value: null }),
+    sharePosReceiptUseCase: createMockUseCase({ success: true, value: null }),
     saveProductUseCase: createMockUseCase({
       success: true,
       value: {
@@ -580,3 +580,4 @@ describe("PosScreenViewModel restored search term behavior", () => {
     container.remove();
   });
 });
+

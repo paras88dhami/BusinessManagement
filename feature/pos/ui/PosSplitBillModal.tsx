@@ -1,8 +1,5 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import {
-  Dropdown,
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
+import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { ChevronDown, Plus, X } from "lucide-react-native";
@@ -19,6 +16,7 @@ import {
   View,
 } from "react-native";
 import type { PosSplitDraftPart } from "../types/pos.entity.types";
+import type { PosMoneyAccountOption } from "../types/pos.ui.types";
 import { formatCurrency } from "./posScreen.shared";
 
 type PosSplitBillModalProps = {
@@ -27,7 +25,7 @@ type PosSplitBillModalProps = {
   allocatedAmount: number;
   remainingAmount: number;
   parts: readonly PosSplitDraftPart[];
-  moneyAccountOptions: readonly DropdownOption[];
+  moneyAccountOptions: readonly PosMoneyAccountOption[];
   currencyCode: string | null;
   countryCode: string | null;
   errorMessage: string | null;

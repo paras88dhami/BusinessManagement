@@ -6,27 +6,17 @@ import { Plus, User, X } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PosCustomer } from "../../types/pos.entity.types";
+import type { PosCustomerOption } from "../../types/pos.ui.types";
 
 type PosCustomerSelectorProps = {
   selectedCustomer: PosCustomer | null;
   customerSearchTerm: string;
-  customerOptions: readonly DropdownOption[];
+  customerOptions: readonly PosCustomerOption[];
   onCustomerSearchChange: (value: string) => void;
   onSelectCustomer: (customer: PosCustomer) => void;
   onClearCustomer: () => void;
   onOpenCustomerCreateModal: () => void;
   disabled?: boolean;
-};
-
-export type DropdownOption = {
-  label: string;
-  value: string;
-  customerData?: {
-    remoteId: string;
-    fullName: string;
-    phone: string | null;
-    address: string | null;
-  };
 };
 
 export function PosCustomerSelector({
@@ -69,14 +59,12 @@ export function PosCustomerSelector({
                 key={option.value}
                 style={styles.resultRow}
                 onPress={() => {
-                  if (option.customerData) {
-                    onSelectCustomer({
-                      remoteId: option.customerData.remoteId,
-                      fullName: option.customerData.fullName,
-                      phone: option.customerData.phone,
-                      address: option.customerData.address,
-                    });
-                  }
+                  onSelectCustomer({
+                    remoteId: option.customerData.remoteId,
+                    fullName: option.customerData.fullName,
+                    phone: option.customerData.phone,
+                    address: option.customerData.address,
+                  });
                 }}
                 disabled={disabled}
               >

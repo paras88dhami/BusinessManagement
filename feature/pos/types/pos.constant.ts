@@ -1,0 +1,9 @@
+export const POS_SCREEN_TITLE = "POS Checkout";
+
+export const POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT = "0";
+
+export const POS_DEFAULT_CUSTOMER_SEARCH_LIMIT = 10;
+
+export const POS_MIN_SPLIT_PARTS = 2;
+
+export const POS_DEFAULT_EQUAL_SPLIT_COUNT = 2;
