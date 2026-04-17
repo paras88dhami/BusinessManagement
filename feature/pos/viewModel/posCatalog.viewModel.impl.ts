@@ -279,7 +279,6 @@ export function usePosCatalogViewModel({
 
   return useMemo(
     () => ({
-      products: state.products,
       filteredProducts: state.filteredProducts,
       recentProducts: state.recentProducts,
       productSearchTerm: state.productSearchTerm,
@@ -306,7 +305,6 @@ export function usePosCatalogViewModel({
       onQuickProductNameInputChange,
       onQuickProductPriceInputChange,
       state.activeModal,
-      state.products,
       state.filteredProducts,
       state.productSearchTerm,
       state.quickProductCategoryInput,

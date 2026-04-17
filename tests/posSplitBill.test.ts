@@ -3,7 +3,7 @@ import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
-import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
+import { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
 import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
@@ -63,18 +63,13 @@ const createCoreSyncUseCases = () => {
 
 describe("POS Split Bill Integration", () => {
   it("normal payment works through one payment part", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [{
-          paymentPartId: "part-1",
-          payerLabel: null,
-          amount: 1130,
-          settlementAccountRemoteId: "money-cash-1",
-        }]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -98,7 +93,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -127,26 +122,13 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("one payer can pay using two settlement accounts", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "John",
-            amount: 600,
-            settlementAccountRemoteId: "money-cash-1",
-          },
-          {
-            paymentPartId: "part-2", 
-            payerLabel: "John",
-            amount: 530,
-            settlementAccountRemoteId: "money-bank-1",
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -170,7 +152,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -207,32 +189,13 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("multiple friends can pay different amounts", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "Alice",
-            amount: 400,
-            settlementAccountRemoteId: "money-cash-1",
-          },
-          {
-            paymentPartId: "part-2",
-            payerLabel: "Bob",
-            amount: 350,
-            settlementAccountRemoteId: "money-bank-1",
-          },
-          {
-            paymentPartId: "part-3",
-            payerLabel: "Charlie",
-            amount: 380,
-            settlementAccountRemoteId: "money-wallet-1",
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -256,7 +219,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -299,7 +262,7 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("total allocated over grand total should be blocked", async () => {
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: vi.fn(async () => ({
         success: false as const,
         error: {
@@ -326,7 +289,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -365,20 +328,13 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("remaining due requires customer", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "Alice",
-            amount: 830,
-            settlementAccountRemoteId: "money-cash-1",
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -402,7 +358,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -436,26 +392,13 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("each split part requires settlement account", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "Alice",
-            amount: 565,
-            settlementAccountRemoteId: "money-cash-1",
-          },
-          {
-            paymentPartId: "part-2",
-            payerLabel: "Bob",
-            amount: 565,
-            settlementAccountRemoteId: "", // Empty settlement account
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -479,7 +422,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -518,32 +461,13 @@ describe("POS Split Bill Integration", () => {
   });
 
   it("receipt contains payment breakdown", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "Alice",
-            amount: 400,
-            settlementAccountRemoteId: "money-cash-1",
-          },
-          {
-            paymentPartId: "part-2",
-            payerLabel: "Bob",
-            amount: 350,
-            settlementAccountRemoteId: "money-bank-1",
-          },
-          {
-            paymentPartId: "part-3",
-            payerLabel: "Charlie",
-            amount: 380,
-            settlementAccountRemoteId: "money-wallet-1",
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -567,7 +491,7 @@ describe("POS Split Bill Integration", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),

@@ -22,14 +22,14 @@ import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
 import type { PosPaymentPartInput } from "../types/pos.dto.types";
 import { PosReceipt } from "../types/pos.entity.types";
 import { PosErrorType, PosPaymentResult } from "../types/pos.error.types";
-import { CompletePaymentUseCase } from "./completePayment.useCase";
+import type { CommitPosSaleInventoryMutationsUseCase } from "./commitPosSaleInventoryMutations.useCase";
 import {
   CompletePosCheckoutParams,
   CompletePosCheckoutUseCase,
 } from "./completePosCheckout.useCase";
 
 type CreateCompletePosCheckoutUseCaseParams = {
-  completePaymentUseCase: CompletePaymentUseCase;
+  commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
   saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
   saveBillingDocumentAllocationsUseCase: SaveBillingDocumentAllocationsUseCase;
@@ -150,7 +150,7 @@ const buildFallbackTotals = (grandTotalSnapshot: number) => ({
 });
 
 export const createCompletePosCheckoutUseCase = ({
-  completePaymentUseCase,
+  commitPosSaleInventoryMutationsUseCase,
   addLedgerEntryUseCase,
   saveBillingDocumentUseCase,
   saveBillingDocumentAllocationsUseCase,
@@ -262,17 +262,20 @@ export const createCompletePosCheckoutUseCase = ({
       contactRemoteId: params.selectedCustomer?.remoteId ?? null,
     };
 
-    const paymentResult = await completePaymentUseCase.execute({
-      businessAccountRemoteId,
-      cartLines: cartLinesSnapshot,
-      receipt: draftReceipt,
-    });
-
-    if (!paymentResult.success) {
-      return paymentResult;
+    const inventoryCommitResult =
+      await commitPosSaleInventoryMutationsUseCase.execute({
+        businessAccountRemoteId,
+        cartLines: cartLinesSnapshot,
+        saleReferenceNumber: draftReceipt.receiptNumber,
+      });
+    if (!inventoryCommitResult.success) {
+      return {
+        success: false,
+        error: inventoryCommitResult.error,
+      };
     }
 
-    const receipt = paymentResult.value;
+    const receipt = draftReceipt;
 
     const enrichedReceipt: PosReceipt = {
       ...receipt,
@@ -427,7 +430,7 @@ export const createCompletePosCheckoutUseCase = ({
       };
     }
 
-    // VERIFY: Ensure Billing ↔ Ledger linkage is consistent
+    // VERIFY: Ensure Billing <-> Ledger linkage is consistent
     // Check that the ledger entry can be found by the billing document remote ID
     if (dueLedgerRemoteId) {
       const linkageVerificationResult =

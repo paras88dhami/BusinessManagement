@@ -2,7 +2,7 @@ import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillin
 import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase/saveBillingDocumentAllocations.useCase";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { PosReceipt, PosReceiptPaymentPart } from "@/feature/pos/types/pos.entity.types";
-import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
+import { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
 import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
@@ -69,21 +69,13 @@ const createCoreSyncUseCases = (): {
 
 describe("completePosCheckout.useCase", () => {
   it("does not post ledger when checkout is fully paid", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: null,
-            amount: 1130,
-            settlementAccountRemoteId: "money-cash-1",
-            settlementAccountLabel: "Cash Account",
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -107,7 +99,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -137,21 +129,13 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("posts due ledger entry for unpaid balance", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: null,
-            amount: 830,
-            settlementAccountRemoteId: "money-cash-1",
-            settlementAccountLabel: "Cash Account",
-          },
-        ]),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -175,7 +159,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -215,13 +199,13 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("marks ledger effect as failed when due posting fails", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(250),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
 
@@ -244,7 +228,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -284,10 +268,10 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("REAL FIX VERIFICATION: paid checkout fails when settlement account is missing - OLD", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0),
+        value: true,
       }),
     );
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -307,7 +291,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -342,10 +326,10 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("REAL FIX VERIFICATION: paid checkout succeeds with real money account settlement", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0),
+        value: true,
       }),
     );
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -365,7 +349,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -405,10 +389,10 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("PHASE 2A: due balance checkout fails when billing-ledger linkage verification fails", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300),
+        value: true,
       }),
     );
     const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
@@ -436,7 +420,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -479,13 +463,13 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("PRODUCTION FIX: fails when business context is missing", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -505,7 +489,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -563,18 +547,18 @@ describe("completePosCheckout.useCase", () => {
       expect(result2.error.message).toContain("owner user");
     }
 
-    // Verify completePaymentUseCase was never called
+    // Verify commitPosSaleInventoryMutationsUseCase was never called
     expect(completePaymentExecuteSpy).not.toHaveBeenCalled();
   });
 
   it("PRODUCTION FIX: fails when paid checkout missing settlement account", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -594,7 +578,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -626,18 +610,18 @@ describe("completePosCheckout.useCase", () => {
       expect(result.error.message).toContain("Settlement money account");
     }
 
-    // Verify completePaymentUseCase was never called
+    // Verify commitPosSaleInventoryMutationsUseCase was never called
     expect(completePaymentExecuteSpy).not.toHaveBeenCalled();
   });
 
   it("PRODUCTION FIX: fails when unpaid checkout missing customer", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -657,7 +641,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -691,18 +675,18 @@ describe("completePosCheckout.useCase", () => {
       );
     }
 
-    // Verify completePaymentUseCase was never called
+    // Verify commitPosSaleInventoryMutationsUseCase was never called
     expect(completePaymentExecuteSpy).not.toHaveBeenCalled();
   });
 
   it("PRODUCTION FIX: succeeds when fully paid anonymous checkout", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
     const addLedgerEntryUseCase: AddLedgerEntryUseCase = {
@@ -722,7 +706,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -759,13 +743,13 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("PRODUCTION FIX: succeeds when unpaid checkout with customer", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300),
+        value: true,
       }),
     );
-    const completePaymentUseCase: CompletePaymentUseCase = {
+    const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
       execute: completePaymentExecuteSpy,
     };
     const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
@@ -788,7 +772,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -828,10 +812,10 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("PHASE 2A: due balance checkout succeeds when billing-ledger linkage verification passes", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300),
+        value: true,
       }),
     );
     const addLedgerEntryExecuteSpy: AddLedgerEntryUseCase["execute"] = vi.fn(
@@ -861,7 +845,7 @@ describe("completePosCheckout.useCase", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -918,32 +902,17 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("fully paid checkout returns receipt with paymentParts", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(0, [
-          {
-            paymentPartId: "part-1",
-            payerLabel: "Alice",
-            amount: 500,
-            settlementAccountRemoteId: "money-cash-1",
-            settlementAccountLabel: "Cash Account",
-          },
-          {
-            paymentPartId: "part-2",
-            payerLabel: "Bob",
-            amount: 630,
-            settlementAccountRemoteId: "money-bank-1",
-            settlementAccountLabel: "Bank Account",
-          },
-        ]),
+        value: true,
       }),
     );
 
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase: createSuccessfulLedgerUseCase(),
       getOrCreateBusinessContactUseCase: {
         execute: vi.fn(),
@@ -1003,17 +972,17 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("partial paid checkout returns receipt with paymentParts", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(300),
+        value: true,
       }),
     );
 
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase: createSuccessfulLedgerUseCase(),
       getOrCreateBusinessContactUseCase: { execute: vi.fn() },
       ...coreSyncUseCases,
@@ -1058,17 +1027,17 @@ describe("completePosCheckout.useCase", () => {
   });
 
   it("zero paid checkout returns receipt with empty paymentParts", async () => {
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(1130),
+        value: true,
       }),
     );
 
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase: createSuccessfulLedgerUseCase(),
       getOrCreateBusinessContactUseCase: { execute: vi.fn() },
       ...coreSyncUseCases,

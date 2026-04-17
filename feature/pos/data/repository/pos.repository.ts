@@ -2,7 +2,7 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
-    PosCommitCheckoutInventoryParams,
+    PosCommitSaleInventoryMutationsParams,
     PosClearSessionParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
@@ -38,8 +38,8 @@ export interface PosRepository {
   clearCart(): Promise<PosOperationResult>;
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
-  commitCheckoutInventory(
-    params: PosCommitCheckoutInventoryParams,
+  commitSaleInventoryMutations(
+    params: PosCommitSaleInventoryMutationsParams,
   ): Promise<PosOperationResult>;
   saveSession(params: PosSaveSessionParams): Promise<PosOperationResult>;
   loadSession(params: PosLoadSessionParams): Promise<PosSessionResult>;

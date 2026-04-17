@@ -31,7 +31,7 @@ import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.i
 import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase.impl";
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
 import { createClearPosSessionUseCase } from "../useCase/clearPosSession.useCase.impl";
-import { createCompletePaymentUseCase } from "../useCase/completePayment.useCase.impl";
+import { createCommitPosSaleInventoryMutationsUseCase } from "../useCase/commitPosSaleInventoryMutations.useCase.impl";
 import { createCompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase.impl";
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
 import { createGetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase.impl";
@@ -99,8 +99,8 @@ export function GetPosScreenFactory({
     () => createClearCartUseCase(repository),
     [repository],
   );
-  const completePaymentUseCase = React.useMemo(
-    () => createCompletePaymentUseCase(repository),
+  const commitPosSaleInventoryMutationsUseCase = React.useMemo(
+    () => createCommitPosSaleInventoryMutationsUseCase(repository),
     [repository],
   );
   const savePosSessionUseCase = React.useMemo(
@@ -174,7 +174,7 @@ export function GetPosScreenFactory({
   const completePosCheckoutUseCase = React.useMemo(
     () =>
       createCompletePosCheckoutUseCase({
-        completePaymentUseCase,
+        commitPosSaleInventoryMutationsUseCase,
         addLedgerEntryUseCase,
         saveBillingDocumentUseCase,
         saveBillingDocumentAllocationsUseCase,
@@ -183,7 +183,7 @@ export function GetPosScreenFactory({
       }),
     [
       addLedgerEntryUseCase,
-      completePaymentUseCase,
+      commitPosSaleInventoryMutationsUseCase,
       postBusinessTransactionUseCase,
       saveBillingDocumentAllocationsUseCase,
       saveBillingDocumentUseCase,

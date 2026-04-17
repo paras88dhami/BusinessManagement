@@ -2,7 +2,7 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
-    PosCommitCheckoutInventoryParams,
+    PosCommitSaleInventoryMutationsParams,
     PosClearSessionParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
@@ -109,10 +109,10 @@ export const createPosRepository = (
     return { success: true, value: mapPosTotalsToDomain(result.value) };
   },
 
-  async commitCheckoutInventory(
-    params: PosCommitCheckoutInventoryParams,
+  async commitSaleInventoryMutations(
+    params: PosCommitSaleInventoryMutationsParams,
   ): Promise<PosOperationResult> {
-    const result = await datasource.commitCheckoutInventory(params);
+    const result = await datasource.commitSaleInventoryMutations(params);
     if (!result.success) {
       return { success: false, error: mapRepositoryError(result.error) };
     }

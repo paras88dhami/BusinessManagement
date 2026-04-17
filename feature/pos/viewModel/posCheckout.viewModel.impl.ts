@@ -11,10 +11,13 @@ import type { ClearPosSessionUseCase } from "../useCase/clearPosSession.useCase"
 import type { CompletePosCheckoutUseCase } from "../useCase/completePosCheckout.useCase";
 import {
   EMPTY_TOTALS,
+  INITIAL_POS_SCREEN_COORDINATOR_STATE,
   parseAmountInput,
   type PosSessionStateOverrides,
 } from "./internal/posScreen.shared";
 import type { PosCheckoutViewModel } from "./posCheckout.viewModel";
+import type { PosSplitBillViewModel } from "./posSplitBill.viewModel";
+import { usePosSplitBillViewModel } from "./posSplitBill.viewModel.impl";
 
 interface UsePosCheckoutFlowControllerParams {
   state: PosScreenCoordinatorState;
@@ -91,8 +94,8 @@ export function usePosCheckoutFlowController({
     }));
   }, [setState]);
 
-  const finalizeSuccessfulCheckout = useCallback(
-    async (receipt: PosReceipt) => {
+  const applySuccessfulCheckoutState = useCallback(
+    (receipt: PosReceipt, infoMessage: string) => {
       setState((currentState) => ({
         ...currentState,
         cartLines: [],
@@ -104,32 +107,41 @@ export function usePosCheckoutFlowController({
         receipt,
         filteredProducts: [],
         quickProductNameInput: "",
-        quickProductPriceInput: "0",
+        quickProductPriceInput:
+          INITIAL_POS_SCREEN_COORDINATOR_STATE.quickProductPriceInput,
         quickProductCategoryInput: "",
         splitBillDraftParts: [],
         splitBillErrorMessage: null,
-        infoMessage:
-          receipt.ledgerEffect.type === "due_balance_created"
+        infoMessage,
+        errorMessage: null,
+      }));
+    },
+    [setState],
+  );
+
+  const finalizeSuccessfulCheckout = useCallback(
+    async (receipt: PosReceipt) => {
+      const infoMessage =
+        receipt.ledgerEffect.type === "due_balance_created"
+          ? `Sale completed. ${formatCurrencyAmount({
+              amount: receipt.dueAmount,
+              currencyCode,
+              countryCode,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} was posted as ledger due.`
+          : receipt.ledgerEffect.type === "due_balance_create_failed"
             ? `Sale completed. ${formatCurrencyAmount({
                 amount: receipt.dueAmount,
                 currencyCode,
                 countryCode,
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
-              })} was posted as ledger due.`
-            : receipt.ledgerEffect.type === "due_balance_create_failed"
-              ? `Sale completed. ${formatCurrencyAmount({
-                  amount: receipt.dueAmount,
-                  currencyCode,
-                  countryCode,
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} due could not be posted automatically. Add it from Ledger.`
-              : receipt.ledgerEffect.type === "posting_sync_failed"
-                ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
-                : "Sale completed successfully.",
-        errorMessage: null,
-      }));
+              })} due could not be posted automatically. Add it from Ledger.`
+            : receipt.ledgerEffect.type === "posting_sync_failed"
+              ? "Sale completed, but accounting sync failed. Please review Ledger/Billing."
+              : "Sale completed successfully.";
+      applySuccessfulCheckoutState(receipt, infoMessage);
 
       if (activeBusinessAccountRemoteId) {
         await clearPosSessionUseCase.execute({
@@ -139,10 +151,10 @@ export function usePosCheckoutFlowController({
     },
     [
       activeBusinessAccountRemoteId,
+      applySuccessfulCheckoutState,
       clearPosSessionUseCase,
       countryCode,
       currencyCode,
-      setState,
     ],
   );
 
@@ -213,6 +225,70 @@ export function usePosCheckoutFlowController({
       submitCheckout,
     }),
     [submitCheckout],
+  );
+}
+
+interface UsePosCheckoutCoordinationParams {
+  state: PosScreenCoordinatorState;
+  setState: React.Dispatch<React.SetStateAction<PosScreenCoordinatorState>>;
+  activeBusinessAccountRemoteId: string | null;
+  activeOwnerUserRemoteId: string | null;
+  currencyCode: string;
+  countryCode: string | null;
+  completePosCheckoutUseCase: CompletePosCheckoutUseCase;
+  clearPosSessionUseCase: ClearPosSessionUseCase;
+  saveCurrentSession: (
+    overrides?: PosSessionStateOverrides,
+  ) => Promise<void>;
+}
+
+interface PosCheckoutCoordination {
+  checkout: PosCheckoutViewModel;
+  splitBill: PosSplitBillViewModel;
+}
+
+export function usePosCheckoutCoordination({
+  state,
+  setState,
+  activeBusinessAccountRemoteId,
+  activeOwnerUserRemoteId,
+  currencyCode,
+  countryCode,
+  completePosCheckoutUseCase,
+  clearPosSessionUseCase,
+  saveCurrentSession,
+}: UsePosCheckoutCoordinationParams): PosCheckoutCoordination {
+  const checkoutFlow = usePosCheckoutFlowController({
+    state,
+    setState,
+    activeBusinessAccountRemoteId,
+    activeOwnerUserRemoteId,
+    currencyCode,
+    countryCode,
+    completePosCheckoutUseCase,
+    clearPosSessionUseCase,
+  });
+
+  const checkout = usePosCheckoutViewModel({
+    state,
+    setState,
+    saveCurrentSession,
+    submitCheckout: checkoutFlow.submitCheckout,
+  });
+
+  const splitBill = usePosSplitBillViewModel({
+    state,
+    setState,
+    saveCurrentSession,
+    submitCheckout: checkoutFlow.submitCheckout,
+  });
+
+  return useMemo(
+    () => ({
+      checkout,
+      splitBill,
+    }),
+    [checkout, splitBill],
   );
 }
 

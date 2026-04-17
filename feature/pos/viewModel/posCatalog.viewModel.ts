@@ -1,7 +1,6 @@
 import type { PosProduct } from "../types/pos.entity.types";
 
 export interface PosCatalogViewModel {
-  products: readonly PosProduct[];
   filteredProducts: readonly PosProduct[];
   recentProducts: readonly PosProduct[];
   productSearchTerm: string;

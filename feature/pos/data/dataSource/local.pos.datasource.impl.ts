@@ -7,7 +7,7 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
-    PosCommitCheckoutInventoryParams,
+    PosCommitSaleInventoryMutationsParams,
     PosClearSessionParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
@@ -113,7 +113,6 @@ const calculateTotals = (
         ) / Math.max(gross, 1);
   const taxAmount = Number((adjustedBase * effectiveTaxRate).toFixed(2));
   const grandTotal = Number((adjustedBase + taxAmount).toFixed(2));
-
   return {
     itemCount: cartLines.reduce((sum, line) => sum + line.quantity, 0),
     gross: Number(gross.toFixed(2)),
@@ -430,8 +429,8 @@ export const createLocalPosDatasource = ({
       return { success: true, value: getTotalsValue() };
     },
 
-    async commitCheckoutInventory(
-      params: PosCommitCheckoutInventoryParams,
+    async commitSaleInventoryMutations(
+      params: PosCommitSaleInventoryMutationsParams,
     ): Promise<PosOperationResult> {
       const businessAccountRemoteId = params.businessAccountRemoteId?.trim();
       if (!businessAccountRemoteId) {
@@ -439,7 +438,8 @@ export const createLocalPosDatasource = ({
           success: false,
           error: {
             type: PosErrorType.ContextRequired,
-            message: "Business account context is required for POS checkout.",
+            message:
+              "Business account context is required for inventory commit.",
           },
         };
       }
@@ -519,7 +519,7 @@ export const createLocalPosDatasource = ({
             }
             const now = Date.now();
             await movementCollection.create((record) => {
-              record.remoteId = `${params.receiptNumber}-${index + 1}-${now}`;
+              record.remoteId = `${params.saleReferenceNumber}-${index + 1}-${now}`;
               record.accountRemoteId = businessAccountRemoteId;
               record.productRemoteId = product.remoteId;
               record.productNameSnapshot = product.name;
@@ -529,7 +529,7 @@ export const createLocalPosDatasource = ({
               record.deltaQuantity = cartLine.quantity * -1;
               record.unitRate = cartLine.unitPrice;
               record.reason = null;
-              record.remark = `POS sale ${params.receiptNumber}`;
+              record.remark = `POS sale ${params.saleReferenceNumber}`;
               record.movementAt = now;
               record.recordSyncStatus = RecordSyncStatus.PendingCreate;
               record.lastSyncedAt = null;
@@ -544,7 +544,7 @@ export const createLocalPosDatasource = ({
           error: createValidationError(
             error instanceof Error
               ? error.message
-              : "Failed to commit POS checkout inventory.",
+              : "Failed to commit POS inventory mutations.",
           ),
         };
       }

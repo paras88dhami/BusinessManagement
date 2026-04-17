@@ -3,7 +3,7 @@ import { SaveBillingDocumentAllocationsUseCase } from "@/feature/billing/useCase
 import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase.impl";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
 import { PosReceipt } from "@/feature/pos/types/pos.entity.types";
-import { CompletePaymentUseCase } from "@/feature/pos/useCase/completePayment.useCase";
+import { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
 import { createCompletePosCheckoutUseCase } from "@/feature/pos/useCase/completePosCheckout.useCase.impl";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { describe, expect, it, vi } from "vitest";
@@ -85,10 +85,10 @@ describe("POS Customer Creation Due-Balance Flow", () => {
       createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase);
 
     // Mock payment use case for due balance scenario
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(250), // Due balance of 250
+        value: true, // Due balance of 250
       }),
     );
 
@@ -115,7 +115,7 @@ describe("POS Customer Creation Due-Balance Flow", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase,
       ...coreSyncUseCases,
@@ -183,10 +183,10 @@ describe("POS Customer Creation Due-Balance Flow", () => {
     const getOrCreateBusinessContactUseCase =
       createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase);
 
-    const completePaymentExecuteSpy: CompletePaymentUseCase["execute"] = vi.fn(
+    const completePaymentExecuteSpy: CommitPosSaleInventoryMutationsUseCase["execute"] = vi.fn(
       async () => ({
         success: true as const,
-        value: createReceipt(250),
+        value: true,
       }),
     );
 
@@ -212,7 +212,7 @@ describe("POS Customer Creation Due-Balance Flow", () => {
     const coreSyncUseCases = createCoreSyncUseCases();
 
     const useCase = createCompletePosCheckoutUseCase({
-      completePaymentUseCase: { execute: completePaymentExecuteSpy },
+      commitPosSaleInventoryMutationsUseCase: { execute: completePaymentExecuteSpy },
       addLedgerEntryUseCase,
       getOrCreateBusinessContactUseCase,
       ...coreSyncUseCases,

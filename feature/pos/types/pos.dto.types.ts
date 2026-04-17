@@ -32,16 +32,10 @@ export type PosPaymentPartInput = {
   settlementAccountRemoteId: string;
 };
 
-export type PosCommitCheckoutInventoryParams = {
+export type PosCommitSaleInventoryMutationsParams = {
   businessAccountRemoteId: string;
   cartLines: readonly PosCartLine[];
-  receiptNumber: string;
-};
-
-export type PosCompletePaymentParams = {
-  businessAccountRemoteId: string;
-  cartLines: readonly PosCartLine[];
-  receipt: PosReceipt;
+  saleReferenceNumber: string;
 };
 
 export type PosReceiptDocumentParams = {
