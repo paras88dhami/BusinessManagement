@@ -36,6 +36,7 @@ import {
 } from "../types/posCheckout.error.types";
 import { PosCheckoutWorkflowStatus } from "../types/posCheckout.state.types";
 import type { RunPosCheckoutValue } from "../types/posCheckout.types";
+import { createPosReceiptNumber } from "../utils/createPosReceiptNumber";
 import type { RunPosCheckoutUseCase } from "./runPosCheckout.useCase";
 
 type CreateRunPosCheckoutUseCaseParams = {
@@ -82,11 +83,6 @@ const createTransactionRemoteId = (): string => {
   }
 
   return `txn-pos-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-};
-
-const createPosReceiptNumber = (): string => {
-  const timestamp = Date.now().toString().slice(-8);
-  return `RCPT-${timestamp}`;
 };
 
 const getTodayStartTimestamp = (): number => {
