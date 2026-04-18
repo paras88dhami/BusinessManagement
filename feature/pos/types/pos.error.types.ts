@@ -12,6 +12,7 @@ export const PosErrorType = {
   Validation: "VALIDATION",
   ContextRequired: "CONTEXT_REQUIRED",
   ProductNotFound: "PRODUCT_NOT_FOUND",
+  OutOfStock: "OUT_OF_STOCK",
   SlotNotFound: "SLOT_NOT_FOUND",
   CartLineNotFound: "CART_LINE_NOT_FOUND",
   EmptyCart: "EMPTY_CART",

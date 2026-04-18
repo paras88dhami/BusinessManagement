@@ -7,8 +7,8 @@ import {
     PosAddProductToCartParams,
     PosApplyAmountAdjustmentParams,
     PosChangeQuantityParams,
-    PosCommitSaleInventoryMutationsParams,
     PosClearSessionParams,
+    PosCommitSaleInventoryMutationsParams,
     PosLoadBootstrapParams,
     PosLoadSessionParams,
     PosSaveSessionParams,
@@ -301,8 +301,28 @@ export const createLocalPosDatasource = ({
     async addProductToCart(
       params: PosAddProductToCartParams,
     ): Promise<PosCartLinesResult> {
-      const product = await getActiveProductById(params.productId);
-      if (!product) {
+      if (!activeBusinessAccountRemoteId) {
+        return {
+          success: false,
+          error: {
+            type: PosErrorType.ContextRequired,
+            message: "Business account context is required to add products.",
+          },
+        };
+      }
+
+      const collection = database.get<ProductModel>(PRODUCTS_TABLE);
+      const matchingProducts = await collection
+        .query(
+          Q.where("remote_id", params.productId),
+          Q.where("account_remote_id", activeBusinessAccountRemoteId),
+          Q.where("status", "active"),
+          Q.where("deleted_at", Q.eq(null)),
+        )
+        .fetch();
+      const productModel = matchingProducts[0];
+
+      if (!productModel) {
         return {
           success: false,
           error: {
@@ -311,6 +331,41 @@ export const createLocalPosDatasource = ({
           },
         };
       }
+
+      const isInventoryTracked = productModel.kind === "item";
+
+      if (isInventoryTracked) {
+        const currentStock = productModel.stockQuantity ?? 0;
+
+        const existingLineIndex = cartLines.findIndex(
+          (line) => line.productId === params.productId,
+        );
+
+        const quantityAlreadyInCart =
+          existingLineIndex !== -1
+            ? cartLines[existingLineIndex].quantity
+            : 0;
+
+        const nextQuantity = quantityAlreadyInCart + 1;
+
+        if (nextQuantity > currentStock) {
+          const available = currentStock - quantityAlreadyInCart;
+          if (available <= 0) {
+            return {
+              success: false,
+              error: {
+                type: PosErrorType.OutOfStock,
+                message:
+                  currentStock <= 0
+                    ? `${productModel.name} is out of stock.` 
+                    : `Only ${currentStock} unit(s) of ${productModel.name} available. You already have ${quantityAlreadyInCart} in your cart.`,
+              },
+            };
+          }
+        }
+      }
+
+      const product = mapProductModelToPosProduct(productModel);
 
       const existingLineIndex = cartLines.findIndex(
         (line) => line.productId === params.productId,

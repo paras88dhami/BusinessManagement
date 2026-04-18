@@ -177,6 +177,112 @@ describe("POS Direct Sell Functionality", () => {
         productId: "product-1",
       });
     });
+
+    it("should block adding an out-of-stock item product", async () => {
+      const mockRepository = {
+        addProductToCart: vi.fn().mockResolvedValue({
+          success: false,
+          error: {
+            type: PosErrorType.OutOfStock,
+            message: "Widget is out of stock.",
+          },
+        }),
+        loadBootstrap: vi.fn(),
+        searchProducts: vi.fn(),
+        changeCartLineQuantity: vi.fn(),
+        applyDiscount: vi.fn(),
+        applySurcharge: vi.fn(),
+        clearCart: vi.fn(),
+        getCartLines: vi.fn(),
+        getTotals: vi.fn(),
+        commitSaleInventoryMutations: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
+      };
+
+      const useCase = createAddProductToCartUseCase(mockRepository);
+      const result = await useCase.execute({ productId: "out-of-stock-product" });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe(PosErrorType.OutOfStock);
+        expect(result.error.message).toContain("out of stock");
+      }
+    });
+
+    it("should block incrementing a cart line past available stock", async () => {
+      const mockRepository = {
+        addProductToCart: vi.fn().mockResolvedValue({
+          success: false,
+          error: {
+            type: PosErrorType.OutOfStock,
+            message: "Only 2 unit(s) of Widget available. You already have 2 in your cart.",
+          },
+        }),
+        loadBootstrap: vi.fn(),
+        searchProducts: vi.fn(),
+        changeCartLineQuantity: vi.fn(),
+        applyDiscount: vi.fn(),
+        applySurcharge: vi.fn(),
+        clearCart: vi.fn(),
+        getCartLines: vi.fn(),
+        getTotals: vi.fn(),
+        commitSaleInventoryMutations: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
+      };
+
+      const useCase = createAddProductToCartUseCase(mockRepository);
+      const result = await useCase.execute({ productId: "low-stock-product" });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe(PosErrorType.OutOfStock);
+      }
+    });
+
+    it("should allow adding a service product regardless of stock", async () => {
+      const mockRepository = {
+        addProductToCart: vi.fn().mockResolvedValue({
+          success: true,
+          value: [
+            {
+              lineId: "line-1",
+              productId: "service-product-1",
+              productName: "Consultation",
+              categoryLabel: "Services",
+              shortCode: "CO",
+              quantity: 1,
+              unitPrice: 50.0,
+              taxRate: 0,
+              lineSubtotal: 50.0,
+            },
+          ],
+        }),
+        loadBootstrap: vi.fn(),
+        searchProducts: vi.fn(),
+        changeCartLineQuantity: vi.fn(),
+        applyDiscount: vi.fn(),
+        applySurcharge: vi.fn(),
+        clearCart: vi.fn(),
+        getCartLines: vi.fn(),
+        getTotals: vi.fn(),
+        commitSaleInventoryMutations: vi.fn(),
+        saveSession: vi.fn(),
+        loadSession: vi.fn(),
+        clearSession: vi.fn(),
+      };
+
+      const useCase = createAddProductToCartUseCase(mockRepository);
+      const result = await useCase.execute({ productId: "service-product-1" });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.value[0].productId).toBe("service-product-1");
+      }
+    });
   });
 
   describe("Quick Products Selection", () => {
