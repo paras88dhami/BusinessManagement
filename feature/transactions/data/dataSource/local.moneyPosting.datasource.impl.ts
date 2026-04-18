@@ -168,6 +168,7 @@ export const createLocalMoneyPostingDatasource = (
             record.categoryLabel = payload.categoryLabel;
             record.note = payload.note;
             record.happenedAt = payload.happenedAt;
+            record.contactRemoteId = payload.contactRemoteId ?? null;
             record.settlementMoneyAccountRemoteId =
               payload.settlementMoneyAccountRemoteId ?? null;
             record.settlementMoneyAccountDisplayNameSnapshot =
@@ -202,6 +203,7 @@ export const createLocalMoneyPostingDatasource = (
           record.categoryLabel = payload.categoryLabel;
           record.note = payload.note;
           record.happenedAt = payload.happenedAt;
+          record.contactRemoteId = payload.contactRemoteId ?? null;
           record.settlementMoneyAccountRemoteId =
             payload.settlementMoneyAccountRemoteId ?? null;
           record.settlementMoneyAccountDisplayNameSnapshot =

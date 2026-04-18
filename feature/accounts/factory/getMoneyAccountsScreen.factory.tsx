@@ -1,16 +1,18 @@
-import React from "react";
-import appDatabase from "@/shared/database/appDatabase";
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { MoneyAccountsScreen } from "@/feature/accounts/ui/MoneyAccountsScreen";
+import { createAdjustMoneyAccountBalanceUseCase } from "@/feature/accounts/useCase/adjustMoneyAccountBalance.useCase.impl";
+import { createArchiveMoneyAccountUseCase } from "@/feature/accounts/useCase/archiveMoneyAccount.useCase.impl";
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createSaveMoneyAccountUseCase } from "@/feature/accounts/useCase/saveMoneyAccount.useCase.impl";
-import { createArchiveMoneyAccountUseCase } from "@/feature/accounts/useCase/archiveMoneyAccount.useCase.impl";
-import { createAdjustMoneyAccountBalanceUseCase } from "@/feature/accounts/useCase/adjustMoneyAccountBalance.useCase.impl";
 import { useMoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel.impl";
-import { MoneyAccountsScreen } from "@/feature/accounts/ui/MoneyAccountsScreen";
+import { createRunMoneyAccountBalanceReconciliationWorkflowUseCase } from "@/feature/accounts/workflow/moneyAccountBalanceReconciliation/useCase/runMoneyAccountBalanceReconciliation.useCase.impl";
+import { createRunMoneyAccountOpeningBalanceWorkflowUseCase } from "@/feature/accounts/workflow/moneyAccountOpeningBalance/useCase/runMoneyAccountOpeningBalance.useCase.impl";
 import { createLocalMoneyPostingDatasource } from "@/feature/transactions/data/dataSource/local.moneyPosting.datasource.impl";
 import { createMoneyPostingRepository } from "@/feature/transactions/data/repository/moneyPosting.repository.impl";
 import { createPostMoneyMovementUseCase } from "@/feature/transactions/useCase/postMoneyMovement.useCase.impl";
+import appDatabase from "@/shared/database/appDatabase";
+import React from "react";
 
 type GetMoneyAccountsScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -61,25 +63,45 @@ export function GetMoneyAccountsScreenFactory({
     () => createPostMoneyMovementUseCase(moneyPostingRepository),
     [moneyPostingRepository],
   );
-  const saveMoneyAccountUseCase = React.useMemo(
+
+  const runMoneyAccountOpeningBalanceWorkflowUseCase = React.useMemo(
     () =>
-      createSaveMoneyAccountUseCase({
-        repository,
-        postMoneyMovementUseCase,
-      }),
-    [postMoneyMovementUseCase, repository],
-  );
-  const archiveMoneyAccountUseCase = React.useMemo(
-    () => createArchiveMoneyAccountUseCase(repository),
-    [repository],
-  );
-  const adjustMoneyAccountBalanceUseCase = React.useMemo(
-    () =>
-      createAdjustMoneyAccountBalanceUseCase({
+      createRunMoneyAccountOpeningBalanceWorkflowUseCase({
         moneyAccountRepository: repository,
         postMoneyMovementUseCase,
       }),
     [postMoneyMovementUseCase, repository],
+  );
+
+  const saveMoneyAccountUseCase = React.useMemo(
+    () =>
+      createSaveMoneyAccountUseCase({
+        repository,
+        runMoneyAccountOpeningBalanceWorkflowUseCase,
+      }),
+    [repository, runMoneyAccountOpeningBalanceWorkflowUseCase],
+  );
+
+  const archiveMoneyAccountUseCase = React.useMemo(
+    () => createArchiveMoneyAccountUseCase(repository),
+    [repository],
+  );
+
+  const runMoneyAccountBalanceReconciliationWorkflowUseCase = React.useMemo(
+    () =>
+      createRunMoneyAccountBalanceReconciliationWorkflowUseCase({
+        moneyAccountRepository: repository,
+        postMoneyMovementUseCase,
+      }),
+    [postMoneyMovementUseCase, repository],
+  );
+
+  const adjustMoneyAccountBalanceUseCase = React.useMemo(
+    () =>
+      createAdjustMoneyAccountBalanceUseCase({
+        runMoneyAccountBalanceReconciliationWorkflowUseCase,
+      }),
+    [runMoneyAccountBalanceReconciliationWorkflowUseCase],
   );
 
   const viewModel = useMoneyAccountsViewModel({

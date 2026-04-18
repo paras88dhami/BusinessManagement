@@ -1,19 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
-import { createSaveMoneyAccountUseCase } from "@/feature/accounts/useCase/saveMoneyAccount.useCase.impl";
 import { MoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository";
 import {
-  MoneyAccount,
-  MoneyAccountErrorType,
-  MoneyAccountType,
-  SaveMoneyAccountPayload,
+    MoneyAccount,
+    MoneyAccountErrorType,
+    MoneyAccountType,
+    SaveMoneyAccountPayload,
 } from "@/feature/accounts/types/moneyAccount.types";
-import { PostMoneyMovementUseCase } from "@/feature/transactions/useCase/postMoneyMovement.useCase";
-import {
-  TransactionDirection,
-  TransactionPostingStatus,
-  TransactionSourceModule,
-  TransactionType,
-} from "@/feature/transactions/types/transaction.entity.types";
+import { createSaveMoneyAccountUseCase } from "@/feature/accounts/useCase/saveMoneyAccount.useCase.impl";
+import { RunMoneyAccountOpeningBalanceWorkflowUseCase } from "@/feature/accounts/workflow/moneyAccountOpeningBalance/useCase/runMoneyAccountOpeningBalance.useCase";
+import { describe, expect, it, vi } from "vitest";
 
 const buildPayload = (
   overrides: Partial<SaveMoneyAccountPayload> = {},
@@ -57,8 +51,16 @@ const createRepository = (
     saveMoneyAccount: vi.fn(async (payload: SaveMoneyAccountPayload) => ({
       success: true as const,
       value: buildAccount({
-        ...payload,
+        remoteId: payload.remoteId,
+        ownerUserRemoteId: payload.ownerUserRemoteId,
+        scopeAccountRemoteId: payload.scopeAccountRemoteId,
+        name: payload.name,
+        type: payload.type,
         currentBalance: payload.currentBalance,
+        description: payload.description,
+        currencyCode: payload.currencyCode,
+        isPrimary: payload.isPrimary,
+        isActive: payload.isActive,
         createdAt: 1,
         updatedAt: 2,
       }),
@@ -84,38 +86,36 @@ const createRepository = (
   };
 };
 
-const createPostMoneyMovementUseCase = (): PostMoneyMovementUseCase => ({
-  execute: vi.fn(async (payload) => ({
-    success: true as const,
-    value: {
-      ...payload,
-      settlementMoneyAccountRemoteId:
-        payload.settlementMoneyAccountRemoteId ?? null,
-      settlementMoneyAccountDisplayNameSnapshot:
-        payload.settlementMoneyAccountDisplayNameSnapshot ?? null,
-      sourceModule: payload.sourceModule ?? TransactionSourceModule.Manual,
-      sourceRemoteId: payload.sourceRemoteId ?? null,
-      sourceAction: payload.sourceAction ?? null,
-      idempotencyKey: payload.idempotencyKey ?? null,
-      postingStatus: payload.postingStatus ?? TransactionPostingStatus.Posted,
-      createdAt: 1,
-      updatedAt: 1,
-    },
-  })),
-});
-
-describe("money account balance policy", () => {
-  it("uses create-time balance as the opening balance seed for new money accounts", async () => {
-    const repository = createRepository([
-      null,
-      buildAccount({
-        currentBalance: 750,
+const createOpeningBalanceWorkflow =
+  (): RunMoneyAccountOpeningBalanceWorkflowUseCase => ({
+    execute: vi.fn(async (payload) => ({
+      success: true as const,
+      value: buildAccount({
+        remoteId: payload.remoteId,
+        ownerUserRemoteId: payload.ownerUserRemoteId,
+        scopeAccountRemoteId: payload.scopeAccountRemoteId,
+        name: payload.name,
+        type: payload.type,
+        currentBalance: payload.currentBalance,
+        description: payload.description,
+        currencyCode: payload.currencyCode,
+        isPrimary: payload.isPrimary,
+        isActive: payload.isActive,
+        createdAt: 1,
+        updatedAt: 1,
       }),
-    ]);
-    const postMoneyMovementUseCase = createPostMoneyMovementUseCase();
+    })),
+  });
+
+describe("money account save use case", () => {
+  it("delegates new money-account creation into the opening-balance workflow", async () => {
+    const repository = createRepository([null]);
+    const runMoneyAccountOpeningBalanceWorkflowUseCase =
+      createOpeningBalanceWorkflow();
+
     const useCase = createSaveMoneyAccountUseCase({
       repository,
-      postMoneyMovementUseCase,
+      runMoneyAccountOpeningBalanceWorkflowUseCase,
     });
 
     const result = await useCase.execute(
@@ -125,24 +125,17 @@ describe("money account balance policy", () => {
     );
 
     expect(result.success).toBe(true);
-    expect(repository.saveMoneyAccount).toHaveBeenCalledWith(
+    expect(
+      runMoneyAccountOpeningBalanceWorkflowUseCase.execute,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         remoteId: "cash-1",
-        currentBalance: 0,
+        ownerUserRemoteId: "user-1",
+        scopeAccountRemoteId: "business-1",
+        currentBalance: 750,
       }),
     );
-    expect(postMoneyMovementUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        accountDisplayNameSnapshot: "Main Business",
-        amount: 750,
-        categoryLabel: "Opening Balance",
-        direction: TransactionDirection.In,
-        settlementMoneyAccountRemoteId: "cash-1",
-        sourceModule: TransactionSourceModule.MoneyAccounts,
-        sourceAction: "opening_balance",
-        transactionType: TransactionType.Income,
-      }),
-    );
+    expect(repository.saveMoneyAccount).not.toHaveBeenCalled();
   });
 
   it("preserves existing current balance when account details are edited", async () => {
@@ -151,10 +144,12 @@ describe("money account balance policy", () => {
         currentBalance: 125,
       }),
     ]);
-    const postMoneyMovementUseCase = createPostMoneyMovementUseCase();
+    const runMoneyAccountOpeningBalanceWorkflowUseCase =
+      createOpeningBalanceWorkflow();
+
     const useCase = createSaveMoneyAccountUseCase({
       repository,
-      postMoneyMovementUseCase,
+      runMoneyAccountOpeningBalanceWorkflowUseCase,
     });
 
     const result = await useCase.execute(
@@ -171,6 +166,8 @@ describe("money account balance policy", () => {
         currentBalance: 125,
       }),
     );
-    expect(postMoneyMovementUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      runMoneyAccountOpeningBalanceWorkflowUseCase.execute,
+    ).not.toHaveBeenCalled();
   });
 });
