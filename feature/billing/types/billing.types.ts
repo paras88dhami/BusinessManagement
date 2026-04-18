@@ -56,6 +56,7 @@ export type BillingDocument = {
   sourceModule: string | null;
   sourceRemoteId: string | null;
   linkedLedgerEntryRemoteId: string | null;
+  posWorkflowStatus: string | null;
   items: BillingLineItem[];
   createdAt: number;
   updatedAt: number;

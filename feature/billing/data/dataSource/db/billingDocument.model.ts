@@ -1,10 +1,10 @@
+import {
+    BillingDocumentStatusValue,
+    BillingDocumentTypeValue,
+    BillingTemplateTypeValue,
+} from "@/feature/billing/types/billing.types";
 import { Model } from "@nozbe/watermelondb";
 import { date, field, readonly } from "@nozbe/watermelondb/decorators";
-import {
-  BillingDocumentStatusValue,
-  BillingDocumentTypeValue,
-  BillingTemplateTypeValue,
-} from "@/feature/billing/types/billing.types";
 
 export class BillingDocumentModel extends Model {
   static table = "billing_documents";
@@ -28,6 +28,7 @@ export class BillingDocumentModel extends Model {
   @field("source_remote_id") sourceRemoteId!: string | null;
   @field("linked_ledger_entry_remote_id")
   linkedLedgerEntryRemoteId!: string | null;
+  @field("pos_workflow_status") posWorkflowStatus!: string | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

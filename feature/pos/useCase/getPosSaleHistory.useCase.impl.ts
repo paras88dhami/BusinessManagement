@@ -1,13 +1,13 @@
 import {
-  type BillingDocument,
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingTemplateType,
+    type BillingDocument,
+    BillingDocumentStatus,
+    BillingDocumentType,
+    BillingTemplateType,
 } from "@/feature/billing/types/billing.types";
-import type { PosSaleRecord } from "../types/posSale.entity.types";
-import type { GetPosSalesUseCase } from "./getPosSales.useCase";
-import type { GetPosSaleHistoryUseCase } from "./getPosSaleHistory.useCase";
 import { PosErrorType } from "../types/pos.error.types";
+import type { PosSaleRecord } from "../types/posSale.entity.types";
+import type { GetPosSaleHistoryUseCase } from "./getPosSaleHistory.useCase";
+import type { GetPosSalesUseCase } from "./getPosSales.useCase";
 
 interface CreateGetPosSaleHistoryUseCaseParams {
   getPosSalesUseCase: GetPosSalesUseCase;
@@ -126,6 +126,7 @@ const mapPosSaleToBillingDocument = (sale: PosSaleRecord): BillingDocument => {
     sourceModule: "pos",
     sourceRemoteId: sale.receiptNumber,
     linkedLedgerEntryRemoteId: sale.ledgerEntryRemoteId,
+    posWorkflowStatus: sale.workflowStatus,
     items,
     createdAt: sale.createdAt,
     updatedAt: sale.updatedAt,

@@ -2,10 +2,10 @@ import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billi
 import { BillingDocumentItemModel } from "@/feature/billing/data/dataSource/db/billingDocumentItem.model";
 import { BillPhotoModel } from "@/feature/billing/data/dataSource/db/billPhoto.model";
 import {
-  BillPhoto,
-  BillingDocument,
-  BillingDocumentAllocation,
-  BillingLineItem,
+    BillPhoto,
+    BillingDocument,
+    BillingDocumentAllocation,
+    BillingLineItem,
 } from "@/feature/billing/types/billing.types";
 
 export const mapBillingItemModelToDomain = (
@@ -44,6 +44,7 @@ export const mapBillingDocumentModelToDomain = (
   sourceModule: document.sourceModule,
   sourceRemoteId: document.sourceRemoteId,
   linkedLedgerEntryRemoteId: document.linkedLedgerEntryRemoteId,
+  posWorkflowStatus: document.posWorkflowStatus,
   items: items.map(mapBillingItemModelToDomain),
   createdAt: document.createdAt.getTime(),
   updatedAt: document.updatedAt.getTime(),
