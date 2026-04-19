@@ -2,96 +2,24 @@ import {
   BUSINESS_CONTACT_FILTER_OPTIONS,
   BUSINESS_CONTACT_TYPE_OPTIONS,
   Contact,
-  ContactBalanceDirection,
-  ContactType,
   PERSONAL_CONTACT_FILTER_OPTIONS,
   PERSONAL_CONTACT_TYPE_OPTIONS,
 } from "@/feature/contacts/types/contact.types";
+import { ArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
-import { ArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase";
 import {
   AccountType,
   AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import * as Crypto from "expo-crypto";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ContactsViewModel, ContactFormState, ContactFilterValue } from "./contacts.viewModel";
-import {
-  formatCurrencyAmount,
-  resolveCurrencyCode,
-  resolveCurrencyPrefix,
-} from "@/shared/utils/currency/accountCurrency";
-
-const EMPTY_FORM: ContactFormState = {
-  remoteId: null,
-  fullName: "",
-  contactType: ContactType.Customer,
-  phoneNumber: "",
-  emailAddress: "",
-  address: "",
-  taxId: "",
-  openingBalance: "0",
-  notes: "",
-};
-
-const formatSignedOpeningBalance = (contact: Contact): string => {
-  if (!contact.openingBalanceAmount) {
-    return "";
-  }
-
-  return contact.openingBalanceDirection === ContactBalanceDirection.Pay
-    ? `-${contact.openingBalanceAmount}`
-    : `${contact.openingBalanceAmount}`;
-};
-
-const mapContactToForm = (contact: Contact): ContactFormState => ({
-  remoteId: contact.remoteId,
-  fullName: contact.fullName,
-  contactType: contact.contactType,
-  phoneNumber: contact.phoneNumber ?? "",
-  emailAddress: contact.emailAddress ?? "",
-  address: contact.address ?? "",
-  taxId: contact.taxId ?? "",
-  openingBalance: formatSignedOpeningBalance(contact),
-  notes: contact.notes ?? "",
-});
-
-const normalizeSearchableText = (value: string | null): string =>
-  (value ?? "").trim().toLowerCase();
-
-const parseOpeningBalance = (value: string): {
-  amount: number;
-  direction: Contact["openingBalanceDirection"];
-} | null => {
-  const normalizedValue = value.trim();
-  if (!normalizedValue) {
-    return {
-      amount: 0,
-      direction: null,
-    };
-  }
-
-  const parsedValue = Number(normalizedValue);
-  if (!Number.isFinite(parsedValue)) {
-    return null;
-  }
-
-  if (parsedValue === 0) {
-    return {
-      amount: 0,
-      direction: null,
-    };
-  }
-
-  return {
-    amount: Math.abs(parsedValue),
-    direction:
-      parsedValue > 0
-        ? ContactBalanceDirection.Receive
-        : ContactBalanceDirection.Pay,
-  };
-};
+import { useCallback, useMemo } from "react";
+import { ContactsViewModel } from "./contacts.viewModel";
+import { useContactArchiveState } from "./internal/contactArchive.state";
+import { useContactEditorState } from "./internal/contactEditor.state";
+import { useContactSubmitState } from "./internal/contactSubmit.state";
+import { useContactsFilterState } from "./internal/contactsFilter.state";
+import { useContactsListState } from "./internal/contactsList.state";
+import { useContactsSummaryState } from "./internal/contactsSummary.state";
 
 type UseContactsViewModelParams = {
   ownerUserRemoteId: string | null;
@@ -116,18 +44,6 @@ export const useContactsViewModel = ({
   saveContactUseCase,
   archiveContactUseCase,
 }: UseContactsViewModelParams): ContactsViewModel => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [contacts, setContacts] = useState<readonly Contact[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<ContactFilterValue>("all");
-  const [isEditorVisible, setIsEditorVisible] = useState(false);
-  const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
-  const [form, setForm] = useState<ContactFormState>(EMPTY_FORM);
-  const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
-
   const filterOptions = useMemo(() => {
     return accountType === AccountType.Personal
       ? PERSONAL_CONTACT_FILTER_OPTIONS
@@ -140,382 +56,153 @@ export const useContactsViewModel = ({
       : BUSINESS_CONTACT_TYPE_OPTIONS;
   }, [accountType]);
 
-  const resolvedCurrencyCode = useMemo(
-    () => resolveCurrencyCode({ currencyCode, countryCode }),
-    [countryCode, currencyCode],
+  const listState = useContactsListState({
+    accountRemoteId,
+    getContactsUseCase,
+  });
+
+  const filterState = useContactsFilterState({
+    contacts: listState.contacts,
+    filterOptions,
+  });
+
+  const summaryState = useContactsSummaryState({
+    contacts: listState.contacts,
+    currencyCode,
+    countryCode,
+  });
+
+  const editorState = useContactEditorState({
+    canManage,
+    typeOptions,
+    setErrorMessage: listState.setErrorMessage,
+  });
+
+  const getEditorContext = useCallback(
+    () => ({
+      editorMode: editorState.editorMode,
+      formRemoteId: editorState.form.remoteId,
+    }),
+    [editorState.editorMode, editorState.form.remoteId],
   );
 
-  const currencyPrefix = useMemo(
-    () => resolveCurrencyPrefix({ currencyCode: resolvedCurrencyCode, countryCode }),
-    [countryCode, resolvedCurrencyCode],
-  );
+  const archiveState = useContactArchiveState({
+    canManage,
+    accountRemoteId,
+    contacts: listState.contacts,
+    archiveContactUseCase,
+    getEditorContext,
+    setErrorMessage: listState.setErrorMessage,
+    setContacts: listState.setContacts,
+    loadContacts: listState.loadContacts,
+    resetEditorAfterArchive: editorState.resetEditorState,
+  });
 
-  const loadContacts = useCallback(async (): Promise<void> => {
-    if (!accountRemoteId) {
-      setContacts([]);
-      setErrorMessage("An active account is required to manage contacts.");
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    const result = await getContactsUseCase.execute({
-      accountRemoteId,
-    });
-
-    if (!result.success) {
-      setContacts([]);
-      setErrorMessage(result.error.message);
-      setIsLoading(false);
-      return;
-    }
-
-    setContacts(result.value);
-    setErrorMessage(null);
-    setIsLoading(false);
-  }, [accountRemoteId, getContactsUseCase]);
-
-  useEffect(() => {
-    void loadContacts();
-  }, [loadContacts]);
-
-  const filteredContacts = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase();
-
-    return contacts.filter((contact) => {
-      const matchesFilter =
-        selectedFilter === "all" || contact.contactType === selectedFilter;
-      if (!matchesFilter) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return [
-        contact.fullName,
-        contact.phoneNumber,
-        contact.emailAddress,
-        contact.address,
-        contact.taxId,
-        contact.notes,
-      ].some((candidate) =>
-        normalizeSearchableText(candidate).includes(normalizedSearch),
-      );
-    });
-  }, [contacts, searchQuery, selectedFilter]);
-
-  const summary = useMemo(() => {
-    const receiveTotal = contacts.reduce((sum, contact) => {
-      return contact.openingBalanceDirection === ContactBalanceDirection.Receive
-        ? sum + contact.openingBalanceAmount
-        : sum;
-    }, 0);
-
-    const payTotal = contacts.reduce((sum, contact) => {
-      return contact.openingBalanceDirection === ContactBalanceDirection.Pay
-        ? sum + contact.openingBalanceAmount
-        : sum;
-    }, 0);
-
-    return {
-      totalCount: contacts.length,
-      receiveAmountLabel: formatCurrencyAmount({
-        amount: receiveTotal,
-        currencyCode: resolvedCurrencyCode,
-        countryCode,
-      }),
-      payAmountLabel: formatCurrencyAmount({
-        amount: payTotal,
-        currencyCode: resolvedCurrencyCode,
-        countryCode,
-      }),
-    };
-  }, [contacts, countryCode, resolvedCurrencyCode]);
-
-  const onOpenCreate = useCallback(() => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage contacts.");
-      return;
-    }
-
-    const defaultType = typeOptions[0]?.value ?? ContactType.Customer;
-    setEditorMode("create");
-    setForm({
-      ...EMPTY_FORM,
-      contactType: defaultType,
-    });
-    setErrorMessage(null);
-    setDeleteErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [canManage, typeOptions]);
-
-  const onOpenEdit = useCallback((contact: Contact) => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage contacts.");
-      return;
-    }
-
-    setEditorMode("edit");
-    setForm(mapContactToForm(contact));
-    setErrorMessage(null);
-    setDeleteErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [canManage]);
-
-  const onCloseEditor = useCallback(() => {
-    setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
-    setDeleteErrorMessage(null);
-  }, []);
-
-  const onFormChange = useCallback((field: keyof ContactFormState, value: string) => {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }, []);
-
-  const onSubmit = useCallback(async () => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage contacts.");
-      return;
-    }
-
-    if (!ownerUserRemoteId || !accountRemoteId || !accountType) {
-      setErrorMessage("An active account is required to manage contacts.");
-      return;
-    }
-
-    const normalizedPhoneNumber = form.phoneNumber.trim();
-    if (!normalizedPhoneNumber) {
-      setErrorMessage("Phone number is required for contacts.");
-      return;
-    }
-
-    const parsedOpeningBalance = parseOpeningBalance(form.openingBalance);
-    if (!parsedOpeningBalance) {
-      setErrorMessage(
-        "Opening balance is invalid. Use a positive amount for receive or a negative amount for pay.",
-      );
-      return;
-    }
-
-    const result = await saveContactUseCase.execute({
-      remoteId: form.remoteId ?? Crypto.randomUUID(),
-      ownerUserRemoteId,
-      accountRemoteId,
-      accountType,
-      contactType: form.contactType,
-      fullName: form.fullName,
-      phoneNumber: normalizedPhoneNumber,
-      emailAddress: form.emailAddress || null,
-      address: form.address || null,
-      taxId: form.taxId || null,
-      openingBalanceAmount: parsedOpeningBalance.amount,
-      openingBalanceDirection: parsedOpeningBalance.direction,
-      notes: form.notes || null,
-      isArchived: false,
-    });
-
-    if (!result.success) {
-      setErrorMessage(result.error.message);
-      return;
-    }
-
-    setContacts((currentContacts) => {
-      const existingIndex = currentContacts.findIndex(
-        (contact) => contact.remoteId === result.value.remoteId,
-      );
-      if (existingIndex === -1) {
-        return [result.value, ...currentContacts];
-      }
-      return currentContacts.map((contact, index) =>
-        index === existingIndex ? result.value : contact,
-      );
-    });
-    setErrorMessage(null);
-    setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
-    void loadContacts();
-  }, [
+  const submitState = useContactSubmitState({
+    canManage,
+    ownerUserRemoteId,
     accountRemoteId,
     accountType,
-    canManage,
-    form,
-    loadContacts,
-    ownerUserRemoteId,
+    form: editorState.form,
     saveContactUseCase,
-  ]);
+    setErrorMessage: listState.setErrorMessage,
+    setContacts: listState.setContacts,
+    resetEditorAfterSubmit: editorState.resetEditorState,
+    loadContacts: listState.loadContacts,
+  });
 
-  const onRequestDeleteFromEditor = useCallback((): void => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage contacts.");
-      return;
+  const onOpenCreate = useCallback(() => {
+    const didOpenEditor = editorState.onOpenCreate();
+    if (didOpenEditor) {
+      archiveState.clearDeleteErrorMessage();
     }
-    if (editorMode !== "edit" || !form.remoteId) {
-      return;
-    }
+  }, [archiveState.clearDeleteErrorMessage, editorState.onOpenCreate]);
 
-    const targetContact = contacts.find((contact) => contact.remoteId === form.remoteId);
-    if (!targetContact) {
-      setErrorMessage("Contact not found.");
-      return;
-    }
+  const onOpenEdit = useCallback(
+    (contact: Contact) => {
+      const didOpenEditor = editorState.onOpenEdit(contact);
+      if (didOpenEditor) {
+        archiveState.clearDeleteErrorMessage();
+      }
+    },
+    [archiveState.clearDeleteErrorMessage, editorState.onOpenEdit],
+  );
 
-    setPendingDeleteRemoteId(targetContact.remoteId);
-    setDeleteErrorMessage(null);
-  }, [canManage, contacts, editorMode, form.remoteId]);
+  const onCloseEditor = useCallback(() => {
+    editorState.onCloseEditor();
+    archiveState.clearDeleteErrorMessage();
+  }, [archiveState.clearDeleteErrorMessage, editorState.onCloseEditor]);
 
-  const onCloseDeleteModal = useCallback((): void => {
-    if (isDeleting) {
-      return;
-    }
-    setPendingDeleteRemoteId(null);
-    setDeleteErrorMessage(null);
-  }, [isDeleting]);
-
-  const onConfirmDelete = useCallback(async (): Promise<void> => {
-    if (!canManage) {
-      setDeleteErrorMessage("You do not have permission to manage contacts.");
-      return;
-    }
-
-    if (!pendingDeleteRemoteId) {
-      return;
-    }
-
-    if (!accountRemoteId) {
-      setDeleteErrorMessage("An active account is required to manage contacts.");
-      return;
-    }
-
-    setIsDeleting(true);
-    setDeleteErrorMessage(null);
-
-    const archiveContactResult = await archiveContactUseCase.execute({
-      remoteId: pendingDeleteRemoteId,
-      accountRemoteId,
-    });
-    setIsDeleting(false);
-
-    if (!archiveContactResult.success) {
-      setDeleteErrorMessage(archiveContactResult.error.message);
-      return;
-    }
-
-    setContacts((currentContacts) =>
-      currentContacts.filter((contact) => contact.remoteId !== pendingDeleteRemoteId),
-    );
-    setPendingDeleteRemoteId(null);
-    setDeleteErrorMessage(null);
-    setErrorMessage(null);
-    setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
-    void loadContacts();
-  }, [
-    accountRemoteId,
-    archiveContactUseCase,
-    canManage,
-    loadContacts,
-    pendingDeleteRemoteId,
-  ]);
-
-  useEffect(() => {
-    const allowedFilterValues = new Set(filterOptions.map((item) => item.value));
-    if (!allowedFilterValues.has(selectedFilter)) {
-      setSelectedFilter("all");
-    }
-  }, [filterOptions, selectedFilter]);
-
-  const getContactAmountTone = useCallback((contact: Contact) => {
-    if (!contact.openingBalanceAmount) {
-      return null;
-    }
-
-    return contact.openingBalanceDirection;
-  }, []);
-
-  const pendingDeleteContactName = useMemo(() => {
-    if (!pendingDeleteRemoteId) {
-      return null;
-    }
-
-    const pendingContact = contacts.find(
-      (contact) => contact.remoteId === pendingDeleteRemoteId,
-    );
-    return pendingContact?.fullName ?? null;
-  }, [contacts, pendingDeleteRemoteId]);
+  const canManageContacts =
+    Boolean(ownerUserRemoteId && accountRemoteId && accountType) && canManage;
 
   return useMemo<ContactsViewModel>(
     () => ({
-      isLoading,
-      errorMessage,
-      contacts,
-      filteredContacts,
-      currencyPrefix,
-      openingBalancePlaceholder: `Opening Balance (${currencyPrefix})`,
-      selectedFilter,
-      searchQuery,
-      summary,
-      canManage:
-        Boolean(ownerUserRemoteId && accountRemoteId && accountType) &&
-        canManage,
-      isEditorVisible,
-      editorMode,
-      editorTitle: editorMode === "create" ? "New Contact" : "Edit Contact",
-      form,
-      isDeleteModalVisible: Boolean(pendingDeleteRemoteId),
-      pendingDeleteContactName,
-      deleteErrorMessage,
-      isDeleting,
+      isLoading: listState.isLoading,
+      errorMessage: listState.errorMessage,
+      contacts: listState.contacts,
+      filteredContacts: filterState.filteredContacts,
+      currencyPrefix: summaryState.currencyPrefix,
+      openingBalancePlaceholder: summaryState.openingBalancePlaceholder,
+      selectedFilter: filterState.selectedFilter,
+      searchQuery: filterState.searchQuery,
+      summary: summaryState.summary,
+      canManage: canManageContacts,
+      isEditorVisible: editorState.isEditorVisible,
+      editorMode: editorState.editorMode,
+      editorTitle: editorState.editorTitle,
+      form: editorState.form,
+      isDeleteModalVisible: archiveState.isDeleteModalVisible,
+      pendingDeleteContactName: archiveState.pendingDeleteContactName,
+      deleteErrorMessage: archiveState.deleteErrorMessage,
+      isDeleting: archiveState.isDeleting,
       filterOptions,
       typeOptions,
-      onRefresh: loadContacts,
-      onSearchChange: setSearchQuery,
-      onFilterChange: setSelectedFilter,
+      onRefresh: listState.loadContacts,
+      onSearchChange: filterState.setSearchQuery,
+      onFilterChange: filterState.setSelectedFilter,
       onOpenCreate,
       onOpenEdit,
       onCloseEditor,
-      onFormChange,
-      onSubmit,
-      onRequestDeleteFromEditor,
-      onCloseDeleteModal,
-      onConfirmDelete,
-      getContactAmountTone,
+      onFormChange: editorState.onFormChange,
+      onSubmit: submitState.onSubmit,
+      onRequestDeleteFromEditor: archiveState.onRequestDeleteFromEditor,
+      onCloseDeleteModal: archiveState.onCloseDeleteModal,
+      onConfirmDelete: archiveState.onConfirmDelete,
+      getContactAmountTone: summaryState.getContactAmountTone,
     }),
     [
-      accountRemoteId,
-      accountType,
-      canManage,
-      contacts,
-      editorMode,
-      errorMessage,
+      archiveState.deleteErrorMessage,
+      archiveState.isDeleteModalVisible,
+      archiveState.isDeleting,
+      archiveState.onCloseDeleteModal,
+      archiveState.onConfirmDelete,
+      archiveState.onRequestDeleteFromEditor,
+      archiveState.pendingDeleteContactName,
+      canManageContacts,
+      editorState.editorMode,
+      editorState.editorTitle,
+      editorState.form,
+      editorState.isEditorVisible,
+      editorState.onFormChange,
       filterOptions,
-      filteredContacts,
-      form,
-      getContactAmountTone,
-      currencyPrefix,
-      deleteErrorMessage,
-      isDeleting,
-      isEditorVisible,
-      isLoading,
-      loadContacts,
-      onCloseDeleteModal,
+      filterState.filteredContacts,
+      filterState.searchQuery,
+      filterState.selectedFilter,
+      filterState.setSearchQuery,
+      filterState.setSelectedFilter,
+      listState.contacts,
+      listState.errorMessage,
+      listState.isLoading,
+      listState.loadContacts,
       onCloseEditor,
-      onConfirmDelete,
-      onFormChange,
       onOpenCreate,
       onOpenEdit,
-      onRequestDeleteFromEditor,
-      onSubmit,
-      ownerUserRemoteId,
-      pendingDeleteContactName,
-      pendingDeleteRemoteId,
-      searchQuery,
-      selectedFilter,
-      summary,
+      submitState.onSubmit,
+      summaryState.currencyPrefix,
+      summaryState.getContactAmountTone,
+      summaryState.openingBalancePlaceholder,
+      summaryState.summary,
       typeOptions,
     ],
   );
