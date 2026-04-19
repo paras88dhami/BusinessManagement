@@ -288,6 +288,12 @@ export const useContactsViewModel = ({
       return;
     }
 
+    const normalizedPhoneNumber = form.phoneNumber.trim();
+    if (!normalizedPhoneNumber) {
+      setErrorMessage("Phone number is required for contacts.");
+      return;
+    }
+
     const parsedOpeningBalance = parseOpeningBalance(form.openingBalance);
     if (!parsedOpeningBalance) {
       setErrorMessage(
@@ -303,7 +309,7 @@ export const useContactsViewModel = ({
       accountType,
       contactType: form.contactType,
       fullName: form.fullName,
-      phoneNumber: form.phoneNumber || null,
+      phoneNumber: normalizedPhoneNumber,
       emailAddress: form.emailAddress || null,
       address: form.address || null,
       taxId: form.taxId || null,

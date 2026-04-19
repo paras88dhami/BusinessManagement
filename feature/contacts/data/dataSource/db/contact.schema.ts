@@ -10,6 +10,12 @@ export const contactsTable = tableSchema({
     { name: "contact_type", type: "string", isIndexed: true },
     { name: "full_name", type: "string", isIndexed: true },
     { name: "phone_number", type: "string", isOptional: true },
+    {
+      name: "normalized_phone_number",
+      type: "string",
+      isOptional: true,
+      isIndexed: true,
+    },
     { name: "email_address", type: "string", isOptional: true },
     { name: "address", type: "string", isOptional: true },
     { name: "tax_id", type: "string", isOptional: true },

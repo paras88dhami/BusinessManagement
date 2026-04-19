@@ -4,6 +4,7 @@ import {
   ContactTypeValue,
   SaveContactPayload,
 } from "@/feature/contacts/types/contact.types";
+import { normalizePhoneForIdentity } from "@/feature/contacts/shared/contactPhoneIdentity.shared";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 import {
   AccountType,
@@ -62,6 +63,34 @@ const findByRemoteId = async (
   return matching[0] ?? null;
 };
 
+const findDuplicateActiveContactByIdentityPhone = async (
+  database: Database,
+  params: {
+    accountRemoteId: string;
+    contactType: ContactTypeValue;
+    normalizedPhoneNumber: string | null;
+    excludeRemoteId: string;
+  },
+): Promise<ContactModel | null> => {
+  if (!params.normalizedPhoneNumber) {
+    return null;
+  }
+
+  const collection = database.get<ContactModel>(CONTACTS_TABLE);
+  const matches = await collection
+    .query(
+      Q.where("account_remote_id", params.accountRemoteId),
+      Q.where("contact_type", params.contactType),
+      Q.where("normalized_phone_number", params.normalizedPhoneNumber),
+      Q.where("deleted_at", Q.eq(null)),
+    )
+    .fetch();
+
+  return (
+    matches.find((contact) => contact.remoteId !== params.excludeRemoteId) ?? null
+  );
+};
+
 export const createLocalContactDatasource = (
   database: Database,
 ): ContactDatasource => ({
@@ -110,6 +139,24 @@ export const createLocalContactDatasource = (
         throw new Error("Zero opening balance cannot have a direction");
       }
 
+      const normalizedPhoneIdentity = normalizePhoneForIdentity(
+        normalizedPhoneNumber,
+      );
+
+      const duplicateIdentityPhoneContact =
+        await findDuplicateActiveContactByIdentityPhone(database, {
+          accountRemoteId: normalizedAccountRemoteId,
+          contactType: payload.contactType,
+          normalizedPhoneNumber: normalizedPhoneIdentity,
+          excludeRemoteId: normalizedRemoteId,
+        });
+
+      if (duplicateIdentityPhoneContact) {
+        throw new Error(
+          "A contact with this phone number already exists for this contact type in this account.",
+        );
+      }
+
       const existingContact = await findByRemoteId(database, normalizedRemoteId);
       if (existingContact) {
         await database.write(async () => {
@@ -120,6 +167,7 @@ export const createLocalContactDatasource = (
             record.contactType = payload.contactType;
             record.fullName = normalizedFullName;
             record.phoneNumber = normalizedPhoneNumber;
+            record.normalizedPhoneNumber = normalizedPhoneIdentity;
             record.emailAddress = normalizedEmailAddress;
             record.address = normalizedAddress;
             record.taxId = normalizedTaxId;
@@ -146,6 +194,7 @@ export const createLocalContactDatasource = (
           record.contactType = payload.contactType;
           record.fullName = normalizedFullName;
           record.phoneNumber = normalizedPhoneNumber;
+          record.normalizedPhoneNumber = normalizedPhoneIdentity;
           record.emailAddress = normalizedEmailAddress;
           record.address = normalizedAddress;
           record.taxId = normalizedTaxId;

@@ -10,6 +10,7 @@ import { BILLING_DOCUMENT_ACTIVE_NUMBER_UNIQUE_INDEX_NAME } from "@/feature/bill
 import { budgetPlanDbConfig } from "@/feature/budget/data/dataSource/db/budgetPlanDbConfig";
 import { categoryDbConfig } from "@/feature/categories/data/dataSource/db/categoryDbConfig";
 import { contactDbConfig } from "@/feature/contacts/data/dataSource/db/contactDbConfig";
+import { CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME } from "@/feature/contacts/data/dataSource/db/contactPhone.uniqueIndex";
 import { emiDbConfig } from "@/feature/emiLoans/data/dataSource/db/emiDbConfig";
 import { inventoryMovementDbConfig } from "@/feature/inventory/data/dataSource/db/inventoryMovementDbConfig";
 import { ledgerDbConfig } from "@/feature/ledger/data/dataSource/db/ledgerDbConfig";
@@ -31,9 +32,10 @@ import { appSchema, Q } from "@nozbe/watermelondb";
 
 const APP_SETTINGS_TABLE = "app_settings";
 const BILLING_DOCUMENTS_TABLE = "billing_documents";
+const CONTACTS_TABLE = "contacts";
 
 const schema = appSchema({
-  version: 37,
+  version: 38,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -128,6 +130,44 @@ export const ensureDatabaseReady = async (): Promise<void> => {
   if (duplicateRows.length > 0) {
     throw new Error(
       "Database integrity check failed: duplicate active billing document numbers detected.",
+    );
+  }
+
+  const contactUniqueIndexRows = await appSettingsCollection
+    .query(
+      Q.unsafeSqlQuery(
+        "SELECT name, sql FROM sqlite_master WHERE type = ? AND name = ?;",
+        ["index", CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME],
+      ),
+    )
+    .unsafeFetchRaw();
+
+  if (contactUniqueIndexRows.length === 0) {
+    throw new Error(
+      `Database integrity check failed: missing unique index ${CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME}.`,
+    );
+  }
+
+  const duplicateContactPhoneRows = await appSettingsCollection
+    .query(
+      Q.unsafeSqlQuery(
+        `
+          SELECT account_remote_id, contact_type, normalized_phone_number, COUNT(*) AS duplicate_count
+          FROM ${CONTACTS_TABLE}
+          WHERE deleted_at IS NULL
+            AND normalized_phone_number IS NOT NULL
+            AND LENGTH(TRIM(normalized_phone_number)) > 0
+          GROUP BY account_remote_id, contact_type, normalized_phone_number
+          HAVING COUNT(*) > 1
+          LIMIT 1;
+        `,
+      ),
+    )
+    .unsafeFetchRaw();
+
+  if (duplicateContactPhoneRows.length > 0) {
+    throw new Error(
+      "Database integrity check failed: duplicate active contact identity phone numbers detected.",
     );
   }
 

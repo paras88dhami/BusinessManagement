@@ -108,7 +108,7 @@ export function ContactEditorModal({
 
       <AppTextInput
         value={form.phoneNumber}
-        placeholder="Phone Number"
+        placeholder="Phone Number *"
         keyboardType="phone-pad"
         onChangeText={(value) => onChange("phoneNumber", value)}
       />

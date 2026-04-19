@@ -1,11 +1,12 @@
 import { ContactRepository } from "@/feature/contacts/data/repository/contact.repository";
+import { normalizePhoneForIdentity } from "@/feature/contacts/shared/contactPhoneIdentity.shared";
 import {
-    ContactResult,
-    ContactValidationError,
+  ContactResult,
+  ContactValidationError,
 } from "@/feature/contacts/types/contact.types";
 import {
-    GetOrCreateContactPayload,
-    GetOrCreateContactUseCase,
+  GetOrCreateContactPayload,
+  GetOrCreateContactUseCase,
 } from "./getOrCreateContact.useCase";
 
 const normalizeContactName = (value: string): string =>
@@ -55,15 +56,33 @@ class GetOrCreateContactUseCaseImpl implements GetOrCreateContactUseCase {
       return contactsResult;
     }
 
-    const existingContact = contactsResult.value.find(
+    const normalizedRequestedPhone = normalizePhoneForIdentity(
+      payload.phoneNumber ?? null,
+    );
+
+    const existingContactByPhone =
+      normalizedRequestedPhone === null
+        ? undefined
+        : contactsResult.value.find(
+            (contact) =>
+              contact.contactType === payload.contactType &&
+              normalizePhoneForIdentity(contact.phoneNumber) ===
+                normalizedRequestedPhone,
+          );
+
+    if (existingContactByPhone) {
+      return { success: true, value: existingContactByPhone };
+    }
+
+    const existingContactByName = contactsResult.value.find(
       (contact) =>
         contact.contactType === payload.contactType &&
         normalizeContactName(contact.fullName) ===
           normalizeContactName(fullName),
     );
 
-    if (existingContact) {
-      return { success: true, value: existingContact };
+    if (existingContactByName) {
+      return { success: true, value: existingContactByName };
     }
 
     return this.repository.saveContact({

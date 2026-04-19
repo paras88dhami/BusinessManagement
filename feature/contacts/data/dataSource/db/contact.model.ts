@@ -16,6 +16,7 @@ export class ContactModel extends Model {
   @field("contact_type") contactType!: ContactTypeValue;
   @field("full_name") fullName!: string;
   @field("phone_number") phoneNumber!: string | null;
+  @field("normalized_phone_number") normalizedPhoneNumber!: string | null;
   @field("email_address") emailAddress!: string | null;
   @field("address") address!: string | null;
   @field("tax_id") taxId!: string | null;

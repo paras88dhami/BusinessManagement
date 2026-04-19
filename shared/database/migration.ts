@@ -5,6 +5,11 @@ import {
   NORMALIZE_BILLING_DOCUMENT_NUMBER_SQL,
 } from "@/feature/billing/data/dataSource/db/billingDocument.uniqueIndex";
 import {
+  BACKFILL_CONTACT_NORMALIZED_PHONE_SQL,
+  CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
+  DEDUPE_CONTACT_NORMALIZED_PHONE_SQL,
+} from "@/feature/contacts/data/dataSource/db/contactPhone.uniqueIndex";
+import {
   addColumns,
   createTable,
   schemaMigrations,
@@ -965,6 +970,25 @@ export const migrations = schemaMigrations({
             { name: "updated_at", type: "number" },
           ],
         }),
+      ],
+    },
+    {
+      toVersion: 38,
+      steps: [
+        addColumns({
+          table: "contacts",
+          columns: [
+            {
+              name: "normalized_phone_number",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+        unsafeExecuteSql(BACKFILL_CONTACT_NORMALIZED_PHONE_SQL),
+        unsafeExecuteSql(DEDUPE_CONTACT_NORMALIZED_PHONE_SQL),
+        unsafeExecuteSql(CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
       ],
     },
     ],

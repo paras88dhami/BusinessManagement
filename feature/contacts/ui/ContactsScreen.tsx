@@ -164,7 +164,11 @@ export function ContactsScreen({
         onChange={viewModel.onFormChange}
         onSubmit={viewModel.onSubmit}
         openingBalancePlaceholder={viewModel.openingBalancePlaceholder}
-        disableSubmit={!viewModel.canManage}
+        disableSubmit={
+          !viewModel.canManage ||
+          !viewModel.form.fullName.trim() ||
+          !viewModel.form.phoneNumber.trim()
+        }
         canDelete={viewModel.canManage && viewModel.editorMode === "edit"}
         isDeleting={viewModel.isDeleting}
         onDelete={viewModel.onRequestDeleteFromEditor}

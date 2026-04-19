@@ -1,5 +1,9 @@
 import { ContactRepository } from "@/feature/contacts/data/repository/contact.repository";
-import { ContactResult, ContactValidationError, SaveContactPayload } from "@/feature/contacts/types/contact.types";
+import {
+  ContactResult,
+  ContactValidationError,
+  SaveContactPayload,
+} from "@/feature/contacts/types/contact.types";
 import { SaveContactUseCase } from "./saveContact.useCase";
 
 class SaveContactUseCaseImpl implements SaveContactUseCase {
@@ -25,7 +29,20 @@ class SaveContactUseCaseImpl implements SaveContactUseCase {
       };
     }
 
-    return this.repository.saveContact(payload);
+    const normalizedPhoneNumber = payload.phoneNumber?.trim() ?? "";
+    if (!normalizedPhoneNumber) {
+      return {
+        success: false,
+        error: ContactValidationError(
+          "Phone number is required when creating or editing contacts.",
+        ),
+      };
+    }
+
+    return this.repository.saveContact({
+      ...payload,
+      phoneNumber: normalizedPhoneNumber,
+    });
   }
 }
 
