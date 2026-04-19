@@ -1,121 +1,18 @@
-import {
-  MoneyAccount,
-  MoneyAccountType,
-} from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
-import {
-  BillingDocument,
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingDocumentStatusValue,
-  BillPhoto,
-} from "@/feature/billing/types/billing.types";
-import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
+import { BillingDocument } from "@/feature/billing/types/billing.types";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { PayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
 import { RunBillingDocumentIssueUseCase } from "@/feature/billing/workflow/billingDocumentIssue/useCase/runBillingDocumentIssue.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
-import { exportDocument } from "@/shared/utils/document/exportDocument";
 import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
-import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
-import * as Crypto from "expo-crypto";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform } from "react-native";
-import {
-  BillingDocumentFormState,
-  BillingLineItemFormState,
-  BillingTabValue,
-  BillingViewModel,
-} from "./billing.viewModel";
-
-const createEmptyLineItem = (): BillingLineItemFormState => ({
-  remoteId: Crypto.randomUUID(),
-  itemName: "",
-  quantity: "1",
-  unitRate: "0",
-});
-
-type BillingDocumentEditorInternalState = BillingDocumentFormState & {
-  remoteId: string | null;
-  status: BillingDocumentStatusValue;
-};
-
-const createEmptyForm = (
-  defaultTaxRatePercent: string,
-): BillingDocumentEditorInternalState => ({
-  remoteId: null,
-  documentType: BillingDocumentType.Invoice,
-  customerName: "",
-  status: BillingDocumentStatus.Pending,
-  taxRatePercent: defaultTaxRatePercent,
-  notes: "",
-  issuedAt: new Date().toISOString().slice(0, 10),
-  dueAt: "",
-  paidNowAmount: "0",
-  settlementAccountRemoteId: "",
-  items: [createEmptyLineItem()],
-});
-
-const parseNumber = (value: string): number => {
-  const parsed = Number(value.trim());
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const mapMoneyAccountToOption = (
-  moneyAccount: MoneyAccount,
-): {
-  remoteId: string;
-  label: string;
-} => {
-  const accountTypeLabel =
-    moneyAccount.type === MoneyAccountType.Cash
-      ? "Cash"
-      : moneyAccount.type === MoneyAccountType.Bank
-        ? "Bank"
-        : "Wallet";
-
-  return {
-    remoteId: moneyAccount.remoteId,
-    label: `${moneyAccount.name} (${accountTypeLabel})`,
-  };
-};
-
-const formatDateInput = (timestamp: number | null): string => {
-  if (timestamp === null) {
-    return "";
-  }
-  const value = new Date(timestamp);
-  if (Number.isNaN(value.getTime())) {
-    return "";
-  }
-  return value.toISOString().slice(0, 10);
-};
-
-const mapDocumentToForm = (
-  document: BillingDocument,
-): BillingDocumentEditorInternalState => ({
-  remoteId: document.remoteId,
-  documentType: document.documentType,
-  customerName: document.customerName,
-  status: document.status,
-  taxRatePercent: String(document.taxRatePercent),
-  notes: document.notes ?? "",
-  issuedAt: formatDateInput(document.issuedAt),
-  dueAt: formatDateInput(document.dueAt),
-  paidNowAmount: "0",
-  settlementAccountRemoteId: "",
-  items:
-    document.items.length > 0
-      ? document.items.map((item) => ({
-          remoteId: item.remoteId,
-          itemName: item.itemName,
-          quantity: String(item.quantity),
-          unitRate: String(item.unitRate),
-        }))
-      : [createEmptyLineItem()],
-});
+import { useCallback, useMemo } from "react";
+import { BillingViewModel } from "./billing.viewModel";
+import { useBillingAssetsViewModel } from "./billingAssets.viewModel.impl";
+import { useBillingEditorViewModel } from "./billingEditor.viewModel.impl";
+import { useBillingOverviewViewModel } from "./billingOverview.viewModel.impl";
+import { useBillingPaymentViewModel } from "./billingPayment.viewModel.impl";
 
 type Params = {
   ownerUserRemoteId: string | null;
@@ -165,10 +62,12 @@ export const useBillingViewModel = ({
       activeAccountDefaultTaxRatePercent,
     ],
   );
+
   const defaultTaxRatePercent = useMemo(
     () => String(regionalFinancePolicy.defaultTaxRatePercent),
     [regionalFinancePolicy.defaultTaxRatePercent],
   );
+
   const taxRateOptions = useMemo(
     () =>
       regionalFinancePolicy.taxRateOptions.map((ratePercent) =>
@@ -176,396 +75,59 @@ export const useBillingViewModel = ({
       ),
     [regionalFinancePolicy.taxRateOptions],
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<BillingDocument[]>([]);
-  const [billPhotos, setBillPhotos] = useState<BillPhoto[]>([]);
-  const [summary, setSummary] = useState({
-    totalDocuments: 0,
-    pendingAmount: 0,
-    overdueAmount: 0,
-  });
-  const [activeTab, setActiveTab] = useState<BillingTabValue>("invoices");
-  const [isEditorVisible, setIsEditorVisible] = useState(false);
-  const [availableSettlementAccounts, setAvailableSettlementAccounts] =
-    useState<readonly { remoteId: string; label: string }[]>([]);
-  const [form, setForm] = useState<BillingDocumentEditorInternalState>(
-    createEmptyForm(defaultTaxRatePercent),
-  );
-  const currencyCode = regionalFinancePolicy.currencyCode;
 
-  const loadOverview = useCallback(async () => {
-    if (!accountRemoteId) {
-      setDocuments([]);
-      setBillPhotos([]);
-      setSummary({ totalDocuments: 0, pendingAmount: 0, overdueAmount: 0 });
-      setErrorMessage("A business account is required to manage billing.");
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    const result = await getBillingOverviewUseCase.execute(accountRemoteId);
-    if (!result.success) {
-      setErrorMessage(result.error.message);
-      setDocuments([]);
-      setBillPhotos([]);
-      setSummary({ totalDocuments: 0, pendingAmount: 0, overdueAmount: 0 });
-      setIsLoading(false);
-      return;
-    }
-    setDocuments(result.value.documents);
-    setBillPhotos(result.value.billPhotos);
-    setSummary(result.value.summary);
-    setErrorMessage(null);
-    setIsLoading(false);
-  }, [accountRemoteId, getBillingOverviewUseCase]);
-
-  useEffect(() => {
-    void loadOverview();
-  }, [loadOverview]);
-
-  const draftTotals = useMemo(() => {
-    const subtotalAmount = Number(
-      form.items
-        .reduce(
-          (sum, item) =>
-            sum + parseNumber(item.quantity) * parseNumber(item.unitRate),
-          0,
-        )
-        .toFixed(2),
-    );
-    const taxAmount = Number(
-      ((subtotalAmount * parseNumber(form.taxRatePercent)) / 100).toFixed(2),
-    );
-    const totalAmount = Number((subtotalAmount + taxAmount).toFixed(2));
-    return { subtotalAmount, taxAmount, totalAmount };
-  }, [form.items, form.taxRatePercent]);
-
-  useEffect(() => {
-    if (!isEditorVisible) {
-      setForm(createEmptyForm(defaultTaxRatePercent));
-    }
-  }, [defaultTaxRatePercent, isEditorVisible]);
-
-  const loadSettlementAccounts = useCallback(async () => {
-    if (!accountRemoteId) {
-      setAvailableSettlementAccounts([]);
-      return;
-    }
-
-    const result = await getMoneyAccountsUseCase.execute(accountRemoteId);
-    if (!result.success) {
-      setAvailableSettlementAccounts([]);
-      return;
-    }
-
-    const options = result.value
-      .filter((moneyAccount) => moneyAccount.isActive)
-      .sort((left, right) => {
-        if (left.isPrimary && !right.isPrimary) return -1;
-        if (!left.isPrimary && right.isPrimary) return 1;
-        return left.name.localeCompare(right.name);
-      })
-      .map(mapMoneyAccountToOption);
-
-    setAvailableSettlementAccounts(options);
-    setForm((currentForm) => {
-      if (currentForm.settlementAccountRemoteId.trim().length > 0) {
-        return currentForm;
-      }
-      return {
-        ...currentForm,
-        settlementAccountRemoteId: options[0]?.remoteId ?? "",
-      };
-    });
-  }, [accountRemoteId, getMoneyAccountsUseCase]);
-
-  useEffect(() => {
-    void loadSettlementAccounts();
-  }, [loadSettlementAccounts]);
-
-  const filteredDocuments = useMemo(() => {
-    if (activeTab === "receipts") {
-      return documents.filter(
-        (item) => item.documentType === BillingDocumentType.Receipt,
-      );
-    }
-    return documents.filter(
-      (item) => item.documentType === BillingDocumentType.Invoice,
-    );
-  }, [activeTab, documents]);
-
-  const editorTitle = useMemo(() => {
-    const prefix =
-      form.documentType === BillingDocumentType.Invoice ? "Invoice" : "Receipt";
-    return form.remoteId ? `Edit ${prefix}` : `Create ${prefix}`;
-  }, [form.documentType, form.remoteId]);
-
-  const editorForm = useMemo<BillingDocumentFormState>(
-    () => ({
-      documentType: form.documentType,
-      customerName: form.customerName,
-      taxRatePercent: form.taxRatePercent,
-      notes: form.notes,
-      issuedAt: form.issuedAt,
-      dueAt: form.dueAt,
-      paidNowAmount: form.paidNowAmount,
-      settlementAccountRemoteId: form.settlementAccountRemoteId,
-      items: form.items,
-    }),
-    [form],
-  );
-
-  const onOpenCreate = useCallback(() => {
-    const nextDocumentType =
-      activeTab === "receipts"
-        ? BillingDocumentType.Receipt
-        : BillingDocumentType.Invoice;
-    const baseForm = createEmptyForm(defaultTaxRatePercent);
-    setForm({
-      ...baseForm,
-      documentType: nextDocumentType,
-      items: [createEmptyLineItem()],
-      issuedAt: new Date().toISOString().slice(0, 10),
-      dueAt: "",
-      paidNowAmount: "0",
-      settlementAccountRemoteId: availableSettlementAccounts[0]?.remoteId ?? "",
-    });
-    setErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [activeTab, availableSettlementAccounts, defaultTaxRatePercent]);
-
-  const onOpenEdit = useCallback(
-    (document: BillingDocument) => {
-      setForm({
-        ...mapDocumentToForm(document),
-        settlementAccountRemoteId:
-          availableSettlementAccounts[0]?.remoteId ?? "",
-      });
-      setErrorMessage(null);
-      setIsEditorVisible(true);
-    },
-    [availableSettlementAccounts],
-  );
-
-  const onCloseEditor = useCallback(() => {
-    setIsEditorVisible(false);
-    setForm(createEmptyForm(defaultTaxRatePercent));
-  }, [defaultTaxRatePercent]);
-
-  const onFormChange = useCallback(
-    (field: keyof Omit<BillingDocumentFormState, "items">, value: string) => {
-      setForm((current) => ({ ...current, [field]: value }));
-    },
-    [],
-  );
-
-  const onLineItemChange = useCallback(
-    (
-      remoteId: string,
-      field: keyof BillingLineItemFormState,
-      value: string,
-    ) => {
-      setForm((current) => ({
-        ...current,
-        items: current.items.map((item) =>
-          item.remoteId === remoteId ? { ...item, [field]: value } : item,
-        ),
-      }));
-    },
-    [],
-  );
-
-  const onAddLineItem = useCallback(() => {
-    setForm((current) => ({
-      ...current,
-      items: [...current.items, createEmptyLineItem()],
-    }));
-  }, []);
-
-  const onRemoveLineItem = useCallback((remoteId: string) => {
-    setForm((current) => ({
-      ...current,
-      items:
-        current.items.length > 1
-          ? current.items.filter((item) => item.remoteId !== remoteId)
-          : current.items,
-    }));
-  }, []);
-
-  const onSubmit = useCallback(async () => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage billing.");
-      return;
-    }
-    if (!accountRemoteId) {
-      setErrorMessage("A business account is required to manage billing.");
-      return;
-    }
-    const normalizedItems = form.items
-      .map((item, index) => ({
-        remoteId: item.remoteId || Crypto.randomUUID(),
-        itemName: item.itemName.trim(),
-        quantity: parseNumber(item.quantity),
-        unitRate: parseNumber(item.unitRate),
-        lineOrder: index,
-      }))
-      .filter((item) => item.itemName.length > 0);
-
-    if (!form.customerName.trim()) {
-      setErrorMessage("Customer name is required.");
-      return;
-    }
-    if (normalizedItems.length === 0) {
-      setErrorMessage("Add at least one item.");
-      return;
-    }
-    if (normalizedItems.some((item) => item.quantity <= 0)) {
-      setErrorMessage("Item quantity must be greater than zero.");
-      return;
-    }
-
-    const paidNowAmount = Number(parseNumber(form.paidNowAmount).toFixed(2));
-    if (paidNowAmount < 0) {
-      setErrorMessage("Paid amount cannot be negative.");
-      return;
-    }
-    if (paidNowAmount > draftTotals.totalAmount + 0.0001) {
-      setErrorMessage("Paid amount cannot be greater than total amount.");
-      return;
-    }
-
-    if (
-      paidNowAmount > 0 &&
-      form.settlementAccountRemoteId.trim().length === 0
-    ) {
-      setErrorMessage("Money account is required when paid amount is entered.");
-      return;
-    }
-
-    if (form.status === BillingDocumentStatus.Draft && paidNowAmount > 0) {
-      setErrorMessage("Draft billing documents cannot take payment.");
-      return;
-    }
-
-    const pendingAfterPayment = Number(
-      Math.max(draftTotals.totalAmount - paidNowAmount, 0).toFixed(2),
-    );
-
-    const issuedAt = new Date(
-      form.issuedAt || new Date().toISOString(),
-    ).getTime();
-    const normalizedIssuedAt = Number.isFinite(issuedAt)
-      ? issuedAt
-      : Date.now();
-    const dueAt =
-      form.dueAt.trim().length > 0 ? new Date(form.dueAt).getTime() : null;
-    if (
-      form.dueAt.trim().length > 0 &&
-      (!Number.isFinite(dueAt) || dueAt === null)
-    ) {
-      setErrorMessage("Enter a valid due date in YYYY-MM-DD format.");
-      return;
-    }
-
-    if (
-      form.status !== BillingDocumentStatus.Draft &&
-      pendingAfterPayment > 0 &&
-      dueAt === null
-    ) {
-      setErrorMessage("Due date is required when pending amount exists.");
-      return;
-    }
-
-    const resolvedRemoteId = form.remoteId ?? Crypto.randomUUID();
-
-    const issueResult = await runBillingDocumentIssueUseCase.execute({
-      remoteId: resolvedRemoteId,
-      accountRemoteId,
-      ownerUserRemoteId,
-      documentType: form.documentType,
-      desiredStatus: form.status,
-      customerName: form.customerName,
-      taxRatePercent: parseNumber(form.taxRatePercent),
-      notes: form.notes.trim() || null,
-      issuedAt: normalizedIssuedAt,
-      dueAt:
-        form.status === BillingDocumentStatus.Draft
-          ? null
-          : pendingAfterPayment > 0
-            ? dueAt
-            : null,
-      items: normalizedItems,
-    });
-
-    if (!issueResult.success) {
-      setErrorMessage(issueResult.error.message);
-      return;
-    }
-
-    if (paidNowAmount > 0) {
-      if (!ownerUserRemoteId?.trim()) {
-        setErrorMessage(
-          "Bill issued, but payment could not be posted because user context is missing.",
-        );
-        await loadOverview();
-        return;
-      }
-
-      const selectedSettlementAccount = availableSettlementAccounts.find(
-        (account) => account.remoteId === form.settlementAccountRemoteId.trim(),
-      );
-
-      if (!selectedSettlementAccount) {
-        setErrorMessage(
-          "Bill issued, but selected money account is not available.",
-        );
-        await loadOverview();
-        return;
-      }
-
-      const paymentResult = await payBillingDocumentUseCase.execute({
-        billingDocumentRemoteId: issueResult.value.remoteId,
-        accountRemoteId,
-        accountDisplayNameSnapshot:
-          accountDisplayNameSnapshot || "Business Account",
-        ownerUserRemoteId: ownerUserRemoteId.trim(),
-        settlementMoneyAccountRemoteId: selectedSettlementAccount.remoteId,
-        settlementMoneyAccountDisplayNameSnapshot:
-          selectedSettlementAccount.label,
-        amount: paidNowAmount,
-        settledAt: normalizedIssuedAt,
-        note: form.notes.trim() || null,
-        documentType: form.documentType,
-        documentNumber: issueResult.value.documentNumber,
-      });
-
-      if (!paymentResult.success) {
-        setErrorMessage(
-          `Bill issued, but payment processing failed: ${paymentResult.error.message}`,
-        );
-        await loadOverview();
-        return;
-      }
-    }
-
-    setIsEditorVisible(false);
-    setForm(createEmptyForm(defaultTaxRatePercent));
-    await loadOverview();
-    setErrorMessage(null);
-  }, [
-    accountDisplayNameSnapshot,
+  const overviewModule = useBillingOverviewViewModel({
     accountRemoteId,
-    availableSettlementAccounts,
+    getBillingOverviewUseCase,
+  });
+  const {
+    isLoading,
+    errorMessage,
+    summary,
+    filteredDocuments,
+    billPhotos,
+    activeTab,
+    setActiveTab,
+    setErrorMessage,
+    loadOverview,
+  } = overviewModule;
+
+  const paymentModule = useBillingPaymentViewModel({
+    accountRemoteId,
+    accountDisplayNameSnapshot,
+    ownerUserRemoteId,
+    getMoneyAccountsUseCase,
+    payBillingDocumentUseCase,
+    onRefresh: loadOverview,
+    setErrorMessage,
+  });
+
+  const editorModule = useBillingEditorViewModel({
+    accountRemoteId,
+    ownerUserRemoteId,
+    activeTab,
     canManage,
     defaultTaxRatePercent,
-    draftTotals.totalAmount,
-    form,
-    loadOverview,
-    ownerUserRemoteId,
-    payBillingDocumentUseCase,
+    availableSettlementAccounts: paymentModule.availableSettlementAccounts,
     runBillingDocumentIssueUseCase,
-  ]);
+    onRefresh: loadOverview,
+    setErrorMessage,
+    validateSettlementAccountForPaidNow:
+      paymentModule.validateSettlementAccountForPaidNow,
+    runPostIssuePayment: paymentModule.runPostIssuePayment,
+  });
+
+  const assetsModule = useBillingAssetsViewModel({
+    canManage,
+    accountRemoteId,
+    currencyCode: regionalFinancePolicy.currencyCode,
+    countryCode: regionalFinancePolicy.countryCode,
+    editorForm: editorModule.form,
+    draftTotals: editorModule.draftTotals,
+    saveBillPhotoUseCase,
+    onRefresh: loadOverview,
+    setErrorMessage,
+  });
 
   const onDelete = useCallback(
     async (document: BillingDocument) => {
@@ -578,120 +140,8 @@ export const useBillingViewModel = ({
       }
       await loadOverview();
     },
-    [deleteBillingDocumentUseCase, loadOverview],
+    [deleteBillingDocumentUseCase, loadOverview, setErrorMessage],
   );
-
-  const onPrintPreview = useCallback(async () => {
-    const html = buildBillingDraftHtml(
-      editorForm,
-      draftTotals.subtotalAmount,
-      draftTotals.taxAmount,
-      draftTotals.totalAmount,
-      currencyCode,
-      regionalFinancePolicy.countryCode,
-    );
-    const titlePrefix =
-      editorForm.documentType === BillingDocumentType.Receipt
-        ? "receipt"
-        : "invoice";
-    const result = await exportDocument({
-      html,
-      action: "print",
-      fileName: `${titlePrefix}_${editorForm.customerName || "document"}_${editorForm.issuedAt || Date.now()}`,
-      title: `eLekha ${titlePrefix}`,
-    });
-    if (!result.success) {
-      setErrorMessage(result.error);
-      return;
-    }
-    setErrorMessage(null);
-  }, [
-    currencyCode,
-    draftTotals.subtotalAmount,
-    draftTotals.taxAmount,
-    draftTotals.totalAmount,
-    editorForm,
-    regionalFinancePolicy.countryCode,
-  ]);
-
-  const onUploadBillPhoto = useCallback(async () => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to upload bill photos.");
-      return;
-    }
-    if (!accountRemoteId) {
-      setErrorMessage("A business account is required to manage billing.");
-      return;
-    }
-
-    const savePhoto = async ({
-      fileName,
-      mimeType,
-      imageDataUrl,
-    }: {
-      fileName: string;
-      mimeType: string | null;
-      imageDataUrl: string;
-    }): Promise<void> => {
-      const saveResult = await saveBillPhotoUseCase.execute({
-        remoteId: Crypto.randomUUID(),
-        accountRemoteId,
-        documentRemoteId: null,
-        fileName,
-        mimeType,
-        imageDataUrl,
-        uploadedAt: Date.now(),
-      });
-      if (!saveResult.success) {
-        setErrorMessage(saveResult.error.message);
-        return;
-      }
-      await loadOverview();
-    };
-
-    if (Platform.OS === "web") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "image/*";
-      input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const result = reader.result;
-          if (typeof result !== "string") {
-            setErrorMessage("Unable to read the selected image.");
-            return;
-          }
-          await savePhoto({
-            fileName: file.name,
-            mimeType: file.type || null,
-            imageDataUrl: result,
-          });
-        };
-        reader.readAsDataURL(file);
-      };
-      input.click();
-      return;
-    }
-
-    const pickedImage = await pickImageFromLibrary();
-    if (!pickedImage) {
-      return;
-    }
-
-    const imageDataUrl = pickedImage.dataUrl;
-    if (!imageDataUrl) {
-      setErrorMessage("Unable to read the selected image.");
-      return;
-    }
-
-    await savePhoto({
-      fileName: pickedImage.fileName,
-      mimeType: pickedImage.mimeType,
-      imageDataUrl,
-    });
-  }, [accountRemoteId, canManage, loadOverview, saveBillPhotoUseCase]);
 
   return useMemo(
     () => ({
@@ -701,59 +151,60 @@ export const useBillingViewModel = ({
       summary,
       documents: filteredDocuments,
       billPhotos,
-      isEditorVisible,
-      editorTitle,
-      form: editorForm,
-      currencyCode,
+      isEditorVisible: editorModule.isEditorVisible,
+      editorTitle: editorModule.editorTitle,
+      form: editorModule.form,
+      currencyCode: regionalFinancePolicy.currencyCode,
       countryCode: regionalFinancePolicy.countryCode,
       taxLabel: regionalFinancePolicy.taxLabel,
       taxRateOptions,
-      availableSettlementAccounts,
+      availableSettlementAccounts: paymentModule.availableSettlementAccounts,
       canManage,
       onRefresh: loadOverview,
       onTabChange: setActiveTab,
-      onOpenCreate,
-      onOpenEdit,
-      onCloseEditor,
-      onFormChange,
-      onLineItemChange,
-      onAddLineItem,
-      onRemoveLineItem,
-      onSubmit,
+      onOpenCreate: editorModule.onOpenCreate,
+      onOpenEdit: editorModule.onOpenEdit,
+      onCloseEditor: editorModule.onCloseEditor,
+      onFormChange: editorModule.onFormChange,
+      onLineItemChange: editorModule.onLineItemChange,
+      onAddLineItem: editorModule.onAddLineItem,
+      onRemoveLineItem: editorModule.onRemoveLineItem,
+      onSubmit: editorModule.onSubmit,
       onDelete,
-      onPrintPreview,
-      onUploadBillPhoto,
-      draftTotals,
+      onPrintPreview: assetsModule.onPrintPreview,
+      onUploadBillPhoto: assetsModule.onUploadBillPhoto,
+      draftTotals: editorModule.draftTotals,
     }),
     [
+      assetsModule.onPrintPreview,
+      assetsModule.onUploadBillPhoto,
       activeTab,
       billPhotos,
       canManage,
-      currencyCode,
-      draftTotals,
-      editorTitle,
-      editorForm,
+      editorModule.draftTotals,
+      editorModule.editorTitle,
+      editorModule.form,
+      editorModule.isEditorVisible,
+      editorModule.onAddLineItem,
+      editorModule.onCloseEditor,
+      editorModule.onFormChange,
+      editorModule.onLineItemChange,
+      editorModule.onOpenCreate,
+      editorModule.onOpenEdit,
+      editorModule.onRemoveLineItem,
+      editorModule.onSubmit,
+      onDelete,
       errorMessage,
       filteredDocuments,
-      isEditorVisible,
       isLoading,
       loadOverview,
-      onAddLineItem,
-      onCloseEditor,
-      onDelete,
-      onFormChange,
-      onLineItemChange,
-      onOpenCreate,
-      onOpenEdit,
-      onPrintPreview,
-      onRemoveLineItem,
-      onSubmit,
-      onUploadBillPhoto,
+      paymentModule.availableSettlementAccounts,
       regionalFinancePolicy.countryCode,
+      regionalFinancePolicy.currencyCode,
       regionalFinancePolicy.taxLabel,
+      setActiveTab,
       summary,
       taxRateOptions,
-      availableSettlementAccounts,
     ],
   );
 };
