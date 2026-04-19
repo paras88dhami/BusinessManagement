@@ -8,6 +8,7 @@ import {
   BACKFILL_CONTACT_NORMALIZED_PHONE_SQL,
   CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
   DEDUPE_CONTACT_NORMALIZED_PHONE_SQL,
+  DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
 } from "@/feature/contacts/data/dataSource/db/contactPhone.uniqueIndex";
 import {
   addColumns,
@@ -988,6 +989,13 @@ export const migrations = schemaMigrations({
         }),
         unsafeExecuteSql(BACKFILL_CONTACT_NORMALIZED_PHONE_SQL),
         unsafeExecuteSql(DEDUPE_CONTACT_NORMALIZED_PHONE_SQL),
+        unsafeExecuteSql(CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
+      ],
+    },
+    {
+      toVersion: 39,
+      steps: [
+        unsafeExecuteSql(DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
         unsafeExecuteSql(CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
       ],
     },

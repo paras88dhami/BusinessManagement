@@ -57,11 +57,10 @@ export function ContactEditorModal({
         <FormModalActionFooter>
           {onDelete && canDelete ? (
             <AppButton
-              label={isDeleting ? "Deleting..." : "Delete"}
+              label={isDeleting ? "Archiving..." : "Archive"}
               variant="secondary"
               size="lg"
-              style={[styles.actionButton, styles.deleteActionButton]}
-              labelStyle={styles.deleteActionLabel}
+              style={styles.actionButton}
               onPress={onDelete}
               disabled={!canDelete || isDeleting}
             />
@@ -168,12 +167,5 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-  },
-  deleteActionButton: {
-    borderColor: colors.destructive,
-    backgroundColor: "#FDECEC",
-  },
-  deleteActionLabel: {
-    color: colors.destructive,
   },
 });

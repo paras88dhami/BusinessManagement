@@ -176,13 +176,13 @@ export function ContactsScreen({
 
       <ConfirmDeleteModal
         visible={viewModel.isDeleteModalVisible}
-        title="Delete contact?"
+        title="Archive contact?"
         message={
           viewModel.pendingDeleteContactName
-            ? `Delete ${viewModel.pendingDeleteContactName}? This action cannot be undone.`
-            : "Delete this contact? This action cannot be undone."
+            ? `Archive ${viewModel.pendingDeleteContactName}? This will remove the contact from active lists but keep linked records intact.`
+            : "Archive this contact? This will remove the contact from active lists but keep linked records intact."
         }
-        confirmLabel="Delete"
+        confirmLabel="Archive"
         cancelLabel="Cancel"
         isDeleting={viewModel.isDeleting}
         errorMessage={viewModel.deleteErrorMessage}

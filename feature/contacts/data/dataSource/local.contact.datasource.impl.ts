@@ -83,6 +83,7 @@ const findDuplicateActiveContactByIdentityPhone = async (
       Q.where("contact_type", params.contactType),
       Q.where("normalized_phone_number", params.normalizedPhoneNumber),
       Q.where("deleted_at", Q.eq(null)),
+      Q.where("is_archived", false),
     )
     .fetch();
 
@@ -271,13 +272,19 @@ export const createLocalContactDatasource = (
       if (!normalizedRemoteId) throw new Error("Contact remote id is required");
 
       const existingContact = await findByRemoteId(database, normalizedRemoteId);
-      if (!existingContact) throw new Error("Contact not found");
+      if (!existingContact || existingContact.deletedAt !== null) {
+        throw new Error("Contact not found");
+      }
+
+      if (existingContact.isArchived) {
+        return { success: true, value: true };
+      }
 
       await database.write(async () => {
         await existingContact.update((record) => {
           record.isArchived = true;
-          record.deletedAt = Date.now();
-          record.recordSyncStatus = RecordSyncStatus.PendingDelete;
+          record.deletedAt = null;
+          updateSyncStatusOnMutation(record);
           setUpdatedAt(record, Date.now());
         });
       });

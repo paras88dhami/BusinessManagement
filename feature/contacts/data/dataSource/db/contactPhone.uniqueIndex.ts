@@ -5,8 +5,13 @@ export const CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL = `
 CREATE UNIQUE INDEX IF NOT EXISTS ${CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME}
 ON contacts (account_remote_id, contact_type, normalized_phone_number)
 WHERE deleted_at IS NULL
+  AND is_archived = 0
   AND normalized_phone_number IS NOT NULL
   AND LENGTH(TRIM(normalized_phone_number)) > 0;
+`.trim();
+
+export const DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL = `
+DROP INDEX IF EXISTS ${CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_NAME};
 `.trim();
 
 export const BACKFILL_CONTACT_NORMALIZED_PHONE_SQL = `

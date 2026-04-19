@@ -35,7 +35,7 @@ const BILLING_DOCUMENTS_TABLE = "billing_documents";
 const CONTACTS_TABLE = "contacts";
 
 const schema = appSchema({
-  version: 38,
+  version: 39,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,
@@ -155,6 +155,7 @@ export const ensureDatabaseReady = async (): Promise<void> => {
           SELECT account_remote_id, contact_type, normalized_phone_number, COUNT(*) AS duplicate_count
           FROM ${CONTACTS_TABLE}
           WHERE deleted_at IS NULL
+            AND is_archived = 0
             AND normalized_phone_number IS NOT NULL
             AND LENGTH(TRIM(normalized_phone_number)) > 0
           GROUP BY account_remote_id, contact_type, normalized_phone_number
