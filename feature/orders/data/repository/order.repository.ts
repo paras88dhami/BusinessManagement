@@ -1,9 +1,7 @@
 import {
-  OrderLineResult,
   OrderOperationResult,
   OrderResult,
   OrdersResult,
-  SaveOrderLinePayload,
   SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
 
@@ -16,7 +14,6 @@ export interface OrderRepository {
     remoteId: string,
     status: SaveOrderPayload["status"],
   ): Promise<OrderResult>;
-  addOrderItem(payload: SaveOrderLinePayload): Promise<OrderLineResult>;
   removeOrderItemByRemoteId(remoteId: string): Promise<OrderOperationResult>;
   assignOrderCustomer(
     orderRemoteId: string,

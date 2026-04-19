@@ -1,5 +1,4 @@
 import {
-  SaveOrderLinePayload,
   SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
@@ -566,60 +565,6 @@ export const createLocalOrderDatasource = (
       }
 
       return { success: true, value: updatedBundle };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error : new Error("Unknown error"),
-      };
-    }
-  },
-
-  async addOrderItem(payload: SaveOrderLinePayload): Promise<Result<OrderLineModel>> {
-    try {
-      const normalizedRemoteId = normalizeRequired(payload.remoteId);
-      const normalizedOrderRemoteId = normalizeRequired(payload.orderRemoteId);
-      const normalizedProductRemoteId = normalizeRequired(payload.productRemoteId);
-      if (!normalizedRemoteId) throw new Error("Order item remote id is required");
-      if (!normalizedOrderRemoteId) throw new Error("Order remote id is required");
-      if (!normalizedProductRemoteId) throw new Error("Product is required");
-      if (!Number.isFinite(payload.quantity) || payload.quantity <= 0) {
-        throw new Error("Item quantity must be greater than zero");
-      }
-
-      const orderLineCollection = database.get<OrderLineModel>(ORDER_LINES_TABLE);
-      const existingLine = await findOrderLineByRemoteId(database, normalizedRemoteId);
-      let savedLine!: OrderLineModel;
-
-      await database.write(async () => {
-        const now = Date.now();
-        if (existingLine) {
-          await existingLine.update((record) => {
-            record.orderRemoteId = normalizedOrderRemoteId;
-            record.productRemoteId = normalizedProductRemoteId;
-            record.quantity = payload.quantity;
-            record.lineOrder = payload.lineOrder;
-            record.deletedAt = null;
-            updateSyncStatusOnMutation(record);
-            setUpdatedAt(record, now);
-          });
-          savedLine = existingLine;
-          return;
-        }
-
-        savedLine = await orderLineCollection.create((record) => {
-          record.remoteId = normalizedRemoteId;
-          record.orderRemoteId = normalizedOrderRemoteId;
-          record.productRemoteId = normalizedProductRemoteId;
-          record.quantity = payload.quantity;
-          record.lineOrder = payload.lineOrder;
-          record.recordSyncStatus = RecordSyncStatus.PendingCreate;
-          record.lastSyncedAt = null;
-          record.deletedAt = null;
-          setCreatedAndUpdatedAt(record, now);
-        });
-      });
-
-      return { success: true, value: savedLine };
     } catch (error) {
       return {
         success: false,

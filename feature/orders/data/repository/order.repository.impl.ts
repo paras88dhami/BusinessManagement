@@ -5,11 +5,9 @@ import {
   OrderNotFoundError,
   OrderUnknownError,
   OrderValidationError,
-  SaveOrderLinePayload,
   SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
 import {
-  mapOrderLineModelToDomain,
   mapOrderRecordBundleToDomain,
 } from "./mapper/order.mapper";
 import { OrderRepository } from "./order.repository";
@@ -94,14 +92,6 @@ export const createOrderRepository = (
       return { success: false, error: mapDatasourceError(result.error) };
     }
     return { success: true, value: mapOrderRecordBundleToDomain(result.value) };
-  },
-
-  async addOrderItem(payload: SaveOrderLinePayload) {
-    const result = await datasource.addOrderItem(payload);
-    if (!result.success) {
-      return { success: false, error: mapDatasourceError(result.error) };
-    }
-    return { success: true, value: mapOrderLineModelToDomain(result.value) };
   },
 
   async removeOrderItemByRemoteId(remoteId: string) {
