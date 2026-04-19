@@ -23,6 +23,7 @@ import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getO
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
+import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase.impl";
 import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
 import { createSaveLedgerEntryWithSettlementUseCase } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase.impl";
 import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase.impl";
@@ -139,6 +140,11 @@ export function GetBillingScreenFactory({
     [ledgerRepository],
   );
 
+  const deleteLedgerEntryUseCase = React.useMemo(
+    () => createDeleteLedgerEntryUseCase(ledgerRepository),
+    [ledgerRepository],
+  );
+
   const moneyAccountDatasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(database),
     [database],
@@ -178,6 +184,7 @@ export function GetBillingScreenFactory({
         getOrCreateBusinessContactUseCase,
         getLedgerEntriesUseCase,
         addLedgerEntryUseCase,
+        deleteLedgerEntryUseCase,
         updateLedgerEntryUseCase,
         linkBillingDocumentLedgerEntryUseCase,
       }),
@@ -188,6 +195,7 @@ export function GetBillingScreenFactory({
       getOrCreateBusinessContactUseCase,
       getLedgerEntriesUseCase,
       addLedgerEntryUseCase,
+      deleteLedgerEntryUseCase,
       updateLedgerEntryUseCase,
       linkBillingDocumentLedgerEntryUseCase,
     ],

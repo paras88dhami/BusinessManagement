@@ -20,6 +20,7 @@ import {
   SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
 import {
@@ -230,6 +231,13 @@ const createDependencies = () => {
     })),
   };
 
+  const deleteLedgerEntryUseCase: { execute: any } = {
+    execute: vi.fn(async () => ({
+      success: true as const,
+      value: true,
+    })),
+  };
+
   const linkBillingDocumentLedgerEntryUseCase: { execute: any } = {
     execute: vi.fn(async () => ({
       success: true as const,
@@ -249,6 +257,8 @@ const createDependencies = () => {
     getLedgerEntriesUseCase:
       getLedgerEntriesUseCase as unknown as GetLedgerEntriesUseCase,
     addLedgerEntryUseCase: addLedgerEntryUseCase as unknown as AddLedgerEntryUseCase,
+    deleteLedgerEntryUseCase:
+      deleteLedgerEntryUseCase as unknown as DeleteLedgerEntryUseCase,
     updateLedgerEntryUseCase:
       updateLedgerEntryUseCase as unknown as UpdateLedgerEntryUseCase,
     linkBillingDocumentLedgerEntryUseCase:
@@ -263,6 +273,7 @@ const createDependencies = () => {
     getOrCreateBusinessContactUseCase,
     getLedgerEntriesUseCase,
     addLedgerEntryUseCase,
+    deleteLedgerEntryUseCase,
     updateLedgerEntryUseCase,
     linkBillingDocumentLedgerEntryUseCase,
   };
@@ -438,6 +449,143 @@ describe("runBillingDocumentIssue.useCase", () => {
     expect(deps.saveBillingDocumentUseCase.execute).not.toHaveBeenCalled();
     if (!result.success) {
       expect(result.error.message).toContain("already paid");
+    }
+  });
+
+  it("treats link failure as success when reread confirms linkage persisted", async () => {
+    const deps = createDependencies();
+    deps.getBillingDocumentByRemoteIdUseCase.execute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: false as const,
+        error: {
+          type: BillingErrorType.DocumentNotFound,
+          message: "The requested billing document was not found.",
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true as const,
+        value: buildBillingDocument({
+          linkedLedgerEntryRemoteId: "due-created-1",
+        }),
+      });
+    deps.addLedgerEntryUseCase.execute = vi.fn(async (payload: SaveLedgerEntryPayload) => ({
+      success: true as const,
+      value: buildLedgerEntry({
+        ...payload,
+        remoteId: "due-created-1",
+      }),
+    }));
+    deps.linkBillingDocumentLedgerEntryUseCase.execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "VALIDATION_ERROR" as const,
+        message: "link write failed",
+      },
+    }));
+
+    const result = await deps.useCase.execute(buildIssuePayload());
+
+    expect(result.success).toBe(true);
+    expect(deps.deleteLedgerEntryUseCase.execute).not.toHaveBeenCalled();
+    expect(deps.deleteBillingDocumentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it("rolls back newly created due and billing document when link fails and reread does not confirm linkage", async () => {
+    const deps = createDependencies();
+    deps.getBillingDocumentByRemoteIdUseCase.execute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: false as const,
+        error: {
+          type: BillingErrorType.DocumentNotFound,
+          message: "The requested billing document was not found.",
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true as const,
+        value: buildBillingDocument({
+          linkedLedgerEntryRemoteId: null,
+        }),
+      });
+    deps.addLedgerEntryUseCase.execute = vi.fn(async (payload: SaveLedgerEntryPayload) => ({
+      success: true as const,
+      value: buildLedgerEntry({
+        ...payload,
+        remoteId: "due-created-2",
+      }),
+    }));
+    deps.linkBillingDocumentLedgerEntryUseCase.execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "VALIDATION_ERROR" as const,
+        message: "link write failed",
+      },
+    }));
+
+    const result = await deps.useCase.execute(buildIssuePayload());
+
+    expect(result.success).toBe(false);
+    expect(deps.deleteLedgerEntryUseCase.execute).toHaveBeenCalledWith(
+      "due-created-2",
+    );
+    expect(deps.deleteBillingDocumentUseCase.execute).toHaveBeenCalledWith(
+      "bill-1",
+    );
+    if (!result.success) {
+      expect(result.error.message).toContain("rollback deleted");
+    }
+  });
+
+  it("returns precise failure when due rollback delete fails after link failure", async () => {
+    const deps = createDependencies();
+    deps.getBillingDocumentByRemoteIdUseCase.execute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        success: false as const,
+        error: {
+          type: BillingErrorType.DocumentNotFound,
+          message: "The requested billing document was not found.",
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true as const,
+        value: buildBillingDocument({
+          linkedLedgerEntryRemoteId: null,
+        }),
+      });
+    deps.addLedgerEntryUseCase.execute = vi.fn(async (payload: SaveLedgerEntryPayload) => ({
+      success: true as const,
+      value: buildLedgerEntry({
+        ...payload,
+        remoteId: "due-created-3",
+      }),
+    }));
+    deps.linkBillingDocumentLedgerEntryUseCase.execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "VALIDATION_ERROR" as const,
+        message: "link write failed",
+      },
+    }));
+    deps.deleteLedgerEntryUseCase.execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "VALIDATION_ERROR" as const,
+        message: "due delete failed",
+      },
+    }));
+
+    const result = await deps.useCase.execute(buildIssuePayload());
+
+    expect(result.success).toBe(false);
+    expect(deps.deleteLedgerEntryUseCase.execute).toHaveBeenCalledWith(
+      "due-created-3",
+    );
+    expect(deps.deleteBillingDocumentUseCase.execute).not.toHaveBeenCalled();
+    if (!result.success) {
+      expect(result.error.message).toContain("could not delete newly created due entry");
+      expect(result.error.message).toContain("due delete failed");
     }
   });
 });

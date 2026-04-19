@@ -22,6 +22,7 @@ import {
   SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
 import {
@@ -36,6 +37,7 @@ type CreateRunBillingDocumentIssueUseCaseParams = {
   getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
   updateLedgerEntryUseCase: UpdateLedgerEntryUseCase;
   linkBillingDocumentLedgerEntryUseCase: LinkBillingDocumentLedgerEntryUseCase;
 };
@@ -214,6 +216,7 @@ export const createRunBillingDocumentIssueUseCase = ({
   getOrCreateBusinessContactUseCase,
   getLedgerEntriesUseCase,
   addLedgerEntryUseCase,
+  deleteLedgerEntryUseCase,
   updateLedgerEntryUseCase,
   linkBillingDocumentLedgerEntryUseCase,
 }: CreateRunBillingDocumentIssueUseCaseParams): RunBillingDocumentIssueUseCase => ({
@@ -286,6 +289,7 @@ export const createRunBillingDocumentIssueUseCase = ({
     ) {
       return toBillingFailure(existingDocumentResult.error.message);
     }
+    const isNewBillingDocument = existingDocument === null;
 
     if (
       existingDocument &&
@@ -379,7 +383,7 @@ export const createRunBillingDocumentIssueUseCase = ({
     });
 
     if (!ledgerEntriesResult.success) {
-      if (!existingDocument) {
+      if (isNewBillingDocument) {
         await deleteBillingDocumentUseCase.execute(savedDocument.remoteId);
       }
 
@@ -429,12 +433,13 @@ export const createRunBillingDocumentIssueUseCase = ({
       settlementAccountDisplayNameSnapshot: null,
     };
 
+    const isNewDueEntry = existingDueEntry === null;
     const dueResult = existingDueEntry
       ? await updateLedgerEntryUseCase.execute(nextLedgerPayload)
       : await addLedgerEntryUseCase.execute(nextLedgerPayload);
 
     if (!dueResult.success) {
-      if (!existingDocument && !existingDueEntry) {
+      if (isNewBillingDocument && isNewDueEntry) {
         await deleteBillingDocumentUseCase.execute(savedDocument.remoteId);
       }
 
@@ -448,7 +453,52 @@ export const createRunBillingDocumentIssueUseCase = ({
       );
 
       if (!linkResult.success) {
-        return toBillingFailure(linkResult.error.message);
+        const verificationResult =
+          await getBillingDocumentByRemoteIdUseCase.execute(savedDocument.remoteId);
+
+        if (
+          verificationResult.success &&
+          verificationResult.value.linkedLedgerEntryRemoteId ===
+            dueResult.value.remoteId
+        ) {
+          return verificationResult;
+        }
+
+        const verificationSummary = verificationResult.success
+          ? "Verification reread did not confirm persisted linkage."
+          : `Verification reread failed: ${verificationResult.error.message}`;
+
+        if (!isNewDueEntry) {
+          return toBillingFailure(
+            `Billing and ledger link failed for an existing due entry; rollback skipped to avoid deleting existing data. ${verificationSummary} Link error: ${linkResult.error.message}`,
+          );
+        }
+
+        const deleteDueResult = await deleteLedgerEntryUseCase.execute(
+          dueResult.value.remoteId,
+        );
+        if (!deleteDueResult.success) {
+          return toBillingFailure(
+            `Billing and ledger link failed and rollback could not delete newly created due entry ${dueResult.value.remoteId}: ${deleteDueResult.error.message}. ${verificationSummary} Link error: ${linkResult.error.message}`,
+          );
+        }
+
+        if (isNewBillingDocument) {
+          const deleteBillingResult = await deleteBillingDocumentUseCase.execute(
+            savedDocument.remoteId,
+          );
+          if (!deleteBillingResult.success) {
+            return toBillingFailure(
+              `Billing and ledger link failed. Newly created due entry was deleted, but newly created billing document ${savedDocument.remoteId} could not be rolled back: ${deleteBillingResult.error.message}. ${verificationSummary} Link error: ${linkResult.error.message}`,
+            );
+          }
+        }
+
+        return toBillingFailure(
+          isNewBillingDocument
+            ? `Billing and ledger link failed; rollback deleted the newly created due entry and billing document. ${verificationSummary} Link error: ${linkResult.error.message}`
+            : `Billing and ledger link failed; rollback deleted the newly created due entry. ${verificationSummary} Link error: ${linkResult.error.message}`,
+        );
       }
     }
 
