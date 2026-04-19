@@ -12,6 +12,120 @@ import {
 } from "@/feature/transactions/types/transaction.entity.types";
 
 describe("manual transaction posting use cases", () => {
+  it("AddTransactionUseCase still routes through canonical money posting behavior", async () => {
+    const canonicalPostMoneyMovementUseCase = {
+      execute: vi.fn(async (payload: any) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+    };
+    const useCase = createAddTransactionUseCase(
+      canonicalPostMoneyMovementUseCase,
+    );
+
+    const result = await useCase.execute({
+      remoteId: " txn-canonical-add ",
+      ownerUserRemoteId: " user-1 ",
+      accountRemoteId: " business-1 ",
+      accountDisplayNameSnapshot: " Main Business ",
+      transactionType: TransactionType.Income,
+      direction: TransactionDirection.In,
+      title: " Canonical Add ",
+      amount: 200,
+      currencyCode: "NPR",
+      categoryLabel: " Sales ",
+      note: " note ",
+      happenedAt: 1_710_000_000_000,
+      settlementMoneyAccountRemoteId: " cash-1 ",
+      settlementMoneyAccountDisplayNameSnapshot: " Cash Box ",
+    });
+
+    expect(result.success).toBe(true);
+    expect(canonicalPostMoneyMovementUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(canonicalPostMoneyMovementUseCase.execute).toHaveBeenCalledWith({
+      remoteId: "txn-canonical-add",
+      ownerUserRemoteId: "user-1",
+      accountRemoteId: "business-1",
+      accountDisplayNameSnapshot: "Main Business",
+      transactionType: TransactionType.Income,
+      direction: TransactionDirection.In,
+      title: "Canonical Add",
+      amount: 200,
+      currencyCode: "NPR",
+      categoryLabel: "Sales",
+      note: "note",
+      happenedAt: 1_710_000_000_000,
+      settlementMoneyAccountRemoteId: "cash-1",
+      settlementMoneyAccountDisplayNameSnapshot: "Cash Box",
+      sourceModule: TransactionSourceModule.Manual,
+      sourceRemoteId: null,
+      sourceAction: null,
+      idempotencyKey: null,
+      postingStatus: TransactionPostingStatus.Posted,
+    });
+  });
+
+  it("UpdateTransactionUseCase still routes through canonical money posting behavior", async () => {
+    const canonicalPostMoneyMovementUseCase = {
+      execute: vi.fn(async (payload: any) => ({
+        success: true as const,
+        value: {
+          ...payload,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      })),
+    };
+    const useCase = createUpdateTransactionUseCase(
+      canonicalPostMoneyMovementUseCase,
+    );
+
+    const result = await useCase.execute({
+      remoteId: " txn-canonical-update ",
+      ownerUserRemoteId: " user-1 ",
+      accountRemoteId: " business-1 ",
+      accountDisplayNameSnapshot: " Main Business ",
+      transactionType: TransactionType.Expense,
+      direction: TransactionDirection.Out,
+      title: " Canonical Update ",
+      amount: 120,
+      currencyCode: "NPR",
+      categoryLabel: " Supplies ",
+      note: " update note ",
+      happenedAt: 1_710_000_000_100,
+      settlementMoneyAccountRemoteId: " cash-1 ",
+      settlementMoneyAccountDisplayNameSnapshot: " Cash Box ",
+    });
+
+    expect(result.success).toBe(true);
+    expect(canonicalPostMoneyMovementUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(canonicalPostMoneyMovementUseCase.execute).toHaveBeenCalledWith({
+      remoteId: "txn-canonical-update",
+      ownerUserRemoteId: "user-1",
+      accountRemoteId: "business-1",
+      accountDisplayNameSnapshot: "Main Business",
+      transactionType: TransactionType.Expense,
+      direction: TransactionDirection.Out,
+      title: "Canonical Update",
+      amount: 120,
+      currencyCode: "NPR",
+      categoryLabel: "Supplies",
+      note: "update note",
+      happenedAt: 1_710_000_000_100,
+      settlementMoneyAccountRemoteId: "cash-1",
+      settlementMoneyAccountDisplayNameSnapshot: "Cash Box",
+      sourceModule: TransactionSourceModule.Manual,
+      sourceRemoteId: null,
+      sourceAction: null,
+      idempotencyKey: null,
+      postingStatus: TransactionPostingStatus.Posted,
+    });
+  });
+
   it("routes manual create through shared posting with normalized manual defaults", async () => {
     const postBusinessTransactionUseCase = {
       execute: vi.fn(async (payload: any) => ({

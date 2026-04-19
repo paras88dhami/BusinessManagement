@@ -8,8 +8,10 @@ import { createSaveMoneyAccountUseCase } from "@/feature/accounts/useCase/saveMo
 import { useMoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel.impl";
 import { createRunMoneyAccountBalanceReconciliationWorkflowUseCase } from "@/feature/accounts/workflow/moneyAccountBalanceReconciliation/useCase/runMoneyAccountBalanceReconciliation.useCase.impl";
 import { createRunMoneyAccountOpeningBalanceWorkflowUseCase } from "@/feature/accounts/workflow/moneyAccountOpeningBalance/useCase/runMoneyAccountOpeningBalance.useCase.impl";
+import { createLocalMoneyAccountBalanceDatasource } from "@/feature/transactions/data/dataSource/local.moneyAccountBalance.datasource.impl";
 import { createLocalMoneyPostingDatasource } from "@/feature/transactions/data/dataSource/local.moneyPosting.datasource.impl";
 import { createMoneyPostingRepository } from "@/feature/transactions/data/repository/moneyPosting.repository.impl";
+import { createMoneyPostingWorkflowRepository } from "@/feature/transactions/workflow/moneyPosting/repository/moneyPostingWorkflow.repository.impl";
 import { createPostMoneyMovementUseCase } from "@/feature/transactions/useCase/postMoneyMovement.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
@@ -51,17 +53,29 @@ export function GetMoneyAccountsScreenFactory({
     [repository],
   );
 
-  const moneyPostingDatasource = React.useMemo(
+  const moneyPostingTransactionDatasource = React.useMemo(
     () => createLocalMoneyPostingDatasource(appDatabase),
     [],
   );
-  const moneyPostingRepository = React.useMemo(
-    () => createMoneyPostingRepository(moneyPostingDatasource),
-    [moneyPostingDatasource],
+  const moneyAccountBalanceDatasource = React.useMemo(
+    () => createLocalMoneyAccountBalanceDatasource(appDatabase),
+    [],
+  );
+  const moneyPostingWorkflowRepository = React.useMemo(
+    () =>
+      createMoneyPostingWorkflowRepository({
+        transactionDatasource: moneyPostingTransactionDatasource,
+        moneyAccountBalanceDatasource,
+      }),
+    [moneyAccountBalanceDatasource, moneyPostingTransactionDatasource],
+  );
+  const moneyPostingRepositoryAdapter = React.useMemo(
+    () => createMoneyPostingRepository(moneyPostingWorkflowRepository),
+    [moneyPostingWorkflowRepository],
   );
   const postMoneyMovementUseCase = React.useMemo(
-    () => createPostMoneyMovementUseCase(moneyPostingRepository),
-    [moneyPostingRepository],
+    () => createPostMoneyMovementUseCase(moneyPostingRepositoryAdapter),
+    [moneyPostingRepositoryAdapter],
   );
 
   const runMoneyAccountOpeningBalanceWorkflowUseCase = React.useMemo(

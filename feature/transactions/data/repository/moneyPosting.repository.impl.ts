@@ -8,53 +8,60 @@ import {
   TransactionError,
   TransactionUnknownError,
 } from "@/feature/transactions/types/transaction.error.types";
-import { MoneyPostingDatasource } from "../dataSource/moneyPosting.datasource";
+import { MoneyPostingWorkflowRepository } from "@/feature/transactions/workflow/moneyPosting/repository/moneyPostingWorkflow.repository";
+import { createRunMoneyPostingWorkflowUseCase } from "@/feature/transactions/workflow/moneyPosting/useCase/runMoneyPostingWorkflow.useCase.impl";
 import { mapTransactionModelToDomain } from "./mapper/transaction.mapper";
 import { MoneyPostingRepository } from "./moneyPosting.repository";
 
 export const createMoneyPostingRepository = (
-  localDatasource: MoneyPostingDatasource,
-): MoneyPostingRepository => ({
-  async postMoneyMovement(
-    payload: SaveTransactionPayload,
-  ): Promise<TransactionResult> {
-    const result = await localDatasource.postMoneyMovement(payload);
+  workflowRepository: MoneyPostingWorkflowRepository,
+): MoneyPostingRepository => {
+  const workflowUseCase = createRunMoneyPostingWorkflowUseCase({
+    workflowRepository,
+  });
 
-    if (!result.success) {
+  return {
+    async postMoneyMovement(
+      payload: SaveTransactionPayload,
+    ): Promise<TransactionResult> {
+      const result = await workflowUseCase.postMoneyMovement(payload);
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: mapTransactionError(result.error),
+        };
+      }
+
+      try {
+        return {
+          success: true,
+          value: await mapTransactionModelToDomain(result.value),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: mapTransactionError(error),
+        };
+      }
+    },
+
+    async deleteMoneyMovementByRemoteId(
+      remoteId: string,
+    ): Promise<TransactionOperationResult> {
+      const result = await workflowUseCase.deleteMoneyMovementByRemoteId(remoteId);
+
+      if (result.success) {
+        return result;
+      }
+
       return {
         success: false,
         error: mapTransactionError(result.error),
       };
-    }
-
-    try {
-      return {
-        success: true,
-        value: await mapTransactionModelToDomain(result.value),
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: mapTransactionError(error),
-      };
-    }
-  },
-
-  async deleteMoneyMovementByRemoteId(
-    remoteId: string,
-  ): Promise<TransactionOperationResult> {
-    const result = await localDatasource.deleteMoneyMovementByRemoteId(remoteId);
-
-    if (result.success) {
-      return result;
-    }
-
-    return {
-      success: false,
-      error: mapTransactionError(result.error),
-    };
-  },
-});
+    },
+  };
+};
 
 const mapTransactionError = (error: Error | unknown): TransactionError => {
   if (!(error instanceof Error)) {
