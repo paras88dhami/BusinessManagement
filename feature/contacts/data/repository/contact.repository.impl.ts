@@ -4,6 +4,7 @@ import {
   ContactOperationResult,
   ContactResult,
   ContactsResult,
+  ContactScopedReference,
   ContactUnknownError,
   ContactValidationError,
   SaveContactPayload,
@@ -21,7 +22,8 @@ const mapDatasourceError = (error: Error) => {
 
   if (
     normalizedMessage.includes("required") ||
-    normalizedMessage.includes("invalid")
+    normalizedMessage.includes("invalid") ||
+    normalizedMessage.includes("does not belong")
   ) {
     return ContactValidationError(error.message);
   }
@@ -51,8 +53,10 @@ export const createContactRepository = (
     };
   },
 
-  async getContactByRemoteId(remoteId: string): Promise<ContactResult> {
-    const result = await datasource.getContactByRemoteId(remoteId);
+  async getContactByRemoteId(
+    reference: ContactScopedReference,
+  ): Promise<ContactResult> {
+    const result = await datasource.getContactByRemoteId(reference);
     if (!result.success) {
       return { success: false, error: mapDatasourceError(result.error) };
     }
@@ -76,9 +80,9 @@ export const createContactRepository = (
   },
 
   async archiveContactByRemoteId(
-    remoteId: string,
+    reference: ContactScopedReference,
   ): Promise<ContactOperationResult> {
-    const result = await datasource.archiveContactByRemoteId(remoteId);
+    const result = await datasource.archiveContactByRemoteId(reference);
     if (!result.success) {
       return { success: false, error: mapDatasourceError(result.error) };
     }

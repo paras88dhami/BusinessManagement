@@ -60,6 +60,11 @@ export type SaveContactPayload = {
   isArchived: boolean;
 };
 
+export type ContactScopedReference = {
+  remoteId: string;
+  accountRemoteId: string;
+};
+
 export const ContactErrorType = {
   DatabaseError: "DATABASE_ERROR",
   ValidationError: "VALIDATION_ERROR",

@@ -1,5 +1,6 @@
 import {
   ContactBalanceDirection,
+  ContactScopedReference,
   ContactType,
   ContactTypeValue,
   SaveContactPayload,
@@ -60,6 +61,24 @@ const findByRemoteId = async (
 ): Promise<ContactModel | null> => {
   const collection = database.get<ContactModel>(CONTACTS_TABLE);
   const matching = await collection.query(Q.where("remote_id", remoteId)).fetch();
+  return matching[0] ?? null;
+};
+
+const findByRemoteIdAndAccountRemoteId = async (
+  database: Database,
+  params: {
+    remoteId: string;
+    accountRemoteId: string;
+  },
+): Promise<ContactModel | null> => {
+  const collection = database.get<ContactModel>(CONTACTS_TABLE);
+  const matching = await collection
+    .query(
+      Q.where("remote_id", params.remoteId),
+      Q.where("account_remote_id", params.accountRemoteId),
+    )
+    .fetch();
+
   return matching[0] ?? null;
 };
 
@@ -160,11 +179,16 @@ export const createLocalContactDatasource = (
 
       const existingContact = await findByRemoteId(database, normalizedRemoteId);
       if (existingContact) {
+        if (existingContact.deletedAt !== null) {
+          throw new Error("Contact not found");
+        }
+
+        if (existingContact.accountRemoteId !== normalizedAccountRemoteId) {
+          throw new Error("Contact does not belong to this account.");
+        }
+
         await database.write(async () => {
           await existingContact.update((record) => {
-            record.ownerUserRemoteId = normalizedOwnerUserRemoteId;
-            record.accountRemoteId = normalizedAccountRemoteId;
-            record.accountType = payload.accountType;
             record.contactType = payload.contactType;
             record.fullName = normalizedFullName;
             record.phoneNumber = normalizedPhoneNumber;
@@ -247,12 +271,28 @@ export const createLocalContactDatasource = (
     }
   },
 
-  async getContactByRemoteId(remoteId: string): Promise<Result<ContactModel>> {
+  async getContactByRemoteId(
+    reference: ContactScopedReference,
+  ): Promise<Result<ContactModel>> {
     try {
-      const normalizedRemoteId = normalizeRequired(remoteId);
-      if (!normalizedRemoteId) throw new Error("Contact remote id is required");
+      const normalizedRemoteId = normalizeRequired(reference.remoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        reference.accountRemoteId,
+      );
 
-      const existingContact = await findByRemoteId(database, normalizedRemoteId);
+      if (!normalizedRemoteId) {
+        throw new Error("Contact remote id is required");
+      }
+
+      if (!normalizedAccountRemoteId) {
+        throw new Error("Account remote id is required");
+      }
+
+      const existingContact = await findByRemoteIdAndAccountRemoteId(database, {
+        remoteId: normalizedRemoteId,
+        accountRemoteId: normalizedAccountRemoteId,
+      });
+
       if (!existingContact || existingContact.deletedAt !== null) {
         throw new Error("Contact not found");
       }
@@ -266,12 +306,28 @@ export const createLocalContactDatasource = (
     }
   },
 
-  async archiveContactByRemoteId(remoteId: string): Promise<Result<boolean>> {
+  async archiveContactByRemoteId(
+    reference: ContactScopedReference,
+  ): Promise<Result<boolean>> {
     try {
-      const normalizedRemoteId = normalizeRequired(remoteId);
-      if (!normalizedRemoteId) throw new Error("Contact remote id is required");
+      const normalizedRemoteId = normalizeRequired(reference.remoteId);
+      const normalizedAccountRemoteId = normalizeRequired(
+        reference.accountRemoteId,
+      );
 
-      const existingContact = await findByRemoteId(database, normalizedRemoteId);
+      if (!normalizedRemoteId) {
+        throw new Error("Contact remote id is required");
+      }
+
+      if (!normalizedAccountRemoteId) {
+        throw new Error("Account remote id is required");
+      }
+
+      const existingContact = await findByRemoteIdAndAccountRemoteId(database, {
+        remoteId: normalizedRemoteId,
+        accountRemoteId: normalizedAccountRemoteId,
+      });
+
       if (!existingContact || existingContact.deletedAt !== null) {
         throw new Error("Contact not found");
       }

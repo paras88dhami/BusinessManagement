@@ -381,16 +381,23 @@ export const useContactsViewModel = ({
       setDeleteErrorMessage("You do not have permission to manage contacts.");
       return;
     }
+
     if (!pendingDeleteRemoteId) {
+      return;
+    }
+
+    if (!accountRemoteId) {
+      setDeleteErrorMessage("An active account is required to manage contacts.");
       return;
     }
 
     setIsDeleting(true);
     setDeleteErrorMessage(null);
 
-    const archiveContactResult = await archiveContactUseCase.execute(
-      pendingDeleteRemoteId,
-    );
+    const archiveContactResult = await archiveContactUseCase.execute({
+      remoteId: pendingDeleteRemoteId,
+      accountRemoteId,
+    });
     setIsDeleting(false);
 
     if (!archiveContactResult.success) {
@@ -407,7 +414,13 @@ export const useContactsViewModel = ({
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
     void loadContacts();
-  }, [archiveContactUseCase, canManage, loadContacts, pendingDeleteRemoteId]);
+  }, [
+    accountRemoteId,
+    archiveContactUseCase,
+    canManage,
+    loadContacts,
+    pendingDeleteRemoteId,
+  ]);
 
   useEffect(() => {
     const allowedFilterValues = new Set(filterOptions.map((item) => item.value));
