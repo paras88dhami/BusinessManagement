@@ -221,6 +221,7 @@ export function GetBillingScreenFactory({
         saveBillingDocumentUseCase,
         replaceBillingDocumentAllocationsForSettlementEntryUseCase,
         deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+        deleteBillingDocumentUseCase,
       }),
     [
       addLedgerEntryUseCase,
@@ -231,6 +232,7 @@ export function GetBillingScreenFactory({
       saveBillingDocumentUseCase,
       replaceBillingDocumentAllocationsForSettlementEntryUseCase,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      deleteBillingDocumentUseCase,
     ],
   );
 

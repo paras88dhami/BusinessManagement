@@ -217,10 +217,12 @@ export function GetLedgerScreenFactory({
         saveBillingDocumentUseCase,
         replaceBillingDocumentAllocationsForSettlementEntryUseCase,
         deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+        deleteBillingDocumentUseCase,
       }),
     [
       addLedgerEntryUseCase,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      deleteBillingDocumentUseCase,
       deleteBusinessTransactionUseCase,
       getMoneyAccountsUseCase,
       postBusinessTransactionUseCase,

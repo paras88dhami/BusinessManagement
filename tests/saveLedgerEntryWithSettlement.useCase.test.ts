@@ -184,6 +184,12 @@ const createDependencies = () => {
       value: true,
     })),
   };
+  const deleteBillingDocumentUseCase: { execute: any } = {
+    execute: vi.fn(async (_remoteId: string) => ({
+      success: true as const,
+      value: true,
+    })),
+  };
 
   const useCase = createSaveLedgerEntryWithSettlementUseCase({
     addLedgerEntryUseCase: addLedgerEntryUseCase as any,
@@ -197,6 +203,7 @@ const createDependencies = () => {
       replaceBillingDocumentAllocationsForSettlementEntryUseCase as any,
     deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
+    deleteBillingDocumentUseCase: deleteBillingDocumentUseCase as any,
   });
 
   return {
@@ -209,6 +216,7 @@ const createDependencies = () => {
     saveBillingDocumentUseCase,
     replaceBillingDocumentAllocationsForSettlementEntryUseCase,
     deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+    deleteBillingDocumentUseCase,
   };
 };
 
@@ -382,6 +390,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
         deps.replaceBillingDocumentAllocationsForSettlementEntryUseCase as any,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
+      deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
     });
 
     const result = await useCase.execute({
@@ -503,6 +512,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
         deps.replaceBillingDocumentAllocationsForSettlementEntryUseCase as any,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
+      deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
     });
 
     const result = await useCase.execute({
@@ -550,6 +560,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
         deps.replaceBillingDocumentAllocationsForSettlementEntryUseCase as any,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
+      deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
     });
 
     const result = await useCase.execute({
@@ -582,6 +593,94 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
     }
   });
 
+  it("rolls back a newly created billing document when due ledger save fails", async () => {
+    const deps = createDependencies();
+    deps.addLedgerEntryUseCase.execute = vi.fn(async (_payload: any) => ({
+      success: false as const,
+      error: LedgerValidationError("ledger save failed"),
+    }));
+
+    const result = await deps.useCase.execute({
+      mode: "create",
+      businessAccountDisplayName: "Main Business",
+      selectedSettlementAccountRemoteId: null,
+      ledgerEntry: buildLedgerPayload({
+        entryType: LedgerEntryType.Sale,
+        balanceDirection: LedgerBalanceDirection.Receive,
+        title: "Sale Due - Acme Traders",
+        amount: 120,
+        dueAt: 1_710_086_400_000,
+        settledAgainstEntryRemoteId: null,
+        linkedDocumentRemoteId: null,
+        linkedTransactionRemoteId: null,
+      }),
+      existingLedgerEntries: [],
+      settlementCandidates: [],
+    });
+
+    expect(result.success).toBe(false);
+    expect(deps.saveBillingDocumentUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(deps.deleteBillingDocumentUseCase.execute).toHaveBeenCalledWith(
+      "bill-new-1",
+    );
+    expect(deps.deleteBusinessTransactionUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase
+        .execute,
+    ).not.toHaveBeenCalled();
+
+    if (!result.success) {
+      expect(result.error.message).toBe("ledger save failed");
+    }
+  });
+
+  it("returns rollback failure when due ledger save rollback cannot delete the created billing document", async () => {
+    const deps = createDependencies();
+    deps.addLedgerEntryUseCase.execute = vi.fn(async (_payload: any) => ({
+      success: false as const,
+      error: LedgerValidationError("ledger save failed"),
+    }));
+    deps.deleteBillingDocumentUseCase.execute = vi.fn(async () => ({
+      success: false as const,
+      error: {
+        type: "UNKNOWN_ERROR" as const,
+        message: "billing delete failed",
+      },
+    }));
+
+    const result = await deps.useCase.execute({
+      mode: "create",
+      businessAccountDisplayName: "Main Business",
+      selectedSettlementAccountRemoteId: null,
+      ledgerEntry: buildLedgerPayload({
+        entryType: LedgerEntryType.Sale,
+        balanceDirection: LedgerBalanceDirection.Receive,
+        title: "Sale Due - Acme Traders",
+        amount: 120,
+        dueAt: 1_710_086_400_000,
+        settledAgainstEntryRemoteId: null,
+        linkedDocumentRemoteId: null,
+        linkedTransactionRemoteId: null,
+      }),
+      existingLedgerEntries: [],
+      settlementCandidates: [],
+    });
+
+    expect(result.success).toBe(false);
+    expect(deps.deleteBillingDocumentUseCase.execute).toHaveBeenCalledWith(
+      "bill-new-1",
+    );
+
+    if (!result.success) {
+      expect(result.error.message).toContain(
+        "Ledger settlement rollback failed after save error:",
+      );
+      expect(result.error.message).toContain(
+        "could not remove created billing document bill-new-1: billing delete failed",
+      );
+    }
+  });
+
   it("returns the invalid settlement account message when the selected money account is missing or inactive", async () => {
     const deps = createDependencies();
     deps.getMoneyAccountsUseCase.execute = vi.fn(
@@ -607,6 +706,7 @@ describe("saveLedgerEntryWithSettlement.useCase", () => {
         deps.replaceBillingDocumentAllocationsForSettlementEntryUseCase as any,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
         deps.deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase as any,
+      deleteBillingDocumentUseCase: deps.deleteBillingDocumentUseCase as any,
     });
 
     const result = await useCase.execute({

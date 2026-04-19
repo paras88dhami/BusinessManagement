@@ -22,6 +22,7 @@ import { useEmiPlanDetailViewModel } from "@/feature/emiLoans/viewModel/emiPlanD
 import { useEmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase.impl";
 import { createReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase.impl";
 import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase.impl";
@@ -189,6 +190,10 @@ export function GetEmiLoansScreenFactory({
         ),
       [billingRepository],
     );
+  const deleteBillingDocumentUseCase = useMemo(
+    () => createDeleteBillingDocumentUseCase(billingRepository),
+    [billingRepository],
+  );
   const saveLedgerEntryWithSettlementUseCase = useMemo(
     () =>
       createSaveLedgerEntryWithSettlementUseCase({
@@ -200,10 +205,12 @@ export function GetEmiLoansScreenFactory({
         saveBillingDocumentUseCase,
         replaceBillingDocumentAllocationsForSettlementEntryUseCase,
         deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+        deleteBillingDocumentUseCase,
       }),
     [
       addLedgerEntryUseCase,
       deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+      deleteBillingDocumentUseCase,
       deleteBusinessTransactionUseCase,
       getMoneyAccountsUseCase,
       postBusinessTransactionUseCase,

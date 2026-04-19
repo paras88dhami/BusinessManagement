@@ -11,6 +11,7 @@ import {
   BillingTemplateTypeValue,
 } from "@/feature/billing/types/billing.types";
 import { DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase";
+import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { ReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import {
@@ -55,6 +56,7 @@ type CreateSaveLedgerEntryWithSettlementUseCaseParams = {
     ReplaceBillingDocumentAllocationsForSettlementEntryUseCase;
   deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
     DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
 };
 
 const createTransactionRemoteId = (): string => {
@@ -276,6 +278,70 @@ const mapEffectError = (message: string): LedgerError => ({
   message,
 });
 
+const rollbackPreparedEffects = async ({
+  ledgerRemoteId,
+  createdTransactionRemoteId,
+  createdBillingDocumentRemoteId,
+  hasPreparedSettlementAllocations,
+  deleteBusinessTransactionUseCase,
+  deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+  deleteBillingDocumentUseCase,
+}: {
+  ledgerRemoteId: string;
+  createdTransactionRemoteId: string | null;
+  createdBillingDocumentRemoteId: string | null;
+  hasPreparedSettlementAllocations: boolean;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+  deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase:
+    DeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+}): Promise<LedgerError | null> => {
+  const rollbackErrors: string[] = [];
+
+  if (hasPreparedSettlementAllocations) {
+    const deleteAllocationsResult =
+      await deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase.execute(
+        ledgerRemoteId,
+      );
+
+    if (!deleteAllocationsResult.success) {
+      rollbackErrors.push(
+        `could not remove prepared billing allocations: ${deleteAllocationsResult.error.message}`,
+      );
+    }
+  }
+
+  if (createdTransactionRemoteId) {
+    const deleteTransactionResult =
+      await deleteBusinessTransactionUseCase.execute(createdTransactionRemoteId);
+
+    if (!deleteTransactionResult.success) {
+      rollbackErrors.push(
+        `could not remove created transaction ${createdTransactionRemoteId}: ${deleteTransactionResult.error.message}`,
+      );
+    }
+  }
+
+  if (createdBillingDocumentRemoteId) {
+    const deleteBillingDocumentResult =
+      await deleteBillingDocumentUseCase.execute(createdBillingDocumentRemoteId);
+
+    if (!deleteBillingDocumentResult.success) {
+      rollbackErrors.push(
+        `could not remove created billing document ${createdBillingDocumentRemoteId}: ${deleteBillingDocumentResult.error.message}`,
+      );
+    }
+  }
+
+  if (rollbackErrors.length === 0) {
+    return null;
+  }
+
+  return mapEffectError(
+    `Ledger settlement rollback failed after save error: ${rollbackErrors.join(" | ")}`,
+  );
+};
+
 export const createSaveLedgerEntryWithSettlementUseCase = ({
   addLedgerEntryUseCase,
   updateLedgerEntryUseCase,
@@ -285,6 +351,7 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
   saveBillingDocumentUseCase,
   replaceBillingDocumentAllocationsForSettlementEntryUseCase,
   deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+  deleteBillingDocumentUseCase,
 }: CreateSaveLedgerEntryWithSettlementUseCaseParams): SaveLedgerEntryWithSettlementUseCase => ({
   async execute(
     payload: SaveLedgerEntryWithSettlementPayload,
@@ -314,6 +381,7 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
       ? (payload.ledgerEntry.linkedDocumentRemoteId ?? null)
       : null;
     let createdTransactionRemoteId: string | null = null;
+    let createdBillingDocumentRemoteId: string | null = null;
     let transactionToDeleteAfterSave: string | null = null;
     let hasPreparedSettlementAllocations = false;
 
@@ -398,6 +466,7 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
     }
 
     if (isDueAction) {
+      const hadExistingLinkedDocument = Boolean(linkedDocumentRemoteId);
       const nextLinkedDocumentRemoteId =
         linkedDocumentRemoteId ?? createBillingDocumentRemoteId();
       const saveDocumentResult = await saveBillingDocumentUseCase.execute({
@@ -438,10 +507,21 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
       });
 
       if (!saveDocumentResult.success) {
-        if (createdTransactionRemoteId) {
-          await deleteBusinessTransactionUseCase.execute(
-            createdTransactionRemoteId,
-          );
+        const rollbackError = await rollbackPreparedEffects({
+          ledgerRemoteId,
+          createdTransactionRemoteId,
+          createdBillingDocumentRemoteId,
+          hasPreparedSettlementAllocations,
+          deleteBusinessTransactionUseCase,
+          deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+          deleteBillingDocumentUseCase,
+        });
+
+        if (rollbackError) {
+          return {
+            success: false,
+            error: rollbackError,
+          };
         }
 
         return {
@@ -451,6 +531,10 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
       }
 
       linkedDocumentRemoteId = saveDocumentResult.value.remoteId;
+
+      if (!hadExistingLinkedDocument) {
+        createdBillingDocumentRemoteId = saveDocumentResult.value.remoteId;
+      }
     } else {
       linkedDocumentRemoteId = null;
     }
@@ -512,15 +596,21 @@ export const createSaveLedgerEntryWithSettlementUseCase = ({
         : await updateLedgerEntryUseCase.execute(ledgerEntryPayload);
 
     if (!result.success) {
-      if (createdTransactionRemoteId) {
-        await deleteBusinessTransactionUseCase.execute(
-          createdTransactionRemoteId,
-        );
-      }
-      if (hasPreparedSettlementAllocations) {
-        await deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase.execute(
-          ledgerRemoteId,
-        );
+      const rollbackError = await rollbackPreparedEffects({
+        ledgerRemoteId,
+        createdTransactionRemoteId,
+        createdBillingDocumentRemoteId,
+        hasPreparedSettlementAllocations,
+        deleteBusinessTransactionUseCase,
+        deleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase,
+        deleteBillingDocumentUseCase,
+      });
+
+      if (rollbackError) {
+        return {
+          success: false,
+          error: rollbackError,
+        };
       }
 
       return result;
