@@ -3,13 +3,13 @@ import { createMoneyAccountRepository } from "@/feature/accounts/data/repository
 import { createGetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase.impl";
 import { createLocalBillingDatasource } from "@/feature/billing/data/dataSource/local.billing.datasource.impl";
 import { createBillingRepository } from "@/feature/billing/data/repository/billing.repository.impl";
+import { createRunBillingDocumentIssueUseCase } from "@/feature/billing/workflow/billingDocumentIssue/useCase/runBillingDocumentIssue.useCase.impl";
 import { createRunBillingSettlementUseCase } from "@/feature/billing/workflow/billingSettlement/useCase/runBillingSettlement.useCase.impl";
 import { BillingScreen } from "@/feature/billing/ui/BillingScreen";
 import { createDeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase.impl";
 import { createDeleteBillingDocumentAllocationsBySettlementEntryRemoteIdUseCase } from "@/feature/billing/useCase/deleteBillingDocumentAllocationsBySettlementEntryRemoteId.useCase.impl";
 import { createGetBillingDocumentByRemoteIdUseCase } from "@/feature/billing/useCase/getBillingDocumentByRemoteId.useCase.impl";
 import { createGetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase.impl";
-import { createLinkBillingDocumentContactUseCase } from "@/feature/billing/useCase/linkBillingDocumentContact.useCase.impl";
 import { createLinkBillingDocumentLedgerEntryUseCase } from "@/feature/billing/useCase/linkBillingDocumentLedgerEntry.useCase.impl";
 import { createPayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase.impl";
 import { createReplaceBillingDocumentAllocationsForSettlementEntryUseCase } from "@/feature/billing/useCase/replaceBillingDocumentAllocationsForSettlementEntry.useCase.impl";
@@ -83,10 +83,6 @@ export function GetBillingScreenFactory({
 
   const deleteBillingDocumentUseCase = React.useMemo(
     () => createDeleteBillingDocumentUseCase(repository),
-    [repository],
-  );
-  const linkBillingDocumentContactUseCase = React.useMemo(
-    () => createLinkBillingDocumentContactUseCase(repository),
     [repository],
   );
 
@@ -173,6 +169,30 @@ export function GetBillingScreenFactory({
     [getOrCreateContactUseCase],
   );
 
+  const runBillingDocumentIssueUseCase = React.useMemo(
+    () =>
+      createRunBillingDocumentIssueUseCase({
+        getBillingDocumentByRemoteIdUseCase,
+        saveBillingDocumentUseCase,
+        deleteBillingDocumentUseCase,
+        getOrCreateBusinessContactUseCase,
+        getLedgerEntriesUseCase,
+        addLedgerEntryUseCase,
+        updateLedgerEntryUseCase,
+        linkBillingDocumentLedgerEntryUseCase,
+      }),
+    [
+      getBillingDocumentByRemoteIdUseCase,
+      saveBillingDocumentUseCase,
+      deleteBillingDocumentUseCase,
+      getOrCreateBusinessContactUseCase,
+      getLedgerEntriesUseCase,
+      addLedgerEntryUseCase,
+      updateLedgerEntryUseCase,
+      linkBillingDocumentLedgerEntryUseCase,
+    ],
+  );
+
   const postBusinessTransactionUseCase = React.useMemo(
     () => createPostBusinessTransactionUseCase(database),
     [database],
@@ -239,11 +259,9 @@ export function GetBillingScreenFactory({
     activeAccountDefaultTaxMode,
     canManage,
     getBillingOverviewUseCase,
-    saveBillingDocumentUseCase,
+    runBillingDocumentIssueUseCase,
     deleteBillingDocumentUseCase,
-    linkBillingDocumentContactUseCase,
     saveBillPhotoUseCase,
-    getOrCreateBusinessContactUseCase,
     getMoneyAccountsUseCase,
     payBillingDocumentUseCase,
   });

@@ -7,19 +7,15 @@ import {
   BillingDocument,
   BillingDocumentStatus,
   BillingDocumentType,
-  BillingTemplateType,
   BillingDocumentStatusValue,
   BillPhoto,
 } from "@/feature/billing/types/billing.types";
 import { buildBillingDraftHtml } from "@/feature/billing/ui/printBillingDocument.util";
 import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
-import { LinkBillingDocumentContactUseCase } from "@/feature/billing/useCase/linkBillingDocumentContact.useCase";
 import { PayBillingDocumentUseCase } from "@/feature/billing/useCase/payBillingDocument.useCase";
 import { SaveBillPhotoUseCase } from "@/feature/billing/useCase/saveBillPhoto.useCase";
-import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
-import { ContactType } from "@/feature/contacts/types/contact.types";
-import { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
+import { RunBillingDocumentIssueUseCase } from "@/feature/billing/workflow/billingDocumentIssue/useCase/runBillingDocumentIssue.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { exportDocument } from "@/shared/utils/document/exportDocument";
 import { resolveRegionalFinancePolicy } from "@/shared/utils/finance/regionalFinancePolicy";
@@ -67,26 +63,6 @@ const parseNumber = (value: string): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const resolveContactTypeForDocumentType = (
-  documentType: BillingDocument["documentType"],
-): (typeof ContactType)[keyof typeof ContactType] => {
-  if (documentType === BillingDocumentType.Invoice) {
-    return ContactType.Customer;
-  }
-
-  return ContactType.Supplier;
-};
-
-const resolveTemplateTypeForDocumentType = (
-  documentType: BillingDocument["documentType"],
-): BillingDocument["templateType"] => {
-  if (documentType === BillingDocumentType.Receipt) {
-    return BillingTemplateType.PosReceipt;
-  }
-
-  return BillingTemplateType.StandardInvoice;
-};
-
 const mapMoneyAccountToOption = (
   moneyAccount: MoneyAccount,
 ): {
@@ -104,22 +80,6 @@ const mapMoneyAccountToOption = (
     remoteId: moneyAccount.remoteId,
     label: `${moneyAccount.name} (${accountTypeLabel})`,
   };
-};
-
-const buildDocumentNumber = ({
-  documentType,
-  remoteId,
-  issuedAt,
-}: {
-  documentType: BillingDocument["documentType"];
-  remoteId: string;
-  issuedAt: number;
-}): string => {
-  const prefix = documentType === BillingDocumentType.Receipt ? "RCPT" : "INV";
-  const year = new Date(issuedAt).getUTCFullYear();
-  const token = remoteId.replace(/-/g, "").slice(-8).toUpperCase();
-
-  return `${prefix}-${year}-${token}`;
 };
 
 const formatDateInput = (timestamp: number | null): string => {
@@ -167,11 +127,9 @@ type Params = {
   activeAccountDefaultTaxMode: TaxModeValue | null;
   canManage: boolean;
   getBillingOverviewUseCase: GetBillingOverviewUseCase;
-  saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
+  runBillingDocumentIssueUseCase: RunBillingDocumentIssueUseCase;
   deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
-  linkBillingDocumentContactUseCase: LinkBillingDocumentContactUseCase;
   saveBillPhotoUseCase: SaveBillPhotoUseCase;
-  getOrCreateBusinessContactUseCase: GetOrCreateBusinessContactUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   payBillingDocumentUseCase: PayBillingDocumentUseCase;
 };
@@ -186,11 +144,9 @@ export const useBillingViewModel = ({
   activeAccountDefaultTaxMode,
   canManage,
   getBillingOverviewUseCase,
-  saveBillingDocumentUseCase,
+  runBillingDocumentIssueUseCase,
   deleteBillingDocumentUseCase,
-  linkBillingDocumentContactUseCase,
   saveBillPhotoUseCase,
-  getOrCreateBusinessContactUseCase,
   getMoneyAccountsUseCase,
   payBillingDocumentUseCase,
 }: Params): BillingViewModel => {
@@ -478,11 +434,17 @@ export const useBillingViewModel = ({
       setErrorMessage("Paid amount cannot be greater than total amount.");
       return;
     }
+
     if (
       paidNowAmount > 0 &&
       form.settlementAccountRemoteId.trim().length === 0
     ) {
       setErrorMessage("Money account is required when paid amount is entered.");
+      return;
+    }
+
+    if (form.status === BillingDocumentStatus.Draft && paidNowAmount > 0) {
+      setErrorMessage("Draft billing documents cannot take payment.");
       return;
     }
 
@@ -505,81 +467,46 @@ export const useBillingViewModel = ({
       setErrorMessage("Enter a valid due date in YYYY-MM-DD format.");
       return;
     }
-    if (pendingAfterPayment > 0 && dueAt === null) {
+
+    if (
+      form.status !== BillingDocumentStatus.Draft &&
+      pendingAfterPayment > 0 &&
+      dueAt === null
+    ) {
       setErrorMessage("Due date is required when pending amount exists.");
       return;
     }
+
     const resolvedRemoteId = form.remoteId ?? Crypto.randomUUID();
-    const existingDocumentNumber = form.remoteId
-      ? documents.find((item) => item.remoteId === form.remoteId)
-          ?.documentNumber
-      : null;
-    const result = await saveBillingDocumentUseCase.execute({
+
+    const issueResult = await runBillingDocumentIssueUseCase.execute({
       remoteId: resolvedRemoteId,
       accountRemoteId,
-      documentNumber:
-        existingDocumentNumber ??
-        buildDocumentNumber({
-          documentType: form.documentType,
-          remoteId: resolvedRemoteId,
-          issuedAt: normalizedIssuedAt,
-        }),
+      ownerUserRemoteId,
       documentType: form.documentType,
-      templateType: resolveTemplateTypeForDocumentType(form.documentType),
+      desiredStatus: form.status,
       customerName: form.customerName,
-      status:
-        form.status === BillingDocumentStatus.Draft
-          ? BillingDocumentStatus.Draft
-          : BillingDocumentStatus.Pending,
       taxRatePercent: parseNumber(form.taxRatePercent),
-      notes: form.notes || null,
+      notes: form.notes.trim() || null,
       issuedAt: normalizedIssuedAt,
-      dueAt: pendingAfterPayment > 0 ? dueAt : null,
+      dueAt:
+        form.status === BillingDocumentStatus.Draft
+          ? null
+          : pendingAfterPayment > 0
+            ? dueAt
+            : null,
       items: normalizedItems,
     });
-    if (!result.success) {
-      setErrorMessage(result.error.message);
+
+    if (!issueResult.success) {
+      setErrorMessage(issueResult.error.message);
       return;
-    }
-
-    let contactSyncWarningMessage: string | null = null;
-    const normalizedContactName = form.customerName.trim();
-    const expectedContactType = resolveContactTypeForDocumentType(
-      form.documentType,
-    );
-    const normalizedOwnerUserRemoteId = ownerUserRemoteId?.trim() ?? "";
-
-    if (!normalizedOwnerUserRemoteId) {
-      contactSyncWarningMessage =
-        "Bill saved, but contact auto-create was skipped because user context is missing.";
-    } else {
-      const contactResult = await getOrCreateBusinessContactUseCase.execute({
-        accountRemoteId,
-        contactType: expectedContactType,
-        fullName: normalizedContactName,
-        ownerUserRemoteId: normalizedOwnerUserRemoteId,
-        notes: form.notes.trim() || null,
-      });
-
-      if (!contactResult.success) {
-        contactSyncWarningMessage = `Bill saved, but contact sync failed: ${contactResult.error.message}`;
-      } else {
-        const linkContactResult =
-          await linkBillingDocumentContactUseCase.execute({
-            billingDocumentRemoteId: result.value.remoteId,
-            contactRemoteId: contactResult.value.remoteId,
-          });
-
-        if (!linkContactResult.success) {
-          contactSyncWarningMessage = `Bill saved, but contact link failed: ${linkContactResult.error.message}`;
-        }
-      }
     }
 
     if (paidNowAmount > 0) {
       if (!ownerUserRemoteId?.trim()) {
         setErrorMessage(
-          "Bill saved, but payment could not be posted because user context is missing.",
+          "Bill issued, but payment could not be posted because user context is missing.",
         );
         await loadOverview();
         return;
@@ -588,16 +515,17 @@ export const useBillingViewModel = ({
       const selectedSettlementAccount = availableSettlementAccounts.find(
         (account) => account.remoteId === form.settlementAccountRemoteId.trim(),
       );
+
       if (!selectedSettlementAccount) {
         setErrorMessage(
-          "Bill saved, but selected money account is not available.",
+          "Bill issued, but selected money account is not available.",
         );
         await loadOverview();
         return;
       }
 
       const paymentResult = await payBillingDocumentUseCase.execute({
-        billingDocumentRemoteId: result.value.remoteId,
+        billingDocumentRemoteId: issueResult.value.remoteId,
         accountRemoteId,
         accountDisplayNameSnapshot:
           accountDisplayNameSnapshot || "Business Account",
@@ -609,12 +537,12 @@ export const useBillingViewModel = ({
         settledAt: normalizedIssuedAt,
         note: form.notes.trim() || null,
         documentType: form.documentType,
-        documentNumber: result.value.documentNumber,
+        documentNumber: issueResult.value.documentNumber,
       });
 
       if (!paymentResult.success) {
         setErrorMessage(
-          `Bill saved, but payment processing failed: ${paymentResult.error.message}`,
+          `Bill issued, but payment processing failed: ${paymentResult.error.message}`,
         );
         await loadOverview();
         return;
@@ -624,22 +552,19 @@ export const useBillingViewModel = ({
     setIsEditorVisible(false);
     setForm(createEmptyForm(defaultTaxRatePercent));
     await loadOverview();
-    setErrorMessage(contactSyncWarningMessage);
+    setErrorMessage(null);
   }, [
     accountDisplayNameSnapshot,
     accountRemoteId,
     availableSettlementAccounts,
     canManage,
     defaultTaxRatePercent,
-    documents,
     draftTotals.totalAmount,
     form,
-    getOrCreateBusinessContactUseCase,
-    linkBillingDocumentContactUseCase,
     loadOverview,
     ownerUserRemoteId,
     payBillingDocumentUseCase,
-    saveBillingDocumentUseCase,
+    runBillingDocumentIssueUseCase,
   ]);
 
   const onDelete = useCallback(
