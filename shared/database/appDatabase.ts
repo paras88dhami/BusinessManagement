@@ -35,7 +35,7 @@ const BILLING_DOCUMENTS_TABLE = "billing_documents";
 const CONTACTS_TABLE = "contacts";
 
 const schema = appSchema({
-  version: 39,
+  version: 40,
   tables: [
     ...authUserDbConfig.tables,
     ...authCredentialDbConfig.tables,

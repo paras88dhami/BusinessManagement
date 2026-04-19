@@ -33,7 +33,17 @@ export type OrderLine = {
   remoteId: string;
   orderRemoteId: string;
   productRemoteId: string;
+  productNameSnapshot: string | null;
+  unitLabelSnapshot: string | null;
+  skuOrBarcodeSnapshot: string | null;
+  categoryNameSnapshot: string | null;
+  taxRateLabelSnapshot: string | null;
+  unitPriceSnapshot: number | null;
+  taxRatePercentSnapshot: number | null;
   quantity: number;
+  lineSubtotalAmount: number | null;
+  lineTaxAmount: number | null;
+  lineTotalAmount: number | null;
   lineOrder: number;
   createdAt: number;
   updatedAt: number;
@@ -51,6 +61,11 @@ export type Order = {
   tags: string | null;
   internalRemarks: string | null;
   status: OrderStatusValue;
+  taxRatePercent: number | null;
+  subtotalAmount: number | null;
+  taxAmount: number | null;
+  discountAmount: number | null;
+  totalAmount: number | null;
   items: OrderLine[];
   createdAt: number;
   updatedAt: number;
@@ -60,7 +75,17 @@ export type SaveOrderLinePayload = {
   remoteId: string;
   orderRemoteId: string;
   productRemoteId: string;
+  productNameSnapshot?: string | null;
+  unitLabelSnapshot?: string | null;
+  skuOrBarcodeSnapshot?: string | null;
+  categoryNameSnapshot?: string | null;
+  taxRateLabelSnapshot?: string | null;
+  unitPriceSnapshot?: number | null;
+  taxRatePercentSnapshot?: number | null;
   quantity: number;
+  lineSubtotalAmount?: number | null;
+  lineTaxAmount?: number | null;
+  lineTotalAmount?: number | null;
   lineOrder: number;
 };
 
@@ -76,6 +101,11 @@ export type SaveOrderPayload = {
   tags: string | null;
   internalRemarks: string | null;
   status: OrderStatusValue;
+  taxRatePercent?: number | null;
+  subtotalAmount?: number | null;
+  taxAmount?: number | null;
+  discountAmount?: number | null;
+  totalAmount?: number | null;
   items: SaveOrderLinePayload[];
 };
 

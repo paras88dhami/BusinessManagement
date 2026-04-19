@@ -7,6 +7,7 @@ import { Contact } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import {
   Order,
+  OrderLine,
   ORDER_STATUS_OPTIONS,
   OrderStatus,
   OrderStatusValue,
@@ -111,12 +112,29 @@ type OrderFinancialSnapshot = {
   balanceDueAmount: number;
 };
 
+type ResolvedOrderLineSnapshot = {
+  productName: string;
+  unitLabel: string | null;
+  unitPrice: number;
+  taxRatePercent: number;
+  lineSubtotalAmount: number;
+  lineTaxAmount: number;
+  lineTotalAmount: number;
+};
+
 const parseNumber = (value: string): number | null => {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? parsed : null;
 };
 const safeTrim = (value: string | null | undefined): string =>
   typeof value === "string" ? value.trim() : "";
+
+const hasValidMoneyValue = (
+  value: number | null | undefined,
+): value is number => Number.isFinite(value);
+
+const roundMoney = (value: number): number =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
 
 const normalizePaymentMethod = (value: string | null | undefined): string => {
   const normalizedValue = safeTrim(value);
@@ -172,37 +190,114 @@ const buildNextOrderNumber = (orders: Order[]): string => {
 };
 
 const toOrderFinancialSnapshot = (params: {
-  lineSubtotalAmount: number;
-  taxRatePercent: number;
+  subtotalAmount: number;
+  taxAmount: number;
+  discountAmount: number;
   paidAmount: number;
 }): OrderFinancialSnapshot => {
-  const taxAmount = (params.lineSubtotalAmount * params.taxRatePercent) / 100;
-  const discountAmount = 0;
-  const totalAmount = params.lineSubtotalAmount + taxAmount - discountAmount;
+  const totalAmount = roundMoney(
+    params.subtotalAmount + params.taxAmount - params.discountAmount,
+  );
   const balanceDueAmount = Math.max(totalAmount - params.paidAmount, 0);
 
   return {
-    subtotalAmount: params.lineSubtotalAmount,
-    taxAmount,
-    discountAmount,
+    subtotalAmount: params.subtotalAmount,
+    taxAmount: params.taxAmount,
+    discountAmount: params.discountAmount,
     totalAmount,
     paidAmount: params.paidAmount,
     balanceDueAmount,
   };
 };
 
-const calculateOrderSubtotalAmount = (
-  order: Order,
-  productsByRemoteId: Map<string, Product>,
-): number => {
-  const orderItems = Array.isArray(order.items) ? order.items : [];
-  return orderItems.reduce((subtotal, item) => {
-    const product = productsByRemoteId.get(item.productRemoteId);
-    const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-    const salePrice = product ? product.salePrice : 0;
+const resolveOrderLineDisplaySnapshot = (params: {
+  item: OrderLine;
+  productsByRemoteId: Map<string, Product>;
+  fallbackTaxRatePercent: number;
+}): ResolvedOrderLineSnapshot => {
+  const { item, productsByRemoteId, fallbackTaxRatePercent } = params;
+  const linkedProduct = productsByRemoteId.get(item.productRemoteId);
+  const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
 
-    return subtotal + quantity * salePrice;
-  }, 0);
+  const unitPrice = hasValidMoneyValue(item.unitPriceSnapshot)
+    ? item.unitPriceSnapshot
+    : linkedProduct?.salePrice ?? 0;
+
+  const taxRatePercent = hasValidMoneyValue(item.taxRatePercentSnapshot)
+    ? item.taxRatePercentSnapshot
+    : fallbackTaxRatePercent;
+
+  const lineSubtotalAmount = hasValidMoneyValue(item.lineSubtotalAmount)
+    ? item.lineSubtotalAmount
+    : roundMoney(quantity * unitPrice);
+
+  const lineTaxAmount = hasValidMoneyValue(item.lineTaxAmount)
+    ? item.lineTaxAmount
+    : roundMoney((lineSubtotalAmount * taxRatePercent) / 100);
+
+  const lineTotalAmount = hasValidMoneyValue(item.lineTotalAmount)
+    ? item.lineTotalAmount
+    : roundMoney(lineSubtotalAmount + lineTaxAmount);
+
+  return {
+    productName:
+      safeTrim(item.productNameSnapshot) ||
+      linkedProduct?.name ||
+      "Unknown item",
+    unitLabel: item.unitLabelSnapshot ?? linkedProduct?.unitLabel ?? null,
+    unitPrice,
+    taxRatePercent,
+    lineSubtotalAmount,
+    lineTaxAmount,
+    lineTotalAmount,
+  };
+};
+
+const calculateOrderFinancialSnapshot = (params: {
+  order: Order;
+  productsByRemoteId: Map<string, Product>;
+  transactions: readonly Transaction[];
+  fallbackTaxRatePercent: number;
+}): OrderFinancialSnapshot => {
+  const { order, productsByRemoteId, transactions, fallbackTaxRatePercent } =
+    params;
+
+  const orderItems = Array.isArray(order.items) ? order.items : [];
+  const resolvedLines = orderItems.map((item) =>
+    resolveOrderLineDisplaySnapshot({
+      item,
+      productsByRemoteId,
+      fallbackTaxRatePercent,
+    }),
+  );
+
+  const subtotalAmount = hasValidMoneyValue(order.subtotalAmount)
+    ? order.subtotalAmount
+    : roundMoney(
+        resolvedLines.reduce(
+          (sum, line) => sum + line.lineSubtotalAmount,
+          0,
+        ),
+      );
+
+  const taxAmount = hasValidMoneyValue(order.taxAmount)
+    ? order.taxAmount
+    : roundMoney(
+        resolvedLines.reduce((sum, line) => sum + line.lineTaxAmount, 0),
+      );
+
+  const discountAmount = hasValidMoneyValue(order.discountAmount)
+    ? order.discountAmount
+    : 0;
+
+  const paidAmount = calculatePaidAmount(order.orderNumber, transactions);
+
+  return toOrderFinancialSnapshot({
+    subtotalAmount,
+    taxAmount,
+    discountAmount,
+    paidAmount,
+  });
 };
 
 const calculatePaidAmount = (
@@ -233,9 +328,13 @@ const buildItemsPreview = (
   productsByRemoteId: Map<string, Product>,
 ): string => {
   const orderItems = Array.isArray(order.items) ? order.items : [];
-  const previewNames = orderItems
-    .slice(0, 2)
-    .map((item) => productsByRemoteId.get(item.productRemoteId)?.name ?? "Unknown item");
+  const previewNames = orderItems.slice(0, 2).map((item) => {
+    return (
+      safeTrim(item.productNameSnapshot) ||
+      productsByRemoteId.get(item.productRemoteId)?.name ||
+      "Unknown item"
+    );
+  });
 
   if (orderItems.length <= 2) {
     return previewNames.join(", ") || "No items";
@@ -266,12 +365,12 @@ const buildOrderListItemView = (params: {
   const customerName = order.customerRemoteId
     ? contactsByRemoteId.get(order.customerRemoteId)?.fullName ?? "Customer not found"
     : "No customer";
-  const lineSubtotalAmount = calculateOrderSubtotalAmount(order, productsByRemoteId);
-  const paidAmount = calculatePaidAmount(order.orderNumber, transactions);
-  const financialSnapshot = toOrderFinancialSnapshot({
-    lineSubtotalAmount,
-    taxRatePercent,
-    paidAmount,
+
+  const financialSnapshot = calculateOrderFinancialSnapshot({
+    order,
+    productsByRemoteId,
+    transactions,
+    fallbackTaxRatePercent: taxRatePercent,
   });
 
   return {
@@ -329,35 +428,48 @@ const buildOrderDetailView = (params: {
     ? customerContact?.fullName ?? "Customer not found"
     : "No customer";
 
-  const items: OrderDetailItemView[] = orderItems.map((item) => ({
-    remoteId: item.remoteId,
-    productName: productsByRemoteId.get(item.productRemoteId)?.name ?? "Unknown item",
-    quantityLabel: `${item.quantity}`,
-    unitPriceLabel: formatCurrencyAmount({
-      amount: productsByRemoteId.get(item.productRemoteId)?.salePrice ?? 0,
-      currencyCode,
-      countryCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+  const resolvedLines = orderItems.map((item) =>
+    resolveOrderLineDisplaySnapshot({
+      item,
+      productsByRemoteId,
+      fallbackTaxRatePercent: taxRatePercent,
     }),
-    lineTotalLabel: formatCurrencyAmount({
-      amount:
-        (productsByRemoteId.get(item.productRemoteId)?.salePrice ?? 0) *
-        (Number.isFinite(item.quantity) ? item.quantity : 0),
-      currencyCode,
-      countryCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }),
-  }));
+  );
 
-  const lineSubtotalAmount = calculateOrderSubtotalAmount(order, productsByRemoteId);
-  const paidAmount = calculatePaidAmount(order.orderNumber, transactions);
-  const financialSnapshot = toOrderFinancialSnapshot({
-    lineSubtotalAmount,
-    taxRatePercent,
-    paidAmount,
+  const items: OrderDetailItemView[] = orderItems.map((item, index) => {
+    const resolvedLine = resolvedLines[index];
+
+    return {
+      remoteId: item.remoteId,
+      productName: resolvedLine.productName,
+      quantityLabel: `${item.quantity}`,
+      unitPriceLabel: formatCurrencyAmount({
+        amount: resolvedLine.unitPrice,
+        currencyCode,
+        countryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+      lineTotalLabel: formatCurrencyAmount({
+        amount: resolvedLine.lineTotalAmount,
+        currencyCode,
+        countryCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+    };
   });
+
+  const financialSnapshot = calculateOrderFinancialSnapshot({
+    order,
+    productsByRemoteId,
+    transactions,
+    fallbackTaxRatePercent: taxRatePercent,
+  });
+
+  const resolvedOrderTaxRatePercent = hasValidMoneyValue(order.taxRatePercent)
+    ? order.taxRatePercent
+    : taxRatePercent;
 
   const pricing: OrderDetailPricingView = {
     ...financialSnapshot,
@@ -403,7 +515,7 @@ const buildOrderDetailView = (params: {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }),
-    taxRateLabel: `${taxRatePercent}%`,
+    taxRateLabel: `${resolvedOrderTaxRatePercent}%`,
   };
 
   return {
@@ -737,8 +849,9 @@ export const useOrdersViewModel = ({
       editorMode === "edit" ? calculatePaidAmount(form.orderNumber, transactions) : 0;
 
     const financialSnapshot = toOrderFinancialSnapshot({
-      lineSubtotalAmount,
-      taxRatePercent,
+      subtotalAmount: roundMoney(lineSubtotalAmount),
+      taxAmount: roundMoney((lineSubtotalAmount * taxRatePercent) / 100),
+      discountAmount: 0,
       paidAmount,
     });
 
@@ -944,6 +1057,7 @@ export const useOrdersViewModel = ({
       tags: safeTrim(form.tags) || null,
       internalRemarks: safeTrim(form.internalRemarks) || null,
       status: form.status,
+      taxRatePercent,
       items: normalizedItems.map((item) => ({ ...item, orderRemoteId: remoteId })),
     };
 

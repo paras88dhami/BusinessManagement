@@ -16,6 +16,11 @@ export class OrderModel extends Model {
   @field("tags") tags!: string | null;
   @field("internal_remarks") internalRemarks!: string | null;
   @field("status") status!: OrderStatusValue;
+  @field("tax_rate_percent") taxRatePercent!: number | null;
+  @field("subtotal_amount") subtotalAmount!: number | null;
+  @field("tax_amount") taxAmount!: number | null;
+  @field("discount_amount") discountAmount!: number | null;
+  @field("total_amount") totalAmount!: number | null;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;
   @field("deleted_at") deletedAt!: number | null;

@@ -999,5 +999,55 @@ export const migrations = schemaMigrations({
         unsafeExecuteSql(CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL),
       ],
     },
+    {
+      toVersion: 40,
+      steps: [
+        addColumns({
+          table: "orders",
+          columns: [
+            { name: "tax_rate_percent", type: "number", isOptional: true },
+            { name: "subtotal_amount", type: "number", isOptional: true },
+            { name: "tax_amount", type: "number", isOptional: true },
+            { name: "discount_amount", type: "number", isOptional: true },
+            { name: "total_amount", type: "number", isOptional: true },
+          ],
+        }),
+        addColumns({
+          table: "order_lines",
+          columns: [
+            { name: "product_name_snapshot", type: "string", isOptional: true },
+            { name: "unit_label_snapshot", type: "string", isOptional: true },
+            {
+              name: "sku_or_barcode_snapshot",
+              type: "string",
+              isOptional: true,
+            },
+            {
+              name: "category_name_snapshot",
+              type: "string",
+              isOptional: true,
+            },
+            {
+              name: "tax_rate_label_snapshot",
+              type: "string",
+              isOptional: true,
+            },
+            { name: "unit_price_snapshot", type: "number", isOptional: true },
+            {
+              name: "tax_rate_percent_snapshot",
+              type: "number",
+              isOptional: true,
+            },
+            {
+              name: "line_subtotal_amount",
+              type: "number",
+              isOptional: true,
+            },
+            { name: "line_tax_amount", type: "number", isOptional: true },
+            { name: "line_total_amount", type: "number", isOptional: true },
+          ],
+        }),
+      ],
+    },
     ],
 });

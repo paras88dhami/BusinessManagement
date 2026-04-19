@@ -64,14 +64,6 @@ export function GetOrdersScreenFactory({
     () => createGetOrderByIdUseCase(orderRepository),
     [orderRepository],
   );
-  const createOrderUseCase = React.useMemo(
-    () => createCreateOrderUseCase(orderRepository),
-    [orderRepository],
-  );
-  const updateOrderUseCase = React.useMemo(
-    () => createUpdateOrderUseCase(orderRepository),
-    [orderRepository],
-  );
   const deleteOrderUseCase = React.useMemo(
     () => createDeleteOrderUseCase(orderRepository),
     [orderRepository],
@@ -113,6 +105,22 @@ export function GetOrdersScreenFactory({
   const getProductsUseCase = React.useMemo(
     () => createGetProductsUseCase(productRepository),
     [productRepository],
+  );
+  const createOrderUseCase = React.useMemo(
+    () =>
+      createCreateOrderUseCase({
+        repository: orderRepository,
+        getProductsUseCase,
+      }),
+    [getProductsUseCase, orderRepository],
+  );
+  const updateOrderUseCase = React.useMemo(
+    () =>
+      createUpdateOrderUseCase({
+        repository: orderRepository,
+        getProductsUseCase,
+      }),
+    [getProductsUseCase, orderRepository],
   );
   const moneyAccountDatasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(appDatabase),

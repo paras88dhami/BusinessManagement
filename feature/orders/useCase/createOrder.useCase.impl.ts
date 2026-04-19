@@ -1,39 +1,49 @@
 import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
-import { OrderResult, OrderValidationError, SaveOrderPayload } from "@/feature/orders/types/order.types";
+import {
+  OrderResult,
+  OrderValidationError,
+  SaveOrderPayload,
+} from "@/feature/orders/types/order.types";
+import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
+import {
+  buildOrderSnapshotPayload,
+  validateOrderDraftPayload,
+} from "./buildOrderSnapshotPayload.util";
 import { CreateOrderUseCase } from "./createOrder.useCase";
 
-const validatePayload = (payload: SaveOrderPayload): string | null => {
-  const items = Array.isArray(payload.items) ? payload.items : [];
-
-  if (!payload.remoteId.trim()) return "Order remote id is required.";
-  if (!payload.ownerUserRemoteId.trim()) return "User context is required.";
-  if (!payload.accountRemoteId.trim()) return "An active business account is required.";
-  if (!payload.orderNumber.trim()) return "Order number is required.";
-  if (!Number.isFinite(payload.orderDate) || payload.orderDate <= 0) {
-    return "Order date is required.";
-  }
-  if (items.length === 0) return "Add at least one order item.";
-  if (
-    items.some(
-      (item) =>
-        !item.productRemoteId?.trim() ||
-        !Number.isFinite(item.quantity) ||
-        item.quantity <= 0,
-    )
-  ) {
-    return "Each order item must have a product and quantity greater than zero.";
-  }
-  return null;
-};
-
-export const createCreateOrderUseCase = (
-  repository: OrderRepository,
-): CreateOrderUseCase => ({
+export const createCreateOrderUseCase = (params: {
+  repository: OrderRepository;
+  getProductsUseCase: GetProductsUseCase;
+}): CreateOrderUseCase => ({
   async execute(payload: SaveOrderPayload): Promise<OrderResult> {
-    const validationError = validatePayload(payload);
+    const validationError = validateOrderDraftPayload(payload);
     if (validationError) {
       return { success: false, error: OrderValidationError(validationError) };
     }
-    return repository.saveOrder(payload);
+
+    const productsResult = await params.getProductsUseCase.execute(
+      payload.accountRemoteId.trim(),
+    );
+    if (!productsResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(productsResult.error.message),
+      };
+    }
+
+    const snapshotPayloadResult = buildOrderSnapshotPayload({
+      payload,
+      products: productsResult.value,
+      existingOrder: null,
+    });
+
+    if (!snapshotPayloadResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(snapshotPayloadResult.error),
+      };
+    }
+
+    return params.repository.saveOrder(snapshotPayloadResult.value);
   },
 });

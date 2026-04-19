@@ -20,6 +20,11 @@ const normalizeOptional = (value: string | null): string | null => {
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
 };
+const normalizeOptionalNumber = (
+  value: number | null | undefined,
+): number | null => {
+  return Number.isFinite(value) ? Number(value) : null;
+};
 
 const setCreatedAndUpdatedAt = (
   record: OrderModel | OrderLineModel,
@@ -174,6 +179,17 @@ export const createLocalOrderDatasource = (
       const normalizedNotes = normalizeOptional(payload.notes);
       const normalizedTags = normalizeOptional(payload.tags);
       const normalizedInternalRemarks = normalizeOptional(payload.internalRemarks);
+      const normalizedSubtotalAmount = normalizeOptionalNumber(
+        payload.subtotalAmount,
+      );
+      const normalizedTaxAmount = normalizeOptionalNumber(payload.taxAmount);
+      const normalizedDiscountAmount = normalizeOptionalNumber(
+        payload.discountAmount,
+      );
+      const normalizedTotalAmount = normalizeOptionalNumber(payload.totalAmount);
+      const normalizedTaxRatePercent = normalizeOptionalNumber(
+        payload.taxRatePercent,
+      );
 
       if (!normalizedRemoteId) throw new Error("Order remote id is required");
       if (!normalizedOwnerUserRemoteId) throw new Error("Owner user context is required");
@@ -194,6 +210,40 @@ export const createLocalOrderDatasource = (
         )
       ) {
         throw new Error("Each order item must have a product and quantity greater than zero");
+      }
+      if (
+        normalizedSubtotalAmount === null ||
+        normalizedTaxAmount === null ||
+        normalizedDiscountAmount === null ||
+        normalizedTotalAmount === null
+      ) {
+        throw new Error("Order totals snapshot is required");
+      }
+      if (
+        normalizedTaxRatePercent === null ||
+        normalizedTaxRatePercent < 0
+      ) {
+        throw new Error("Order tax rate snapshot is required");
+      }
+      if (
+        normalizedItems.some(
+          (item) =>
+            !item.productNameSnapshot?.trim() ||
+            !Number.isFinite(item.unitPriceSnapshot) ||
+            (item.unitPriceSnapshot ?? 0) < 0 ||
+            !Number.isFinite(item.taxRatePercentSnapshot) ||
+            (item.taxRatePercentSnapshot ?? 0) < 0 ||
+            !Number.isFinite(item.lineSubtotalAmount) ||
+            (item.lineSubtotalAmount ?? 0) < 0 ||
+            !Number.isFinite(item.lineTaxAmount) ||
+            (item.lineTaxAmount ?? 0) < 0 ||
+            !Number.isFinite(item.lineTotalAmount) ||
+            (item.lineTotalAmount ?? 0) < 0,
+        )
+      ) {
+        throw new Error(
+          "Each order item must include a complete pricing snapshot",
+        );
       }
 
       const duplicateExistsBeforeWrite = await hasActiveOrderNumberDuplicate(
@@ -242,6 +292,11 @@ export const createLocalOrderDatasource = (
             record.tags = normalizedTags;
             record.internalRemarks = normalizedInternalRemarks;
             record.status = payload.status;
+            record.taxRatePercent = normalizedTaxRatePercent;
+            record.subtotalAmount = normalizedSubtotalAmount;
+            record.taxAmount = normalizedTaxAmount;
+            record.discountAmount = normalizedDiscountAmount;
+            record.totalAmount = normalizedTotalAmount;
             record.deletedAt = null;
             updateSyncStatusOnMutation(record);
             setUpdatedAt(record, now);
@@ -259,6 +314,11 @@ export const createLocalOrderDatasource = (
             record.tags = normalizedTags;
             record.internalRemarks = normalizedInternalRemarks;
             record.status = payload.status;
+            record.taxRatePercent = normalizedTaxRatePercent;
+            record.subtotalAmount = normalizedSubtotalAmount;
+            record.taxAmount = normalizedTaxAmount;
+            record.discountAmount = normalizedDiscountAmount;
+            record.totalAmount = normalizedTotalAmount;
             record.recordSyncStatus = RecordSyncStatus.PendingCreate;
             record.lastSyncedAt = null;
             record.deletedAt = null;
@@ -284,12 +344,65 @@ export const createLocalOrderDatasource = (
         for (const item of normalizedItems) {
           const normalizedItemRemoteId = normalizeRequired(item.remoteId);
           const normalizedProductRemoteId = normalizeRequired(item.productRemoteId);
+          const normalizedProductNameSnapshot = normalizeRequired(
+            item.productNameSnapshot ?? "",
+          );
+          const normalizedUnitLabelSnapshot = normalizeOptional(
+            item.unitLabelSnapshot ?? null,
+          );
+          const normalizedSkuOrBarcodeSnapshot = normalizeOptional(
+            item.skuOrBarcodeSnapshot ?? null,
+          );
+          const normalizedCategoryNameSnapshot = normalizeOptional(
+            item.categoryNameSnapshot ?? null,
+          );
+          const normalizedTaxRateLabelSnapshot = normalizeOptional(
+            item.taxRateLabelSnapshot ?? null,
+          );
+          const normalizedUnitPriceSnapshot = normalizeOptionalNumber(
+            item.unitPriceSnapshot,
+          );
+          const normalizedTaxRatePercentSnapshot = normalizeOptionalNumber(
+            item.taxRatePercentSnapshot,
+          );
+          const normalizedLineSubtotalAmount = normalizeOptionalNumber(
+            item.lineSubtotalAmount,
+          );
+          const normalizedLineTaxAmount = normalizeOptionalNumber(
+            item.lineTaxAmount,
+          );
+          const normalizedLineTotalAmount = normalizeOptionalNumber(
+            item.lineTotalAmount,
+          );
+
+          if (!normalizedProductNameSnapshot) {
+            throw new Error("Order item product name snapshot is required");
+          }
+          if (
+            normalizedUnitPriceSnapshot === null ||
+            normalizedTaxRatePercentSnapshot === null ||
+            normalizedLineSubtotalAmount === null ||
+            normalizedLineTaxAmount === null ||
+            normalizedLineTotalAmount === null
+          ) {
+            throw new Error("Order item pricing snapshot is required");
+          }
           const existingLine = existingOrderLinesByRemoteId.get(normalizedItemRemoteId);
 
           if (existingLine) {
             await existingLine.update((record) => {
               record.orderRemoteId = normalizedRemoteId;
               record.productRemoteId = normalizedProductRemoteId;
+              record.productNameSnapshot = normalizedProductNameSnapshot;
+              record.unitLabelSnapshot = normalizedUnitLabelSnapshot;
+              record.skuOrBarcodeSnapshot = normalizedSkuOrBarcodeSnapshot;
+              record.categoryNameSnapshot = normalizedCategoryNameSnapshot;
+              record.taxRateLabelSnapshot = normalizedTaxRateLabelSnapshot;
+              record.unitPriceSnapshot = normalizedUnitPriceSnapshot;
+              record.taxRatePercentSnapshot = normalizedTaxRatePercentSnapshot;
+              record.lineSubtotalAmount = normalizedLineSubtotalAmount;
+              record.lineTaxAmount = normalizedLineTaxAmount;
+              record.lineTotalAmount = normalizedLineTotalAmount;
               record.quantity = item.quantity;
               record.lineOrder = item.lineOrder;
               record.deletedAt = null;
@@ -301,6 +414,16 @@ export const createLocalOrderDatasource = (
               record.remoteId = normalizedItemRemoteId;
               record.orderRemoteId = normalizedRemoteId;
               record.productRemoteId = normalizedProductRemoteId;
+              record.productNameSnapshot = normalizedProductNameSnapshot;
+              record.unitLabelSnapshot = normalizedUnitLabelSnapshot;
+              record.skuOrBarcodeSnapshot = normalizedSkuOrBarcodeSnapshot;
+              record.categoryNameSnapshot = normalizedCategoryNameSnapshot;
+              record.taxRateLabelSnapshot = normalizedTaxRateLabelSnapshot;
+              record.unitPriceSnapshot = normalizedUnitPriceSnapshot;
+              record.taxRatePercentSnapshot = normalizedTaxRatePercentSnapshot;
+              record.lineSubtotalAmount = normalizedLineSubtotalAmount;
+              record.lineTaxAmount = normalizedLineTaxAmount;
+              record.lineTotalAmount = normalizedLineTotalAmount;
               record.quantity = item.quantity;
               record.lineOrder = item.lineOrder;
               record.recordSyncStatus = RecordSyncStatus.PendingCreate;
