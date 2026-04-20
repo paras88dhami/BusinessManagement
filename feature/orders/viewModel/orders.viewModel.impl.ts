@@ -3,8 +3,14 @@ import {
   MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
+import { BillingDocument } from "@/feature/billing/types/billing.types";
+import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import {
+  calculateOrderCommercialSettlementSnapshot,
+  findBillingDocumentForOrder,
+} from "@/feature/orders/utils/orderCommercialProjection.util";
 import {
   Order,
   OrderLine,
@@ -255,11 +261,17 @@ const resolveOrderLineDisplaySnapshot = (params: {
 const calculateOrderFinancialSnapshot = (params: {
   order: Order;
   productsByRemoteId: Map<string, Product>;
+  billingDocuments: readonly BillingDocument[];
   transactions: readonly Transaction[];
   fallbackTaxRatePercent: number;
 }): OrderFinancialSnapshot => {
-  const { order, productsByRemoteId, transactions, fallbackTaxRatePercent } =
-    params;
+  const {
+    order,
+    productsByRemoteId,
+    billingDocuments,
+    transactions,
+    fallbackTaxRatePercent,
+  } = params;
 
   const orderItems = Array.isArray(order.items) ? order.items : [];
   const resolvedLines = orderItems.map((item) =>
@@ -289,18 +301,21 @@ const calculateOrderFinancialSnapshot = (params: {
     ? order.discountAmount
     : 0;
 
-  const paidAmount = getOrderNetPaidAmountFromTransactions({
-    orderRemoteId: order.remoteId,
-    orderNumber: order.orderNumber,
-    transactions,
-  });
+  const commercialSettlementSnapshot =
+    calculateOrderCommercialSettlementSnapshot({
+      order,
+      billingDocuments,
+      transactions,
+    });
 
-  return toOrderFinancialSnapshot({
+  return {
     subtotalAmount,
     taxAmount,
     discountAmount,
-    paidAmount,
-  });
+    totalAmount: roundMoney(subtotalAmount + taxAmount - discountAmount),
+    paidAmount: commercialSettlementSnapshot.paidAmount,
+    balanceDueAmount: commercialSettlementSnapshot.balanceDueAmount,
+  };
 };
 
 const buildItemsPreview = (
@@ -327,6 +342,7 @@ const buildOrderListItemView = (params: {
   order: Order;
   contactsByRemoteId: Map<string, Contact>;
   productsByRemoteId: Map<string, Product>;
+  billingDocuments: readonly BillingDocument[];
   transactions: readonly Transaction[];
   taxRatePercent: number;
   currencyCode: string;
@@ -336,6 +352,7 @@ const buildOrderListItemView = (params: {
     order,
     contactsByRemoteId,
     productsByRemoteId,
+    billingDocuments,
     transactions,
     taxRatePercent,
     currencyCode,
@@ -349,6 +366,7 @@ const buildOrderListItemView = (params: {
   const financialSnapshot = calculateOrderFinancialSnapshot({
     order,
     productsByRemoteId,
+    billingDocuments,
     transactions,
     fallbackTaxRatePercent: taxRatePercent,
   });
@@ -386,6 +404,7 @@ const buildOrderDetailView = (params: {
   order: Order;
   contactsByRemoteId: Map<string, Contact>;
   productsByRemoteId: Map<string, Product>;
+  billingDocuments: readonly BillingDocument[];
   transactions: readonly Transaction[];
   taxRatePercent: number;
   currencyCode: string;
@@ -395,6 +414,7 @@ const buildOrderDetailView = (params: {
     order,
     contactsByRemoteId,
     productsByRemoteId,
+    billingDocuments,
     transactions,
     taxRatePercent,
     currencyCode,
@@ -443,6 +463,7 @@ const buildOrderDetailView = (params: {
   const financialSnapshot = calculateOrderFinancialSnapshot({
     order,
     productsByRemoteId,
+    billingDocuments,
     transactions,
     fallbackTaxRatePercent: taxRatePercent,
   });
@@ -529,6 +550,7 @@ type Params = {
   refundOrderUseCase: RefundOrderUseCase;
   getContactsUseCase: GetContactsUseCase;
   getProductsUseCase: GetProductsUseCase;
+  getBillingOverviewUseCase: GetBillingOverviewUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   getTransactionsUseCase: GetTransactionsUseCase;
 };
@@ -553,6 +575,7 @@ export const useOrdersViewModel = ({
   refundOrderUseCase,
   getContactsUseCase,
   getProductsUseCase,
+  getBillingOverviewUseCase,
   getMoneyAccountsUseCase,
   getTransactionsUseCase,
 }: Params): OrdersViewModel => {
@@ -561,6 +584,9 @@ export const useOrdersViewModel = ({
   const [orders, setOrders] = useState<Order[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [billingDocuments, setBillingDocuments] = useState<BillingDocument[]>(
+    [],
+  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
@@ -652,6 +678,7 @@ export const useOrdersViewModel = ({
       setOrders([]);
       setContacts([]);
       setProducts([]);
+      setBillingDocuments([]);
       setTransactions([]);
       setErrorMessage("A business account is required to manage orders.");
       setIsLoading(false);
@@ -664,12 +691,14 @@ export const useOrdersViewModel = ({
       ordersResult,
       contactsResult,
       productsResult,
+      billingOverviewResult,
       transactionsResult,
       moneyAccountsResult,
     ] = await Promise.all([
       getOrdersUseCase.execute({ accountRemoteId }),
       getContactsUseCase.execute({ accountRemoteId }),
       getProductsUseCase.execute(accountRemoteId),
+      getBillingOverviewUseCase.execute(accountRemoteId),
       ownerUserRemoteId
         ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
         : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
@@ -697,6 +726,13 @@ export const useOrdersViewModel = ({
       return;
     }
 
+    if (!billingOverviewResult.success) {
+      setBillingDocuments([]);
+      setErrorMessage(billingOverviewResult.error.message);
+      setIsLoading(false);
+      return;
+    }
+
     if (!transactionsResult.success) {
       setTransactions([]);
       setErrorMessage(transactionsResult.error.message);
@@ -707,6 +743,11 @@ export const useOrdersViewModel = ({
     setOrders(Array.isArray(ordersResult.value) ? ordersResult.value : []);
     setContacts(Array.isArray(contactsResult.value) ? contactsResult.value : []);
     setProducts(Array.isArray(productsResult.value) ? productsResult.value : []);
+    setBillingDocuments(
+      Array.isArray(billingOverviewResult.value.documents)
+        ? billingOverviewResult.value.documents
+        : [],
+    );
     setTransactions(
       Array.isArray(transactionsResult.value) ? transactionsResult.value : [],
     );
@@ -727,6 +768,7 @@ export const useOrdersViewModel = ({
   }, [
     accountRemoteId,
     getContactsUseCase,
+    getBillingOverviewUseCase,
     getMoneyAccountsUseCase,
     getOrdersUseCase,
     getProductsUseCase,
@@ -740,15 +782,37 @@ export const useOrdersViewModel = ({
 
   const refreshDetail = useCallback(
     async (remoteId: string) => {
-      const [orderResult, transactionResult] = await Promise.all([
+      const [orderResult, billingOverviewResult, transactionResult] =
+        await Promise.all([
         getOrderByIdUseCase.execute(remoteId),
+        accountRemoteId
+          ? getBillingOverviewUseCase.execute(accountRemoteId)
+          : Promise.resolve({
+              success: true as const,
+              value: {
+                documents: [],
+                allocations: [],
+                billPhotos: [],
+                summary: {
+                  totalDocuments: 0,
+                  pendingAmount: 0,
+                  overdueAmount: 0,
+                },
+              },
+            }),
         ownerUserRemoteId
           ? getTransactionsUseCase.execute({ ownerUserRemoteId, accountRemoteId })
           : Promise.resolve({ success: true as const, value: [] as Transaction[] }),
-      ]);
+        ]);
 
       if (!orderResult.success) {
         setErrorMessage(orderResult.error.message);
+        setDetail(null);
+        return;
+      }
+
+      if (!billingOverviewResult.success) {
+        setErrorMessage(billingOverviewResult.error.message);
         setDetail(null);
         return;
       }
@@ -764,6 +828,7 @@ export const useOrdersViewModel = ({
           order: orderResult.value,
           contactsByRemoteId,
           productsByRemoteId,
+          billingDocuments: billingOverviewResult.value.documents,
           transactions: transactionResult.value,
           taxRatePercent,
           currencyCode: resolvedCurrencyCode,
@@ -776,6 +841,7 @@ export const useOrdersViewModel = ({
       accountRemoteId,
       accountCountryCode,
       contactsByRemoteId,
+      getBillingOverviewUseCase,
       getOrderByIdUseCase,
       getTransactionsUseCase,
       ownerUserRemoteId,
@@ -799,6 +865,7 @@ export const useOrdersViewModel = ({
           order,
           contactsByRemoteId,
           productsByRemoteId,
+          billingDocuments,
           transactions,
           taxRatePercent,
           currencyCode: resolvedCurrencyCode,
@@ -807,6 +874,7 @@ export const useOrdersViewModel = ({
       ),
     [
       accountCountryCode,
+      billingDocuments,
       contactsByRemoteId,
       orders,
       productsByRemoteId,
@@ -827,11 +895,15 @@ export const useOrdersViewModel = ({
 
     const paidAmount =
       editorMode === "edit" && form.remoteId
-        ? getOrderNetPaidAmountFromTransactions({
+        ? (findBillingDocumentForOrder({
+            orderRemoteId: form.remoteId,
+            billingDocuments,
+          })?.paidAmount ??
+          getOrderNetPaidAmountFromTransactions({
             orderRemoteId: form.remoteId,
             orderNumber: form.orderNumber,
             transactions,
-          })
+          }))
         : 0;
 
     const financialSnapshot = toOrderFinancialSnapshot({
@@ -889,6 +961,7 @@ export const useOrdersViewModel = ({
     };
   }, [
     accountCountryCode,
+    billingDocuments,
     editorMode,
     form.items,
     form.remoteId,
