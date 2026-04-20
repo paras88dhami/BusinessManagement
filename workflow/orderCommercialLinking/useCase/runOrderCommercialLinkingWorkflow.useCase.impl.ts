@@ -6,7 +6,12 @@ import { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBi
 import { GetBillingDocumentByRemoteIdUseCase } from "@/feature/billing/useCase/getBillingDocumentByRemoteId.useCase";
 import { SaveBillingDocumentUseCase } from "@/feature/billing/useCase/saveBillingDocument.useCase";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import {
+  LedgerEntry,
+  SaveLedgerEntryPayload,
+} from "@/feature/ledger/types/ledger.entity.types";
 import { AddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase";
+import { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { UpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase";
 import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
@@ -20,8 +25,10 @@ import {
 } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { mapBillingDocumentToSaveBillingDocumentPayload } from "@/feature/orders/utils/orderCommercialSyncRollback.util";
 import { resolvePersistedOrderTotalAmount } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
-import { EnsureOrderBillingAndDueLinksResult } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase";
-import { OrderCommercialLinkingWorkflowInput } from "../types/orderCommercialLinkingWorkflow.types";
+import {
+  OrderCommercialLinkingWorkflowInput,
+  OrderCommercialLinkingWorkflowResult,
+} from "../types/orderCommercialLinkingWorkflow.types";
 import { RunOrderCommercialLinkingWorkflowUseCase } from "./runOrderCommercialLinkingWorkflow.useCase";
 
 const buildRollbackAwareValidationError = (params: {
@@ -33,6 +40,35 @@ const buildRollbackAwareValidationError = (params: {
       ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}`
       : params.primaryMessage,
   );
+
+const mapLedgerEntryToSaveLedgerEntryPayload = (
+  entry: LedgerEntry,
+): SaveLedgerEntryPayload => ({
+  remoteId: entry.remoteId,
+  businessAccountRemoteId: entry.businessAccountRemoteId,
+  ownerUserRemoteId: entry.ownerUserRemoteId,
+  partyName: entry.partyName,
+  partyPhone: entry.partyPhone,
+  contactRemoteId: entry.contactRemoteId,
+  entryType: entry.entryType,
+  balanceDirection: entry.balanceDirection,
+  title: entry.title,
+  amount: entry.amount,
+  currencyCode: entry.currencyCode,
+  note: entry.note,
+  happenedAt: entry.happenedAt,
+  dueAt: entry.dueAt,
+  paymentMode: entry.paymentMode,
+  referenceNumber: entry.referenceNumber,
+  reminderAt: entry.reminderAt,
+  attachmentUri: entry.attachmentUri,
+  settledAgainstEntryRemoteId: entry.settledAgainstEntryRemoteId,
+  linkedDocumentRemoteId: entry.linkedDocumentRemoteId,
+  linkedTransactionRemoteId: entry.linkedTransactionRemoteId,
+  settlementAccountRemoteId: entry.settlementAccountRemoteId,
+  settlementAccountDisplayNameSnapshot:
+    entry.settlementAccountDisplayNameSnapshot,
+});
 
 const rollbackBillingDocumentState = async (params: {
   previousBillingDocument: BillingDocument | null;
@@ -65,6 +101,72 @@ const rollbackBillingDocumentState = async (params: {
   return deleteResult.error.message;
 };
 
+const rollbackLedgerDueState = async (params: {
+  previousLedgerDueEntry: LedgerEntry | null;
+  ledgerDueEntryRemoteId: string;
+  updateLedgerEntryUseCase: UpdateLedgerEntryUseCase;
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
+}): Promise<string | null> => {
+  if (params.previousLedgerDueEntry) {
+    const restoreResult = await params.updateLedgerEntryUseCase.execute(
+      mapLedgerEntryToSaveLedgerEntryPayload(params.previousLedgerDueEntry),
+    );
+
+    if (restoreResult.success) {
+      return null;
+    }
+
+    return restoreResult.error.message;
+  }
+
+  const deleteResult = await params.deleteLedgerEntryUseCase.execute(
+    params.ledgerDueEntryRemoteId,
+  );
+
+  if (deleteResult.success) {
+    return null;
+  }
+
+  return deleteResult.error.message;
+};
+
+const rollbackCommercialState = async (params: {
+  previousBillingDocument: BillingDocument | null;
+  billingDocumentRemoteId: string;
+  previousLedgerDueEntry: LedgerEntry | null;
+  ledgerDueEntryRemoteId: string;
+  saveBillingDocumentUseCase: SaveBillingDocumentUseCase;
+  deleteBillingDocumentUseCase: DeleteBillingDocumentUseCase;
+  updateLedgerEntryUseCase: UpdateLedgerEntryUseCase;
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
+}): Promise<string | null> => {
+  const [ledgerRollbackMessage, billingRollbackMessage] = await Promise.all([
+    rollbackLedgerDueState({
+      previousLedgerDueEntry: params.previousLedgerDueEntry,
+      ledgerDueEntryRemoteId: params.ledgerDueEntryRemoteId,
+      updateLedgerEntryUseCase: params.updateLedgerEntryUseCase,
+      deleteLedgerEntryUseCase: params.deleteLedgerEntryUseCase,
+    }),
+    rollbackBillingDocumentState({
+      previousBillingDocument: params.previousBillingDocument,
+      billingDocumentRemoteId: params.billingDocumentRemoteId,
+      saveBillingDocumentUseCase: params.saveBillingDocumentUseCase,
+      deleteBillingDocumentUseCase: params.deleteBillingDocumentUseCase,
+    }),
+  ]);
+
+  const rollbackMessages = [
+    ledgerRollbackMessage
+      ? `ledger rollback failed: ${ledgerRollbackMessage}` 
+      : null,
+    billingRollbackMessage
+      ? `billing rollback failed: ${billingRollbackMessage}` 
+      : null,
+  ].filter((message): message is string => message !== null);
+
+  return rollbackMessages.length > 0 ? rollbackMessages.join(" | ") : null;
+};
+
 export const createRunOrderCommercialLinkingWorkflowUseCase = (params: {
   orderRepository: OrderRepository;
   getContactsUseCase: GetContactsUseCase;
@@ -74,10 +176,11 @@ export const createRunOrderCommercialLinkingWorkflowUseCase = (params: {
   getLedgerEntriesUseCase: GetLedgerEntriesUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
   updateLedgerEntryUseCase: UpdateLedgerEntryUseCase;
+  deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
 }): RunOrderCommercialLinkingWorkflowUseCase => ({
   async execute(
     input: OrderCommercialLinkingWorkflowInput,
-  ): Promise<EnsureOrderBillingAndDueLinksResult> {
+  ): Promise<OrderCommercialLinkingWorkflowResult> {
     const normalizedOrderRemoteId = input.orderRemoteId.trim();
     if (!normalizedOrderRemoteId) {
       return {
@@ -212,6 +315,11 @@ export const createRunOrderCommercialLinkingWorkflowUseCase = (params: {
       (entry) => entry.remoteId === ledgerDueEntryRemoteId,
     );
 
+    const previousLedgerDueEntry =
+      ledgerEntriesResult.value.find(
+        (entry) => entry.remoteId === ledgerDueEntryRemoteId,
+      ) ?? null;
+
     const ledgerDuePayload = buildLedgerDuePayloadFromOrder({
       order,
       contact,
@@ -249,9 +357,23 @@ export const createRunOrderCommercialLinkingWorkflowUseCase = (params: {
     );
 
     if (!linkAnchorsResult.success) {
+      const rollbackMessage = await rollbackCommercialState({
+        previousBillingDocument,
+        billingDocumentRemoteId,
+        previousLedgerDueEntry,
+        ledgerDueEntryRemoteId,
+        saveBillingDocumentUseCase: params.saveBillingDocumentUseCase,
+        deleteBillingDocumentUseCase: params.deleteBillingDocumentUseCase,
+        updateLedgerEntryUseCase: params.updateLedgerEntryUseCase,
+        deleteLedgerEntryUseCase: params.deleteLedgerEntryUseCase,
+      });
+
       return {
         success: false,
-        error: linkAnchorsResult.error,
+        error: buildRollbackAwareValidationError({
+          primaryMessage: linkAnchorsResult.error.message,
+          rollbackMessage,
+        }),
       };
     }
 
