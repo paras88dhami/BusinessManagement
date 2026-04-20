@@ -1,31 +1,31 @@
 import {
-  MoneyAccount,
-  MoneyAccountType,
+    MoneyAccount,
+    MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import {
-  OrderFormPricingPreview,
-  OrderFormState,
-  OrderLineFormState,
-  OrderMoneyFormState,
+    OrderFormPricingPreview,
+    OrderFormState,
+    OrderLineFormState,
+    OrderMoneyFormState,
 } from "@/feature/orders/types/order.state.types";
-import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import {
-  OrderDetailItemView,
-  OrderDetailPricingView,
-  OrderDetailView,
-  OrderListItemView,
-} from "@/feature/orders/types/order.view.types";
-import {
-  Order,
-  ORDER_STATUS_OPTIONS,
-  OrderLine,
-  OrderStatus,
+    Order,
+    ORDER_STATUS_OPTIONS,
+    OrderLine,
+    OrderStatus,
 } from "@/feature/orders/types/order.types";
+import {
+    OrderDetailItemView,
+    OrderDetailPricingView,
+    OrderDetailView,
+    OrderListItemView,
+} from "@/feature/orders/types/order.view.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { Product } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
-  formatCurrencyAmount,
+    formatCurrencyAmount,
 } from "@/shared/utils/currency/accountCurrency";
 import * as Crypto from "expo-crypto";
 
@@ -67,6 +67,7 @@ export const EMPTY_MONEY_FORM: OrderMoneyFormState = {
   happenedAt: new Date().toISOString().slice(0, 10),
   settlementMoneyAccountRemoteId: "",
   note: "",
+  attemptRemoteId: null,
 };
 
 export const parseNumber = (value: string): number | null => {

@@ -53,4 +53,5 @@ export type OrderMoneyFormState = {
   happenedAt: string;
   settlementMoneyAccountRemoteId: string;
   note: string;
+  attemptRemoteId: string | null;
 };

@@ -1,3 +1,6 @@
+import { OrderError } from "@/feature/orders/types/order.types";
+import { Result } from "@/shared/types/result.types";
+
 export type OrderPaymentPostingWorkflowInput = {
   orderRemoteId: string;
   orderNumber: string;
@@ -10,6 +13,7 @@ export type OrderPaymentPostingWorkflowInput = {
   settlementMoneyAccountRemoteId: string;
   settlementMoneyAccountDisplayNameSnapshot: string;
   note: string | null;
+  paymentAttemptRemoteId: string;
 };
 
 export type OrderPaymentPostingWorkflowValue = {
@@ -20,13 +24,7 @@ export type OrderPaymentPostingWorkflowValue = {
   ledgerDueEntryRemoteId: string;
 };
 
-export type OrderPaymentPostingWorkflowResult = {
-  success: true;
-  value: OrderPaymentPostingWorkflowValue;
-} | {
-  success: false;
-  error: {
-    type: "VALIDATION_ERROR" | "BUSINESS_RULE_ERROR" | "SETTLEMENT_ERROR" | "UNKNOWN_ERROR";
-    message: string;
-  };
-};
+export type OrderPaymentPostingWorkflowResult = Result<
+  OrderPaymentPostingWorkflowValue,
+  OrderError
+>;

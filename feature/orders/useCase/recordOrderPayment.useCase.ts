@@ -13,5 +13,6 @@ export interface RecordOrderPaymentUseCase {
     settlementMoneyAccountRemoteId: string;
     settlementMoneyAccountDisplayNameSnapshot: string;
     note: string | null;
+    paymentAttemptRemoteId: string;
   }): Promise<OrderOperationResult>;
 }

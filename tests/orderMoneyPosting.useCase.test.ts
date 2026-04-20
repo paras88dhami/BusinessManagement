@@ -36,6 +36,7 @@ describe("order payment/refund use-case delegates", () => {
       settlementMoneyAccountRemoteId: "cash-1",
       settlementMoneyAccountDisplayNameSnapshot: "Cash Drawer",
       note: "paid in full",
+      paymentAttemptRemoteId: "attempt-1",
     };
 
     const result = await useCase.execute(input);
@@ -107,6 +108,7 @@ describe("order payment/refund use-case delegates", () => {
       settlementMoneyAccountRemoteId: "   ",
       settlementMoneyAccountDisplayNameSnapshot: "Cash Drawer",
       note: null,
+      paymentAttemptRemoteId: "attempt-2",
     });
 
     expect(result.success).toBe(false);

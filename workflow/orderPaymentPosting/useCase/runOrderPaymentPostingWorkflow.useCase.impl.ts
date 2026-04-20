@@ -12,10 +12,14 @@ import {
 } from "@/feature/ledger/types/ledger.entity.types";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { SaveLedgerEntryWithSettlementUseCase } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase";
+import { OrderValidationError } from "@/feature/orders/types/order.types";
 import { EnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase";
 import {
     buildOrderBillingDocumentNumber,
     buildOrderLedgerDueEntryRemoteId,
+    buildOrderPaymentIdempotencyKey,
+    buildOrderPaymentSettlementLedgerEntryRemoteId,
+    buildOrderPaymentTransactionRemoteId,
 } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { findBillingDocumentForOrder } from "@/feature/orders/utils/orderCommercialProjection.util";
 import {
@@ -25,7 +29,6 @@ import {
 } from "@/feature/transactions/types/transaction.entity.types";
 import { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
-import * as Crypto from "expo-crypto";
 import {
     OrderPaymentPostingWorkflowInput,
     OrderPaymentPostingWorkflowResult,
@@ -34,13 +37,30 @@ import { RunOrderPaymentPostingWorkflowUseCase } from "./runOrderPaymentPostingW
 
 const MONEY_EPSILON = 0.0001;
 
-const createWorkflowError = (
-  type: "VALIDATION_ERROR" | "BUSINESS_RULE_ERROR" | "SETTLEMENT_ERROR" | "UNKNOWN_ERROR",
-  message: string,
-): OrderPaymentPostingWorkflowResult => ({
-  success: false,
-  error: { type, message },
-});
+const buildRollbackAwareValidationError = (params: {
+  primaryMessage: string;
+  rollbackMessage: string | null;
+}) =>
+  OrderValidationError(
+    params.rollbackMessage
+      ? `${params.primaryMessage} Rollback failed: ${params.rollbackMessage}` 
+      : params.primaryMessage,
+  );
+
+const rollbackCreatedOrderPaymentTransaction = async (params: {
+  paymentTransactionRemoteId: string;
+  deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
+}): Promise<string | null> => {
+  const deleteResult = await params.deleteBusinessTransactionUseCase.execute(
+    params.paymentTransactionRemoteId,
+  );
+
+  if (deleteResult.success) {
+    return null;
+  }
+
+  return deleteResult.error.message;
+};
 
 const derivePaymentModeFromMoneyAccount = (
   moneyAccount: MoneyAccount,
@@ -70,6 +90,16 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
   ): Promise<OrderPaymentPostingWorkflowResult> {
     const normalizedOrderRemoteId = input.orderRemoteId.trim();
     const normalizedOrderNumber = input.orderNumber.trim();
+    const normalizedPaymentAttemptRemoteId =
+      input.paymentAttemptRemoteId.trim();
+
+    if (!normalizedPaymentAttemptRemoteId) {
+      return {
+        success: false,
+        error: OrderValidationError("Payment attempt id is required."),
+      };
+    }
+
     const normalizedOwnerUserRemoteId = input.ownerUserRemoteId.trim();
     const normalizedAccountRemoteId = input.accountRemoteId.trim();
     const normalizedAccountDisplayNameSnapshot =
@@ -82,42 +112,69 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
 
     // Validation
     if (!normalizedOrderRemoteId) {
-      return createWorkflowError("VALIDATION_ERROR", "Order remote id is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Order remote id is required."),
+      };
     }
 
     if (!normalizedOrderNumber) {
-      return createWorkflowError("VALIDATION_ERROR", "Order number is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Order number is required."),
+      };
     }
 
     if (!normalizedOwnerUserRemoteId || !normalizedAccountRemoteId) {
-      return createWorkflowError("VALIDATION_ERROR", "Active account context is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Active account context is required."),
+      };
     }
 
     if (!normalizedAccountDisplayNameSnapshot) {
-      return createWorkflowError("VALIDATION_ERROR", "Account label is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Account label is required."),
+      };
     }
 
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      return createWorkflowError("VALIDATION_ERROR", "Amount must be greater than zero.");
+      return {
+        success: false,
+        error: OrderValidationError("Amount must be greater than zero."),
+      };
     }
 
     if (!Number.isFinite(input.happenedAt) || input.happenedAt <= 0) {
-      return createWorkflowError("VALIDATION_ERROR", "Payment date is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Payment date is required."),
+      };
     }
 
     if (!normalizedSettlementMoneyAccountRemoteId) {
-      return createWorkflowError("VALIDATION_ERROR", "Money account is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Money account is required."),
+      };
     }
 
     if (!normalizedSettlementMoneyAccountLabel) {
-      return createWorkflowError("VALIDATION_ERROR", "Money account label is required.");
+      return {
+        success: false,
+        error: OrderValidationError("Money account label is required."),
+      };
     }
 
     // Validate money account
     const moneyAccountsResult =
       await params.getMoneyAccountsUseCase.execute(normalizedAccountRemoteId);
     if (!moneyAccountsResult.success) {
-      return createWorkflowError("UNKNOWN_ERROR", moneyAccountsResult.error.message);
+      return {
+        success: false,
+        error: OrderValidationError(moneyAccountsResult.error.message),
+      };
     }
 
     const settlementMoneyAccount = moneyAccountsResult.value
@@ -128,7 +185,10 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       );
 
     if (!settlementMoneyAccount) {
-      return createWorkflowError("VALIDATION_ERROR", "Choose a valid active money account.");
+      return {
+        success: false,
+        error: OrderValidationError("Choose a valid active money account."),
+      };
     }
 
     // Ensure order billing and due links
@@ -138,7 +198,10 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       );
 
     if (!ensureResult.success) {
-      return createWorkflowError("BUSINESS_RULE_ERROR", ensureResult.error.message);
+      return {
+        success: false,
+        error: OrderValidationError(ensureResult.error.message),
+      };
     }
 
     // Get billing overview
@@ -146,7 +209,10 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       await params.getBillingOverviewUseCase.execute(normalizedAccountRemoteId);
 
     if (!billingOverviewResult.success) {
-      return createWorkflowError("UNKNOWN_ERROR", billingOverviewResult.error.message);
+      return {
+        success: false,
+        error: OrderValidationError(billingOverviewResult.error.message),
+      };
     }
 
     const linkedBillingDocument =
@@ -161,22 +227,29 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       null;
 
     if (!linkedBillingDocument) {
-      return createWorkflowError(
-        "BUSINESS_RULE_ERROR",
-        "The linked billing document for this order could not be found.",
-      );
+      return {
+        success: false,
+        error: OrderValidationError(
+          "The linked billing document for this order could not be found.",
+        ),
+      };
     }
 
     // Check overpayment
     if (linkedBillingDocument.outstandingAmount <= MONEY_EPSILON) {
-      return createWorkflowError("BUSINESS_RULE_ERROR", "This order is already fully paid.");
+      return {
+        success: false,
+        error: OrderValidationError("This order is already fully paid."),
+      };
     }
 
     if (input.amount > linkedBillingDocument.outstandingAmount + MONEY_EPSILON) {
-      return createWorkflowError(
-        "BUSINESS_RULE_ERROR",
-        "Payment amount exceeds the remaining balance due.",
-      );
+      return {
+        success: false,
+        error: OrderValidationError(
+          "Payment amount exceeds the remaining balance due.",
+        ),
+      };
     }
 
     // Get ledger entries
@@ -185,7 +258,10 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
     });
 
     if (!ledgerEntriesResult.success) {
-      return createWorkflowError("UNKNOWN_ERROR", ledgerEntriesResult.error.message);
+      return {
+        success: false,
+        error: OrderValidationError(ledgerEntriesResult.error.message),
+      };
     }
 
     // Find due entry
@@ -202,14 +278,29 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       null;
 
     if (!linkedDueEntry) {
-      return createWorkflowError(
-        "BUSINESS_RULE_ERROR",
-        "The linked ledger due entry for this order could not be found.",
-      );
+      return {
+        success: false,
+        error: OrderValidationError(
+          "The linked ledger due entry for this order could not be found.",
+        ),
+      };
     }
 
     // Create Orders-linked payment transaction
-    const paymentTransactionRemoteId = Crypto.randomUUID();
+    const paymentTransactionRemoteId = buildOrderPaymentTransactionRemoteId(
+      normalizedPaymentAttemptRemoteId,
+    );
+
+    const settlementLedgerEntryRemoteId =
+      buildOrderPaymentSettlementLedgerEntryRemoteId(
+        normalizedPaymentAttemptRemoteId,
+      );
+
+    const existingSettlementEntry =
+      ledgerEntriesResult.value.find(
+        (entry) => entry.remoteId === settlementLedgerEntryRemoteId,
+      ) ?? null;
+
     const paymentTransactionResult = await params.postBusinessTransactionUseCase.execute({
       remoteId: paymentTransactionRemoteId,
       ownerUserRemoteId: normalizedOwnerUserRemoteId,
@@ -228,21 +319,34 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
       sourceModule: TransactionSourceModule.Orders,
       sourceRemoteId: ensureResult.value.order.remoteId,
       sourceAction: "payment",
-      idempotencyKey: `orders:${ensureResult.value.order.remoteId}:payment`,
+      idempotencyKey: buildOrderPaymentIdempotencyKey(
+        normalizedPaymentAttemptRemoteId,
+      ),
+      contactRemoteId: ensureResult.value.contact.remoteId,
     });
 
     if (!paymentTransactionResult.success) {
-      return createWorkflowError("SETTLEMENT_ERROR", paymentTransactionResult.error.message);
+      return {
+        success: false,
+        error: OrderValidationError(paymentTransactionResult.error.message),
+      };
     }
 
     // Create settlement with external transaction
     const settlementResult =
       await params.saveLedgerEntryWithSettlementUseCase.execute({
-        mode: "create",
+        mode: existingSettlementEntry ? "update" : "create",
         businessAccountDisplayName: normalizedAccountDisplayNameSnapshot,
-        selectedSettlementAccountRemoteId: normalizedSettlementMoneyAccountRemoteId,
+        selectedSettlementAccountRemoteId:
+          normalizedSettlementMoneyAccountRemoteId,
+        externalSettlementTransaction: {
+          remoteId: paymentTransactionRemoteId,
+          settlementMoneyAccountRemoteId: settlementMoneyAccount.remoteId,
+          settlementMoneyAccountDisplayNameSnapshot: settlementMoneyAccount.name,
+          paymentMode: derivePaymentModeFromMoneyAccount(settlementMoneyAccount),
+        },
         ledgerEntry: {
-          remoteId: Crypto.randomUUID(),
+          remoteId: settlementLedgerEntryRemoteId,
           businessAccountRemoteId: normalizedAccountRemoteId,
           ownerUserRemoteId: normalizedOwnerUserRemoteId,
           partyName: ensureResult.value.contact.fullName,
@@ -276,18 +380,25 @@ export const createRunOrderPaymentPostingWorkflowUseCase = (params: {
             outstandingAmount: linkedBillingDocument.outstandingAmount,
           },
         ],
-        externalSettlementTransaction: {
-          remoteId: paymentTransactionRemoteId,
-          settlementMoneyAccountRemoteId: settlementMoneyAccount.remoteId,
-          settlementMoneyAccountDisplayNameSnapshot: settlementMoneyAccount.name,
-          paymentMode: derivePaymentModeFromMoneyAccount(settlementMoneyAccount),
-        },
       });
 
     if (!settlementResult.success) {
-      // Rollback payment transaction
-      await params.deleteBusinessTransactionUseCase.execute(paymentTransactionRemoteId);
-      return createWorkflowError("SETTLEMENT_ERROR", settlementResult.error.message);
+      const rollbackMessage =
+        existingSettlementEntry === null
+          ? await rollbackCreatedOrderPaymentTransaction({
+              paymentTransactionRemoteId,
+              deleteBusinessTransactionUseCase:
+                params.deleteBusinessTransactionUseCase,
+            })
+          : null;
+
+      return {
+        success: false,
+        error: buildRollbackAwareValidationError({
+          primaryMessage: settlementResult.error.message,
+          rollbackMessage,
+        }),
+      };
     }
 
     return {

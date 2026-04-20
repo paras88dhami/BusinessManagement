@@ -1,13 +1,14 @@
-import { useCallback, useState } from "react";
 import { OrderStatus, OrderStatusValue } from "@/feature/orders/types/order.types";
+import * as Crypto from "expo-crypto";
+import { useCallback, useState } from "react";
 import {
-  EMPTY_MONEY_FORM,
-  parseNumber,
-} from "./ordersPresentation.helpers";
-import {
-  OrderMoneyActionViewModelParams,
-  OrderMoneyActionViewModelState,
+    OrderMoneyActionViewModelParams,
+    OrderMoneyActionViewModelState,
 } from "./orderMoneyAction.viewModel";
+import {
+    EMPTY_MONEY_FORM,
+    parseNumber,
+} from "./ordersPresentation.helpers";
 
 export const useOrderMoneyActionViewModel = ({
   canManage,
@@ -142,6 +143,7 @@ export const useOrderMoneyActionViewModel = ({
         happenedAt: new Date().toISOString().slice(0, 10),
         settlementMoneyAccountRemoteId: moneyAccountOptions[0]?.value ?? "",
         note: "",
+        attemptRemoteId: Crypto.randomUUID(),
       });
     },
     [canManage, detail, moneyAccountOptions],
@@ -167,6 +169,11 @@ export const useOrderMoneyActionViewModel = ({
       return;
     }
     if (!moneyForm.orderRemoteId || !detail) {
+      return;
+    }
+
+    if (!moneyForm.attemptRemoteId?.trim()) {
+      setErrorMessage("Payment attempt id is required.");
       return;
     }
     if (!ownerUserRemoteId || !accountRemoteId) {
@@ -205,6 +212,7 @@ export const useOrderMoneyActionViewModel = ({
       settlementMoneyAccountRemoteId: selectedMoneyAccount.value,
       settlementMoneyAccountDisplayNameSnapshot: selectedMoneyAccount.label,
       note: moneyForm.note.trim() || null,
+      paymentAttemptRemoteId: moneyForm.attemptRemoteId,
     };
 
     const result =

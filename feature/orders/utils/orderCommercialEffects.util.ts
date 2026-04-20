@@ -1,20 +1,20 @@
 import {
-  MoneyAccount,
-  MoneyAccountType,
+    MoneyAccount,
+    MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
 import {
-  BillingDocumentStatus,
-  BillingDocumentType,
-  BillingTemplateType,
-  SaveBillingDocumentPayload,
+    BillingDocumentStatus,
+    BillingDocumentType,
+    BillingTemplateType,
+    SaveBillingDocumentPayload,
 } from "@/feature/billing/types/billing.types";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import {
-  LedgerBalanceDirection,
-  LedgerEntryType,
-  LedgerPaymentMode,
-  LedgerPaymentModeValue,
-  SaveLedgerEntryPayload,
+    LedgerBalanceDirection,
+    LedgerEntryType,
+    LedgerPaymentMode,
+    LedgerPaymentModeValue,
+    SaveLedgerEntryPayload,
 } from "@/feature/ledger/types/ledger.entity.types";
 import { Order, OrderLine, OrderStatus } from "@/feature/orders/types/order.types";
 import { resolvePersistedOrderTotalAmount } from "@/feature/orders/utils/orderSettlementFromTransactions.util";
@@ -74,13 +74,18 @@ export const buildOrderBillingDocumentRemoteId = (orderRemoteId: string): string
 export const buildOrderLedgerDueEntryRemoteId = (orderRemoteId: string): string =>
   `led-order-due-${safeTrim(orderRemoteId)}`;
 
-export const buildOrderPaymentSettlementLedgerEntryRemoteId = (params: {
-  orderRemoteId: string;
-  transactionRemoteId: string;
-}): string =>
-  `led-order-settle-${safeTrim(params.orderRemoteId)}-${safeTrim(
-    params.transactionRemoteId,
-  )}`;
+export const buildOrderPaymentTransactionRemoteId = (
+  paymentAttemptRemoteId: string,
+): string => `txn-order-payment-${paymentAttemptRemoteId.trim()}`;
+
+export const buildOrderPaymentSettlementLedgerEntryRemoteId = (
+  paymentAttemptRemoteId: string,
+): string => `ledger-order-payment-${paymentAttemptRemoteId.trim()}`;
+
+export const buildOrderPaymentIdempotencyKey = (
+  paymentAttemptRemoteId: string,
+): string => `orders:payment:${paymentAttemptRemoteId.trim()}`;
+
 
 export const buildOrderBillingDocumentNumber = (orderNumber: string): string => {
   const normalizedOrderNumber = normalizeDocumentToken(orderNumber);
