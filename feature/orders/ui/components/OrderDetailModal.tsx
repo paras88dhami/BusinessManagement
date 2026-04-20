@@ -1,5 +1,5 @@
 import { OrderStatus } from "@/feature/orders/types/order.types";
-import { OrderDetailView } from "@/feature/orders/viewModel/orders.viewModel";
+import { OrderDetailView } from "@/feature/orders/types/order.view.types";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";

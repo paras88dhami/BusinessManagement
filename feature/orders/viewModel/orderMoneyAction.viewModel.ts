@@ -4,12 +4,12 @@ import { CancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase
 import { ReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase";
 import { ChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderStatus.useCase";
 import { OrderStatusValue } from "@/feature/orders/types/order.types";
-import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
-  OrderDetailView,
   OrderMoneyActionValue,
   OrderMoneyFormState,
-} from "./orders.viewModel";
+} from "@/feature/orders/types/order.state.types";
+import { OrderDetailView } from "@/feature/orders/types/order.view.types";
+import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 
 export type OrderMoneyActionViewModelParams = {
   canManage: boolean;

@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import * as Crypto from "expo-crypto";
 import {
+  OrderFormState,
+  OrderLineFormState,
+} from "@/feature/orders/types/order.state.types";
+import {
   buildNextOrderNumber,
   calculateFormPricingPreview,
   createEmptyLineItem,
@@ -13,7 +17,6 @@ import {
   OrderEditorViewModelParams,
   OrderEditorViewModelState,
 } from "./orderEditor.viewModel";
-import { OrderFormState, OrderLineFormState } from "./orders.viewModel";
 
 export const useOrderEditorViewModel = ({
   accountRemoteId,

@@ -1,19 +1,17 @@
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import { OrderSummaryState } from "@/feature/orders/types/order.state.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
+import { OrderListItemView } from "@/feature/orders/types/order.view.types";
 import { Order } from "@/feature/orders/types/order.types";
 import {
   GetOrderSettlementSnapshotsUseCase,
-  OrderSettlementSnapshot,
 } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
 import { GetOrdersUseCase } from "@/feature/orders/useCase/getOrders.useCase";
 import { Product } from "@/feature/products/types/product.types";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
-import {
-  OrderListItemView,
-  OrderSummaryState,
-} from "./orders.viewModel";
 
 export type OrdersListViewModelParams = {
   accountRemoteId: string | null;

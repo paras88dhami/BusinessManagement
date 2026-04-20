@@ -1,6 +1,7 @@
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
 import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import {
   OrderValidationError,
 } from "@/feature/orders/types/order.types";
@@ -9,7 +10,6 @@ import { RunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/o
 import {
   GetOrderSettlementSnapshotsResult,
   GetOrderSettlementSnapshotsUseCase,
-  OrderSettlementSnapshot,
 } from "./getOrderSettlementSnapshots.useCase";
 
 const safeTrim = (value: string | null | undefined): string =>

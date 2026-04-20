@@ -1,8 +1,8 @@
 import { Contact } from "@/feature/contacts/types/contact.types";
+import { OrderDetailView } from "@/feature/orders/types/order.view.types";
 import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
 import { GetOrderSettlementSnapshotsUseCase } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
 import { Product } from "@/feature/products/types/product.types";
-import { OrderDetailView } from "./orders.viewModel";
 
 export type OrderDetailsViewModelParams = {
   accountRemoteId: string | null;
@@ -24,4 +24,3 @@ export type OrderDetailsViewModelState = {
   onCloseDetail: () => void;
   refreshDetail: (remoteId: string) => Promise<void>;
 };
-

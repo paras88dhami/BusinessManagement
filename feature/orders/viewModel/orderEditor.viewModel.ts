@@ -1,13 +1,13 @@
 import { Order } from "@/feature/orders/types/order.types";
-import { CreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase";
-import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
-import { OrderSettlementSnapshot } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
-import { UpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase";
 import {
   OrderFormPricingPreview,
   OrderFormState,
   OrderLineFormState,
-} from "./orders.viewModel";
+} from "@/feature/orders/types/order.state.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
+import { CreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase";
+import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
+import { UpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase";
 
 export type OrderEditorViewModelParams = {
   accountRemoteId: string | null;

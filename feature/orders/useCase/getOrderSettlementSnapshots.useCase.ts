@@ -1,14 +1,8 @@
 import { Order, OrderError } from "@/feature/orders/types/order.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { Result } from "@/shared/types/result.types";
 
-export type OrderSettlementSnapshot = {
-  orderRemoteId: string;
-  paidAmount: number;
-  refundedAmount: number;
-  balanceDueAmount: number;
-  billingDocumentRemoteId: string | null;
-  dueEntryRemoteId: string | null;
-};
+export type { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 
 export type GetOrderSettlementSnapshotsResult = Result<
   Readonly<Record<string, OrderSettlementSnapshot>>,

@@ -2,7 +2,7 @@ import {
   OrderFormPricingPreview,
   OrderFormState,
   OrderLineFormState,
-} from "@/feature/orders/viewModel/orders.viewModel";
+} from "@/feature/orders/types/order.state.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import {
   Dropdown,

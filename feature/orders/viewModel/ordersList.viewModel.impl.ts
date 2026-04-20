@@ -1,7 +1,7 @@
 import { MoneyAccount } from "@/feature/accounts/types/moneyAccount.types";
 import { Contact } from "@/feature/contacts/types/contact.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { Order } from "@/feature/orders/types/order.types";
-import { OrderSettlementSnapshot } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
 import { Product } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {

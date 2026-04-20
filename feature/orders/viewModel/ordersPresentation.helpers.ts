@@ -4,28 +4,30 @@ import {
 } from "@/feature/accounts/types/moneyAccount.types";
 import { Contact } from "@/feature/contacts/types/contact.types";
 import {
+  OrderFormPricingPreview,
+  OrderFormState,
+  OrderLineFormState,
+  OrderMoneyFormState,
+} from "@/feature/orders/types/order.state.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
+import {
+  OrderDetailItemView,
+  OrderDetailPricingView,
+  OrderDetailView,
+  OrderListItemView,
+} from "@/feature/orders/types/order.view.types";
+import {
   Order,
   ORDER_STATUS_OPTIONS,
   OrderLine,
   OrderStatus,
 } from "@/feature/orders/types/order.types";
-import { OrderSettlementSnapshot } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
 import { Product } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
   formatCurrencyAmount,
 } from "@/shared/utils/currency/accountCurrency";
 import * as Crypto from "expo-crypto";
-import {
-  OrderDetailItemView,
-  OrderDetailPricingView,
-  OrderDetailView,
-  OrderFormState,
-  OrderFormPricingPreview,
-  OrderLineFormState,
-  OrderListItemView,
-  OrderMoneyFormState,
-} from "./orders.viewModel";
 
 export const DEFAULT_ORDER_TAX_RATE_PERCENT = 13;
 export const FALLBACK_PAYMENT_METHOD = "Cash";
