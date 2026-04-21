@@ -1,4 +1,4 @@
-import { RunOrderCommercialLinkingWorkflowUseCase } from "@/workflow/orderCommercialLinking/useCase/runOrderCommercialLinkingWorkflow.useCase";
+import { RunOrderCommercialLinkingWorkflowUseCase } from "@/feature/orders/workflow/orderCommercialLinking/useCase/runOrderCommercialLinkingWorkflow.useCase";
 import { EnsureOrderBillingAndDueLinksUseCase } from "./ensureOrderBillingAndDueLinks.useCase";
 
 export const createEnsureOrderBillingAndDueLinksUseCase = (params: {

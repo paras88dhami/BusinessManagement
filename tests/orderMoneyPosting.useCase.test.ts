@@ -1,23 +1,23 @@
 import { createRecordOrderPaymentUseCase } from "@/feature/orders/useCase/recordOrderPayment.useCase.impl";
 import { createRefundOrderUseCase } from "@/feature/orders/useCase/refundOrder.useCase.impl";
-import { RunOrderPaymentPostingWorkflowUseCase } from "@/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase";
-import { RunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase";
+import { RunOrderPaymentPostingWorkflowUseCase } from "@/feature/orders/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase";
+import { RunOrderRefundPostingWorkflowUseCase } from "@/feature/orders/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase";
 import { describe, expect, it, vi } from "vitest";
 
 describe("order payment/refund use-case delegates", () => {
   it("forwards payment payload to the payment-posting workflow", async () => {
     const runOrderPaymentPostingWorkflowUseCase: RunOrderPaymentPostingWorkflowUseCase =
       {
-      execute: vi.fn(async () => ({ 
-        success: true as const, 
-        value: {
-          orderRemoteId: "order-1",
-          paymentTransactionRemoteId: "txn-123",
-          settlementLedgerEntryRemoteId: "ledger-456",
-          billingDocumentRemoteId: "bill-789",
-          ledgerDueEntryRemoteId: "due-012",
-        }
-      })),
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: {
+            orderRemoteId: "order-1",
+            paymentTransactionRemoteId: "txn-123",
+            settlementLedgerEntryRemoteId: "ledger-456",
+            billingDocumentRemoteId: "bill-789",
+            ledgerDueEntryRemoteId: "due-012",
+          },
+        })),
       };
 
     const useCase = createRecordOrderPaymentUseCase({
@@ -53,16 +53,16 @@ describe("order payment/refund use-case delegates", () => {
   it("forwards refund payload to the refund-posting workflow", async () => {
     const runOrderRefundPostingWorkflowUseCase: RunOrderRefundPostingWorkflowUseCase =
       {
-      execute: vi.fn(async () => ({ 
-        success: true as const, 
-        value: {
-          orderRemoteId: "order-2",
-          refundTransactionRemoteId: "refund-txn-1",
-          refundSettlementLedgerEntryRemoteId: "refund-ledger-1",
-          refundBillingDocumentRemoteId: "refund-bill-1",
-          originalDueEntryRemoteId: "due-1",
-        }
-      })),
+        execute: vi.fn(async () => ({
+          success: true as const,
+          value: {
+            orderRemoteId: "order-2",
+            refundTransactionRemoteId: "refund-txn-1",
+            refundSettlementLedgerEntryRemoteId: "refund-ledger-1",
+            refundBillingDocumentRemoteId: "refund-bill-1",
+            originalDueEntryRemoteId: "due-1",
+          },
+        })),
       };
 
     const useCase = createRefundOrderUseCase({
@@ -99,7 +99,10 @@ describe("order payment/refund use-case delegates", () => {
     };
     const runOrderPaymentPostingWorkflowUseCase: RunOrderPaymentPostingWorkflowUseCase =
       {
-      execute: vi.fn(async () => ({ success: false as const, error: workflowError })),
+        execute: vi.fn(async () => ({
+          success: false as const,
+          error: workflowError,
+        })),
       };
 
     const useCase = createRecordOrderPaymentUseCase({

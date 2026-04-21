@@ -1,4 +1,4 @@
-import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
+import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/feature/orders/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
 import { describe, expect, it, vi } from "vitest";
 
 const baseInput = {
@@ -48,8 +48,9 @@ describe("runOrderLegacyTransactionLinkRepairWorkflow", () => {
       },
     };
 
-    const useCase =
-      createRunOrderLegacyTransactionLinkRepairWorkflowUseCase(deps as any);
+    const useCase = createRunOrderLegacyTransactionLinkRepairWorkflowUseCase(
+      deps as any,
+    );
     const result = await useCase.execute(baseInput);
 
     expect(result.success).toBe(true);
@@ -92,15 +93,18 @@ describe("runOrderLegacyTransactionLinkRepairWorkflow", () => {
       },
     };
 
-    const useCase =
-      createRunOrderLegacyTransactionLinkRepairWorkflowUseCase(deps as any);
+    const useCase = createRunOrderLegacyTransactionLinkRepairWorkflowUseCase(
+      deps as any,
+    );
 
     const first = await useCase.execute(baseInput);
     const second = await useCase.execute(baseInput);
 
     expect(first.success).toBe(true);
     expect(second.success).toBe(true);
-    expect(deps.postBusinessTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(deps.postBusinessTransactionUseCase.execute).toHaveBeenCalledTimes(
+      1,
+    );
   });
 
   it("skips ambiguous matches and does not relink them", async () => {
@@ -125,8 +129,9 @@ describe("runOrderLegacyTransactionLinkRepairWorkflow", () => {
       },
     };
 
-    const useCase =
-      createRunOrderLegacyTransactionLinkRepairWorkflowUseCase(deps as any);
+    const useCase = createRunOrderLegacyTransactionLinkRepairWorkflowUseCase(
+      deps as any,
+    );
     const result = await useCase.execute(baseInput);
 
     expect(result.success).toBe(true);

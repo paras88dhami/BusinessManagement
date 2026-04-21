@@ -1,16 +1,14 @@
 import { GetBillingOverviewUseCase } from "@/feature/billing/useCase/getBillingOverview.useCase";
 import { GetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase";
+import { OrderValidationError } from "@/feature/orders/types/order.types";
+import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
+import { calculateOrderCommercialSettlementSnapshot } from "@/feature/orders/utils/orderCommercialProjection.util";
+import { RunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/feature/orders/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase";
 import { TransactionRepository } from "@/feature/transactions/data/repository/transaction.repository";
 import { Transaction } from "@/feature/transactions/types/transaction.entity.types";
-import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import {
-  OrderValidationError,
-} from "@/feature/orders/types/order.types";
-import { calculateOrderCommercialSettlementSnapshot } from "@/feature/orders/utils/orderCommercialProjection.util";
-import { RunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase";
-import {
-  GetOrderSettlementSnapshotsResult,
-  GetOrderSettlementSnapshotsUseCase,
+    GetOrderSettlementSnapshotsResult,
+    GetOrderSettlementSnapshotsUseCase,
 } from "./getOrderSettlementSnapshots.useCase";
 
 const safeTrim = (value: string | null | undefined): string =>
@@ -61,11 +59,16 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
 
     const normalizedOwnerUserRemoteId = safeTrim(input.ownerUserRemoteId);
 
-    if ((input.attemptLegacyRepair ?? true) && normalizedOwnerUserRemoteId.length > 0) {
+    if (
+      (input.attemptLegacyRepair ?? true) &&
+      normalizedOwnerUserRemoteId.length > 0
+    ) {
       const legacyUnlinkedResult =
-        await params.transactionRepository.getLegacyUnlinkedOrderTransactionsForRepair({
-          accountRemoteId: normalizedAccountRemoteId,
-        });
+        await params.transactionRepository.getLegacyUnlinkedOrderTransactionsForRepair(
+          {
+            accountRemoteId: normalizedAccountRemoteId,
+          },
+        );
 
       if (!legacyUnlinkedResult.success) {
         return {
@@ -76,10 +79,12 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
 
       if (legacyUnlinkedResult.value.length > 0) {
         const repairResult =
-          await params.runOrderLegacyTransactionLinkRepairWorkflowUseCase.execute({
-            ownerUserRemoteId: normalizedOwnerUserRemoteId,
-            accountRemoteId: normalizedAccountRemoteId,
-          });
+          await params.runOrderLegacyTransactionLinkRepairWorkflowUseCase.execute(
+            {
+              ownerUserRemoteId: normalizedOwnerUserRemoteId,
+              accountRemoteId: normalizedAccountRemoteId,
+            },
+          );
 
         if (!repairResult.success) {
           return {
@@ -90,13 +95,12 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
       }
     }
 
-    const [billingOverviewResult, ledgerEntriesResult] =
-      await Promise.all([
-        params.getBillingOverviewUseCase.execute(normalizedAccountRemoteId),
-        params.getLedgerEntriesUseCase.execute({
-          businessAccountRemoteId: normalizedAccountRemoteId,
-        }),
-      ]);
+    const [billingOverviewResult, ledgerEntriesResult] = await Promise.all([
+      params.getBillingOverviewUseCase.execute(normalizedAccountRemoteId),
+      params.getLedgerEntriesUseCase.execute({
+        businessAccountRemoteId: normalizedAccountRemoteId,
+      }),
+    ]);
 
     if (!billingOverviewResult.success) {
       return {
@@ -123,7 +127,9 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
     if (!postedOrderTransactionsResult.success) {
       return {
         success: false,
-        error: OrderValidationError(postedOrderTransactionsResult.error.message),
+        error: OrderValidationError(
+          postedOrderTransactionsResult.error.message,
+        ),
       };
     }
 
@@ -131,7 +137,8 @@ export const createGetOrderSettlementSnapshotsUseCase = (params: {
       transactions: postedOrderTransactionsResult.value,
     });
 
-    const snapshotsByOrderRemoteId: Record<string, OrderSettlementSnapshot> = {};
+    const snapshotsByOrderRemoteId: Record<string, OrderSettlementSnapshot> =
+      {};
 
     for (let index = 0; index < normalizedOrders.length; index += 1) {
       const order = normalizedOrders[index];

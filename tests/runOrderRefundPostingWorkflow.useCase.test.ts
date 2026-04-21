@@ -1,5 +1,5 @@
 import { buildOrderLedgerDueEntryRemoteId } from "@/feature/orders/utils/orderCommercialEffects.util";
-import { createRunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
+import { createRunOrderRefundPostingWorkflowUseCase } from "@/feature/orders/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("expo-crypto", () => ({
@@ -152,7 +152,8 @@ describe("runOrderRefundPostingWorkflow", () => {
 
     expect(result.success).toBe(true);
     expect(
-      deps.transactionRepository.getPostedOrderLinkedTransactionsByOrderRemoteIds,
+      deps.transactionRepository
+        .getPostedOrderLinkedTransactionsByOrderRemoteIds,
     ).toHaveBeenCalledWith({
       accountRemoteId: "business-1",
       orderRemoteIds: ["order-1"],

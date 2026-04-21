@@ -44,6 +44,11 @@ import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.u
 import { createRollbackOrderDraftCreateUseCase } from "@/feature/orders/useCase/rollbackOrderDraftCreate.useCase.impl";
 import { createUpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase.impl";
 import { useOrdersCoordinatorViewModel } from "@/feature/orders/viewModel/ordersCoordinator.viewModel.impl";
+import { createRunOrderCommercialLinkingWorkflowUseCase } from "@/feature/orders/workflow/orderCommercialLinking/useCase/runOrderCommercialLinkingWorkflow.useCase.impl";
+import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/feature/orders/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
+import { createRunOrderPaymentPostingWorkflowUseCase } from "@/feature/orders/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase.impl";
+import { createRunOrderRefundPostingWorkflowUseCase } from "@/feature/orders/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
+import { createRunOrderReturnProcessingWorkflowUseCase } from "@/feature/orders/workflow/orderReturnProcessing/useCase/runOrderReturnProcessingWorkflow.useCase.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase.impl";
@@ -52,11 +57,6 @@ import { createTransactionRepository } from "@/feature/transactions/data/reposit
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import appDatabase from "@/shared/database/appDatabase";
-import { createRunOrderCommercialLinkingWorkflowUseCase } from "@/workflow/orderCommercialLinking/useCase/runOrderCommercialLinkingWorkflow.useCase.impl";
-import { createRunOrderLegacyTransactionLinkRepairWorkflowUseCase } from "@/workflow/orderLegacyTransactionLinkRepair/useCase/runOrderLegacyTransactionLinkRepairWorkflow.useCase.impl";
-import { createRunOrderPaymentPostingWorkflowUseCase } from "@/workflow/orderPaymentPosting/useCase/runOrderPaymentPostingWorkflow.useCase.impl";
-import { createRunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase.impl";
-import { createRunOrderReturnProcessingWorkflowUseCase } from "@/workflow/orderReturnProcessing/useCase/runOrderReturnProcessingWorkflow.useCase.impl";
 import React from "react";
 
 type Props = {
@@ -106,7 +106,7 @@ export function GetOrdersScreenFactory({
     () => createRemoveOrderItemUseCase(orderRepository),
     [orderRepository],
   );
-  
+
   const contactDatasource = React.useMemo(
     () => createLocalContactDatasource(appDatabase),
     [],
@@ -367,9 +367,14 @@ export function GetOrdersScreenFactory({
         ensureOrderBillingAndDueLinksUseCase,
         getOrderSettlementSnapshotsUseCase,
       }),
-    [ensureOrderBillingAndDueLinksUseCase, getProductsUseCase, orderRepository, getOrderSettlementSnapshotsUseCase],
+    [
+      ensureOrderBillingAndDueLinksUseCase,
+      getProductsUseCase,
+      orderRepository,
+      getOrderSettlementSnapshotsUseCase,
+    ],
   );
-    const ensureOrderDeliveredInventoryMovementsUseCase = React.useMemo(
+  const ensureOrderDeliveredInventoryMovementsUseCase = React.useMemo(
     () =>
       createEnsureOrderDeliveredInventoryMovementsUseCase({
         repository: orderRepository,

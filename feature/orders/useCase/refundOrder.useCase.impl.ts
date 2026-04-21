@@ -1,4 +1,4 @@
-import { RunOrderRefundPostingWorkflowUseCase } from "@/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase";
+import { RunOrderRefundPostingWorkflowUseCase } from "@/feature/orders/workflow/orderRefundPosting/useCase/runOrderRefundPostingWorkflow.useCase";
 import { RefundOrderUseCase } from "./refundOrder.useCase";
 
 export const createRefundOrderUseCase = (params: {
