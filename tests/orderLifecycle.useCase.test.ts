@@ -1,10 +1,12 @@
 import { OrderStatus } from "@/feature/orders/types/order.types";
 import { createCancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase.impl";
 import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase.impl";
-import { RunOrderReturnProcessingWorkflowUseCase } from "@/workflow/orderReturnProcessing/useCase/runOrderReturnProcessingWorkflow.useCase";
 import { describe, expect, it, vi } from "vitest";
 
-const buildOrder = (status: (typeof OrderStatus)[keyof typeof OrderStatus]) => ({
+const buildOrder = (
+  status: (typeof OrderStatus)[keyof typeof OrderStatus],
+  overrides: Record<string, unknown> = {},
+) => ({
   remoteId: "order-1",
   ownerUserRemoteId: "user-1",
   accountRemoteId: "business-1",
@@ -16,16 +18,17 @@ const buildOrder = (status: (typeof OrderStatus)[keyof typeof OrderStatus]) => (
   tags: null,
   internalRemarks: null,
   status,
-  taxRatePercent: 0,
+  taxRatePercent: 13,
   subtotalAmount: 100,
-  taxAmount: 0,
+  taxAmount: 13,
   discountAmount: 0,
-  totalAmount: 100,
+  totalAmount: 113,
   linkedBillingDocumentRemoteId: null,
   linkedLedgerDueEntryRemoteId: null,
   items: [],
   createdAt: 1_710_000_000_000,
   updatedAt: 1_710_000_000_000,
+  ...overrides,
 });
 
 describe("cancelOrderUseCase", () => {
@@ -83,6 +86,7 @@ describe("cancelOrderUseCase", () => {
       OrderStatus.Cancelled,
     );
   });
+});
 
 // Mock functions for testing
 const mockOrderRepository = () => ({
@@ -130,7 +134,7 @@ const mockDeleteInventoryMovementsByRemoteIdsUseCase = () => ({
 
 describe("returnOrderUseCase", () => {
   it("forwards remote id to return workflow", async () => {
-    const runOrderReturnProcessingWorkflowUseCase: RunOrderReturnProcessingWorkflowUseCase =
+    const runOrderReturnProcessingWorkflowUseCase = 
       {
         execute: vi.fn(async () => ({
           success: true as const,
@@ -155,5 +159,4 @@ describe("returnOrderUseCase", () => {
       orderRemoteId: "order-2",
     });
   });
-});
 });
