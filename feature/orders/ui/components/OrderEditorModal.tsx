@@ -230,9 +230,6 @@ const styles = StyleSheet.create({
   submitButton: {
     width: "100%",
   },
-  fieldWrap: {
-    gap: 6,
-  },
   fieldLabel: {
     color: colors.mutedForeground,
     fontSize: 11,

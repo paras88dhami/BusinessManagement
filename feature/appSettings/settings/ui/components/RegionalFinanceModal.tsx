@@ -124,14 +124,6 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
   },
-  fieldBlock: {
-    gap: spacing.xs,
-  },
-  label: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
   errorText: {
     color: colors.destructive,
     fontSize: 13,

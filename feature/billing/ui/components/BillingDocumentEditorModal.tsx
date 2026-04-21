@@ -290,11 +290,6 @@ const styles = StyleSheet.create({
   formWrap: {
     gap: spacing.sm,
   },
-  label: {
-    color: colors.cardForeground,
-    fontFamily: "InterSemiBold",
-    fontSize: 14,
-  },
   sectionLabel: {
     color: colors.cardForeground,
     fontFamily: "InterSemiBold",

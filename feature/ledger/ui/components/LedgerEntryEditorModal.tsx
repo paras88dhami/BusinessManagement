@@ -196,13 +196,7 @@ export function LedgerEntryEditorModal({
           />
 
           <View style={styles.attachmentWrap}>
-            <Text style={{
-              color: colors.mutedForeground,
-              fontSize: 11,
-              fontFamily: "InterBold",
-              textTransform: "uppercase",
-              letterSpacing: 0.45,
-            }}>Attachment</Text>
+            <Text style={styles.inputLabel}>Attachment</Text>
 
             {state.attachmentUri.trim().length > 0 ? (
               <View style={styles.attachmentPreview}>
@@ -245,6 +239,13 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.xl,
+  },
+  inputLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
   partySuggestionsWrap: {
     marginTop: -spacing.xs,

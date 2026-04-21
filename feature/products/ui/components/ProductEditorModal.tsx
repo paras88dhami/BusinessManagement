@@ -92,14 +92,8 @@ export function ProductEditorModal({
         </FormModalActionFooter>
       }
     >
-      <View style={{ gap: 6 }}>
-        <Text style={{
-          color: colors.mutedForeground,
-          fontSize: 11,
-          fontFamily: "InterBold",
-          textTransform: "uppercase",
-          letterSpacing: 0.45,
-        }}>Product Image</Text>
+      <View style={styles.fieldWrap}>
+        <Text style={styles.inputLabel}>Product Image</Text>
         <Pressable
           onPress={() => {
             void handlePickImage();
@@ -248,6 +242,16 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
     paddingBottom: spacing.xl,
+  },
+  fieldWrap: {
+    gap: 6,
+  },
+  inputLabel: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
   actionButton: {
     flex: 1,
