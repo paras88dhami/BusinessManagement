@@ -86,6 +86,22 @@ describe("cancelOrderUseCase", () => {
     const useCase = createCancelOrderUseCase(repository);
     const result = await useCase.execute("order-1");
 
+    expect(result.success).toBe(true);
+    expect(repository.updateOrderStatusByRemoteId).not.toHaveBeenCalled();
+  });
+
+  it("rejects commercially active orders", async () => {
+    const repository = {
+      getOrderByRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: buildOrder(OrderStatus.Confirmed),
+      })),
+      updateOrderStatusByRemoteId: vi.fn(),
+    } as any;
+
+    const useCase = createCancelOrderUseCase(repository);
+    const result = await useCase.execute("order-1");
+
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.message).toContain("Only draft or pending orders can be cancelled");
