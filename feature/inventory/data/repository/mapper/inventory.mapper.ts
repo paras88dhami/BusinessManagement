@@ -1,9 +1,9 @@
-import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
 import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
 import {
-  InventoryMovement,
-  InventoryStockItem,
+    InventoryMovement,
+    InventoryStockItem,
 } from "@/feature/inventory/types/inventory.types";
+import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
 
 export const mapProductModelToInventoryStockItem = (
   model: ProductModel,
@@ -40,6 +40,10 @@ export const mapInventoryMovementModelToDomain = (
   totalValue: model.unitRate === null ? null : model.unitRate * model.quantity,
   reason: model.reason,
   remark: model.remark,
+  sourceModule: model.sourceModule,
+  sourceRemoteId: model.sourceRemoteId,
+  sourceLineRemoteId: model.sourceLineRemoteId,
+  sourceAction: model.sourceAction,
   movementAt: model.movementAt,
   createdAt: model.createdAt.getTime(),
   updatedAt: model.updatedAt.getTime(),

@@ -12,6 +12,11 @@ import { createSaveBillingDocumentUseCase } from "@/feature/billing/useCase/save
 import { createLocalContactDatasource } from "@/feature/contacts/data/dataSource/local.contact.datasource.impl";
 import { createContactRepository } from "@/feature/contacts/data/repository/contact.repository.impl";
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
+import { createLocalInventoryDatasource } from "@/feature/inventory/data/dataSource/local.inventory.datasource.impl";
+import { createInventoryRepository } from "@/feature/inventory/data/repository/inventory.repository.impl";
+import { createDeleteInventoryMovementsByRemoteIdsUseCase } from "@/feature/inventory/useCase/deleteInventoryMovementsByRemoteIds.useCase.impl";
+import { createGetInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/getInventoryMovementsBySource.useCase.impl";
+import { createSaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
@@ -22,16 +27,19 @@ import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateL
 import { createLocalOrderDatasource } from "@/feature/orders/data/dataSource/local.order.datasource.impl";
 import { createOrderRepository } from "@/feature/orders/data/repository/order.repository.impl";
 import { OrdersScreen } from "@/feature/orders/ui/OrdersScreen";
+import { createAssignOrderCustomerUseCase } from "@/feature/orders/useCase/assignOrderCustomer.useCase.impl";
 import { createCancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase.impl";
 import { createChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderStatus.useCase.impl";
 import { createCreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase.impl";
 import { createDeleteOrderUseCase } from "@/feature/orders/useCase/deleteOrder.useCase.impl";
 import { createEnsureOrderBillingAndDueLinksUseCase } from "@/feature/orders/useCase/ensureOrderBillingAndDueLinks.useCase.impl";
+import { createEnsureOrderDeliveredInventoryMovementsUseCase } from "@/feature/orders/useCase/ensureOrderDeliveredInventoryMovements.useCase.impl";
 import { createGetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase.impl";
 import { createGetOrdersUseCase } from "@/feature/orders/useCase/getOrders.useCase.impl";
 import { createGetOrderSettlementSnapshotsUseCase } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase.impl";
 import { createRecordOrderPaymentUseCase } from "@/feature/orders/useCase/recordOrderPayment.useCase.impl";
 import { createRefundOrderUseCase } from "@/feature/orders/useCase/refundOrder.useCase.impl";
+import { createRemoveOrderItemUseCase } from "@/feature/orders/useCase/removeOrderItem.useCase.impl";
 import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase.impl";
 import { createUpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase.impl";
 import { useOrdersCoordinatorViewModel } from "@/feature/orders/viewModel/ordersCoordinator.viewModel.impl";
@@ -91,6 +99,14 @@ export function GetOrdersScreenFactory({
   );
   const cancelOrderUseCase = React.useMemo(
     () => createCancelOrderUseCase(orderRepository),
+    [orderRepository],
+  );
+  const assignOrderCustomerUseCase = React.useMemo(
+    () => createAssignOrderCustomerUseCase(orderRepository),
+    [orderRepository],
+  );
+  const removeOrderItemUseCase = React.useMemo(
+    () => createRemoveOrderItemUseCase(orderRepository),
     [orderRepository],
   );
   
@@ -213,6 +229,27 @@ export function GetOrdersScreenFactory({
     () => createDeleteBusinessTransactionUseCase(appDatabase),
     [],
   );
+
+  const inventoryDatasource = React.useMemo(
+    () => createLocalInventoryDatasource(appDatabase),
+    [],
+  );
+  const inventoryRepository = React.useMemo(
+    () => createInventoryRepository(inventoryDatasource),
+    [inventoryDatasource],
+  );
+  const getInventoryMovementsBySourceUseCase = React.useMemo(
+    () => createGetInventoryMovementsBySourceUseCase(inventoryRepository),
+    [inventoryRepository],
+  );
+  const saveInventoryMovementsUseCase = React.useMemo(
+    () => createSaveInventoryMovementsUseCase(inventoryRepository),
+    [inventoryRepository],
+  );
+  const deleteInventoryMovementsByRemoteIdsUseCase = React.useMemo(
+    () => createDeleteInventoryMovementsByRemoteIdsUseCase(inventoryRepository),
+    [inventoryRepository],
+  );
   const saveLedgerEntryWithSettlementUseCase = React.useMemo(
     () =>
       createSaveLedgerEntryWithSettlementUseCase({
@@ -319,14 +356,74 @@ export function GetOrdersScreenFactory({
       }),
     [ensureOrderBillingAndDueLinksUseCase, getProductsUseCase, orderRepository],
   );
+    const ensureOrderDeliveredInventoryMovementsUseCase = React.useMemo(
+    () =>
+      createEnsureOrderDeliveredInventoryMovementsUseCase({
+        repository: orderRepository,
+        getProductsUseCase,
+        getInventoryMovementsBySourceUseCase,
+        saveInventoryMovementsUseCase,
+      }),
+    [
+      getInventoryMovementsBySourceUseCase,
+      getProductsUseCase,
+      orderRepository,
+      saveInventoryMovementsUseCase,
+    ],
+  );
+
+  const runOrderReturnProcessingWorkflowUseCase = React.useMemo(
+    () =>
+      createRunOrderReturnProcessingWorkflowUseCase({
+        orderRepository,
+        getBillingOverviewUseCase,
+        getLedgerEntriesUseCase,
+        transactionRepository,
+        ensureOrderBillingAndDueLinksUseCase,
+      }),
+    [
+      ensureOrderBillingAndDueLinksUseCase,
+      getBillingOverviewUseCase,
+      getLedgerEntriesUseCase,
+      orderRepository,
+      transactionRepository,
+    ],
+  );
+
+  const returnOrderUseCase = React.useMemo(
+    () =>
+      createReturnOrderUseCase({
+        repository: orderRepository,
+        getProductsUseCase,
+        getInventoryMovementsBySourceUseCase,
+        saveInventoryMovementsUseCase,
+        deleteInventoryMovementsByRemoteIdsUseCase,
+      }),
+    [
+      orderRepository,
+      getProductsUseCase,
+      getInventoryMovementsBySourceUseCase,
+      saveInventoryMovementsUseCase,
+      deleteInventoryMovementsByRemoteIdsUseCase,
+    ],
+  );
+
   const changeOrderStatusUseCase = React.useMemo(
     () =>
       createChangeOrderStatusUseCase({
         repository: orderRepository,
         ensureOrderBillingAndDueLinksUseCase,
+        ensureOrderDeliveredInventoryMovementsUseCase,
+        returnOrderUseCase,
       }),
-    [ensureOrderBillingAndDueLinksUseCase, orderRepository],
+    [
+      ensureOrderBillingAndDueLinksUseCase,
+      ensureOrderDeliveredInventoryMovementsUseCase,
+      orderRepository,
+      returnOrderUseCase,
+    ],
   );
+
   const runOrderPaymentPostingWorkflowUseCase = React.useMemo(
     () =>
       createRunOrderPaymentPostingWorkflowUseCase({
@@ -384,38 +481,13 @@ export function GetOrdersScreenFactory({
       transactionRepository,
     ],
   );
+
   const refundOrderUseCase = React.useMemo(
     () =>
       createRefundOrderUseCase({
         runOrderRefundPostingWorkflowUseCase,
       }),
     [runOrderRefundPostingWorkflowUseCase],
-  );
-
-  const runOrderReturnProcessingWorkflowUseCase = React.useMemo(
-    () =>
-      createRunOrderReturnProcessingWorkflowUseCase({
-        orderRepository,
-        getBillingOverviewUseCase,
-        getLedgerEntriesUseCase,
-        transactionRepository,
-        ensureOrderBillingAndDueLinksUseCase,
-      }),
-    [
-      ensureOrderBillingAndDueLinksUseCase,
-      getBillingOverviewUseCase,
-      getLedgerEntriesUseCase,
-      orderRepository,
-      transactionRepository,
-    ],
-  );
-
-  const returnOrderUseCase = React.useMemo(
-    () =>
-      createReturnOrderUseCase({
-        runOrderReturnProcessingWorkflowUseCase,
-      }),
-    [runOrderReturnProcessingWorkflowUseCase],
   );
 
   const viewModel = useOrdersCoordinatorViewModel({
@@ -440,6 +512,8 @@ export function GetOrdersScreenFactory({
     getProductsUseCase,
     getMoneyAccountsUseCase,
     getOrderSettlementSnapshotsUseCase,
+    assignOrderCustomerUseCase,
+    removeOrderItemUseCase,
   });
 
   return <OrdersScreen viewModel={viewModel} />;

@@ -1,5 +1,8 @@
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
+import { AssignOrderCustomerUseCase } from "@/feature/orders/useCase/assignOrderCustomer.useCase";
+import { CancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase";
+import { ChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderStatus.useCase";
 import { CreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase";
 import { DeleteOrderUseCase } from "@/feature/orders/useCase/deleteOrder.useCase";
 import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
@@ -7,13 +10,12 @@ import { GetOrdersUseCase } from "@/feature/orders/useCase/getOrders.useCase";
 import { GetOrderSettlementSnapshotsUseCase } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
 import { RecordOrderPaymentUseCase } from "@/feature/orders/useCase/recordOrderPayment.useCase";
 import { RefundOrderUseCase } from "@/feature/orders/useCase/refundOrder.useCase";
+import { RemoveOrderItemUseCase } from "@/feature/orders/useCase/removeOrderItem.useCase";
 import { ReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase";
-import { CancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase";
 import { UpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase";
-import { ChangeOrderStatusUseCase } from "@/feature/orders/useCase/changeOrderStatus.useCase";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
-import { useOrdersCoordinatorViewModel } from "./ordersCoordinator.viewModel.impl";
 import { OrdersViewModel } from "./orders.viewModel";
+import { useOrdersCoordinatorViewModel } from "./ordersCoordinator.viewModel.impl";
 
 type Params = {
   accountRemoteId: string | null;
@@ -37,6 +39,8 @@ type Params = {
   getProductsUseCase: GetProductsUseCase;
   getMoneyAccountsUseCase: GetMoneyAccountsUseCase;
   getOrderSettlementSnapshotsUseCase: GetOrderSettlementSnapshotsUseCase;
+  assignOrderCustomerUseCase: AssignOrderCustomerUseCase;
+  removeOrderItemUseCase: RemoveOrderItemUseCase;
 };
 
 export const useOrdersViewModel = (params: Params): OrdersViewModel =>

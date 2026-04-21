@@ -1,9 +1,9 @@
+import {
+    InventoryAdjustmentReasonValue,
+    InventoryMovementTypeValue,
+} from "@/feature/inventory/types/inventory.types";
 import { Model } from "@nozbe/watermelondb";
 import { date, field, readonly } from "@nozbe/watermelondb/decorators";
-import {
-  InventoryAdjustmentReasonValue,
-  InventoryMovementTypeValue,
-} from "@/feature/inventory/types/inventory.types";
 
 export class InventoryMovementModel extends Model {
   static table = "inventory_movements";
@@ -19,6 +19,10 @@ export class InventoryMovementModel extends Model {
   @field("unit_rate") unitRate!: number | null;
   @field("reason") reason!: InventoryAdjustmentReasonValue | null;
   @field("remark") remark!: string | null;
+  @field("source_module") sourceModule!: string | null;
+  @field("source_remote_id") sourceRemoteId!: string | null;
+  @field("source_line_remote_id") sourceLineRemoteId!: string | null;
+  @field("source_action") sourceAction!: string | null;
   @field("movement_at") movementAt!: number;
   @field("sync_status") recordSyncStatus!: string;
   @field("last_synced_at") lastSyncedAt!: number | null;

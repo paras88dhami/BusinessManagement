@@ -1,13 +1,13 @@
-import { Database, Q } from "@nozbe/watermelondb";
-import { InventoryDatasource } from "./inventory.datasource";
-import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
-import { InventoryMovementModel } from "./db/inventoryMovement.model";
 import {
-  InventoryMovementType,
-  SaveInventoryMovementPayload,
+    InventorySourceLookupParams,
+    SaveInventoryMovementPayload
 } from "@/feature/inventory/types/inventory.types";
-import { Result } from "@/shared/types/result.types";
+import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
+import { Result } from "@/shared/types/result.types";
+import { Database, Q } from "@nozbe/watermelondb";
+import { InventoryMovementModel } from "./db/inventoryMovement.model";
+import { InventoryDatasource } from "./inventory.datasource";
 
 const PRODUCTS_TABLE = "products";
 const INVENTORY_MOVEMENTS_TABLE = "inventory_movements";
@@ -119,96 +119,160 @@ export const createLocalInventoryDatasource = (
     }
   },
 
-  async saveInventoryMovement(
-    payload: SaveInventoryMovementPayload,
-  ): Promise<Result<InventoryMovementModel>> {
+  async getInventoryMovementsBySource(
+    params: InventorySourceLookupParams,
+  ): Promise<Result<InventoryMovementModel[]>> {
     try {
-      const normalizedRemoteId = normalizeRequired(payload.remoteId);
-      const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId);
-      const normalizedProductRemoteId = normalizeRequired(payload.productRemoteId);
-      const normalizedRemark = normalizeOptional(payload.remark);
+      const normalizedAccountRemoteId = normalizeRequired(params.accountRemoteId);
+      const normalizedSourceModule = normalizeRequired(params.sourceModule);
+      const normalizedSourceRemoteId = normalizeRequired(params.sourceRemoteId);
 
-      if (!normalizedRemoteId) {
-        throw new Error("Inventory movement remote id is required");
-      }
       if (!normalizedAccountRemoteId) {
         throw new Error("Account remote id is required");
       }
-      if (!normalizedProductRemoteId) {
-        throw new Error("Product is required");
+      if (!normalizedSourceModule) {
+        throw new Error("Inventory movement source module is required");
       }
-      if (!(payload.quantity > 0)) {
-        throw new Error("Quantity must be greater than zero");
-      }
-      if (
-        payload.type === InventoryMovementType.StockIn &&
-        payload.unitRate !== null &&
-        payload.unitRate < 0
-      ) {
-        throw new Error("Rate cannot be negative");
+      if (!normalizedSourceRemoteId) {
+        throw new Error("Inventory movement source remote id is required");
       }
 
-      const product = await findProductByRemoteId(database, normalizedProductRemoteId);
-      if (!product) {
-        throw new Error("Product not found");
-      }
-      if (product.accountRemoteId !== normalizedAccountRemoteId) {
-        throw new Error("Selected product does not belong to this account");
-      }
-      if (product.kind !== "item") {
-        throw new Error("Inventory is available only for item products");
-      }
-
-      const currentStock = product.stockQuantity ?? 0;
-      const deltaQuantity =
-        payload.type === InventoryMovementType.StockIn
-          ? payload.quantity
-          : payload.quantity * -1;
-      const nextStock = currentStock + deltaQuantity;
-
-      if (nextStock < 0) {
-        throw new Error("Adjustment cannot reduce stock below zero");
-      }
-
-      const movementCollection = database.get<InventoryMovementModel>(
+      const collection = database.get<InventoryMovementModel>(
         INVENTORY_MOVEMENTS_TABLE,
       );
-      let createdMovement!: InventoryMovementModel;
-      const now = Date.now();
-      await database.write(async () => {
-        await product.update((record) => {
-          record.stockQuantity = nextStock;
-          if (
-            payload.type === InventoryMovementType.StockIn &&
-            payload.unitRate !== null
-          ) {
-            record.costPrice = payload.unitRate;
-          }
-          updateSyncStatusOnMutation(record);
-          setUpdatedAt(record, now);
-        });
 
-        createdMovement = await movementCollection.create((record) => {
-          record.remoteId = normalizedRemoteId;
-          record.accountRemoteId = normalizedAccountRemoteId;
-          record.productRemoteId = normalizedProductRemoteId;
-          record.productNameSnapshot = product.name;
-          record.productUnitLabelSnapshot = product.unitLabel;
-          record.movementType = payload.type;
-          record.quantity = payload.quantity;
-          record.deltaQuantity = deltaQuantity;
-          record.unitRate = payload.unitRate;
-          record.reason = payload.reason;
-          record.remark = normalizedRemark;
-          record.movementAt = payload.movementAt;
-          record.recordSyncStatus = RecordSyncStatus.PendingCreate;
-          record.lastSyncedAt = null;
-          record.deletedAt = null;
-          setCreatedAndUpdatedAt(record, now);
-        });
+      const movements = await collection
+        .query(
+          Q.where("account_remote_id", normalizedAccountRemoteId),
+          Q.where("source_module", normalizedSourceModule),
+          Q.where("source_remote_id", normalizedSourceRemoteId),
+          Q.where("deleted_at", Q.eq(null)),
+          Q.sortBy("movement_at", Q.asc),
+          Q.sortBy("updated_at", Q.asc),
+        )
+        .fetch();
+
+      return { success: true, value: movements };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async saveInventoryMovement(
+    payload: SaveInventoryMovementPayload,
+  ): Promise<Result<InventoryMovementModel>> {
+    const result = await this.saveInventoryMovements([payload]);
+    if (!result.success) {
+      return result as Result<InventoryMovementModel>;
+    }
+    return { success: true, value: result.value[0] };
+  },
+
+  async saveInventoryMovements(
+    payloads: SaveInventoryMovementPayload[],
+  ): Promise<Result<InventoryMovementModel[]>> {
+    try {
+      const now = Date.now();
+      const collection = database.get<InventoryMovementModel>(
+        INVENTORY_MOVEMENTS_TABLE,
+      );
+
+      const createdMovements = await database.write(async () => {
+        const movements: InventoryMovementModel[] = [];
+        
+        for (const payload of payloads) {
+          const normalizedAccountRemoteId = normalizeRequired(payload.accountRemoteId || '');
+          const normalizedSourceModule = normalizeRequired(payload.sourceModule || '');
+          const normalizedSourceRemoteId = normalizeRequired(payload.sourceRemoteId || '');
+          const normalizedType = normalizeRequired(payload.type);
+          const normalizedQuantity = payload.quantity.toString();
+          const normalizedRemark = normalizeOptional(payload.remark || null);
+
+          if (!normalizedAccountRemoteId) {
+            throw new Error("Account remote id is required");
+          }
+          if (!normalizedSourceModule) {
+            throw new Error("Inventory movement source module is required");
+          }
+          if (!normalizedSourceRemoteId) {
+            throw new Error("Inventory movement source remote id is required");
+          }
+          if (!normalizedType) {
+            throw new Error("Inventory movement type is required");
+          }
+
+          const product = await findProductByRemoteId(database, payload.productRemoteId);
+          if (!product) {
+            throw new Error(`Product with remote id ${payload.productRemoteId} not found`);
+          }
+
+          const record = await collection.create(record => {
+            record.remoteId = payload.remoteId;
+            record.accountRemoteId = normalizedAccountRemoteId;
+            record.productRemoteId = payload.productRemoteId;
+            record.sourceModule = normalizedSourceModule;
+            record.sourceRemoteId = normalizedSourceRemoteId;
+            record.sourceLineRemoteId = payload.sourceLineRemoteId || null;
+            record.movementType = normalizedType as any;
+            record.quantity = payload.quantity;
+            record.reason = payload.reason;
+            record.remark = normalizedRemark;
+            record.movementAt = payload.movementAt;
+            record.recordSyncStatus = RecordSyncStatus.PendingCreate;
+            record.lastSyncedAt = null;
+            record.deletedAt = null;
+            setCreatedAndUpdatedAt(record, now);
+          });
+          
+          movements.push(record);
+        }
+        
+        return movements;
       });
 
-      return { success: true, value: createdMovement };
+      return { success: true, value: createdMovements };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error : new Error("Unknown error"),
+      };
+    }
+  },
+
+  async deleteInventoryMovementsByRemoteIds(
+    remoteIds: readonly string[],
+  ): Promise<Result<boolean>> {
+    try {
+      const normalizedRemoteIds = remoteIds
+        .map(id => normalizeRequired(id))
+        .filter(id => id.length > 0);
+      
+      if (normalizedRemoteIds.length === 0) {
+        throw new Error("At least one valid remote id is required");
+      }
+
+      const collection = database.get<InventoryMovementModel>(
+        INVENTORY_MOVEMENTS_TABLE,
+      );
+
+      await database.write(async () => {
+        const movements = await collection
+          .query(
+            Q.where("remote_id", Q.oneOf(normalizedRemoteIds)),
+            Q.where("deleted_at", Q.eq(null)),
+          )
+          .fetch();
+
+        for (const movement of movements) {
+          await movement.markAsDeleted();
+          updateSyncStatusOnMutation(movement);
+        }
+      });
+
+      return { success: true, value: true };
     } catch (error) {
       return {
         success: false,

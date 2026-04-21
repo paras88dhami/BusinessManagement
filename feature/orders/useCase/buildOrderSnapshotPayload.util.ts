@@ -1,9 +1,10 @@
-import { Product } from "@/feature/products/types/product.types";
 import {
-  Order,
-  SaveOrderLinePayload,
-  SaveOrderPayload,
+    Order,
+    OrderStatus,
+    SaveOrderLinePayload,
+    SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
+import { Product } from "@/feature/products/types/product.types";
 
 type BuildOrderSnapshotPayloadParams = {
   payload: SaveOrderPayload;
@@ -43,6 +44,14 @@ export const validateOrderDraftPayload = (
   if (!Number.isFinite(payload.orderDate) || payload.orderDate <= 0) {
     return "Order date is required.";
   }
+  if (payload.status === OrderStatus.Delivered) {
+    return "Use order status action to mark an order as delivered so inventory can be posted safely.";
+  }
+
+  if (payload.status === OrderStatus.Returned) {
+    return "Use return action to mark an order as returned so inventory can be restocked safely.";
+  }
+
   if (items.length === 0) return "Add at least one order item.";
   if (
     items.some(

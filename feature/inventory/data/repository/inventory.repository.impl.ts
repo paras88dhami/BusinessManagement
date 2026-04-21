@@ -1,16 +1,19 @@
 import { InventoryDatasource } from "@/feature/inventory/data/dataSource/inventory.datasource";
+import {
+    InventoryDatabaseError,
+    InventoryError,
+    InventoryMovementsResult,
+    InventoryOperationResult,
+    InventoryProductNotFoundError,
+    InventorySourceLookupParams,
+    InventoryUnknownError,
+    InventoryValidationError,
+    SaveInventoryMovementPayload,
+} from "@/feature/inventory/types/inventory.types";
 import { InventoryRepository } from "./inventory.repository";
 import {
-  InventoryDatabaseError,
-  InventoryError,
-  InventoryProductNotFoundError,
-  InventoryUnknownError,
-  InventoryValidationError,
-  SaveInventoryMovementPayload,
-} from "@/feature/inventory/types/inventory.types";
-import {
-  mapInventoryMovementModelToDomain,
-  mapProductModelToInventoryStockItem,
+    mapInventoryMovementModelToDomain,
+    mapProductModelToInventoryStockItem,
 } from "./mapper/inventory.mapper";
 
 const mapDatasourceError = (error: Error): InventoryError => {
@@ -72,6 +75,21 @@ export const createInventoryRepository = (
       },
     };
   },
+
+  async getInventoryMovementsBySource(
+    params: InventorySourceLookupParams,
+  ): Promise<InventoryMovementsResult> {
+    const result = await datasource.getInventoryMovementsBySource(params);
+    if (!result.success) {
+      return { success: false, error: mapDatasourceError(result.error) };
+    }
+
+    return {
+      success: true,
+      value: result.value.map(mapInventoryMovementModelToDomain),
+    };
+  },
+
   async saveInventoryMovement(payload: SaveInventoryMovementPayload) {
     const result = await datasource.saveInventoryMovement(payload);
     if (!result.success) {
@@ -79,5 +97,30 @@ export const createInventoryRepository = (
     }
 
     return { success: true, value: mapInventoryMovementModelToDomain(result.value) };
+  },
+
+  async saveInventoryMovements(
+    payloads: readonly SaveInventoryMovementPayload[],
+  ): Promise<InventoryMovementsResult> {
+    const result = await datasource.saveInventoryMovements(payloads);
+    if (!result.success) {
+      return { success: false, error: mapDatasourceError(result.error) };
+    }
+
+    return {
+      success: true,
+      value: result.value.map(mapInventoryMovementModelToDomain),
+    };
+  },
+
+  async deleteInventoryMovementsByRemoteIds(
+    remoteIds: readonly string[],
+  ): Promise<InventoryOperationResult> {
+    const result = await datasource.deleteInventoryMovementsByRemoteIds(remoteIds);
+    if (!result.success) {
+      return { success: false, error: mapDatasourceError(result.error) };
+    }
+
+    return result;
   },
 });

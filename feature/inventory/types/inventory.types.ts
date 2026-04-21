@@ -9,6 +9,15 @@ export const InventoryMovementType = {
 export type InventoryMovementTypeValue =
   (typeof InventoryMovementType)[keyof typeof InventoryMovementType];
 
+export const InventoryMovementSourceModule = {
+  Orders: "orders",
+  Pos: "pos",
+  Manual: "manual",
+} as const;
+
+export type InventoryMovementSourceModuleValue =
+  (typeof InventoryMovementSourceModule)[keyof typeof InventoryMovementSourceModule];
+
 export const InventoryAdjustmentReason = {
   Damage: "damage",
   Expired: "expired",
@@ -46,6 +55,10 @@ export type InventoryMovement = {
   totalValue: number | null;
   reason: InventoryAdjustmentReasonValue | null;
   remark: string | null;
+  sourceModule: string | null;
+  sourceRemoteId: string | null;
+  sourceLineRemoteId: string | null;
+  sourceAction: string | null;
   movementAt: number;
   createdAt: number;
   updatedAt: number;
@@ -65,7 +78,17 @@ export type SaveInventoryMovementPayload = {
   unitRate: number | null;
   reason: InventoryAdjustmentReasonValue | null;
   remark: string | null;
+  sourceModule?: string | null;
+  sourceRemoteId?: string | null;
+  sourceLineRemoteId?: string | null;
+  sourceAction?: string | null;
   movementAt: number;
+};
+
+export type InventorySourceLookupParams = {
+  accountRemoteId: string;
+  sourceModule: string;
+  sourceRemoteId: string;
 };
 
 export const InventoryErrorType = {
@@ -102,6 +125,8 @@ export const InventoryUnknownError: InventoryError = {
 
 export type InventorySnapshotResult = Result<InventorySnapshot, InventoryError>;
 export type InventoryMovementResult = Result<InventoryMovement, InventoryError>;
+export type InventoryMovementsResult = Result<InventoryMovement[], InventoryError>;
+export type InventoryOperationResult = Result<boolean, InventoryError>;
 
 export const INVENTORY_ADJUSTMENT_REASON_OPTIONS = [
   { label: "Damage", value: InventoryAdjustmentReason.Damage },

@@ -1,6 +1,6 @@
+import { OrderStatus } from "@/feature/orders/types/order.types";
 import { createCancelOrderUseCase } from "@/feature/orders/useCase/cancelOrder.useCase.impl";
 import { createReturnOrderUseCase } from "@/feature/orders/useCase/returnOrder.useCase.impl";
-import { OrderStatus } from "@/feature/orders/types/order.types";
 import { RunOrderReturnProcessingWorkflowUseCase } from "@/workflow/orderReturnProcessing/useCase/runOrderReturnProcessingWorkflow.useCase";
 import { describe, expect, it, vi } from "vitest";
 
@@ -83,6 +83,49 @@ describe("cancelOrderUseCase", () => {
       OrderStatus.Cancelled,
     );
   });
+
+// Mock functions for testing
+const mockOrderRepository = () => ({
+  saveOrder: vi.fn(),
+  getOrdersByAccountRemoteId: vi.fn(),
+  deleteOrderByRemoteId: vi.fn(),
+  removeOrderItemByRemoteId: vi.fn(),
+  updateOrderStatusByRemoteId: vi.fn(),
+  deleteInventoryMovementsByRemoteIds: vi.fn(),
+  getOrderByRemoteId: vi.fn().mockResolvedValue({
+    success: true,
+    value: buildOrder(OrderStatus.Delivered),
+  }),
+  assignOrderCustomer: vi.fn(),
+  linkOrderCommercialAnchors: vi.fn(),
+});
+
+const mockGetProductsUseCase = () => ({
+  execute: vi.fn().mockResolvedValue({
+    success: true,
+    value: [],
+  }),
+});
+
+const mockGetInventoryMovementsBySourceUseCase = () => ({
+  execute: vi.fn().mockResolvedValue({
+    success: true,
+    value: [],
+  }),
+});
+
+const mockSaveInventoryMovementsUseCase = () => ({
+  execute: vi.fn().mockResolvedValue({
+    success: true,
+    value: [],
+  }),
+});
+
+const mockDeleteInventoryMovementsByRemoteIdsUseCase = () => ({
+  execute: vi.fn().mockResolvedValue({
+    success: true,
+    value: true,
+  }),
 });
 
 describe("returnOrderUseCase", () => {
@@ -96,7 +139,11 @@ describe("returnOrderUseCase", () => {
       };
 
     const useCase = createReturnOrderUseCase({
-      runOrderReturnProcessingWorkflowUseCase,
+      repository: mockOrderRepository(),
+      getProductsUseCase: mockGetProductsUseCase(),
+      getInventoryMovementsBySourceUseCase: mockGetInventoryMovementsBySourceUseCase(),
+      saveInventoryMovementsUseCase: mockSaveInventoryMovementsUseCase(),
+      deleteInventoryMovementsByRemoteIdsUseCase: mockDeleteInventoryMovementsByRemoteIdsUseCase(),
     });
 
     const result = await useCase.execute("order-2");
@@ -108,4 +155,5 @@ describe("returnOrderUseCase", () => {
       orderRemoteId: "order-2",
     });
   });
+});
 });
