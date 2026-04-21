@@ -1,19 +1,21 @@
 import { OrderRepository } from "@/feature/orders/data/repository/order.repository";
 import {
-  OrderResult,
-  OrderValidationError,
-  SaveOrderPayload,
+    OrderResult,
+    OrderValidationError,
+    SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
 import {
-  isOrderFinancialStatus,
+    isOrderFinancialStatus,
 } from "@/feature/orders/utils/orderCommercialEffects.util";
 import { mapOrderToSaveOrderPayload } from "@/feature/orders/utils/orderCommercialSyncRollback.util";
+import { getOrderEditBlockedReason } from "@/feature/orders/utils/orderLifecyclePolicy.util";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import {
-  buildOrderSnapshotPayload,
-  validateOrderDraftPayload,
+    buildOrderSnapshotPayload,
+    validateOrderDraftPayload,
 } from "./buildOrderSnapshotPayload.util";
 import { EnsureOrderBillingAndDueLinksUseCase } from "./ensureOrderBillingAndDueLinks.useCase";
+import { GetOrderSettlementSnapshotsUseCase } from "./getOrderSettlementSnapshots.useCase";
 import { UpdateOrderUseCase } from "./updateOrder.useCase";
 
 const buildRollbackAwareValidationError = (params: {
@@ -30,6 +32,7 @@ export const createUpdateOrderUseCase = (params: {
   repository: OrderRepository;
   getProductsUseCase: GetProductsUseCase;
   ensureOrderBillingAndDueLinksUseCase: EnsureOrderBillingAndDueLinksUseCase;
+  getOrderSettlementSnapshotsUseCase: GetOrderSettlementSnapshotsUseCase;
 }): UpdateOrderUseCase => ({
   async execute(payload: SaveOrderPayload): Promise<OrderResult> {
     const validationError = validateOrderDraftPayload(payload);
@@ -45,6 +48,50 @@ export const createUpdateOrderUseCase = (params: {
     }
 
     const previousOrder = existingOrderResult.value;
+
+    // Add identity protection
+    if (payload.accountRemoteId.trim() !== previousOrder.accountRemoteId.trim()) {
+      return {
+        success: false,
+        error: OrderValidationError("Order account context cannot be changed."),
+      };
+    }
+
+    if (payload.ownerUserRemoteId.trim() !== previousOrder.ownerUserRemoteId.trim()) {
+      return {
+        success: false,
+        error: OrderValidationError("Order owner context cannot be changed."),
+      };
+    }
+
+    // Add lifecycle boundary check
+    const snapshotResult = await params.getOrderSettlementSnapshotsUseCase.execute({
+      accountRemoteId: previousOrder.accountRemoteId,
+      ownerUserRemoteId: previousOrder.ownerUserRemoteId,
+      orders: [previousOrder],
+      attemptLegacyRepair: true,
+    });
+
+    if (!snapshotResult.success) {
+      return {
+        success: false,
+        error: OrderValidationError(snapshotResult.error.message),
+      };
+    }
+
+    const settlementSnapshot = snapshotResult.value[previousOrder.remoteId] ?? null;
+
+    const blockedReason = getOrderEditBlockedReason({
+      order: previousOrder,
+      settlementSnapshot,
+    });
+
+    if (blockedReason) {
+      return {
+        success: false,
+        error: OrderValidationError(blockedReason),
+      };
+    }
 
     const productsResult = await params.getProductsUseCase.execute(
       payload.accountRemoteId.trim(),

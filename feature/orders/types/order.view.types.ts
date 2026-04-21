@@ -45,4 +45,10 @@ export type OrderDetailView = {
   orderDateLabel: string;
   items: OrderDetailItemView[];
   pricing: OrderDetailPricingView;
+
+  canEdit: boolean;
+  canDelete: boolean;
+  canChangeStatus: boolean;
+  editBlockedReason: string | null;
+  deleteBlockedReason: string | null;
 };

@@ -1,12 +1,13 @@
-import { Order } from "@/feature/orders/types/order.types";
 import {
-  OrderFormPricingPreview,
-  OrderFormState,
-  OrderLineFormState,
+    OrderFormPricingPreview,
+    OrderFormState,
+    OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
+import { Order } from "@/feature/orders/types/order.types";
 import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
 import { CreateOrderUseCase } from "@/feature/orders/useCase/createOrder.useCase";
 import { GetOrderByIdUseCase } from "@/feature/orders/useCase/getOrderById.useCase";
+import { GetOrderSettlementSnapshotsUseCase } from "@/feature/orders/useCase/getOrderSettlementSnapshots.useCase";
 import { UpdateOrderUseCase } from "@/feature/orders/useCase/updateOrder.useCase";
 
 export type OrderEditorViewModelParams = {
@@ -24,6 +25,7 @@ export type OrderEditorViewModelParams = {
   createOrderUseCase: CreateOrderUseCase;
   updateOrderUseCase: UpdateOrderUseCase;
   getOrderByIdUseCase: GetOrderByIdUseCase;
+  getOrderSettlementSnapshotsUseCase: GetOrderSettlementSnapshotsUseCase;
   loadAll: () => Promise<void>;
   refreshDetail: (remoteId: string) => Promise<void>;
   setErrorMessage: (message: string | null) => void;

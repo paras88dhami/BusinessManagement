@@ -93,10 +93,6 @@ export function GetOrdersScreenFactory({
     () => createGetOrderByIdUseCase(orderRepository),
     [orderRepository],
   );
-  const deleteOrderUseCase = React.useMemo(
-    () => createDeleteOrderUseCase(orderRepository),
-    [orderRepository],
-  );
   const cancelOrderUseCase = React.useMemo(
     () => createCancelOrderUseCase(orderRepository),
     [orderRepository],
@@ -332,6 +328,13 @@ export function GetOrdersScreenFactory({
       transactionRepository,
     ],
   );
+  const deleteOrderUseCase = React.useMemo(
+    () => createDeleteOrderUseCase({
+      repository: orderRepository,
+      getOrderSettlementSnapshotsUseCase,
+    }),
+    [orderRepository, getOrderSettlementSnapshotsUseCase],
+  );
   const createOrderUseCase = React.useMemo(
     () =>
       createCreateOrderUseCase({
@@ -353,8 +356,9 @@ export function GetOrdersScreenFactory({
         repository: orderRepository,
         getProductsUseCase,
         ensureOrderBillingAndDueLinksUseCase,
+        getOrderSettlementSnapshotsUseCase,
       }),
-    [ensureOrderBillingAndDueLinksUseCase, getProductsUseCase, orderRepository],
+    [ensureOrderBillingAndDueLinksUseCase, getProductsUseCase, orderRepository, getOrderSettlementSnapshotsUseCase],
   );
     const ensureOrderDeliveredInventoryMovementsUseCase = React.useMemo(
     () =>

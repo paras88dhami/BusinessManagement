@@ -51,6 +51,7 @@ export const useOrdersCoordinatorViewModel = (
     createOrderUseCase: params.createOrderUseCase,
     updateOrderUseCase: params.updateOrderUseCase,
     getOrderByIdUseCase: params.getOrderByIdUseCase,
+    getOrderSettlementSnapshotsUseCase: params.getOrderSettlementSnapshotsUseCase,
     loadAll: listViewModel.loadAll,
     refreshDetail: detailsViewModel.refreshDetail,
     setErrorMessage: listViewModel.setErrorMessage,

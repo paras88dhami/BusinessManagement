@@ -4,12 +4,12 @@ import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-  Calendar,
-  CreditCard,
-  Edit2,
-  Phone,
-  Trash2,
-  User,
+    Calendar,
+    CreditCard,
+    Edit2,
+    Phone,
+    Trash2,
+    User,
 } from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
@@ -103,24 +103,28 @@ export function OrderDetailModal({
             </View>
             {canManage ? (
               <View style={styles.inlineActionsRow}>
-                <Pressable
-                  style={styles.actionChip}
-                  onPress={() => void onOpenEdit(detail.order.remoteId)}
-                >
-                  <Edit2 size={12} color={colors.primary} />
-                  <Text style={styles.actionChipLabel}>Edit</Text>
-                </Pressable>
-                {!isTerminalOrderStatus(detail.order.status) ? (
+                {detail.canEdit ? (
+                  <Pressable
+                    style={styles.actionChip}
+                    onPress={() => void onOpenEdit(detail.order.remoteId)}
+                  >
+                    <Edit2 size={12} color={colors.primary} />
+                    <Text style={styles.actionChipLabel}>Edit</Text>
+                  </Pressable>
+                ) : null}
+                {detail.canChangeStatus ? (
                   <Pressable style={styles.actionChip} onPress={onOpenStatus}>
                     <Text style={styles.actionChipLabel}>Status</Text>
                   </Pressable>
                 ) : null}
-                <Pressable
-                  style={styles.deleteActionChip}
-                  onPress={() => onDelete(detail.order.remoteId)}
-                >
-                  <Trash2 size={12} color={colors.destructive} />
-                </Pressable>
+                {detail.canDelete ? (
+                  <Pressable
+                    style={styles.deleteActionChip}
+                    onPress={() => onDelete(detail.order.remoteId)}
+                  >
+                    <Trash2 size={12} color={colors.destructive} />
+                  </Pressable>
+                ) : null}
               </View>
             ) : null}
           </View>

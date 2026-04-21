@@ -22,6 +22,11 @@ import {
     OrderListItemView,
 } from "@/feature/orders/types/order.view.types";
 import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
+import {
+    canDeleteOrder,
+    canEditOrderStructure,
+    isOrderTerminalStatus,
+} from "@/feature/orders/utils/orderLifecyclePolicy.util";
 import { Product } from "@/feature/products/types/product.types";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import {
@@ -485,6 +490,18 @@ export const buildOrderDetailView = (params: {
     taxRateLabel: `${resolvedOrderTaxRatePercent}%`,
   };
 
+  const canEdit = canEditOrderStructure({
+    order,
+    settlementSnapshot,
+  });
+
+  const canDelete = canDeleteOrder({
+    order,
+    settlementSnapshot,
+  });
+
+  const canChangeStatus = !isOrderTerminalStatus(order.status);
+
   return {
     order,
     customerName,
@@ -493,6 +510,11 @@ export const buildOrderDetailView = (params: {
     orderDateLabel: formatDateLabel(order.orderDate),
     items,
     pricing,
+    canEdit,
+    canDelete,
+    canChangeStatus,
+    editBlockedReason: canEdit ? null : "Only draft or pending orders with no commercial or settlement activity can be edited.",
+    deleteBlockedReason: canDelete ? null : "Only draft or pending orders with no commercial or settlement activity can be deleted.",
   };
 };
 

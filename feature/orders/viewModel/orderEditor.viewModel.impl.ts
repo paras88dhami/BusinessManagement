@@ -1,22 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
-import * as Crypto from "expo-crypto";
 import {
-  OrderFormState,
-  OrderLineFormState,
+    OrderFormState,
+    OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
+import { getOrderEditBlockedReason } from "@/feature/orders/utils/orderLifecyclePolicy.util";
+import * as Crypto from "expo-crypto";
+import { useCallback, useMemo, useState } from "react";
 import {
-  buildNextOrderNumber,
-  calculateFormPricingPreview,
-  createEmptyLineItem,
-  EMPTY_FORM,
-  mapOrderToForm,
-  parseNumber,
-  safeTrim,
-} from "./ordersPresentation.helpers";
-import {
-  OrderEditorViewModelParams,
-  OrderEditorViewModelState,
+    OrderEditorViewModelParams,
+    OrderEditorViewModelState,
 } from "./orderEditor.viewModel";
+import {
+    buildNextOrderNumber,
+    calculateFormPricingPreview,
+    createEmptyLineItem,
+    EMPTY_FORM,
+    mapOrderToForm,
+    parseNumber,
+    safeTrim,
+} from "./ordersPresentation.helpers";
 
 export const useOrderEditorViewModel = ({
   accountRemoteId,
@@ -31,6 +32,7 @@ export const useOrderEditorViewModel = ({
   createOrderUseCase,
   updateOrderUseCase,
   getOrderByIdUseCase,
+  getOrderSettlementSnapshotsUseCase,
   loadAll,
   refreshDetail,
   setErrorMessage,
@@ -87,18 +89,46 @@ export const useOrderEditorViewModel = ({
         return;
       }
 
-      const result = await getOrderByIdUseCase.execute(remoteId);
-      if (!result.success) {
-        setErrorMessage(result.error.message);
+      const orderResult = await getOrderByIdUseCase.execute(remoteId);
+      if (!orderResult.success) {
+        setErrorMessage(orderResult.error.message);
+        return;
+      }
+
+      if (!accountRemoteId || !ownerUserRemoteId) {
+        setErrorMessage("A business account is required to manage orders.");
+        return;
+      }
+
+      const snapshotResult = await getOrderSettlementSnapshotsUseCase.execute({
+        accountRemoteId,
+        ownerUserRemoteId,
+        orders: [orderResult.value],
+      });
+
+      if (!snapshotResult.success) {
+        setErrorMessage(snapshotResult.error.message);
+        return;
+      }
+
+      const settlementSnapshot = snapshotResult.value[orderResult.value.remoteId] ?? null;
+
+      const blockedReason = getOrderEditBlockedReason({
+        order: orderResult.value,
+        settlementSnapshot,
+      });
+
+      if (blockedReason) {
+        setErrorMessage(blockedReason);
         return;
       }
 
       setEditorMode("edit");
-      setForm(mapOrderToForm(result.value));
+      setForm(mapOrderToForm(orderResult.value));
       setErrorMessage(null);
       setIsEditorVisible(true);
     },
-    [canManage, getOrderByIdUseCase, setErrorMessage],
+    [canManage, getOrderByIdUseCase, getOrderSettlementSnapshotsUseCase, accountRemoteId, ownerUserRemoteId, setErrorMessage],
   );
 
   const onCloseEditor = useCallback(() => {
