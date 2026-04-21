@@ -116,6 +116,17 @@ export const createUpdateOrderUseCase = (params: {
       };
     }
 
+    const persistenceReadyValidation = validateOrderPersistenceReadyPayload(
+      snapshotPayloadResult.value,
+    );
+
+    if (!persistenceReadyValidation.success) {
+      return {
+        success: false,
+        error: OrderValidationError(persistenceReadyValidation.error),
+      };
+    }
+
     const saveResult = await params.repository.saveOrder(
       snapshotPayloadResult.value,
     );

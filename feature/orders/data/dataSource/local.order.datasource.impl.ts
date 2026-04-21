@@ -1,12 +1,12 @@
 import {
-  SaveOrderPayload,
+    SaveOrderPayload,
 } from "@/feature/orders/types/order.types";
 import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
-import { OrderDatasource, OrderRecordBundle } from "./order.datasource";
-import { OrderLineModel } from "./db/orderLine.model";
 import { OrderModel } from "./db/order.model";
+import { OrderLineModel } from "./db/orderLine.model";
+import { OrderDatasource, OrderRecordBundle } from "./order.datasource";
 
 const ORDERS_TABLE = "orders";
 const ORDER_LINES_TABLE = "order_lines";
@@ -203,53 +203,6 @@ export const createLocalOrderDatasource = (
       if (!Number.isFinite(payload.orderDate) || payload.orderDate <= 0) {
         throw new Error("Order date is required");
       }
-      if (normalizedItems.length === 0) {
-        throw new Error("At least one order item is required");
-      }
-      if (
-        normalizedItems.some(
-          (item) =>
-            !item.productRemoteId?.trim() ||
-            !Number.isFinite(item.quantity) ||
-            item.quantity <= 0,
-        )
-      ) {
-        throw new Error("Each order item must have a product and quantity greater than zero");
-      }
-      if (
-        normalizedSubtotalAmount === null ||
-        normalizedTaxAmount === null ||
-        normalizedDiscountAmount === null ||
-        normalizedTotalAmount === null
-      ) {
-        throw new Error("Order totals snapshot is required");
-      }
-      if (
-        normalizedTaxRatePercent === null ||
-        normalizedTaxRatePercent < 0
-      ) {
-        throw new Error("Order tax rate snapshot is required");
-      }
-      if (
-        normalizedItems.some(
-          (item) =>
-            !item.productNameSnapshot?.trim() ||
-            !Number.isFinite(item.unitPriceSnapshot) ||
-            (item.unitPriceSnapshot ?? 0) < 0 ||
-            !Number.isFinite(item.taxRatePercentSnapshot) ||
-            (item.taxRatePercentSnapshot ?? 0) < 0 ||
-            !Number.isFinite(item.lineSubtotalAmount) ||
-            (item.lineSubtotalAmount ?? 0) < 0 ||
-            !Number.isFinite(item.lineTaxAmount) ||
-            (item.lineTaxAmount ?? 0) < 0 ||
-            !Number.isFinite(item.lineTotalAmount) ||
-            (item.lineTotalAmount ?? 0) < 0,
-        )
-      ) {
-        throw new Error(
-          "Each order item must include a complete pricing snapshot",
-        );
-      }
 
       const duplicateExistsBeforeWrite = await hasActiveOrderNumberDuplicate(
         database,
@@ -388,18 +341,7 @@ export const createLocalOrderDatasource = (
             item.lineTotalAmount,
           );
 
-          if (!normalizedProductNameSnapshot) {
-            throw new Error("Order item product name snapshot is required");
-          }
-          if (
-            normalizedUnitPriceSnapshot === null ||
-            normalizedTaxRatePercentSnapshot === null ||
-            normalizedLineSubtotalAmount === null ||
-            normalizedLineTaxAmount === null ||
-            normalizedLineTotalAmount === null
-          ) {
-            throw new Error("Order item pricing snapshot is required");
-          }
+          // Minimal DB safety checks only - business validation moved to use-case layer
           const existingLine = existingOrderLinesByRemoteId.get(normalizedItemRemoteId);
 
           if (existingLine) {
