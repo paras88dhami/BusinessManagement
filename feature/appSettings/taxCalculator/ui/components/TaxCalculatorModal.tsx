@@ -1,23 +1,23 @@
-import React from "react";
 import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { Calculator, X } from "lucide-react-native";
-import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
-import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
-import { radius, spacing } from "@/shared/components/theme/spacing";
-import {
-  TAX_CALCULATION_MODE_OPTIONS,
-  TaxCalculationModeValue,
-  TaxToolPresetOption,
+    TAX_CALCULATION_MODE_OPTIONS,
+    TaxCalculationModeValue,
+    TaxToolPresetOption,
 } from "@/feature/appSettings/taxCalculator/types/taxCalculator.types";
 import { TaxCalculationSummaryState } from "@/feature/appSettings/taxCalculator/viewModel/taxCalculator.viewModel";
+import { Card } from "@/shared/components/reusable/Cards/Card";
+import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
+import { colors } from "@/shared/components/theme/colors";
+import { radius, spacing } from "@/shared/components/theme/spacing";
+import { Calculator } from "lucide-react-native";
+import React from "react";
+import {
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
 type TaxCalculatorModalProps = {
   visible: boolean;
@@ -49,119 +49,89 @@ export function TaxCalculatorModal({
   onClose,
 }: TaxCalculatorModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>Tax Calculator</Text>
-            <Pressable style={styles.closeButton} onPress={onClose}>
-              <X size={22} color={colors.mutedForeground} />
+    <FormSheetModal
+      visible={visible}
+      title="Tax Calculator"
+      onClose={onClose}
+      closeAccessibilityLabel="Close tax calculator"
+      presentation="bottom-sheet"
+      contentContainerStyle={styles.content}
+    >
+      <View style={styles.segmentWrap}>
+        {TAX_CALCULATION_MODE_OPTIONS.map((option) => {
+          const isSelected = option.value === selectedMode;
+
+          return (
+            <Pressable
+              key={option.value}
+              style={[styles.segmentButton, isSelected ? styles.segmentButtonActive : null]}
+              onPress={() => onModeChange(option.value)}
+              accessibilityRole="button"
+            >
+              <Text
+                style={[
+                  styles.segmentLabel,
+                  isSelected ? styles.segmentLabelActive : null,
+                ]}
+              >
+                {option.label}
+              </Text>
             </Pressable>
-          </View>
-
-          <View style={styles.segmentWrap}>
-            {TAX_CALCULATION_MODE_OPTIONS.map((option) => {
-              const isSelected = option.value === selectedMode;
-
-              return (
-                <Pressable
-                  key={option.value}
-                  style={[styles.segmentButton, isSelected ? styles.segmentButtonActive : null]}
-                  onPress={() => onModeChange(option.value)}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      styles.segmentLabel,
-                      isSelected ? styles.segmentLabelActive : null,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <AppTextInput
-            value={amountInput}
-            onChangeText={onAmountChange}
-            keyboardType="decimal-pad"
-            placeholder={amountInputPlaceholder}
-            containerStyle={styles.inputWrap}
-          />
-
-          <Dropdown
-            value={selectedPresetCode}
-            options={[...presetOptions]}
-            onChange={onPresetChange}
-            placeholder="Select tax preset"
-            modalTitle="Select tax preset"
-            showLeadingIcon={false}
-          />
-
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-          {calculationSummary ? (
-            <Card style={styles.resultCard}>
-              <View style={styles.resultHeaderRow}>
-                <View style={styles.resultBadge}>
-                  <Calculator size={14} color={colors.primary} />
-                  <Text style={styles.resultBadgeText}>{calculationSummary.presetLabel}</Text>
-                </View>
-                <Text style={styles.resultModeText}>{calculationSummary.modeLabel}</Text>
-              </View>
-
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Subtotal</Text>
-                <Text style={styles.resultValue}>{calculationSummary.subtotalLabel}</Text>
-              </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Tax Amount</Text>
-                <Text style={styles.resultValue}>{calculationSummary.taxAmountLabel}</Text>
-              </View>
-              <View style={[styles.resultRow, styles.resultRowTotal]}>
-                <Text style={styles.resultTotalLabel}>Total Amount</Text>
-                <Text style={styles.resultTotalValue}>{calculationSummary.totalAmountLabel}</Text>
-              </View>
-            </Card>
-          ) : null}
-        </View>
+          );
+        })}
       </View>
-    </Modal>
+
+      <LabeledTextInput
+        label="Amount"
+        value={amountInput}
+        onChangeText={onAmountChange}
+        keyboardType="decimal-pad"
+        placeholder={amountInputPlaceholder}
+      />
+
+      <LabeledDropdownField
+        label="Tax Preset"
+        value={selectedPresetCode}
+        options={[...presetOptions]}
+        onChange={onPresetChange}
+        placeholder="Select tax preset"
+        modalTitle="Select tax preset"
+      />
+
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+      {calculationSummary ? (
+        <Card style={styles.resultCard}>
+          <View style={styles.resultHeaderRow}>
+            <View style={styles.resultBadge}>
+              <Calculator size={14} color={colors.primary} />
+              <Text style={styles.resultBadgeText}>{calculationSummary.presetLabel}</Text>
+            </View>
+            <Text style={styles.resultModeText}>{calculationSummary.modeLabel}</Text>
+          </View>
+
+          <View style={styles.resultRow}>
+            <Text style={styles.resultLabel}>Subtotal</Text>
+            <Text style={styles.resultValue}>{calculationSummary.subtotalLabel}</Text>
+          </View>
+          <View style={styles.resultRow}>
+            <Text style={styles.resultLabel}>Tax Amount</Text>
+            <Text style={styles.resultValue}>{calculationSummary.taxAmountLabel}</Text>
+          </View>
+          <View style={[styles.resultRow, styles.resultRowTotal]}>
+            <Text style={styles.resultTotalLabel}>Total Amount</Text>
+            <Text style={styles.resultTotalValue}>{calculationSummary.totalAmountLabel}</Text>
+          </View>
+        </Card>
+      ) : null}
+    </FormSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-  },
-  modalCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
+  content: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
   segmentWrap: {
     backgroundColor: colors.secondary,
@@ -188,9 +158,6 @@ const styles = StyleSheet.create({
   },
   segmentLabelActive: {
     color: colors.primaryForeground,
-  },
-  inputWrap: {
-    backgroundColor: colors.secondary,
   },
   errorText: {
     color: colors.destructive,

@@ -1,18 +1,20 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { CalendarDays, Plus, Printer, Trash2 } from "lucide-react-native";
-import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
+import {
+    BillingDocumentFormState,
+    BillingLineItemFormState,
+    BillingSettlementAccountOption
+} from "@/feature/billing/viewModel/billing.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import {
-  BillingDocumentFormState,
-  BillingLineItemFormState,
- BillingSettlementAccountOption } from "@/feature/billing/viewModel/billing.viewModel";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import { Plus, Printer, Trash2 } from "lucide-react-native";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 
 export function BillingDocumentEditorModal({
@@ -76,7 +78,7 @@ export function BillingDocumentEditorModal({
       subtitle="Manage billing document details"
       onClose={onClose}
       closeAccessibilityLabel="Close billing editor"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.formWrap}
       footer={
         <FormModalActionFooter style={styles.actionFooter}>
@@ -98,15 +100,21 @@ export function BillingDocumentEditorModal({
         </FormModalActionFooter>
       }
     >
-      <Text style={styles.label}>Customer Name</Text>
-      <AppTextInput
+      <LabeledTextInput
+        label="Customer Name"
         value={form.customerName}
         onChangeText={(value) => onChange("customerName", value)}
         placeholder="Enter customer name"
         editable={canManage}
       />
 
-      <Text style={styles.label}>Items</Text>
+      <Text style={styles.sectionLabel}>Items</Text>
+      <View style={styles.lineItemHeaderRow}>
+        <Text style={[styles.lineItemHeaderText, styles.lineItemName]}>Item</Text>
+        <Text style={[styles.lineItemHeaderText, styles.lineItemQty]}>Qty</Text>
+        <Text style={[styles.lineItemHeaderText, styles.lineItemRate]}>Rate</Text>
+        <View style={styles.lineItemActionSpacer} />
+      </View>
       {lineItems.map((item) => (
         <View key={item.remoteId} style={styles.lineItemWrap}>
           <View style={styles.lineItemRow}>
@@ -155,30 +163,28 @@ export function BillingDocumentEditorModal({
         <Text style={styles.addItemText}>Add Item</Text>
       </Pressable>
 
-      <Text style={styles.label}>Tax Rate (%)</Text>
-      <Dropdown
+      <LabeledDropdownField
+        label="Tax Rate (%)"
         value={form.taxRatePercent}
         options={taxRateOptions.map((option) => ({
           label: `${option}%`,
           value: option,
         }))}
         onChange={(value) => onChange("taxRatePercent", value)}
-        showLeadingIcon={false}
         modalTitle="Select tax rate"
         disabled={!canManage}
       />
 
-      <Text style={styles.label}>Issue Date</Text>
-      <AppTextInput
+      <LabeledTextInput
+        label="Issue Date"
         value={form.issuedAt}
         onChangeText={(value) => onChange("issuedAt", value)}
         placeholder="YYYY-MM-DD"
-        leftIcon={<CalendarDays size={16} color={colors.mutedForeground} />}
         editable={canManage}
       />
 
-      <Text style={styles.label}>Paid Now</Text>
-      <AppTextInput
+      <LabeledTextInput
+        label="Paid Now"
         value={form.paidNowAmount}
         onChangeText={(value) => onChange("paidNowAmount", value)}
         placeholder="0"
@@ -188,15 +194,14 @@ export function BillingDocumentEditorModal({
 
       {paidNowAmount > 0 ? (
         <>
-          <Text style={styles.label}>Money Account</Text>
-          <Dropdown
+          <LabeledDropdownField
+            label="Money Account"
             value={form.settlementAccountRemoteId}
             options={availableSettlementAccounts.map((account) => ({
               label: account.label,
               value: account.remoteId,
             }))}
             onChange={(value) => onChange("settlementAccountRemoteId", value)}
-            showLeadingIcon={false}
             modalTitle="Select money account"
             placeholder="Select money account"
             disabled={!canManage}
@@ -204,23 +209,21 @@ export function BillingDocumentEditorModal({
         </>
       ) : null}
 
-      <Text style={styles.label}>Due Date</Text>
-      <AppTextInput
+      <LabeledTextInput
+        label="Due Date"
         value={form.dueAt}
         onChangeText={(value) => onChange("dueAt", value)}
         placeholder="YYYY-MM-DD"
-        leftIcon={<CalendarDays size={16} color={colors.mutedForeground} />}
         editable={canManage}
       />
 
-      <Text style={styles.label}>Notes</Text>
-      <AppTextInput
+      <LabeledTextInput
+        label="Notes"
         value={form.notes}
         onChangeText={(value) => onChange("notes", value)}
         placeholder="Payment terms, thank you message..."
         multiline={true}
-        containerStyle={styles.notesInput}
-        style={styles.notesTextInput}
+        numberOfLines={4}
         editable={canManage}
       />
 
@@ -292,13 +295,25 @@ const styles = StyleSheet.create({
     fontFamily: "InterSemiBold",
     fontSize: 14,
   },
-  lineItemWrap: {
-    gap: spacing.xs,
+  sectionLabel: {
+    color: colors.cardForeground,
+    fontFamily: "InterSemiBold",
+    fontSize: 14,
   },
-  lineItemRow: {
+  lineItemHeaderRow: {
     flexDirection: "row",
-    gap: spacing.sm,
     alignItems: "center",
+    paddingBottom: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.xs,
+  },
+  lineItemHeaderText: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
   },
   lineItemName: {
     flex: 1,
@@ -308,6 +323,17 @@ const styles = StyleSheet.create({
   },
   lineItemRate: {
     width: 110,
+  },
+  lineItemActionSpacer: {
+    width: 34,
+  },
+  lineItemWrap: {
+    gap: spacing.xs,
+  },
+  lineItemRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
   },
   removeItemButton: {
     width: 34,
@@ -327,14 +353,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: "InterBold",
     fontSize: 14,
-  },
-  notesInput: {
-    minHeight: 96,
-    alignItems: "flex-start",
-  },
-  notesTextInput: {
-    minHeight: 80,
-    textAlignVertical: "top",
   },
   totalCard: {
     backgroundColor: colors.secondary,

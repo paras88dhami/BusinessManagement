@@ -26,7 +26,7 @@ export function TermsPrivacyModal({
       visible={visible}
       title="Terms & Privacy"
       onClose={onClose}
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
       <Card style={styles.listCard}>

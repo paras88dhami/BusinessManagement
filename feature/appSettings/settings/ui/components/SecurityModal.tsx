@@ -4,11 +4,11 @@ import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
-  Fingerprint,
-  KeyRound,
-  LockKeyhole,
-  Monitor,
-  Shield,
+    Fingerprint,
+    KeyRound,
+    LockKeyhole,
+    Monitor,
+    Shield,
 } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
@@ -89,7 +89,7 @@ export function SecurityModal({
       visible={visible}
       title="Security"
       onClose={onClose}
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
       <Card style={styles.listCard}>

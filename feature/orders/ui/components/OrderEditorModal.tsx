@@ -1,14 +1,15 @@
 import {
-  OrderFormPricingPreview,
-  OrderFormState,
-  OrderLineFormState,
+    OrderFormPricingPreview,
+    OrderFormState,
+    OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import {
-  Dropdown,
-  DropdownOption,
+    Dropdown,
+    DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
@@ -81,7 +82,7 @@ export function OrderEditorModal({
       visible={visible}
       title={title}
       onClose={onClose}
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <AppButton
@@ -93,17 +94,14 @@ export function OrderEditorModal({
         />
       }
     >
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Customer</Text>
-        <Dropdown
-          value={form.customerRemoteId}
-          options={customerOptions}
-          onChange={(value) => onChange("customerRemoteId", value)}
-          placeholder="Customer name"
-          modalTitle="Select customer"
-          showLeadingIcon={false}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Customer"
+        value={form.customerRemoteId}
+        options={customerOptions}
+        onChange={(value) => onChange("customerRemoteId", value)}
+        placeholder="Customer name"
+        modalTitle="Select customer"
+      />
 
       <LabeledTextInput
         label="Phone"
@@ -114,6 +112,12 @@ export function OrderEditorModal({
 
       <View style={styles.itemsHeaderRow}>
         <Text style={styles.fieldLabel}>Items</Text>
+      </View>
+      <View style={styles.itemsTableHeader}>
+        <Text style={[styles.tableHeaderText, styles.itemNameWrap]}>Item</Text>
+        <Text style={[styles.tableHeaderText, styles.quantityWrap]}>Qty</Text>
+        <Text style={[styles.tableHeaderText, styles.priceWrap]}>Price</Text>
+        <View style={styles.itemActionSpacer} />
       </View>
 
       <View style={styles.itemsWrap}>
@@ -179,17 +183,14 @@ export function OrderEditorModal({
         />
       </View>
 
-      <View style={styles.fieldWrap}>
-        <Text style={styles.fieldLabel}>Payment Method</Text>
-        <Dropdown
-          value={form.tags}
-          options={paymentMethodOptions}
-          onChange={(value) => onChange("tags", value)}
-          placeholder="Select payment method"
-          modalTitle="Select payment method"
-          showLeadingIcon={false}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Payment Method"
+        value={form.tags}
+        options={paymentMethodOptions}
+        onChange={(value) => onChange("tags", value)}
+        placeholder="Select payment method"
+        modalTitle="Select payment method"
+      />
 
       <LabeledTextInput
         label="Notes"
@@ -239,6 +240,21 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.45,
   },
+  tableHeaderText: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontFamily: "InterBold",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
+  },
+  itemsTableHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingBottom: spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.xs,
+  },
   itemsHeaderRow: {
     marginTop: spacing.xs,
   },
@@ -258,6 +274,9 @@ const styles = StyleSheet.create({
   },
   priceWrap: {
     width: 66,
+  },
+  itemActionSpacer: {
+    width: 30,
   },
   centeredInput: {
     textAlign: "center",

@@ -1,14 +1,14 @@
-import React from "react";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { EmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
-import { EmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEditor.viewModel";
+import React from "react";
+import { StyleSheet, Switch, Text, View } from "react-native";
 
 type EmiPlanEditorModalProps = {
   viewModel: EmiPlanEditorViewModel;
@@ -33,7 +33,7 @@ export function EmiPlanEditorModal({
       onClose={viewModel.close}
       closeAccessibilityLabel="Close EMI plan editor"
       contentContainerStyle={styles.content}
-      presentation="dialog"
+      presentation="bottom-sheet"
       footer={
         <FormModalActionFooter>
           <AppButton

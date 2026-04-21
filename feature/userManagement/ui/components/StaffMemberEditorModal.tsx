@@ -1,24 +1,24 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {
+    SignUpPhoneCountryCode,
+    SignUpPhoneCountryOption,
+} from "@/feature/auth/signUp/types/signUp.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import {
-  ChipSelectorField,
-  ChipSelectorOption,
+    ChipSelectorField,
+    ChipSelectorOption,
 } from "@/shared/components/reusable/Form/ChipSelectorField";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import {
-  RoleOptionGrid,
-  RoleOptionGridItem,
+    RoleOptionGrid,
+    RoleOptionGridItem,
 } from "@/shared/components/reusable/Form/RoleOptionGrid";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
-import {
-  SignUpPhoneCountryCode,
-  SignUpPhoneCountryOption,
-} from "@/feature/auth/signUp/types/signUp.types";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 export type StaffMemberRoleOption = {
   remoteId: string;
@@ -104,7 +104,7 @@ export function StaffMemberEditorModal({
       onClose={onCancel}
       closeAccessibilityLabel="Close staff editor"
       contentContainerStyle={styles.content}
-      presentation="dialog"
+      presentation="bottom-sheet"
       footer={
         <FormModalActionFooter>
           <AppButton

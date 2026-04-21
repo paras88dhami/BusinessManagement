@@ -7,9 +7,9 @@ import { Check, Download } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  SettingsDataTransferFormat,
-  SettingsDataTransferFormatValue,
-  SettingsDataTransferModuleValue,
+    SettingsDataTransferFormat,
+    SettingsDataTransferFormatValue,
+    SettingsDataTransferModuleValue,
 } from "../../types/settings.types";
 
 type ExportDataModalProps = {
@@ -62,7 +62,7 @@ export function ExportDataModal({
       subtitle="Export all your business data as a downloadable file."
       onClose={onClose}
       closeAccessibilityLabel="Close export data"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <AppButton

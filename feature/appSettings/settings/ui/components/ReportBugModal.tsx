@@ -1,8 +1,8 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { Card } from "@/shared/components/reusable/Cards/Card";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
 import React from "react";
@@ -40,7 +40,7 @@ export function ReportBugModal({
       visible={visible}
       title="Report a Bug"
       onClose={onClose}
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
       <LabeledTextInput

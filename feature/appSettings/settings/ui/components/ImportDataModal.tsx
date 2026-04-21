@@ -31,7 +31,7 @@ export function ImportDataModal({
       subtitle="Import data from CSV or JSON files into your business."
       onClose={onClose}
       closeAccessibilityLabel="Close import data"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
       <View style={styles.sectionBlock}>

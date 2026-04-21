@@ -1,12 +1,3 @@
-import React from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { Check, CircleDashed } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
@@ -14,6 +5,15 @@ import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { Check, CircleDashed } from "lucide-react-native";
+import React from "react";
+import {
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 import { UserManagementPermission } from "../../types/userManagement.types";
 
 export type RoleEditorPermissionGroup = {
@@ -56,7 +56,7 @@ export function RoleEditorModal({
       onClose={onCancel}
       closeAccessibilityLabel="Close role editor"
       contentContainerStyle={styles.content}
-      presentation="dialog"
+      presentation="bottom-sheet"
       footer={
         <FormModalActionFooter>
           <AppButton

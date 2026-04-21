@@ -1,7 +1,7 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { spacing } from "@/shared/components/theme/spacing";
 import React from "react";
 import { StyleSheet } from "react-native";
@@ -36,7 +36,7 @@ export function PosQuickProductModal({
       subtitle="Quickly add a new product for direct selling"
       onClose={onClose}
       closeAccessibilityLabel="Close quick product form"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <FormModalActionFooter>
@@ -56,19 +56,24 @@ export function PosQuickProductModal({
         </FormModalActionFooter>
       }
     >
-      <AppTextInput
+      <LabeledTextInput
+        label="Product Name *"
         value={name}
         placeholder="Product name *"
         onChangeText={onNameChange}
         autoCapitalize="words"
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="Sale Price"
         value={salePrice}
         placeholder="Sale price"
         keyboardType="decimal-pad"
         onChangeText={onSalePriceChange}
       />
-      <AppTextInput
+
+      <LabeledTextInput
+        label="Category"
         value={categoryName}
         placeholder="Category (optional)"
         onChangeText={onCategoryNameChange}

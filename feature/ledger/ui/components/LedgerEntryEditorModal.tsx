@@ -1,24 +1,24 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { ChevronDown, ChevronUp, Link2, Paperclip, Trash2 } from "lucide-react-native";
+import {
+    getLedgerEntryTypeLabel,
+    getLedgerPartyLabel,
+    requiresDueDate,
+    requiresPaymentMode,
+} from "@/feature/ledger/viewModel/ledger.shared";
+import { LedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import {
+    DropdownOption
+} from "@/shared/components/reusable/DropDown/Dropdown";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import {
-  Dropdown,
-  DropdownOption,
-} from "@/shared/components/reusable/DropDown/Dropdown";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { LedgerEditorViewModel } from "@/feature/ledger/viewModel/ledgerEditor.viewModel";
-import {
-  getLedgerPartyLabel,
-  getLedgerEntryTypeLabel,
-  requiresDueDate,
-  requiresPaymentMode,
-} from "@/feature/ledger/viewModel/ledger.shared";
+import { ChevronDown, ChevronUp, Link2, Paperclip, Trash2 } from "lucide-react-native";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type LedgerEntryEditorModalProps = {
   viewModel: LedgerEditorViewModel;
@@ -54,7 +54,7 @@ export function LedgerEntryEditorModal({
       onClose={viewModel.close}
       closeAccessibilityLabel="Close ledger entry editor"
       contentContainerStyle={styles.content}
-      presentation="dialog"
+      presentation="bottom-sheet"
       footer={
         <FormModalActionFooter>
           <AppButton
@@ -138,25 +138,16 @@ export function LedgerEntryEditorModal({
       ) : null}
 
       {shouldShowSettlementAccount ? (
-        <View style={styles.fieldWrap}>
-          <Text style={styles.inputLabel}>Money Account</Text>
-          <Dropdown
-            value={state.settlementAccountRemoteId}
-            options={settlementAccountOptions}
-            onChange={viewModel.onChangeSettlementAccountRemoteId}
-            placeholder="Select money account"
-            modalTitle="Choose money account"
-            showLeadingIcon={false}
-            triggerStyle={styles.dropdownTrigger}
-            triggerTextStyle={styles.dropdownTriggerText}
-            disabled={state.isSaving}
-          />
-          {state.fieldErrors.settlementAccountRemoteId ? (
-            <Text style={styles.fieldErrorText}>
-              {state.fieldErrors.settlementAccountRemoteId}
-            </Text>
-          ) : null}
-        </View>
+        <LabeledDropdownField
+          label="Money Account"
+          value={state.settlementAccountRemoteId}
+          options={settlementAccountOptions}
+          onChange={viewModel.onChangeSettlementAccountRemoteId}
+          placeholder="Select money account"
+          modalTitle="Choose money account"
+          disabled={state.isSaving}
+          errorText={state.fieldErrors.settlementAccountRemoteId}
+        />
       ) : null}
 
       <Pressable
@@ -205,7 +196,13 @@ export function LedgerEntryEditorModal({
           />
 
           <View style={styles.attachmentWrap}>
-            <Text style={styles.inputLabel}>Attachment</Text>
+            <Text style={{
+              color: colors.mutedForeground,
+              fontSize: 11,
+              fontFamily: "InterBold",
+              textTransform: "uppercase",
+              letterSpacing: 0.45,
+            }}>Attachment</Text>
 
             {state.attachmentUri.trim().length > 0 ? (
               <View style={styles.attachmentPreview}>
@@ -249,9 +246,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.xl,
   },
-  fieldWrap: {
-    gap: 6,
-  },
   partySuggestionsWrap: {
     marginTop: -spacing.xs,
     marginBottom: spacing.xs,
@@ -270,25 +264,6 @@ const styles = StyleSheet.create({
   partySuggestionText: {
     color: colors.cardForeground,
     fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  inputLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  dropdownTrigger: {
-    minHeight: 50,
-    borderRadius: radius.lg,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.md,
-    borderColor: colors.border,
-  },
-  dropdownTriggerText: {
-    color: colors.cardForeground,
-    fontSize: 14,
     fontFamily: "InterMedium",
   },
   moreDetailsToggle: {
@@ -356,12 +331,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  fieldErrorText: {
     color: colors.destructive,
     fontSize: 12,
     lineHeight: 16,

@@ -1,7 +1,7 @@
 import { SettingsViewModel } from "@/feature/appSettings/settings/viewModel/settings.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { Dropdown } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
 import React from "react";
@@ -51,7 +51,7 @@ export function RegionalFinanceModal({
       subtitle={subtitle}
       onClose={onClose}
       closeAccessibilityLabel="Close regional finance settings"
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
       footer={
         <View style={styles.footer}>
@@ -75,57 +75,45 @@ export function RegionalFinanceModal({
         </View>
       }
     >
-      <View style={styles.fieldBlock}>
-        <Text style={styles.label}>Country</Text>
-        <Dropdown
-          value={settings.countryCode}
-          options={countryOptions}
-          onChange={onChangeCountry}
-          placeholder="Select country"
-          modalTitle="Select country"
-          showLeadingIcon={false}
-          disabled={isSaving}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Country"
+        value={settings.countryCode}
+        options={countryOptions}
+        onChange={onChangeCountry}
+        placeholder="Select country"
+        modalTitle="Select country"
+        disabled={isSaving}
+      />
 
-      <View style={styles.fieldBlock}>
-        <Text style={styles.label}>Currency</Text>
-        <Dropdown
-          value={settings.currencyCode}
-          options={currencyOptions}
-          onChange={onChangeCurrency}
-          placeholder="Select currency"
-          modalTitle="Select currency"
-          showLeadingIcon={false}
-          disabled={isSaving}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Currency"
+        value={settings.currencyCode}
+        options={currencyOptions}
+        onChange={onChangeCurrency}
+        placeholder="Select currency"
+        modalTitle="Select currency"
+        disabled={isSaving}
+      />
 
-      <View style={styles.fieldBlock}>
-        <Text style={styles.label}>Default Tax Rate</Text>
-        <Dropdown
-          value={String(settings.defaultTaxRatePercent)}
-          options={taxRateOptions}
-          onChange={onChangeTaxRate}
-          placeholder="Select tax rate"
-          modalTitle="Select default tax rate"
-          showLeadingIcon={false}
-          disabled={isSaving}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Default Tax Rate"
+        value={String(settings.defaultTaxRatePercent)}
+        options={taxRateOptions}
+        onChange={onChangeTaxRate}
+        placeholder="Select tax rate"
+        modalTitle="Select default tax rate"
+        disabled={isSaving}
+      />
 
-      <View style={styles.fieldBlock}>
-        <Text style={styles.label}>Tax Mode</Text>
-        <Dropdown
-          value={settings.taxMode}
-          options={taxModeOptions}
-          onChange={onChangeTaxMode}
-          placeholder="Select tax mode"
-          modalTitle="Select tax mode"
-          showLeadingIcon={false}
-          disabled={isSaving}
-        />
-      </View>
+      <LabeledDropdownField
+        label="Tax Mode"
+        value={settings.taxMode}
+        options={taxModeOptions}
+        onChange={onChangeTaxMode}
+        placeholder="Select tax mode"
+        modalTitle="Select tax mode"
+        disabled={isSaving}
+      />
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
     </FormSheetModal>

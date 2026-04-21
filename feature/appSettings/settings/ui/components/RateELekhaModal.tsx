@@ -1,6 +1,6 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Star } from "lucide-react-native";
@@ -37,10 +37,14 @@ export function RateELekhaModal({
       visible={visible}
       title="Rate e-Lekha"
       onClose={onClose}
-      presentation="dialog"
+      presentation="bottom-sheet"
       contentContainerStyle={styles.content}
     >
-      <Text style={styles.helperText}>How would you rate your experience?</Text>
+      <LabeledTextInput
+        label="Rating"
+        value={"How would you rate your experience?"}
+        editable={false}
+      />
 
       <View style={styles.starRow}>
         {[1, 2, 3, 4, 5].map((value) => {
