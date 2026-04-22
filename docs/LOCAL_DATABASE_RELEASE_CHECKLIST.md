@@ -24,6 +24,7 @@ This checklist is mandatory for any release that changes:
 - [ ] `npm run typecheck`
 - [ ] `npm run test`
 - [ ] `npm run test:database`
+- [ ] `npm run test:startup`
 
 `test:database` must cover:
 - integrity invariant tests
@@ -53,6 +54,12 @@ This checklist is mandatory for any release that changes:
 - [ ] Verify app schema version matches the latest migration version
 - [ ] Verify any repair migration preserves the required SQL step order
 - [ ] Verify startup orchestration still runs database health check -> fetchCount -> integrity checks -> health check
+
+### Startup failure verification
+- [ ] Verify startup failures emit structured logs with failed task key and support code
+- [ ] Verify database startup failures are classified into setup vs integrity vs unknown
+- [ ] Verify startup error UI shows a safe message plus support code
+- [ ] Verify retry does not create overlapping startup bootstrap runs
 
 ## Release evidence to record
 

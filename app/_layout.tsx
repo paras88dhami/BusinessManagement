@@ -37,6 +37,8 @@ type RootNavigatorProps = {
   languageCode: string;
   startupStatus: StartupBootstrapStatusValue;
   startupErrorMessage: string | null;
+  startupReasonCode: string | null;
+  startupFailedTaskKey: string | null;
   fontsLoaded: boolean;
   onRetryStartup: (() => Promise<void>) | null;
 };
@@ -70,6 +72,8 @@ function RootNavigator({
   languageCode,
   startupStatus,
   startupErrorMessage,
+  startupReasonCode,
+  startupFailedTaskKey,
   fontsLoaded,
   onRetryStartup,
 }: RootNavigatorProps) {
@@ -81,6 +85,8 @@ function RootNavigator({
       <StartupErrorScreen
         message={startupErrorMessage ?? "Unable to initialize app startup."}
         onRetry={onRetryStartup}
+        reasonCode={startupReasonCode}
+        failedTaskKey={startupFailedTaskKey}
       />
     );
   }
@@ -152,6 +158,14 @@ export default function RootLayout() {
   const startupErrorMessage =
     fontErrorMessage ?? startupBootstrapViewModel.errorMessage;
 
+  const startupReasonCode = fontErrorMessage
+    ? "FONT_LOAD_FAILED"
+    : startupBootstrapViewModel.reasonCode;
+
+  const startupFailedTaskKey = fontErrorMessage
+    ? "font_load"
+    : startupBootstrapViewModel.failedTaskKey;
+
   const onRetryStartup = React.useMemo<(() => Promise<void>) | null>(() => {
     if (fontErrorMessage) {
       return null;
@@ -168,6 +182,8 @@ export default function RootLayout() {
             languageCode={languageCode}
             startupStatus={startupStatus}
             startupErrorMessage={startupErrorMessage}
+            startupReasonCode={startupReasonCode}
+            startupFailedTaskKey={startupFailedTaskKey}
             fontsLoaded={fontsLoaded}
             onRetryStartup={onRetryStartup}
           />
