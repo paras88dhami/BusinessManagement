@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
+import { ProductKind } from "@/feature/products/types/product.types";
 import { createCommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase.impl";
 
 describe("createCommitPosCheckoutInventoryUseCase", () => {
@@ -53,6 +54,7 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
           productName: "Rice",
           categoryLabel: "Groceries",
           shortCode: "RI",
+          kind: ProductKind.Item,
           quantity: 2,
           unitPrice: 100,
           taxRate: 0,
@@ -64,6 +66,7 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
           productName: "Tea",
           categoryLabel: "Beverages",
           shortCode: "TE",
+          kind: ProductKind.Item,
           quantity: 1,
           unitPrice: 50,
           taxRate: 0,
@@ -130,6 +133,7 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
           productName: "Rice",
           categoryLabel: "Groceries",
           shortCode: "RI",
+          kind: ProductKind.Item,
           quantity: 2,
           unitPrice: 100,
           taxRate: 0,
@@ -145,5 +149,39 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
         "Inventory movement would reduce Rice below zero",
       );
     }
+  });
+
+  it("returns success and does not call Inventory for service-only cart", async () => {
+    const saveInventoryMovementsUseCase = {
+      execute: vi.fn(),
+    };
+
+    const useCase = createCommitPosCheckoutInventoryUseCase({
+      saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as never,
+    });
+
+    const result = await useCase.execute({
+      businessAccountRemoteId: "account-1",
+      saleRemoteId: "sale-1",
+      saleReferenceNumber: "RCPT-001",
+      movementAt: 1710000000000,
+      cartLines: [
+        {
+          lineId: "line-1",
+          productId: "service-1",
+          productName: "Consultation",
+          categoryLabel: "Service",
+          shortCode: "CO",
+          kind: ProductKind.Service,
+          quantity: 1,
+          unitPrice: 200,
+          taxRate: 0,
+          lineSubtotal: 200,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(saveInventoryMovementsUseCase.execute).not.toHaveBeenCalled();
   });
 });

@@ -57,12 +57,14 @@ const buildQuickCreatedPosProduct = (params: {
   name: string;
   categoryName: string | null;
   unitLabel: string | null;
+  kind: typeof ProductKind.Item | typeof ProductKind.Service;
   salePrice: number;
 }): PosProduct => ({
   id: params.remoteId,
   name: params.name,
   categoryLabel: params.categoryName ?? "General",
   unitLabel: params.unitLabel,
+  kind: params.kind,
   price: params.salePrice,
   taxRate: 0,
   shortCode: params.name.trim().slice(0, 1).toUpperCase() || "P",
@@ -396,6 +398,7 @@ export function usePosCatalogViewModel({
       name: createResult.value.name,
       categoryName: createResult.value.categoryName,
       unitLabel: createResult.value.unitLabel,
+      kind: createResult.value.kind,
       salePrice: createResult.value.salePrice,
     });
 

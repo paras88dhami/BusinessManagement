@@ -3,6 +3,7 @@ import {
   InventoryMovementType,
   type SaveInventoryMovementPayload,
 } from "@/feature/inventory/types/inventory.types";
+import { ProductKind } from "@/feature/products/types/product.types";
 import type { PosCartLine } from "@/feature/pos/types/pos.entity.types";
 
 type BuildPosCheckoutInventoryMovementsParams = {
@@ -37,6 +38,10 @@ export const buildPosCheckoutInventoryMovements = ({
   const aggregatedByProductId = new Map<string, AggregatedSaleLine>();
 
   for (const line of cartLines) {
+    if (line.kind !== ProductKind.Item) {
+      continue;
+    }
+
     if (line.quantity <= 0) {
       continue;
     }

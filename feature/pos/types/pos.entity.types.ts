@@ -1,8 +1,11 @@
+import type { ProductKindValue } from "@/feature/products/types/product.types";
+
 export type PosProduct = {
   id: string;
   name: string;
   categoryLabel: string;
   unitLabel: string | null;
+  kind: ProductKindValue;
   price: number;
   taxRate: number;
   shortCode: string;
@@ -14,6 +17,7 @@ export type PosCartLine = {
   productName: string;
   categoryLabel: string;
   shortCode: string;
+  kind: ProductKindValue;
   quantity: number;
   unitPrice: number;
   taxRate: number;
