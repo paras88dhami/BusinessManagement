@@ -74,7 +74,9 @@ const validateProductForm = ({
     nextFieldErrors.name = "Product name is required.";
   }
 
-  if (normalizedSalePrice.length > 0) {
+  if (!normalizedSalePrice) {
+    nextFieldErrors.salePrice = "Sale price is required.";
+  } else {
     const parsedSalePrice = Number(normalizedSalePrice.replace(/,/g, ""));
     if (!Number.isFinite(parsedSalePrice)) {
       nextFieldErrors.salePrice = "Sale price must be a valid number.";
@@ -219,6 +221,7 @@ export const useProductsViewModel = ({
     }
     setEditorMode("create");
     setForm(createEmptyForm(defaultTaxRateLabel));
+    setFieldErrors({});
     setErrorMessage(null);
     setIsEditorVisible(true);
   }, [canManage, defaultTaxRateLabel]);
@@ -230,6 +233,7 @@ export const useProductsViewModel = ({
     }
     setEditorMode("edit");
     setForm(mapProductToForm(product, defaultTaxRateLabel));
+    setFieldErrors({});
     setErrorMessage(null);
     setIsEditorVisible(true);
   }, [canManage, defaultTaxRateLabel]);
@@ -298,14 +302,10 @@ export const useProductsViewModel = ({
       return;
     }
 
-    const salePrice = parseNumber(form.salePrice);
+    const salePrice = Number(form.salePrice.trim().replace(/,/g, ""));
     const costPrice = parseNumber(form.costPrice);
     const stockQuantity =
       form.kind === ProductKind.Item ? parseNumber(form.stockQuantity) : null;
-    if (salePrice === null) {
-      setErrorMessage("Sale price is required.");
-      return;
-    }
     setFieldErrors({});
     setErrorMessage(null);
 
@@ -431,4 +431,3 @@ export const useProductsViewModel = ({
     ],
   );
 };
-

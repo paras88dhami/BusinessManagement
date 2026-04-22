@@ -175,6 +175,7 @@ export function usePosCatalogViewModel({
       quickProductNameInput: "",
       quickProductPriceInput: POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
       quickProductCategoryInput: "",
+      quickProductFieldErrors: {},
       errorMessage: null,
       infoMessage: null,
     }));
