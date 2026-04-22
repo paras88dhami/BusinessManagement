@@ -1,22 +1,26 @@
 import {
-    Product,
-    PRODUCT_CATEGORY_OPTIONS,
-    PRODUCT_UNIT_OPTIONS,
-    ProductKind,
-    ProductKindValue,
-    ProductStatus,
+  Product,
+  PRODUCT_CATEGORY_OPTIONS,
+  PRODUCT_UNIT_OPTIONS,
+  ProductKind,
+  ProductKindValue,
+  ProductStatus,
 } from "@/feature/products/types/product.types";
 import { DeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import {
-    buildTaxRateLabel,
-    resolveRegionalFinancePolicy,
+  buildTaxRateLabel,
+  resolveRegionalFinancePolicy,
 } from "@/shared/utils/finance/regionalFinancePolicy";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ProductFormFieldErrors, ProductFormState, ProductsViewModel } from "./products.viewModel";
+import {
+  ProductFormFieldErrors,
+  ProductFormState,
+  ProductsViewModel,
+} from "./products.viewModel";
 
 const createEmptyForm = (defaultTaxRateLabel: string): ProductFormState => ({
   remoteId: null,
@@ -25,7 +29,6 @@ const createEmptyForm = (defaultTaxRateLabel: string): ProductFormState => ({
   categoryName: "",
   salePrice: "0",
   costPrice: "0",
-  stockQuantity: "0",
   unitLabel: "pcs",
   skuOrBarcode: "",
   taxRateLabel: defaultTaxRateLabel,
@@ -43,8 +46,6 @@ const mapProductToForm = (
   categoryName: product.categoryName ?? "",
   salePrice: String(product.salePrice),
   costPrice: product.costPrice === null ? "" : String(product.costPrice),
-  stockQuantity:
-    product.stockQuantity === null ? "" : String(product.stockQuantity),
   unitLabel: product.unitLabel ?? "pcs",
   skuOrBarcode: product.skuOrBarcode ?? "",
   taxRateLabel: product.taxRateLabel ?? defaultTaxRateLabel,
@@ -74,9 +75,7 @@ const validateProductForm = ({
     nextFieldErrors.name = "Product name is required.";
   }
 
-  if (!normalizedSalePrice) {
-    nextFieldErrors.salePrice = "Sale price is required.";
-  } else {
+  if (normalizedSalePrice.length > 0) {
     const parsedSalePrice = Number(normalizedSalePrice.replace(/,/g, ""));
     if (!Number.isFinite(parsedSalePrice)) {
       nextFieldErrors.salePrice = "Sale price must be a valid number.";
@@ -122,10 +121,12 @@ export const useProductsViewModel = ({
       activeAccountDefaultTaxRatePercent,
     ],
   );
+
   const defaultTaxRateLabel = useMemo(
     () => buildTaxRateLabel(regionalFinancePolicy.defaultTaxRatePercent),
     [regionalFinancePolicy.defaultTaxRatePercent],
   );
+
   const taxRateOptions = useMemo(
     () =>
       regionalFinancePolicy.taxRateOptions.map((ratePercent) =>
@@ -133,6 +134,7 @@ export const useProductsViewModel = ({
       ),
     [regionalFinancePolicy.taxRateOptions],
   );
+
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -155,6 +157,7 @@ export const useProductsViewModel = ({
       setIsLoading(false);
       return;
     }
+
     setIsLoading(true);
     const result = await getProductsUseCase.execute(accountRemoteId);
     if (!result.success) {
@@ -163,6 +166,7 @@ export const useProductsViewModel = ({
       setIsLoading(false);
       return;
     }
+
     setProducts(result.value);
     setErrorMessage(null);
     setIsLoading(false);
@@ -191,6 +195,7 @@ export const useProductsViewModel = ({
         (item.stockQuantity ?? 0) > 0 &&
         (item.stockQuantity ?? 0) <= 5,
     ).length;
+
     return {
       totalProducts: products.length,
       totalItems,
@@ -206,6 +211,7 @@ export const useProductsViewModel = ({
         return false;
       }
       if (!search) return true;
+
       return [
         product.name,
         product.categoryName ?? "",
@@ -219,6 +225,7 @@ export const useProductsViewModel = ({
       setErrorMessage("You do not have permission to manage products.");
       return;
     }
+
     setEditorMode("create");
     setForm(createEmptyForm(defaultTaxRateLabel));
     setFieldErrors({});
@@ -226,17 +233,21 @@ export const useProductsViewModel = ({
     setIsEditorVisible(true);
   }, [canManage, defaultTaxRateLabel]);
 
-  const onOpenEdit = useCallback((product: Product) => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage products.");
-      return;
-    }
-    setEditorMode("edit");
-    setForm(mapProductToForm(product, defaultTaxRateLabel));
-    setFieldErrors({});
-    setErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [canManage, defaultTaxRateLabel]);
+  const onOpenEdit = useCallback(
+    (product: Product) => {
+      if (!canManage) {
+        setErrorMessage("You do not have permission to manage products.");
+        return;
+      }
+
+      setEditorMode("edit");
+      setForm(mapProductToForm(product, defaultTaxRateLabel));
+      setFieldErrors({});
+      setErrorMessage(null);
+      setIsEditorVisible(true);
+    },
+    [canManage, defaultTaxRateLabel],
+  );
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
@@ -247,8 +258,7 @@ export const useProductsViewModel = ({
   const onFormChange = useCallback(
     (field: keyof ProductFormState, value: string) => {
       setForm((current) => ({ ...current, [field]: value }));
-      
-      // Clear field errors when validated fields change
+
       if (field === "name") {
         setFieldErrors((current) => ({ ...current, name: undefined }));
       } else if (field === "salePrice") {
@@ -286,6 +296,7 @@ export const useProductsViewModel = ({
       setErrorMessage("You do not have permission to manage products.");
       return;
     }
+
     if (!accountRemoteId) {
       setErrorMessage("A business account is required to manage products.");
       return;
@@ -302,10 +313,14 @@ export const useProductsViewModel = ({
       return;
     }
 
-    const salePrice = Number(form.salePrice.trim().replace(/,/g, ""));
+    const salePrice = parseNumber(form.salePrice);
     const costPrice = parseNumber(form.costPrice);
-    const stockQuantity =
-      form.kind === ProductKind.Item ? parseNumber(form.stockQuantity) : null;
+
+    if (salePrice === null) {
+      setErrorMessage("Sale price is required.");
+      return;
+    }
+
     setFieldErrors({});
     setErrorMessage(null);
 
@@ -317,7 +332,6 @@ export const useProductsViewModel = ({
       categoryName: form.categoryName || null,
       salePrice,
       costPrice,
-      stockQuantity,
       unitLabel: form.kind === ProductKind.Item ? form.unitLabel || null : null,
       skuOrBarcode: form.skuOrBarcode || null,
       taxRateLabel: form.taxRateLabel || null,
@@ -325,30 +339,35 @@ export const useProductsViewModel = ({
       imageUrl: form.imageUrl || null,
       status: ProductStatus.Active,
     });
+
     if (!result.success) {
       setErrorMessage(result.error.message);
       return;
     }
+
     setProducts((currentProducts) => {
       const existingIndex = currentProducts.findIndex(
         (item) => item.remoteId === result.value.remoteId,
       );
+
       if (existingIndex === -1) {
         return [result.value, ...currentProducts];
       }
+
       return currentProducts.map((item, index) =>
         index === existingIndex ? result.value : item,
       );
     });
+
     setErrorMessage(null);
     setIsEditorVisible(false);
     setForm(createEmptyForm(defaultTaxRateLabel));
+    setFieldErrors({});
     void loadProducts();
   }, [
     accountRemoteId,
     canManage,
     defaultTaxRateLabel,
-    fieldErrors,
     form,
     loadProducts,
     saveProductUseCase,
@@ -360,11 +379,13 @@ export const useProductsViewModel = ({
         setErrorMessage("You do not have permission to manage products.");
         return;
       }
+
       const result = await deleteProductUseCase.execute(product.remoteId);
       if (!result.success) {
         setErrorMessage(result.error.message);
         return;
       }
+
       setProducts((currentProducts) =>
         currentProducts.filter((item) => item.remoteId !== product.remoteId),
       );
@@ -405,25 +426,25 @@ export const useProductsViewModel = ({
       onDelete,
     }),
     [
-      editorMode,
       canManage,
       currencyCode,
+      editorMode,
       errorMessage,
       fieldErrors,
       filteredProducts,
       form,
-      regionalFinancePolicy.countryCode,
       isEditorVisible,
       isLoading,
       loadProducts,
+      onClearImage,
       onCloseEditor,
       onDelete,
       onFormChange,
-      onPickImage,
-      onClearImage,
       onOpenCreate,
       onOpenEdit,
+      onPickImage,
       onSubmit,
+      regionalFinancePolicy.countryCode,
       searchQuery,
       selectedKind,
       summary,

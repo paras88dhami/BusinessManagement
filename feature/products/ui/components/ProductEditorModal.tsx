@@ -1,5 +1,8 @@
 import { ProductKind } from "@/feature/products/types/product.types";
-import { ProductFormFieldErrors, ProductFormState } from "@/feature/products/viewModel/products.viewModel";
+import {
+  ProductFormFieldErrors,
+  ProductFormState,
+} from "@/feature/products/viewModel/products.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
@@ -44,6 +47,7 @@ export function ProductEditorModal({
   const isItemKind = form.kind === ProductKind.Item;
   const title = mode === "create" ? "New Product" : "Edit Product";
   const productImageUrl = form.imageUrl.trim();
+
   const categoryDropdownOptions = [
     { label: "No category", value: "" },
     ...categoryOptions.map((categoryName) => ({
@@ -69,7 +73,7 @@ export function ProductEditorModal({
     <FormSheetModal
       visible={visible}
       title={title}
-      subtitle="Manage item or service pricing and stock details"
+      subtitle="Manage item or service catalog details"
       onClose={onClose}
       closeAccessibilityLabel="Close product editor"
       presentation="bottom-sheet"
@@ -188,15 +192,6 @@ export function ProductEditorModal({
         onChangeText={(value) => onChange("costPrice", value)}
       />
 
-      <LabeledTextInput
-        label="Stock Quantity"
-        value={form.stockQuantity}
-        placeholder="0"
-        keyboardType="decimal-pad"
-        onChangeText={(value) => onChange("stockQuantity", value)}
-        editable={isItemKind}
-      />
-
       <LabeledDropdownField
         label="Unit"
         value={form.unitLabel}
@@ -237,7 +232,6 @@ export function ProductEditorModal({
         multiline={true}
         numberOfLines={4}
       />
-
     </FormSheetModal>
   );
 }

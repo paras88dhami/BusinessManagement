@@ -269,7 +269,6 @@ export function usePosCatalogViewModel({
       categoryName: state.quickProductCategoryInput.trim() || null,
       salePrice: parsedPrice,
       costPrice: null,
-      stockQuantity: 1,
       unitLabel: "pcs",
       skuOrBarcode: null,
       taxRateLabel: defaultTaxRateLabel,

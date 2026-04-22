@@ -61,17 +61,11 @@ export const createLocalProductDatasource = (
       const normalizedImageUrl = normalizeOptional(payload.imageUrl);
 
       if (!normalizedRemoteId) throw new Error("Product remote id is required");
-      if (!normalizedAccountRemoteId)
+      if (!normalizedAccountRemoteId) {
         throw new Error("Account remote id is required");
+      }
       if (!normalizedName) throw new Error("Product name is required");
       if (!(payload.salePrice >= 0)) throw new Error("Sale price is required");
-      if (
-        payload.kind === "item" &&
-        payload.stockQuantity !== null &&
-        payload.stockQuantity < 0
-      ) {
-        throw new Error("Stock quantity cannot be negative");
-      }
 
       const existingProduct = await findByRemoteId(
         database,
@@ -86,8 +80,6 @@ export const createLocalProductDatasource = (
             record.categoryName = normalizedCategoryName;
             record.salePrice = payload.salePrice;
             record.costPrice = payload.costPrice;
-            record.stockQuantity =
-              payload.kind === "item" ? payload.stockQuantity : null;
             record.unitLabel =
               payload.kind === "item" ? normalizedUnitLabel : null;
             record.skuOrBarcode = normalizedSkuOrBarcode;
@@ -95,6 +87,7 @@ export const createLocalProductDatasource = (
             record.description = normalizedDescription;
             record.imageUrl = normalizedImageUrl;
             record.status = payload.status;
+            // Preserve stockQuantity here. Product save is catalog-only.
             updateSyncStatusOnMutation(record);
             setUpdatedAt(record, Date.now());
           });
@@ -114,8 +107,7 @@ export const createLocalProductDatasource = (
           record.categoryName = normalizedCategoryName;
           record.salePrice = payload.salePrice;
           record.costPrice = payload.costPrice;
-          record.stockQuantity =
-            payload.kind === "item" ? payload.stockQuantity : null;
+          record.stockQuantity = payload.kind === "item" ? 0 : null;
           record.unitLabel =
             payload.kind === "item" ? normalizedUnitLabel : null;
           record.skuOrBarcode = normalizedSkuOrBarcode;
@@ -143,8 +135,9 @@ export const createLocalProductDatasource = (
   ): Promise<Result<ProductModel[]>> {
     try {
       const normalizedAccountRemoteId = normalizeRequired(accountRemoteId);
-      if (!normalizedAccountRemoteId)
+      if (!normalizedAccountRemoteId) {
         throw new Error("Account remote id is required");
+      }
       const collection = database.get<ProductModel>(PRODUCTS_TABLE);
       const products = await collection
         .query(

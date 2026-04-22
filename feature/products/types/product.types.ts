@@ -42,7 +42,6 @@ export type SaveProductPayload = {
   categoryName: string | null;
   salePrice: number;
   costPrice: number | null;
-  stockQuantity: number | null;
   unitLabel: string | null;
   skuOrBarcode: string | null;
   taxRateLabel: string | null;
@@ -97,6 +96,7 @@ export const PRODUCT_CATEGORY_OPTIONS = [
 ] as const;
 
 export const PRODUCT_UNIT_OPTIONS = ["pcs", "kg", "bag", "bottle", "box", "ltr"] as const;
+
 export type ProductFormFieldName = "name" | "salePrice";
 
 export type ProductFormFieldErrors = Partial<
@@ -110,7 +110,6 @@ export type ProductFormState = {
   categoryName: string;
   salePrice: string;
   costPrice: string;
-  stockQuantity: string;
   unitLabel: string;
   skuOrBarcode: string;
   taxRateLabel: string;
