@@ -60,6 +60,7 @@ This checklist is mandatory for any release that changes:
 - [ ] Verify database startup failures are classified into setup vs integrity vs unknown
 - [ ] Verify startup error UI shows a safe message plus support code
 - [ ] Verify retry does not create overlapping startup bootstrap runs
+- [ ] Verify the session app shell does not mount before startup bootstrap reaches Ready
 
 ## Release evidence to record
 

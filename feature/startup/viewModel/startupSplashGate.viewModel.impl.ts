@@ -20,7 +20,7 @@ export const useStartupSplashGateViewModel = ({
   const isStartupFailed = startupStatus === StartupBootstrapStatus.Failed;
 
   const shouldHideNativeSplash =
-    fontsLoaded && (isStartupFailed || (isStartupReady && !isSessionLoading));
+    isStartupFailed || (fontsLoaded && isStartupReady && !isSessionLoading);
 
   useEffect(() => {
     if (!shouldHideNativeSplash || hasNativeSplashHidden || isHidingNativeSplashRef.current) {

@@ -15,7 +15,7 @@
     "test:database": "vitest run tests/databaseIntegrity.test.ts tests/databaseMigrationContract.test.ts tests/appDatabaseStartup.test.ts",
     "test:database:migration": "vitest run tests/databaseMigrationContract.test.ts",
     "test:database:startup": "vitest run tests/appDatabaseStartup.test.ts",
-    "test:startup": "vitest run tests/describeDatabaseStartupFailure.test.ts tests/bootstrapStartup.useCase.test.ts",
+    "test:startup": "vitest run tests/describeDatabaseStartupFailure.test.ts tests/bootstrapStartup.useCase.test.ts tests/startupPresentationState.util.test.ts",
     "typecheck": "tsc --noEmit",
     "export:mobile": "expo export --platform ios && expo export --platform android"
   },

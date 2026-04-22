@@ -18,6 +18,7 @@ import { useStartupBootstrapFactory } from "@/feature/startup/factory/useStartup
 import { useStartupSplashGateViewModel } from "@/feature/startup/viewModel/startupSplashGate.viewModel.impl";
 import { AnimatedSplashScreen } from "@/feature/startup/ui/AnimatedSplashScreen";
 import { StartupErrorScreen } from "@/feature/startup/ui/StartupErrorScreen";
+import { resolveStartupPresentationState } from "@/feature/startup/utils/resolveStartupPresentationState.util";
 
 applyGlobalTypographyDefaults();
 
@@ -25,33 +26,33 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
   return undefined;
 });
 
-type StartupOverlayControllerProps = {
-  fontsLoaded: boolean;
-  startupStatus: StartupBootstrapStatusValue;
-};
-
 type StartupBootstrapStatusValue =
   (typeof StartupBootstrapStatus)[keyof typeof StartupBootstrapStatus];
 
-type RootNavigatorProps = {
-  languageCode: string;
-  startupStatus: StartupBootstrapStatusValue;
-  startupErrorMessage: string | null;
-  startupReasonCode: string | null;
-  startupFailedTaskKey: string | null;
+type SessionStartupOverlayControllerProps = {
   fontsLoaded: boolean;
-  onRetryStartup: (() => Promise<void>) | null;
 };
 
-function StartupOverlayController({
+type SessionRootNavigatorProps = {
+  languageCode: string;
+};
+
+type StartupFailureBoundaryProps = {
+  fontsLoaded: boolean;
+  message: string;
+  onRetry: (() => Promise<void>) | null;
+  reasonCode: string | null;
+  failedTaskKey: string | null;
+};
+
+function SessionStartupOverlayController({
   fontsLoaded,
-  startupStatus,
-}: StartupOverlayControllerProps) {
+}: SessionStartupOverlayControllerProps) {
   const { isLoading } = useAppRouteSession();
 
   const splashGateViewModel = useStartupSplashGateViewModel({
     fontsLoaded,
-    startupStatus,
+    startupStatus: StartupBootstrapStatus.Ready,
     isSessionLoading: isLoading,
   });
 
@@ -68,30 +69,11 @@ function StartupOverlayController({
   );
 }
 
-function RootNavigator({
-  languageCode,
-  startupStatus,
-  startupErrorMessage,
-  startupReasonCode,
-  startupFailedTaskKey,
-  fontsLoaded,
-  onRetryStartup,
-}: RootNavigatorProps) {
+function SessionRootNavigator({ languageCode }: SessionRootNavigatorProps) {
   const { isLoading, hasActiveSession, hasActiveAccount, sessionStatus } =
     useAppRouteSession();
 
-  if (startupStatus === StartupBootstrapStatus.Failed) {
-    return (
-      <StartupErrorScreen
-        message={startupErrorMessage ?? "Unable to initialize app startup."}
-        onRetry={onRetryStartup}
-        reasonCode={startupReasonCode}
-        failedTaskKey={startupFailedTaskKey}
-      />
-    );
-  }
-
-  if (!fontsLoaded || startupStatus !== StartupBootstrapStatus.Ready || isLoading) {
+  if (isLoading) {
     return null;
   }
 
@@ -122,6 +104,29 @@ function RootNavigator({
 
       <Stack.Screen name="index" />
     </Stack>
+  );
+}
+
+function StartupFailureBoundary({
+  fontsLoaded,
+  message,
+  onRetry,
+  reasonCode,
+  failedTaskKey,
+}: StartupFailureBoundaryProps) {
+  useStartupSplashGateViewModel({
+    fontsLoaded,
+    startupStatus: StartupBootstrapStatus.Failed,
+    isSessionLoading: false,
+  });
+
+  return (
+    <StartupErrorScreen
+      message={message}
+      onRetry={onRetry}
+      reasonCode={reasonCode}
+      failedTaskKey={failedTaskKey}
+    />
   );
 }
 
@@ -174,26 +179,35 @@ export default function RootLayout() {
     return startupBootstrapViewModel.retry;
   }, [fontErrorMessage, startupBootstrapViewModel.retry]);
 
+  const startupPresentationState = React.useMemo(
+    () =>
+      resolveStartupPresentationState({
+        fontsLoaded,
+        startupStatus,
+      }),
+    [fontsLoaded, startupStatus],
+  );
+
   return (
     <SafeAreaProvider style={styles.rootSafeArea}>
-      <AppRouteSessionProvider database={appDatabase}>
-        <View style={styles.rootContainer}>
-          <RootNavigator
-            languageCode={languageCode}
-            startupStatus={startupStatus}
-            startupErrorMessage={startupErrorMessage}
-            startupReasonCode={startupReasonCode}
-            startupFailedTaskKey={startupFailedTaskKey}
+      <View style={styles.rootContainer}>
+        {startupPresentationState.shouldRenderFailureScreen ? (
+          <StartupFailureBoundary
             fontsLoaded={fontsLoaded}
-            onRetryStartup={onRetryStartup}
+            message={startupErrorMessage ?? "Unable to initialize app startup."}
+            onRetry={onRetryStartup}
+            reasonCode={startupReasonCode}
+            failedTaskKey={startupFailedTaskKey}
           />
+        ) : null}
 
-          <StartupOverlayController
-            fontsLoaded={fontsLoaded}
-            startupStatus={startupStatus}
-          />
-        </View>
-      </AppRouteSessionProvider>
+        {startupPresentationState.shouldMountSessionProvider ? (
+          <AppRouteSessionProvider database={appDatabase}>
+            <SessionRootNavigator languageCode={languageCode} />
+            <SessionStartupOverlayController fontsLoaded={fontsLoaded} />
+          </AppRouteSessionProvider>
+        ) : null}
+      </View>
     </SafeAreaProvider>
   );
 }
