@@ -20,7 +20,10 @@ type Props = {
     | typeof BUSINESS_CONTACT_TYPE_OPTIONS
     | typeof PERSONAL_CONTACT_TYPE_OPTIONS;
   onClose: () => void;
-  onChange: (field: keyof ContactFormState, value: string) => void;
+  onChange: (
+    field: keyof Omit<ContactFormState, "fieldErrors">,
+    value: string,
+  ) => void;
   onSubmit: () => Promise<void>;
   openingBalancePlaceholder: string;
   disableSubmit: boolean;
@@ -89,6 +92,7 @@ export function ContactEditorModal({
         placeholder="Full Name"
         onChangeText={(value) => onChange("fullName", value)}
         autoCapitalize="words"
+        errorText={form.fieldErrors.fullName}
       />
 
       <LabeledDropdownField
@@ -109,6 +113,7 @@ export function ContactEditorModal({
         placeholder="Phone Number"
         keyboardType="phone-pad"
         onChangeText={(value) => onChange("phoneNumber", value)}
+        errorText={form.fieldErrors.phoneNumber}
       />
 
       <LabeledTextInput
@@ -140,6 +145,7 @@ export function ContactEditorModal({
         placeholder={openingBalancePlaceholder}
         keyboardType="decimal-pad"
         onChangeText={(value) => onChange("openingBalance", value)}
+        errorText={form.fieldErrors.openingBalance}
       />
 
       <LabeledTextInput

@@ -4,7 +4,10 @@ import {
   ContactType,
   ContactTypeValue,
 } from "@/feature/contacts/types/contact.types";
-import { ContactFormState } from "@/feature/contacts/viewModel/contacts.viewModel";
+import {
+  ContactFormFieldErrors,
+  ContactFormState,
+} from "@/feature/contacts/viewModel/contacts.viewModel";
 import { Dispatch, SetStateAction, useCallback, useMemo, useState } from "react";
 
 type ContactTypeOption = Readonly<{
@@ -26,7 +29,11 @@ type ContactEditorStateSlice = {
   onOpenCreate: () => boolean;
   onOpenEdit: (contact: Contact) => boolean;
   onCloseEditor: () => void;
-  onFormChange: (field: keyof ContactFormState, value: string) => void;
+  onFormChange: (
+    field: keyof Omit<ContactFormState, "fieldErrors">,
+    value: string,
+  ) => void;
+  setFormFieldErrors: (fieldErrors: ContactFormFieldErrors) => void;
   resetEditorState: () => void;
 };
 
@@ -40,6 +47,7 @@ const EMPTY_FORM: ContactFormState = {
   taxId: "",
   openingBalance: "0",
   notes: "",
+  fieldErrors: {},
 };
 
 const formatSignedOpeningBalance = (contact: Contact): string => {
@@ -62,7 +70,22 @@ const mapContactToForm = (contact: Contact): ContactFormState => ({
   taxId: contact.taxId ?? "",
   openingBalance: formatSignedOpeningBalance(contact),
   notes: contact.notes ?? "",
+  fieldErrors: {},
 });
+
+const clearFieldError = (
+  fieldErrors: ContactFormFieldErrors,
+  field: keyof ContactFormFieldErrors,
+): ContactFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
 
 export const useContactEditorState = ({
   canManage,
@@ -84,6 +107,7 @@ export const useContactEditorState = ({
     setForm({
       ...EMPTY_FORM,
       contactType: defaultType,
+      fieldErrors: {},
     });
     setErrorMessage(null);
     setIsEditorVisible(true);
@@ -106,6 +130,16 @@ export const useContactEditorState = ({
     [canManage, setErrorMessage],
   );
 
+  const setFormFieldErrors = useCallback(
+    (fieldErrors: ContactFormFieldErrors) => {
+      setForm((current) => ({
+        ...current,
+        fieldErrors,
+      }));
+    },
+    [],
+  );
+
   const resetEditorState = useCallback(() => {
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
@@ -115,12 +149,35 @@ export const useContactEditorState = ({
     resetEditorState();
   }, [resetEditorState]);
 
-  const onFormChange = useCallback((field: keyof ContactFormState, value: string) => {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }, []);
+  const onFormChange = useCallback(
+    (
+      field: keyof Omit<ContactFormState, "fieldErrors">,
+      value: string,
+    ) => {
+      setErrorMessage(null);
+      setForm((current) => {
+        let nextFieldErrors = current.fieldErrors;
+
+        if (field === "fullName") {
+          nextFieldErrors = clearFieldError(current.fieldErrors, "fullName");
+        } else if (field === "phoneNumber") {
+          nextFieldErrors = clearFieldError(current.fieldErrors, "phoneNumber");
+        } else if (field === "openingBalance") {
+          nextFieldErrors = clearFieldError(
+            current.fieldErrors,
+            "openingBalance",
+          );
+        }
+
+        return {
+          ...current,
+          [field]: value,
+          fieldErrors: nextFieldErrors,
+        };
+      });
+    },
+    [setErrorMessage],
+  );
 
   const editorTitle = useMemo(
     () => (editorMode === "create" ? "New Contact" : "Edit Contact"),
@@ -136,6 +193,7 @@ export const useContactEditorState = ({
     onOpenEdit,
     onCloseEditor,
     onFormChange,
+    setFormFieldErrors,
     resetEditorState,
   };
 };

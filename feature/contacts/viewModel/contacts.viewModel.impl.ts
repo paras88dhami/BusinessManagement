@@ -105,6 +105,7 @@ export const useContactsViewModel = ({
     accountType,
     form: editorState.form,
     saveContactUseCase,
+    setFormFieldErrors: editorState.setFormFieldErrors,
     setErrorMessage: listState.setErrorMessage,
     setContacts: listState.setContacts,
     resetEditorAfterSubmit: editorState.resetEditorState,

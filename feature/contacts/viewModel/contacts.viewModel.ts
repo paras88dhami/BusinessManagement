@@ -18,6 +18,15 @@ export type ContactSummaryState = {
   payAmountLabel: string;
 };
 
+export type ContactFormFieldName =
+  | "fullName"
+  | "phoneNumber"
+  | "openingBalance";
+
+export type ContactFormFieldErrors = Partial<
+  Record<ContactFormFieldName, string>
+>;
+
 export type ContactFormState = {
   remoteId: string | null;
   fullName: string;
@@ -28,6 +37,7 @@ export type ContactFormState = {
   taxId: string;
   openingBalance: string;
   notes: string;
+  fieldErrors: ContactFormFieldErrors;
 };
 
 export interface ContactsViewModel {
@@ -61,7 +71,10 @@ export interface ContactsViewModel {
   onOpenCreate: () => void;
   onOpenEdit: (contact: Contact) => void;
   onCloseEditor: () => void;
-  onFormChange: (field: keyof ContactFormState, value: string) => void;
+  onFormChange: (
+    field: keyof Omit<ContactFormState, "fieldErrors">,
+    value: string,
+  ) => void;
   onSubmit: () => Promise<void>;
   onRequestDeleteFromEditor: () => void;
   onCloseDeleteModal: () => void;

@@ -1,9 +1,15 @@
 import {
   Contact,
-  ContactBalanceDirection,
 } from "@/feature/contacts/types/contact.types";
 import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
-import { ContactFormState } from "@/feature/contacts/viewModel/contacts.viewModel";
+import {
+  ContactFormFieldErrors,
+  ContactFormState,
+} from "@/feature/contacts/viewModel/contacts.viewModel";
+import {
+  parseContactOpeningBalanceInput,
+  validateContactForm,
+} from "@/feature/contacts/validation/validateContactForm";
 import {
   AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
@@ -17,6 +23,7 @@ type UseContactSubmitStateParams = {
   accountType: AccountTypeValue | null;
   form: ContactFormState;
   saveContactUseCase: SaveContactUseCase;
+  setFormFieldErrors: (fieldErrors: ContactFormFieldErrors) => void;
   setErrorMessage: Dispatch<SetStateAction<string | null>>;
   setContacts: Dispatch<SetStateAction<readonly Contact[]>>;
   resetEditorAfterSubmit: () => void;
@@ -27,39 +34,6 @@ type ContactSubmitStateSlice = {
   onSubmit: () => Promise<void>;
 };
 
-const parseOpeningBalance = (value: string): {
-  amount: number;
-  direction: Contact["openingBalanceDirection"];
-} | null => {
-  const normalizedValue = value.trim();
-  if (!normalizedValue) {
-    return {
-      amount: 0,
-      direction: null,
-    };
-  }
-
-  const parsedValue = Number(normalizedValue);
-  if (!Number.isFinite(parsedValue)) {
-    return null;
-  }
-
-  if (parsedValue === 0) {
-    return {
-      amount: 0,
-      direction: null,
-    };
-  }
-
-  return {
-    amount: Math.abs(parsedValue),
-    direction:
-      parsedValue > 0
-        ? ContactBalanceDirection.Receive
-        : ContactBalanceDirection.Pay,
-  };
-};
-
 export const useContactSubmitState = ({
   canManage,
   ownerUserRemoteId,
@@ -67,6 +41,7 @@ export const useContactSubmitState = ({
   accountType,
   form,
   saveContactUseCase,
+  setFormFieldErrors,
   setErrorMessage,
   setContacts,
   resetEditorAfterSubmit,
@@ -83,19 +58,32 @@ export const useContactSubmitState = ({
       return;
     }
 
-    const normalizedPhoneNumber = form.phoneNumber.trim();
-    if (!normalizedPhoneNumber) {
-      setErrorMessage("Phone number is required for contacts.");
+    const nextFieldErrors = validateContactForm({
+      fullName: form.fullName,
+      phoneNumber: form.phoneNumber,
+      openingBalance: form.openingBalance,
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
+      setFormFieldErrors(nextFieldErrors);
+      setErrorMessage(null);
       return;
     }
 
-    const parsedOpeningBalance = parseOpeningBalance(form.openingBalance);
+    const parsedOpeningBalance = parseContactOpeningBalanceInput(
+      form.openingBalance,
+    );
+
     if (!parsedOpeningBalance) {
-      setErrorMessage(
-        "Opening balance is invalid. Use a positive amount for receive or a negative amount for pay.",
-      );
+      setFormFieldErrors({
+        openingBalance:
+          "Opening balance is invalid. Use a positive amount for receive or a negative amount for pay.",
+      });
+      setErrorMessage(null);
       return;
     }
+
+    setFormFieldErrors({});
 
     const result = await saveContactUseCase.execute({
       remoteId: form.remoteId ?? Crypto.randomUUID(),
@@ -103,14 +91,14 @@ export const useContactSubmitState = ({
       accountRemoteId,
       accountType,
       contactType: form.contactType,
-      fullName: form.fullName,
-      phoneNumber: normalizedPhoneNumber,
-      emailAddress: form.emailAddress || null,
-      address: form.address || null,
-      taxId: form.taxId || null,
+      fullName: form.fullName.trim(),
+      phoneNumber: form.phoneNumber.trim(),
+      emailAddress: form.emailAddress.trim() || null,
+      address: form.address.trim() || null,
+      taxId: form.taxId.trim() || null,
       openingBalanceAmount: parsedOpeningBalance.amount,
       openingBalanceDirection: parsedOpeningBalance.direction,
-      notes: form.notes || null,
+      notes: form.notes.trim() || null,
       isArchived: false,
     });
 
@@ -144,6 +132,7 @@ export const useContactSubmitState = ({
     saveContactUseCase,
     setContacts,
     setErrorMessage,
+    setFormFieldErrors,
   ]);
 
   return {
