@@ -61,8 +61,12 @@ export function GetProductsScreenFactory({
     [inventoryDatasource],
   );
   const saveInventoryMovementUseCase = React.useMemo(
-    () => createSaveInventoryMovementUseCase(inventoryRepository),
-    [inventoryRepository],
+    () =>
+      createSaveInventoryMovementUseCase({
+        inventoryRepository,
+        productRepository: repository,
+      }),
+    [inventoryRepository, repository],
   );
   const createOpeningStockForProductUseCase = React.useMemo(
     () =>

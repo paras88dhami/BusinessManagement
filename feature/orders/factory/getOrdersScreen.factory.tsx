@@ -240,8 +240,12 @@ export function GetOrdersScreenFactory({
     [inventoryRepository],
   );
   const saveInventoryMovementsUseCase = React.useMemo(
-    () => createSaveInventoryMovementsUseCase(inventoryRepository),
-    [inventoryRepository],
+    () =>
+      createSaveInventoryMovementsUseCase({
+        inventoryRepository,
+        productRepository,
+      }),
+    [inventoryRepository, productRepository],
   );
   const deleteInventoryMovementsByRemoteIdsUseCase = React.useMemo(
     () => createDeleteInventoryMovementsByRemoteIdsUseCase(inventoryRepository),

@@ -5,6 +5,8 @@ import { createGetInventorySnapshotUseCase } from "@/feature/inventory/useCase/g
 import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
 import { useInventoryViewModel } from "@/feature/inventory/viewModel/inventory.viewModel.impl";
 import { InventoryScreen } from "@/feature/inventory/ui/InventoryScreen";
+import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
+import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
 import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import appDatabase from "@/shared/database/appDatabase";
 
@@ -28,21 +30,36 @@ export function GetInventoryScreenFactory({
     activeAccountRemoteId,
   });
 
-  const datasource = React.useMemo(
+  const inventoryDatasource = React.useMemo(
     () => createLocalInventoryDatasource(appDatabase),
     [],
   );
-  const repository = React.useMemo(
-    () => createInventoryRepository(datasource),
-    [datasource],
+  const inventoryRepository = React.useMemo(
+    () => createInventoryRepository(inventoryDatasource),
+    [inventoryDatasource],
   );
+
+  const productDatasource = React.useMemo(
+    () => createLocalProductDatasource(appDatabase),
+    [],
+  );
+  const productRepository = React.useMemo(
+    () => createProductRepository(productDatasource),
+    [productDatasource],
+  );
+
   const getInventorySnapshotUseCase = React.useMemo(
-    () => createGetInventorySnapshotUseCase(repository),
-    [repository],
+    () => createGetInventorySnapshotUseCase(inventoryRepository),
+    [inventoryRepository],
   );
+
   const saveInventoryMovementUseCase = React.useMemo(
-    () => createSaveInventoryMovementUseCase(repository),
-    [repository],
+    () =>
+      createSaveInventoryMovementUseCase({
+        inventoryRepository,
+        productRepository,
+      }),
+    [inventoryRepository, productRepository],
   );
 
   const viewModel = useInventoryViewModel({
