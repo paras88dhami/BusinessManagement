@@ -4,8 +4,11 @@ import type {
 } from "@/feature/accounts/types/moneyAccount.types";
 import { Status } from "@/shared/types/status.types";
 import {
-    POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
-    POS_MIN_SPLIT_PARTS,
+  ProductKind,
+} from "@/feature/products/types/product.types";
+import {
+  POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
+  POS_MIN_SPLIT_PARTS,
 } from "../../types/pos.constant";
 import type {
     PosSaveSessionParams,
@@ -46,6 +49,8 @@ export const INITIAL_POS_SCREEN_COORDINATOR_STATE: PosScreenCoordinatorState = {
   quickProductNameInput: "",
   quickProductPriceInput: POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
   quickProductCategoryInput: "",
+  quickProductKindInput: ProductKind.Item,
+  quickProductOpeningStockInput: "",
   quickProductFieldErrors: {},
   receipt: null,
   infoMessage: null,

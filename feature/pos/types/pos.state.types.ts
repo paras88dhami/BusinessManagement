@@ -1,21 +1,25 @@
 import type { BillingDocument } from "@/feature/billing/types/billing.types";
+import { ProductKindValue } from "@/feature/products/types/product.types";
 import { StatusType } from "@/shared/types/status.types";
 import type {
-    PosBootstrap,
-    PosCartLine,
-    PosCustomer,
-    PosProduct,
-    PosReceipt,
-    PosSplitDraftPart,
-    PosTotals,
+  PosBootstrap,
+  PosCartLine,
+  PosCustomer,
+  PosProduct,
+  PosReceipt,
+  PosSplitDraftPart,
+  PosTotals,
 } from "./pos.entity.types";
 import type { PosCustomerOption, PosMoneyAccountOption } from "./pos.ui.types";
 import type {
-    PosCheckoutSubmissionKind,
-    PosModalType,
+  PosCheckoutSubmissionKind,
+  PosModalType,
 } from "./pos.workflow.types";
 
-export type PosQuickProductFieldName = "name" | "salePrice";
+export type PosQuickProductFieldName =
+  | "name"
+  | "salePrice"
+  | "openingStockQuantity";
 
 export type PosQuickProductFieldErrors = Partial<
   Record<PosQuickProductFieldName, string>
@@ -29,6 +33,8 @@ export type PosCatalogState = {
   quickProductNameInput: string;
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
+  quickProductKindInput: ProductKindValue;
+  quickProductOpeningStockInput: string;
   quickProductFieldErrors: PosQuickProductFieldErrors;
 };
 
@@ -95,6 +101,8 @@ export type PosScreenCoordinatorState = {
   quickProductNameInput: string;
   quickProductPriceInput: string;
   quickProductCategoryInput: string;
+  quickProductKindInput: ProductKindValue;
+  quickProductOpeningStockInput: string;
   quickProductFieldErrors: PosQuickProductFieldErrors;
   receipt: PosReceipt | null;
   selectedCustomer: PosCustomer | null;

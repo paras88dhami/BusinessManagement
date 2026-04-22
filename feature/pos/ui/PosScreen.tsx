@@ -394,10 +394,14 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         name={catalog.quickProductNameInput}
         salePrice={catalog.quickProductPriceInput}
         categoryName={catalog.quickProductCategoryInput}
+        kind={catalog.quickProductKindInput}
+        openingStockQuantity={catalog.quickProductOpeningStockInput}
         fieldErrors={catalog.quickProductFieldErrors}
         onNameChange={catalog.onQuickProductNameInputChange}
         onSalePriceChange={catalog.onQuickProductPriceInputChange}
         onCategoryNameChange={catalog.onQuickProductCategoryInputChange}
+        onKindChange={catalog.onQuickProductKindInputChange}
+        onOpeningStockQuantityChange={catalog.onQuickProductOpeningStockInputChange}
         onCreate={() => {
           void catalog.onCreateProductFromPos();
         }}

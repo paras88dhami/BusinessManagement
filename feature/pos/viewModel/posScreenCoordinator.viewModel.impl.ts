@@ -1,6 +1,7 @@
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import type { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import type { GetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase";
+import { CreateProductWithOpeningStockUseCase } from "@/feature/products/useCase/createProductWithOpeningStock.useCase";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import {
@@ -54,6 +55,7 @@ interface UsePosScreenCoordinatorViewModelParams {
   printPosReceiptUseCase: PrintPosReceiptUseCase;
   sharePosReceiptUseCase: SharePosReceiptUseCase;
   saveProductUseCase: SaveProductUseCase;
+  createProductWithOpeningStockUseCase: CreateProductWithOpeningStockUseCase;
   savePosSessionUseCase: SavePosSessionUseCase;
   loadPosSessionUseCase: LoadPosSessionUseCase;
   clearPosSessionUseCase: ClearPosSessionUseCase;
@@ -85,6 +87,7 @@ export function usePosScreenCoordinatorViewModel(
     printPosReceiptUseCase,
     sharePosReceiptUseCase,
     saveProductUseCase,
+    createProductWithOpeningStockUseCase,
     savePosSessionUseCase,
     loadPosSessionUseCase,
     clearPosSessionUseCase,
@@ -149,6 +152,7 @@ export function usePosScreenCoordinatorViewModel(
     searchPosProductsUseCase,
     addProductToCartUseCase,
     saveProductUseCase,
+    createProductWithOpeningStockUseCase,
     saveCurrentSession,
   });
 

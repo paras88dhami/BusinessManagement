@@ -13,6 +13,8 @@ import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useC
 import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
 import { createLocalInventoryDatasource } from "@/feature/inventory/data/dataSource/local.inventory.datasource.impl";
 import { createInventoryRepository } from "@/feature/inventory/data/repository/inventory.repository.impl";
+import { createCreateOpeningStockForProductUseCase } from "@/feature/inventory/useCase/createOpeningStockForProduct.useCase.impl";
+import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
 import { createSaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
@@ -21,6 +23,8 @@ import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteL
 import { createGetLedgerEntryByRemoteIdUseCase } from "@/feature/ledger/useCase/getLedgerEntryByRemoteId.useCase.impl";
 import { createLocalProductDatasource } from "@/feature/products/data/dataSource/local.product.datasource.impl";
 import { createProductRepository } from "@/feature/products/data/repository/product.repository.impl";
+import { createCreateProductWithOpeningStockUseCase } from "@/feature/products/useCase/createProductWithOpeningStock.useCase.impl";
+import { createDeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
 import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
@@ -420,9 +424,42 @@ export function GetPosScreenFactory({
       }),
     [saveInventoryMovementsUseCase],
   );
+  const saveInventoryMovementUseCase = React.useMemo(
+    () =>
+      createSaveInventoryMovementUseCase({
+        inventoryRepository,
+        productRepository,
+      }),
+    [inventoryRepository, productRepository],
+  );
   const saveProductUseCase = React.useMemo(
     () => createSaveProductUseCase(productRepository),
     [productRepository],
+  );
+  const deleteProductUseCase = React.useMemo(
+    () => createDeleteProductUseCase(productRepository),
+    [productRepository],
+  );
+  const createOpeningStockForProductUseCase = React.useMemo(
+    () =>
+      createCreateOpeningStockForProductUseCase({
+        productRepository,
+        saveInventoryMovementUseCase,
+      }),
+    [productRepository, saveInventoryMovementUseCase],
+  );
+  const createProductWithOpeningStockUseCase = React.useMemo(
+    () =>
+      createCreateProductWithOpeningStockUseCase({
+        saveProductUseCase,
+        deleteProductUseCase,
+        createOpeningStockForProductUseCase,
+      }),
+    [
+      createOpeningStockForProductUseCase,
+      deleteProductUseCase,
+      saveProductUseCase,
+    ],
   );
 
   const moneyAccountDatasource = React.useMemo(
@@ -486,6 +523,7 @@ export function GetPosScreenFactory({
     printPosReceiptUseCase,
     sharePosReceiptUseCase,
     saveProductUseCase,
+    createProductWithOpeningStockUseCase,
     savePosSessionUseCase,
     loadPosSessionUseCase,
     clearPosSessionUseCase,

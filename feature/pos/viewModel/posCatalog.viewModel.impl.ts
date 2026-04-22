@@ -1,4 +1,7 @@
 import {
+  CreateProductWithOpeningStockUseCase,
+} from "@/feature/products/useCase/createProductWithOpeningStock.useCase";
+import {
   ProductKind,
   ProductStatus,
 } from "@/feature/products/types/product.types";
@@ -29,6 +32,7 @@ interface UsePosCatalogViewModelParams {
   searchPosProductsUseCase: SearchPosProductsUseCase;
   addProductToCartUseCase: AddProductToCartUseCase;
   saveProductUseCase: SaveProductUseCase;
+  createProductWithOpeningStockUseCase: CreateProductWithOpeningStockUseCase;
   saveCurrentSession: (
     overrides?: PosSessionStateOverrides,
   ) => Promise<void>;
@@ -48,6 +52,22 @@ const clearFieldError = (
   };
 };
 
+const buildQuickCreatedPosProduct = (params: {
+  remoteId: string;
+  name: string;
+  categoryName: string | null;
+  unitLabel: string | null;
+  salePrice: number;
+}): PosProduct => ({
+  id: params.remoteId,
+  name: params.name,
+  categoryLabel: params.categoryName ?? "General",
+  unitLabel: params.unitLabel,
+  price: params.salePrice,
+  taxRate: 0,
+  shortCode: params.name.trim().slice(0, 1).toUpperCase() || "P",
+});
+
 export function usePosCatalogViewModel({
   state,
   setState,
@@ -56,6 +76,7 @@ export function usePosCatalogViewModel({
   searchPosProductsUseCase,
   addProductToCartUseCase,
   saveProductUseCase,
+  createProductWithOpeningStockUseCase,
   saveCurrentSession,
 }: UsePosCatalogViewModelParams): PosCatalogViewModel {
   const productSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,6 +193,8 @@ export function usePosCatalogViewModel({
       quickProductNameInput: "",
       quickProductPriceInput: POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
       quickProductCategoryInput: "",
+      quickProductKindInput: ProductKind.Item,
+      quickProductOpeningStockInput: "",
       quickProductFieldErrors: {},
       errorMessage: null,
       infoMessage: null,
@@ -185,6 +208,8 @@ export function usePosCatalogViewModel({
       quickProductNameInput: "",
       quickProductPriceInput: POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
       quickProductCategoryInput: "",
+      quickProductKindInput: ProductKind.Item,
+      quickProductOpeningStockInput: "",
       quickProductFieldErrors: {},
       errorMessage: null,
     }));
@@ -231,10 +256,46 @@ export function usePosCatalogViewModel({
     [setState],
   );
 
+  const onQuickProductKindInputChange = useCallback(
+    (value: typeof ProductKind.Item | typeof ProductKind.Service) => {
+      setState((currentState) => ({
+        ...currentState,
+        quickProductKindInput: value,
+        quickProductOpeningStockInput:
+          value === ProductKind.Service
+            ? ""
+            : currentState.quickProductOpeningStockInput,
+        quickProductFieldErrors: {
+          ...currentState.quickProductFieldErrors,
+          openingStockQuantity: undefined,
+        },
+        errorMessage: null,
+      }));
+    },
+    [setState],
+  );
+
+  const onQuickProductOpeningStockInputChange = useCallback(
+    (value: string) => {
+      setState((currentState) => ({
+        ...currentState,
+        quickProductOpeningStockInput: value,
+        quickProductFieldErrors: clearFieldError(
+          currentState.quickProductFieldErrors,
+          "openingStockQuantity",
+        ),
+        errorMessage: null,
+      }));
+    },
+    [setState],
+  );
+
   const onCreateProductFromPos = useCallback(async () => {
     const nextFieldErrors = validatePosQuickProductForm({
       name: state.quickProductNameInput,
       salePrice: state.quickProductPriceInput,
+      kind: state.quickProductKindInput,
+      openingStockQuantity: state.quickProductOpeningStockInput,
     });
 
     if (Object.values(nextFieldErrors).some(Boolean)) {
@@ -257,34 +318,66 @@ export function usePosCatalogViewModel({
     const normalizedName = state.quickProductNameInput.trim();
     const normalizedPrice = state.quickProductPriceInput.trim();
     const normalizedCategoryName = state.quickProductCategoryInput.trim();
+    const normalizedOpeningStock =
+      state.quickProductOpeningStockInput.trim();
     const parsedPrice = parseAmountInput(normalizedPrice);
+    const parsedOpeningStock =
+      normalizedOpeningStock.length > 0
+        ? Number(normalizedOpeningStock.replace(/,/g, ""))
+        : null;
 
-    const saveResult = await saveProductUseCase.execute({
-      remoteId: `product-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-      accountRemoteId: activeBusinessAccountRemoteId,
-      name: normalizedName,
-      kind: ProductKind.Item,
-      categoryName: normalizedCategoryName || null,
-      salePrice: parsedPrice,
-      costPrice: null,
-      unitLabel: "pcs",
-      skuOrBarcode: null,
-      taxRateLabel: defaultTaxRateLabel,
-      description: null,
-      imageUrl: null,
-      status: ProductStatus.Active,
-    });
+    const remoteId = `product-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 11)}`;
 
-    if (!saveResult.success) {
+    const isItem = state.quickProductKindInput === ProductKind.Item;
+    const isService = state.quickProductKindInput === ProductKind.Service;
+
+    const createResult = isItem
+      ? await createProductWithOpeningStockUseCase.execute({
+          product: {
+            remoteId,
+            accountRemoteId: activeBusinessAccountRemoteId,
+            name: normalizedName,
+            kind: ProductKind.Item,
+            categoryName: normalizedCategoryName || null,
+            salePrice: parsedPrice,
+            costPrice: null,
+            unitLabel: "pcs",
+            skuOrBarcode: null,
+            taxRateLabel: defaultTaxRateLabel,
+            description: null,
+            imageUrl: null,
+            status: ProductStatus.Active,
+          },
+          openingStockQuantity: parsedOpeningStock,
+        })
+      : await saveProductUseCase.execute({
+          remoteId,
+          accountRemoteId: activeBusinessAccountRemoteId,
+          name: normalizedName,
+          kind: ProductKind.Service,
+          categoryName: normalizedCategoryName || null,
+          salePrice: parsedPrice,
+          costPrice: null,
+          unitLabel: null,
+          skuOrBarcode: null,
+          taxRateLabel: defaultTaxRateLabel,
+          description: null,
+          imageUrl: null,
+          status: ProductStatus.Active,
+        });
+
+    if (!createResult.success) {
       setState((currentState) => ({
         ...currentState,
-        errorMessage: saveResult.error.message,
+        errorMessage: createResult.error.message,
       }));
       return;
     }
 
     const addResult = await addProductToCartUseCase.execute({
-      productId: saveResult.value.remoteId,
+      productId: createResult.value.remoteId,
     });
     if (!addResult.success) {
       setState((currentState) => ({
@@ -298,16 +391,13 @@ export function usePosCatalogViewModel({
       state.productSearchTerm,
     );
 
-    const createdProduct: PosProduct = {
-      id: saveResult.value.remoteId,
-      name: saveResult.value.name,
-      categoryLabel: saveResult.value.categoryName ?? "General",
-      unitLabel: saveResult.value.unitLabel ?? null,
-      price: saveResult.value.salePrice,
-      taxRate: 0,
-      shortCode:
-        saveResult.value.name.trim().slice(0, 1).toUpperCase() || "P",
-    };
+    const createdProduct = buildQuickCreatedPosProduct({
+      remoteId: createResult.value.remoteId,
+      name: createResult.value.name,
+      categoryName: createResult.value.categoryName,
+      unitLabel: createResult.value.unitLabel,
+      salePrice: createResult.value.salePrice,
+    });
 
     const nextRecentProducts = buildNextRecentProducts(
       state.recentProducts,
@@ -320,6 +410,8 @@ export function usePosCatalogViewModel({
       quickProductNameInput: "",
       quickProductPriceInput: POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT,
       quickProductCategoryInput: "",
+      quickProductKindInput: ProductKind.Item,
+      quickProductOpeningStockInput: "",
       quickProductFieldErrors: {},
       products: refreshedProducts,
       filteredProducts: refreshedProducts,
@@ -331,7 +423,9 @@ export function usePosCatalogViewModel({
       ),
       recentProducts: nextRecentProducts,
       errorMessage: null,
-      infoMessage: `Product "${normalizedName}" created and added to cart successfully.`,
+      infoMessage: isService
+        ? `Service "${normalizedName}" created and added to cart successfully.`
+        : `Item "${normalizedName}" created and added to cart successfully.`,
     }));
 
     await saveCurrentSession({
@@ -341,6 +435,7 @@ export function usePosCatalogViewModel({
   }, [
     activeBusinessAccountRemoteId,
     addProductToCartUseCase,
+    createProductWithOpeningStockUseCase,
     defaultTaxRateLabel,
     saveCurrentSession,
     saveProductUseCase,
@@ -348,7 +443,9 @@ export function usePosCatalogViewModel({
     setState,
     state.productSearchTerm,
     state.quickProductCategoryInput,
+    state.quickProductKindInput,
     state.quickProductNameInput,
+    state.quickProductOpeningStockInput,
     state.quickProductPriceInput,
     state.recentProducts,
   ]);
@@ -361,6 +458,8 @@ export function usePosCatalogViewModel({
       quickProductNameInput: state.quickProductNameInput,
       quickProductPriceInput: state.quickProductPriceInput,
       quickProductCategoryInput: state.quickProductCategoryInput,
+      quickProductKindInput: state.quickProductKindInput,
+      quickProductOpeningStockInput: state.quickProductOpeningStockInput,
       quickProductFieldErrors: state.quickProductFieldErrors,
       isCreateProductModalVisible: state.activeModal === "create-product",
       onProductSearchChange,
@@ -370,6 +469,8 @@ export function usePosCatalogViewModel({
       onQuickProductNameInputChange,
       onQuickProductPriceInputChange,
       onQuickProductCategoryInputChange,
+      onQuickProductKindInputChange,
+      onQuickProductOpeningStockInputChange,
       onCreateProductFromPos,
     }),
     [
@@ -379,14 +480,18 @@ export function usePosCatalogViewModel({
       onOpenCreateProductModal,
       onProductSearchChange,
       onQuickProductCategoryInputChange,
+      onQuickProductKindInputChange,
       onQuickProductNameInputChange,
+      onQuickProductOpeningStockInputChange,
       onQuickProductPriceInputChange,
       state.activeModal,
       state.filteredProducts,
       state.productSearchTerm,
       state.quickProductCategoryInput,
       state.quickProductFieldErrors,
+      state.quickProductKindInput,
       state.quickProductNameInput,
+      state.quickProductOpeningStockInput,
       state.quickProductPriceInput,
       state.recentProducts,
     ],

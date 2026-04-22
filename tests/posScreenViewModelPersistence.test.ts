@@ -118,19 +118,42 @@ const createMockPosViewModelParams = (
       success: true,
       value: {
         remoteId: "product-1",
-        ownerUserRemoteId: "owner-1",
-        scopeAccountRemoteId: "business-1",
+        accountRemoteId: "business-1",
         name: "Test Product",
-        type: "item",
-        description: null,
-        currencyCode: "USD",
-        isPrimary: false,
-        isActive: true,
-        currentBalance: 0,
-        costPrice: 0,
-        salePrice: 10,
-        unitLabel: "pcs",
+        kind: "item",
         categoryName: "General",
+        salePrice: 10,
+        costPrice: null,
+        stockQuantity: 0,
+        unitLabel: "pcs",
+        skuOrBarcode: null,
+        taxRateLabel: null,
+        description: null,
+        imageUrl: null,
+        status: "active",
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    }),
+    createProductWithOpeningStockUseCase: createMockUseCase({
+      success: true,
+      value: {
+        remoteId: "product-1",
+        accountRemoteId: "business-1",
+        name: "Test Product",
+        kind: "item",
+        categoryName: "General",
+        salePrice: 10,
+        costPrice: null,
+        stockQuantity: 5,
+        unitLabel: "pcs",
+        skuOrBarcode: null,
+        taxRateLabel: null,
+        description: null,
+        imageUrl: null,
+        status: "active",
+        createdAt: 1,
+        updatedAt: 1,
       },
     }),
     savePosSessionUseCase: {
@@ -342,6 +365,7 @@ describe("PosScreenViewModel session persistence", () => {
 
     await act(async () => {
       await viewModel.onProductSearchChange("search-term");
+      await new Promise((resolve) => setTimeout(resolve, 300));
     });
 
     expectLastSaveSessionCall(params.savePosSessionUseCase, {
@@ -391,23 +415,25 @@ describe("PosScreenViewModel session persistence", () => {
   });
 
   it("persists newest cart and recent state immediately when creating a product from POS", async () => {
-    const saveProductUseCase = createMockUseCase({
+    const createProductWithOpeningStockUseCase = createMockUseCase({
       success: true,
       value: {
         remoteId: "new-product-1",
-        ownerUserRemoteId: "owner-1",
-        scopeAccountRemoteId: "business-1",
+        accountRemoteId: "business-1",
         name: "New Product",
         kind: "item",
         categoryName: "New Category",
-        unitLabel: "pcs",
         salePrice: 15,
-        costPrice: 0,
+        costPrice: null,
+        stockQuantity: 10,
+        unitLabel: "pcs",
         skuOrBarcode: null,
-        taxRateLabel: "0%",
+        taxRateLabel: null,
         description: null,
         imageUrl: null,
         status: "active",
+        createdAt: 1,
+        updatedAt: 1,
       },
     });
     const addProductToCartUseCase = createMockUseCase({
@@ -426,7 +452,7 @@ describe("PosScreenViewModel session persistence", () => {
       ],
     });
     const params = createMockPosViewModelParams({
-      saveProductUseCase,
+      createProductWithOpeningStockUseCase,
       addProductToCartUseCase,
       searchPosProductsUseCase: {
         execute: vi.fn().mockResolvedValue([]),
