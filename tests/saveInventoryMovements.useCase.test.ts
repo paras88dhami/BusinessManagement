@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createSaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase.impl";
-import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
+import {
+  InventoryMovementType,
+  type SaveInventoryMovementPayload,
+} from "@/feature/inventory/types/inventory.types";
 import {
   ProductKind,
   ProductStatus,
@@ -244,7 +247,7 @@ describe("createSaveInventoryMovementsUseCase", () => {
     const inventoryRepository = {
       saveInventoryMovements: vi.fn(async (payloads) => ({
         success: true as const,
-        value: payloads.map((payload) => ({
+        value: payloads.map((payload: SaveInventoryMovementPayload) => ({
           remoteId: payload.remoteId,
           accountRemoteId: payload.accountRemoteId,
           productRemoteId: payload.productRemoteId,

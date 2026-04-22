@@ -66,7 +66,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -116,7 +115,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -164,7 +162,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -206,7 +203,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -240,7 +236,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -273,7 +268,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const clearSessionUseCase = createClearPosSessionUseCase(mockRepository);
@@ -307,7 +301,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const clearSessionUseCase = createClearPosSessionUseCase(mockRepository);
@@ -347,7 +340,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -420,7 +412,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const loadSessionUseCase = createLoadPosSessionUseCase(mockRepository);
@@ -470,7 +461,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);
@@ -525,7 +515,6 @@ describe("POS Session Persistence", () => {
         clearCart: vi.fn(),
         getCartLines: vi.fn(),
         getTotals: vi.fn(),
-        commitSaleInventoryMutations: vi.fn(),
       };
 
       const saveSessionUseCase = createSavePosSessionUseCase(mockRepository);

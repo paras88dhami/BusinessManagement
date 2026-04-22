@@ -22,7 +22,6 @@ import {
 import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { PostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
-import type { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import type { PosPaymentPartInput } from "@/feature/pos/types/pos.dto.types";
@@ -39,6 +38,7 @@ import {
 import { PosCheckoutWorkflowStatus } from "../types/posCheckout.state.types";
 import type { RunPosCheckoutValue } from "../types/posCheckout.types";
 import { createPosReceiptNumber } from "../utils/createPosReceiptNumber";
+import type { CommitPosCheckoutInventoryUseCase } from "./commitPosCheckoutInventory.useCase";
 import type { RunPosCheckoutUseCase } from "./runPosCheckout.useCase";
 
 type CreateRunPosCheckoutUseCaseParams = {
@@ -51,7 +51,7 @@ type CreateRunPosCheckoutUseCaseParams = {
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
   addLedgerEntryUseCase: AddLedgerEntryUseCase;
   deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
-  commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase;
+  commitPosCheckoutInventoryUseCase: CommitPosCheckoutInventoryUseCase;
 };
 
 const createSaleRemoteId = (): string => {
@@ -311,7 +311,7 @@ export const createRunPosCheckoutUseCase = ({
   deleteBusinessTransactionUseCase,
   addLedgerEntryUseCase,
   deleteLedgerEntryUseCase,
-  commitPosSaleInventoryMutationsUseCase,
+  commitPosCheckoutInventoryUseCase,
 }: CreateRunPosCheckoutUseCaseParams): RunPosCheckoutUseCase => ({
   async execute(params): Promise<RunPosCheckoutResult> {
     const businessAccountRemoteId =
@@ -687,10 +687,12 @@ export const createRunPosCheckoutUseCase = ({
 
     if (dueAmount <= 0) {
       const inventoryCommitResult =
-        await commitPosSaleInventoryMutationsUseCase.execute({
+        await commitPosCheckoutInventoryUseCase.execute({
           businessAccountRemoteId,
+          saleRemoteId,
           cartLines: params.cartLinesSnapshot,
           saleReferenceNumber: draftReceipt.receiptNumber,
+          movementAt: happenedAt,
         });
 
       if (!inventoryCommitResult.success) {
@@ -779,10 +781,12 @@ export const createRunPosCheckoutUseCase = ({
     }
 
     const inventoryCommitResult =
-      await commitPosSaleInventoryMutationsUseCase.execute({
+      await commitPosCheckoutInventoryUseCase.execute({
         businessAccountRemoteId,
+        saleRemoteId,
         cartLines: params.cartLinesSnapshot,
         saleReferenceNumber: draftReceipt.receiptNumber,
+        movementAt: happenedAt,
       });
 
     if (!inventoryCommitResult.success) {

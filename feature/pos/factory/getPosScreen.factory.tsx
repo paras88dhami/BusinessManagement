@@ -11,6 +11,9 @@ import { createContactRepository } from "@/feature/contacts/data/repository/cont
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
 import { createGetOrCreateBusinessContactUseCase } from "@/feature/contacts/useCase/getOrCreateBusinessContact.useCase.impl";
 import { createGetOrCreateContactUseCase } from "@/feature/contacts/useCase/getOrCreateContact.useCase.impl";
+import { createLocalInventoryDatasource } from "@/feature/inventory/data/dataSource/local.inventory.datasource.impl";
+import { createInventoryRepository } from "@/feature/inventory/data/repository/inventory.repository.impl";
+import { createSaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
 import { createLedgerRepository } from "@/feature/ledger/data/repository/ledger.repository.impl";
 import { createAddLedgerEntryUseCase } from "@/feature/ledger/useCase/addLedgerEntry.useCase.impl";
@@ -36,7 +39,6 @@ import { createApplySurchargeUseCase } from "../useCase/applySurcharge.useCase.i
 import { createChangeCartLineQuantityUseCase } from "../useCase/changeCartLineQuantity.useCase.impl";
 import { createClearCartUseCase } from "../useCase/clearCart.useCase.impl";
 import { createClearPosSessionUseCase } from "../useCase/clearPosSession.useCase.impl";
-import { createCommitPosSaleInventoryMutationsUseCase } from "../useCase/commitPosSaleInventoryMutations.useCase.impl";
 import { createCreatePosSaleDraftUseCase } from "../useCase/createPosSaleDraft.useCase.impl";
 import { createGetPosBootstrapUseCase } from "../useCase/getPosBootstrap.useCase.impl";
 import { createGetPosSaleHistoryUseCase } from "../useCase/getPosSaleHistory.useCase.impl";
@@ -59,6 +61,7 @@ import { usePosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordina
 import { createLocalPosSaleDatasource } from "../data/dataSource/local.posSale.datasource.impl";
 import { createPosSaleRepository } from "../data/repository/posSale.repository.impl";
 import { createPosCheckoutRepository } from "../workflow/posCheckout/repository/posCheckout.repository.impl";
+import { createCommitPosCheckoutInventoryUseCase } from "../workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase.impl";
 import { createRunPosCheckoutUseCase } from "../workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
 import { createReconcilePosSaleUseCase } from "../workflow/posRecovery/useCase/reconcilePosSale.useCase.impl";
 import { createResolvePosAbnormalSaleUseCase } from "../workflow/posRecovery/useCase/resolvePosAbnormalSale.useCase.impl";
@@ -170,10 +173,6 @@ export function GetPosScreenFactory({
   );
   const clearCartUseCase = React.useMemo(
     () => createClearCartUseCase(repository),
-    [repository],
-  );
-  const commitPosSaleInventoryMutationsUseCase = React.useMemo(
-    () => createCommitPosSaleInventoryMutationsUseCase(repository),
     [repository],
   );
   const savePosSessionUseCase = React.useMemo(
@@ -326,33 +325,6 @@ export function GetPosScreenFactory({
     () => createGetOrCreateBusinessContactUseCase(getOrCreateContactUseCase),
     [getOrCreateContactUseCase],
   );
-  const runPosCheckoutUseCase = React.useMemo(
-    () =>
-      createRunPosCheckoutUseCase({
-        posCheckoutRepository,
-        createPosSaleDraftUseCase,
-        updatePosSaleWorkflowStateUseCase,
-        saveBillingDocumentUseCase,
-        deleteBillingDocumentUseCase,
-        postBusinessTransactionUseCase,
-        deleteBusinessTransactionUseCase,
-        addLedgerEntryUseCase,
-        deleteLedgerEntryUseCase,
-        commitPosSaleInventoryMutationsUseCase,
-      }),
-    [
-      addLedgerEntryUseCase,
-      commitPosSaleInventoryMutationsUseCase,
-      createPosSaleDraftUseCase,
-      deleteBillingDocumentUseCase,
-      deleteBusinessTransactionUseCase,
-      deleteLedgerEntryUseCase,
-      posCheckoutRepository,
-      postBusinessTransactionUseCase,
-      saveBillingDocumentUseCase,
-      updatePosSaleWorkflowStateUseCase,
-    ],
-  );
   const receiptDocumentAdapter = React.useMemo(
     () => createPosReceiptDocumentAdapter(),
     [],
@@ -425,6 +397,29 @@ export function GetPosScreenFactory({
     () => createProductRepository(productDatasource),
     [productDatasource],
   );
+  const inventoryDatasource = React.useMemo(
+    () => createLocalInventoryDatasource(appDatabase),
+    [],
+  );
+  const inventoryRepository = React.useMemo(
+    () => createInventoryRepository(inventoryDatasource),
+    [inventoryDatasource],
+  );
+  const saveInventoryMovementsUseCase = React.useMemo(
+    () =>
+      createSaveInventoryMovementsUseCase({
+        inventoryRepository,
+        productRepository,
+      }),
+    [inventoryRepository, productRepository],
+  );
+  const commitPosCheckoutInventoryUseCase = React.useMemo(
+    () =>
+      createCommitPosCheckoutInventoryUseCase({
+        saveInventoryMovementsUseCase,
+      }),
+    [saveInventoryMovementsUseCase],
+  );
   const saveProductUseCase = React.useMemo(
     () => createSaveProductUseCase(productRepository),
     [productRepository],
@@ -441,6 +436,33 @@ export function GetPosScreenFactory({
   const getMoneyAccountsUseCase = React.useMemo(
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
+  );
+  const runPosCheckoutUseCase = React.useMemo(
+    () =>
+      createRunPosCheckoutUseCase({
+        posCheckoutRepository,
+        createPosSaleDraftUseCase,
+        updatePosSaleWorkflowStateUseCase,
+        saveBillingDocumentUseCase,
+        deleteBillingDocumentUseCase,
+        postBusinessTransactionUseCase,
+        deleteBusinessTransactionUseCase,
+        addLedgerEntryUseCase,
+        deleteLedgerEntryUseCase,
+        commitPosCheckoutInventoryUseCase,
+      }),
+    [
+      addLedgerEntryUseCase,
+      commitPosCheckoutInventoryUseCase,
+      createPosSaleDraftUseCase,
+      deleteBillingDocumentUseCase,
+      deleteBusinessTransactionUseCase,
+      deleteLedgerEntryUseCase,
+      posCheckoutRepository,
+      postBusinessTransactionUseCase,
+      saveBillingDocumentUseCase,
+      updatePosSaleWorkflowStateUseCase,
+    ],
   );
 
   const viewModel = usePosScreenCoordinatorViewModel({

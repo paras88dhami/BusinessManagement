@@ -1,38 +1,28 @@
-import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
-import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
-import { RecordSyncStatus } from "@/feature/session/types/authSession.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
-    PosAddProductToCartParams,
-    PosApplyAmountAdjustmentParams,
-    PosChangeQuantityParams,
-    PosClearSessionParams,
-    PosCommitSaleInventoryMutationsParams,
-    PosLoadBootstrapParams,
-    PosLoadSessionParams,
-    PosSaveSessionParams,
-    PosSessionData,
-    PosSessionResult
+  PosAddProductToCartParams,
+  PosApplyAmountAdjustmentParams,
+  PosChangeQuantityParams,
+  PosClearSessionParams,
+  PosLoadBootstrapParams,
+  PosLoadSessionParams,
+  PosSaveSessionParams,
+  PosSessionData,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
+import { PosBootstrap, PosCartLine, PosProduct, PosTotals } from "../../types/pos.entity.types";
 import {
-    PosBootstrap,
-    PosCartLine,
-    PosProduct,
-    PosTotals,
-} from "../../types/pos.entity.types";
-import {
-    PosBootstrapResult,
-    PosCartLinesResult,
-    PosError,
-    PosErrorType,
-    PosOperationResult,
-    PosTotalsResult,
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosError,
+  PosErrorType,
+  PosOperationResult,
+  PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "./pos.datasource";
 
 const PRODUCTS_TABLE = "products";
-const INVENTORY_MOVEMENTS_TABLE = "inventory_movements";
 
 const cloneCartLines = (cartLines: readonly PosCartLine[]): PosCartLine[] =>
   cartLines.map((line) => ({ ...line }));
@@ -111,8 +101,10 @@ const calculateTotals = (
           (sum, line) => sum + line.taxRate * line.lineSubtotal,
           0,
         ) / Math.max(gross, 1);
+
   const taxAmount = Number((adjustedBase * effectiveTaxRate).toFixed(2));
   const grandTotal = Number((adjustedBase + taxAmount).toFixed(2));
+
   return {
     itemCount: cartLines.reduce((sum, line) => sum + line.quantity, 0),
     gross: Number(gross.toFixed(2)),
@@ -134,27 +126,6 @@ const buildCartLine = (product: PosProduct): PosCartLine => ({
   taxRate: product.taxRate,
   lineSubtotal: Number(product.price.toFixed(2)),
 });
-
-const setCreatedAndUpdatedAt = (
-  record: InventoryMovementModel,
-  now: number,
-): void => {
-  (record as unknown as { _raw: Record<string, number> })._raw.created_at = now;
-  (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
-};
-
-const setUpdatedAt = (record: ProductModel, now: number): void => {
-  (record as unknown as { _raw: Record<string, number> })._raw.updated_at = now;
-};
-
-const updateSyncStatusOnMutation = (record: ProductModel): void => {
-  if (
-    !record.recordSyncStatus ||
-    record.recordSyncStatus === RecordSyncStatus.Synced
-  ) {
-    record.recordSyncStatus = RecordSyncStatus.PendingUpdate;
-  }
-};
 
 type CreateLocalPosDatasourceParams = {
   database: Database;
@@ -218,18 +189,6 @@ export const createLocalPosDatasource = ({
     return matchingProducts[0] ?? null;
   };
 
-  const getActiveProductById = async (
-    productId: string,
-  ): Promise<PosProduct | null> => {
-    const product = await getActiveProductModelById(productId);
-    if (!product) {
-      return null;
-    }
-
-    return mapProductModelToPosProduct(product);
-  };
-
-  
   return {
     async loadBootstrap(
       params: PosLoadBootstrapParams,
@@ -340,9 +299,7 @@ export const createLocalPosDatasource = ({
         );
 
         const quantityAlreadyInCart =
-          existingLineIndex !== -1
-            ? cartLines[existingLineIndex].quantity
-            : 0;
+          existingLineIndex !== -1 ? cartLines[existingLineIndex].quantity : 0;
 
         const nextQuantity = quantityAlreadyInCart + 1;
 
@@ -355,7 +312,7 @@ export const createLocalPosDatasource = ({
                 type: PosErrorType.OutOfStock,
                 message:
                   currentStock <= 0
-                    ? `${productModel.name} is out of stock.` 
+                    ? `${productModel.name} is out of stock.`
                     : `Only ${currentStock} unit(s) of ${productModel.name} available. You already have ${quantityAlreadyInCart} in your cart.`,
               },
             };
@@ -378,9 +335,7 @@ export const createLocalPosDatasource = ({
             ? {
                 ...line,
                 quantity: nextQuantity,
-                lineSubtotal: Number(
-                  (nextQuantity * line.unitPrice).toFixed(2),
-                ),
+                lineSubtotal: Number((nextQuantity * line.unitPrice).toFixed(2)),
               }
             : line,
         );
@@ -458,9 +413,7 @@ export const createLocalPosDatasource = ({
         return {
           ...line,
           quantity: params.nextQuantity,
-          lineSubtotal: Number(
-            (params.nextQuantity * line.unitPrice).toFixed(2),
-          ),
+          lineSubtotal: Number((params.nextQuantity * line.unitPrice).toFixed(2)),
         };
       });
 
@@ -511,137 +464,11 @@ export const createLocalPosDatasource = ({
       return { success: true, value: getTotalsValue() };
     },
 
-    async commitSaleInventoryMutations(
-      params: PosCommitSaleInventoryMutationsParams,
-    ): Promise<PosOperationResult> {
-      const businessAccountRemoteId = params.businessAccountRemoteId?.trim();
-      if (!businessAccountRemoteId) {
-        return {
-          success: false,
-          error: {
-            type: PosErrorType.ContextRequired,
-            message:
-              "Business account context is required for inventory commit.",
-          },
-        };
-      }
-
-      if (params.cartLines.length === 0) {
-        resetSessionState();
-        return { success: true, value: true };
-      }
-
-      try {
-        const productCollection = database.get<ProductModel>(PRODUCTS_TABLE);
-        const movementCollection = database.get<InventoryMovementModel>(
-          INVENTORY_MOVEMENTS_TABLE,
-        );
-        const soldQuantityByProductId = new Map<string, number>();
-        for (const cartLine of params.cartLines) {
-          soldQuantityByProductId.set(
-            cartLine.productId,
-            (soldQuantityByProductId.get(cartLine.productId) ?? 0) +
-              cartLine.quantity,
-          );
-        }
-        const soldProductIds = Array.from(soldQuantityByProductId.keys());
-
-        await database.write(async () => {
-          const matchingProducts = await productCollection
-            .query(
-              Q.where("remote_id", Q.oneOf(soldProductIds)),
-              Q.where("account_remote_id", businessAccountRemoteId),
-              Q.where("status", "active"),
-              Q.where("deleted_at", Q.eq(null)),
-            )
-            .fetch();
-          const productByRemoteId = new Map(
-            matchingProducts.map((product) => [product.remoteId, product]),
-          );
-          const nextStockByProductId = new Map<string, number>();
-
-          for (const [productId, soldQuantity] of soldQuantityByProductId) {
-            const product = productByRemoteId.get(productId);
-            if (!product) {
-              throw new Error(
-                "One or more cart products are no longer available.",
-              );
-            }
-            if (product.kind !== "item") {
-              continue;
-            }
-
-            const currentStock = product.stockQuantity ?? 0;
-            if (currentStock < soldQuantity) {
-              throw new Error(
-                `Not enough stock for ${product.name}. Available: ${currentStock}.`,
-              );
-            }
-            nextStockByProductId.set(productId, currentStock - soldQuantity);
-          }
-
-          for (const [productId, nextStock] of nextStockByProductId) {
-            const product = productByRemoteId.get(productId);
-            if (!product) {
-              continue;
-            }
-            const now = Date.now();
-            await product.update((record) => {
-              record.stockQuantity = nextStock;
-              updateSyncStatusOnMutation(record);
-              setUpdatedAt(record, now);
-            });
-          }
-
-          for (let index = 0; index < params.cartLines.length; index += 1) {
-            const cartLine = params.cartLines[index];
-            const product = productByRemoteId.get(cartLine.productId);
-            if (!product || product.kind !== "item") {
-              continue;
-            }
-            const now = Date.now();
-            await movementCollection.create((record) => {
-              record.remoteId = `${params.saleReferenceNumber}-${index + 1}-${now}`;
-              record.accountRemoteId = businessAccountRemoteId;
-              record.productRemoteId = product.remoteId;
-              record.productNameSnapshot = product.name;
-              record.productUnitLabelSnapshot = product.unitLabel;
-              record.movementType = InventoryMovementType.SaleOut;
-              record.quantity = cartLine.quantity;
-              record.deltaQuantity = cartLine.quantity * -1;
-              record.unitRate = cartLine.unitPrice;
-              record.reason = null;
-              record.remark = `POS sale ${params.saleReferenceNumber}`;
-              record.movementAt = now;
-              record.recordSyncStatus = RecordSyncStatus.PendingCreate;
-              record.lastSyncedAt = null;
-              record.deletedAt = null;
-              setCreatedAndUpdatedAt(record, now);
-            });
-          }
-        });
-      } catch (error) {
-        return {
-          success: false,
-          error: createValidationError(
-            error instanceof Error
-              ? error.message
-              : "Failed to commit POS inventory mutations.",
-          ),
-        };
-      }
-
-      activeBusinessAccountRemoteId = businessAccountRemoteId;
-      await loadActiveProducts();
-      resetSessionState();
-      return { success: true, value: true };
-    },
-
     async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {
       try {
         const sessionKey = `pos_session_${params.businessAccountRemoteId}`;
         const sessionData = JSON.stringify(params.sessionData);
-        
+
         await database.write(async () => {
           await database.adapter.setLocal(sessionKey, sessionData);
         });
@@ -662,13 +489,16 @@ export const createLocalPosDatasource = ({
     async loadSession(params: PosLoadSessionParams): Promise<PosSessionResult> {
       try {
         const sessionKey = `pos_session_${params.businessAccountRemoteId}`;
-        
+
         const sessionData = await database.read(async () => {
           return await database.adapter.getLocal(sessionKey);
         });
 
         if (!sessionData) {
-          return { success: false, error: { type: PosErrorType.Validation, message: "No session found" } };
+          return {
+            success: false,
+            error: { type: PosErrorType.Validation, message: "No session found" },
+          };
         }
 
         const parsedSession = JSON.parse(sessionData) as PosSessionData;
@@ -688,7 +518,7 @@ export const createLocalPosDatasource = ({
     async clearSession(params: PosClearSessionParams): Promise<PosOperationResult> {
       try {
         const sessionKey = `pos_session_${params.businessAccountRemoteId}`;
-        
+
         await database.write(async () => {
           await database.adapter.removeLocal(sessionKey);
         });

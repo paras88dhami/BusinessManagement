@@ -5,7 +5,7 @@ import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLe
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
-import type { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
+import type { CommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase";
 import type { PosCustomer, PosTotals, PosCartLine } from "@/feature/pos/types/pos.entity.types";
 import type { PosCheckoutRepository } from "@/feature/pos/workflow/posCheckout/repository/posCheckout.repository";
 import {
@@ -72,7 +72,7 @@ const createRunParams = (
 
 type HarnessOptions = {
   getSaleByIdempotencyKey?: PosCheckoutRepository["getSaleByIdempotencyKey"];
-  commitInventoryExecute?: CommitPosSaleInventoryMutationsUseCase["execute"];
+  commitInventoryExecute?: CommitPosCheckoutInventoryUseCase["execute"];
   addLedgerEntryExecute?: AddLedgerEntryUseCase["execute"];
   verifyLinkedDocument?: AddLedgerEntryUseCase["verifyLinkedDocument"];
   postBusinessTransactionExecute?: PostBusinessTransactionUseCase["execute"];
@@ -215,7 +215,7 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
     })),
   };
 
-  const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
+  const commitPosCheckoutInventoryUseCase: CommitPosCheckoutInventoryUseCase = {
     execute:
       options.commitInventoryExecute ??
       vi.fn(async () => ({
@@ -236,7 +236,7 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
     deleteBusinessTransactionUseCase,
     addLedgerEntryUseCase,
     deleteLedgerEntryUseCase,
-    commitPosSaleInventoryMutationsUseCase,
+    commitPosCheckoutInventoryUseCase,
   });
 
   return {
@@ -249,7 +249,7 @@ const createCheckoutHarness = (options: HarnessOptions = {}) => {
       postBusinessTransactionExecute: postBusinessTransactionUseCase.execute,
       addLedgerEntryExecute: addLedgerEntryUseCase.execute,
       verifyLinkedDocument: addLedgerEntryUseCase.verifyLinkedDocument,
-      commitInventoryExecute: commitPosSaleInventoryMutationsUseCase.execute,
+      commitInventoryExecute: commitPosCheckoutInventoryUseCase.execute,
     },
   };
 };

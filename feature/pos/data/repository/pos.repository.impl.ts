@@ -1,30 +1,27 @@
 import {
-    PosAddProductToCartParams,
-    PosApplyAmountAdjustmentParams,
-    PosChangeQuantityParams,
-    PosCommitSaleInventoryMutationsParams,
-    PosClearSessionParams,
-    PosLoadBootstrapParams,
-    PosLoadSessionParams,
-    PosSaveSessionParams,
-    PosSessionResult,
+  PosAddProductToCartParams,
+  PosApplyAmountAdjustmentParams,
+  PosChangeQuantityParams,
+  PosClearSessionParams,
+  PosLoadBootstrapParams,
+  PosLoadSessionParams,
+  PosSaveSessionParams,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
+import { PosCartLine } from "../../types/pos.entity.types";
 import {
-    PosCartLine,
-} from "../../types/pos.entity.types";
-import {
-    PosBootstrapResult,
-    PosCartLinesResult,
-    PosError,
-    PosOperationResult,
-    PosTotalsResult
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosError,
+  PosOperationResult,
+  PosTotalsResult,
 } from "../../types/pos.error.types";
 import { PosDatasource } from "../dataSource/pos.datasource";
 import {
-    mapPosBootstrapToDomain,
-    mapPosCartLinesToDomain,
-    mapPosProductToDomain,
-    mapPosTotalsToDomain,
+  mapPosBootstrapToDomain,
+  mapPosCartLinesToDomain,
+  mapPosProductToDomain,
+  mapPosTotalsToDomain,
 } from "./mapper/pos.mapper";
 import { PosRepository } from "./pos.repository";
 
@@ -33,7 +30,9 @@ const mapRepositoryError = (error: PosError): PosError => ({ ...error });
 export const createPosRepository = (
   datasource: PosDatasource,
 ): PosRepository => ({
-  async loadBootstrap(params: PosLoadBootstrapParams): Promise<PosBootstrapResult> {
+  async loadBootstrap(
+    params: PosLoadBootstrapParams,
+  ): Promise<PosBootstrapResult> {
     const result = await datasource.loadBootstrap(params);
     if (!result.success) {
       return { success: false, error: mapRepositoryError(result.error) };
@@ -107,17 +106,6 @@ export const createPosRepository = (
     }
 
     return { success: true, value: mapPosTotalsToDomain(result.value) };
-  },
-
-  async commitSaleInventoryMutations(
-    params: PosCommitSaleInventoryMutationsParams,
-  ): Promise<PosOperationResult> {
-    const result = await datasource.commitSaleInventoryMutations(params);
-    if (!result.success) {
-      return { success: false, error: mapRepositoryError(result.error) };
-    }
-
-    return { success: true, value: result.value };
   },
 
   async saveSession(params: PosSaveSessionParams): Promise<PosOperationResult> {

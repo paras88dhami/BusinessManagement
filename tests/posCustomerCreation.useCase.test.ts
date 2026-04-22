@@ -6,7 +6,7 @@ import type { PosCartLine, PosCustomer, PosTotals } from "@/feature/pos/types/po
 import type { CreatePosSaleDraftUseCase } from "@/feature/pos/useCase/createPosSaleDraft.useCase";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
-import type { CommitPosSaleInventoryMutationsUseCase } from "@/feature/pos/useCase/commitPosSaleInventoryMutations.useCase";
+import type { CommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase";
 import type { PosCheckoutRepository } from "@/feature/pos/workflow/posCheckout/repository/posCheckout.repository";
 import {
   PosCheckoutWorkflowStatus,
@@ -203,7 +203,7 @@ const createCheckoutHarness = () => {
     })),
   };
 
-  const commitPosSaleInventoryMutationsUseCase: CommitPosSaleInventoryMutationsUseCase = {
+  const commitPosCheckoutInventoryUseCase: CommitPosCheckoutInventoryUseCase = {
     execute: vi.fn(async () => ({
       success: true as const,
       value: true,
@@ -222,7 +222,7 @@ const createCheckoutHarness = () => {
     deleteBusinessTransactionUseCase,
     addLedgerEntryUseCase,
     deleteLedgerEntryUseCase,
-    commitPosSaleInventoryMutationsUseCase,
+    commitPosCheckoutInventoryUseCase,
   });
 
   return {
@@ -231,7 +231,7 @@ const createCheckoutHarness = () => {
       saveBillingDocumentExecute: saveBillingDocumentUseCase.execute,
       addLedgerEntryExecute: addLedgerEntryUseCase.execute,
       verifyLinkedDocument: addLedgerEntryUseCase.verifyLinkedDocument,
-      commitInventoryExecute: commitPosSaleInventoryMutationsUseCase.execute,
+      commitInventoryExecute: commitPosCheckoutInventoryUseCase.execute,
     },
   };
 };

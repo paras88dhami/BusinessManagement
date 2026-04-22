@@ -1,23 +1,19 @@
 import {
-    PosAddProductToCartParams,
-    PosApplyAmountAdjustmentParams,
-    PosChangeQuantityParams,
-    PosCommitSaleInventoryMutationsParams,
-    PosClearSessionParams,
-    PosLoadBootstrapParams,
-    PosLoadSessionParams,
-    PosSaveSessionParams,
-    PosSessionResult,
+  PosAddProductToCartParams,
+  PosApplyAmountAdjustmentParams,
+  PosChangeQuantityParams,
+  PosClearSessionParams,
+  PosLoadBootstrapParams,
+  PosLoadSessionParams,
+  PosSaveSessionParams,
+  PosSessionResult,
 } from "../../types/pos.dto.types";
+import { PosCartLine, PosProduct } from "../../types/pos.entity.types";
 import {
-    PosCartLine,
-    PosProduct
-} from "../../types/pos.entity.types";
-import {
-    PosBootstrapResult,
-    PosCartLinesResult,
-    PosOperationResult,
-    PosTotalsResult
+  PosBootstrapResult,
+  PosCartLinesResult,
+  PosOperationResult,
+  PosTotalsResult,
 } from "../../types/pos.error.types";
 
 export interface PosDatasource {
@@ -38,9 +34,6 @@ export interface PosDatasource {
   clearCart(): Promise<PosOperationResult>;
   getCartLines(): Promise<readonly PosCartLine[]>;
   getTotals(): Promise<PosTotalsResult>;
-  commitSaleInventoryMutations(
-    params: PosCommitSaleInventoryMutationsParams,
-  ): Promise<PosOperationResult>;
   saveSession(params: PosSaveSessionParams): Promise<PosOperationResult>;
   loadSession(params: PosLoadSessionParams): Promise<PosSessionResult>;
   clearSession(params: PosClearSessionParams): Promise<PosOperationResult>;
