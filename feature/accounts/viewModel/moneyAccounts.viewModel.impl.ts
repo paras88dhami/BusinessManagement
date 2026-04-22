@@ -4,12 +4,16 @@ import {
   MoneyAccount,
   MoneyAccountType,
 } from "@/feature/accounts/types/moneyAccount.types";
+import { validateMoneyAccountForm } from "@/feature/accounts/validation/validateMoneyAccountForm";
+import { validateMoneyAccountAdjustmentForm } from "@/feature/accounts/validation/validateMoneyAccountAdjustmentForm";
 import { GetMoneyAccountsUseCase } from "@/feature/accounts/useCase/getMoneyAccounts.useCase";
 import { SaveMoneyAccountUseCase } from "@/feature/accounts/useCase/saveMoneyAccount.useCase";
 import { ArchiveMoneyAccountUseCase } from "@/feature/accounts/useCase/archiveMoneyAccount.useCase";
 import { AdjustMoneyAccountBalanceUseCase } from "@/feature/accounts/useCase/adjustMoneyAccountBalance.useCase";
 import {
+  MoneyAccountAdjustmentFieldErrors,
   MoneyAccountAdjustmentFormState,
+  MoneyAccountFormFieldErrors,
   MoneyAccountFormState,
   MoneyAccountsViewModel,
 } from "./moneyAccounts.viewModel";
@@ -18,23 +22,25 @@ import {
   resolveCurrencyCode,
 } from "@/shared/utils/currency/accountCurrency";
 
-const EMPTY_FORM: MoneyAccountFormState = {
+const createEmptyForm = (): MoneyAccountFormState => ({
   remoteId: null,
   name: "",
   type: MoneyAccountType.Cash,
   balance: "0",
   description: "",
-};
+  fieldErrors: {},
+});
 
-const EMPTY_ADJUSTMENT_FORM: MoneyAccountAdjustmentFormState = {
+const createEmptyAdjustmentForm = (): MoneyAccountAdjustmentFormState => ({
   moneyAccountRemoteId: null,
   accountName: "",
   currentBalanceLabel: "",
   targetBalance: "",
   reason: "",
+  fieldErrors: {},
   errorMessage: null,
   isSaving: false,
-};
+});
 
 const mapMoneyAccountToForm = (
   moneyAccount: MoneyAccount,
@@ -44,10 +50,11 @@ const mapMoneyAccountToForm = (
   type: moneyAccount.type,
   balance: String(moneyAccount.currentBalance),
   description: moneyAccount.description ?? "",
+  fieldErrors: {},
 });
 
 const parseBalance = (value: string): number | null => {
-  const normalizedValue = value.trim();
+  const normalizedValue = value.trim().replace(/,/g, "");
 
   if (!normalizedValue) {
     return null;
@@ -69,6 +76,34 @@ const sortAccounts = (accounts: readonly MoneyAccount[]): MoneyAccount[] => {
 
     return rightAccount.updatedAt - leftAccount.updatedAt;
   });
+};
+
+const clearFormFieldError = (
+  fieldErrors: MoneyAccountFormFieldErrors,
+  field: keyof MoneyAccountFormFieldErrors,
+): MoneyAccountFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const clearAdjustmentFieldError = (
+  fieldErrors: MoneyAccountAdjustmentFieldErrors,
+  field: keyof MoneyAccountAdjustmentFieldErrors,
+): MoneyAccountAdjustmentFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
 };
 
 type UseMoneyAccountsViewModelParams = {
@@ -106,9 +141,9 @@ export const useMoneyAccountsViewModel = ({
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
-  const [form, setForm] = useState<MoneyAccountFormState>(EMPTY_FORM);
+  const [form, setForm] = useState<MoneyAccountFormState>(createEmptyForm());
   const [adjustmentForm, setAdjustmentForm] =
-    useState<MoneyAccountAdjustmentFormState>(EMPTY_ADJUSTMENT_FORM);
+    useState<MoneyAccountAdjustmentFormState>(createEmptyAdjustmentForm());
   const [isAdjustmentModalVisible, setIsAdjustmentModalVisible] = useState(false);
   const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(null);
   const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
@@ -149,43 +184,58 @@ export const useMoneyAccountsViewModel = ({
     }
 
     setEditorMode("create");
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm());
     setErrorMessage(null);
     setDeleteErrorMessage(null);
     setIsEditorVisible(true);
   }, [canManage]);
 
-  const onOpenEdit = useCallback((account: MoneyAccount) => {
-    if (!canManage) {
-      setErrorMessage("You do not have permission to manage money accounts.");
-      return;
-    }
+  const onOpenEdit = useCallback(
+    (account: MoneyAccount) => {
+      if (!canManage) {
+        setErrorMessage("You do not have permission to manage money accounts.");
+        return;
+      }
 
-    setEditorMode("edit");
-    setForm(mapMoneyAccountToForm(account));
-    setErrorMessage(null);
-    setDeleteErrorMessage(null);
-    setIsEditorVisible(true);
-  }, [canManage]);
+      setEditorMode("edit");
+      setForm(mapMoneyAccountToForm(account));
+      setErrorMessage(null);
+      setDeleteErrorMessage(null);
+      setIsEditorVisible(true);
+    },
+    [canManage],
+  );
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm());
     setErrorMessage(null);
     setDeleteErrorMessage(null);
   }, []);
 
   const onFormChange = useCallback(
-    (field: keyof MoneyAccountFormState, value: string) => {
-      if (field === "balance" && editorMode === "edit") {
-        return;
-      }
-
+    (field: keyof Omit<MoneyAccountFormState, "fieldErrors">, value: string) => {
       setErrorMessage(null);
-      setForm((current) => ({
-        ...current,
-        [field]: value,
-      }));
+
+      setForm((current) => {
+        if (field === "balance" && editorMode === "edit") {
+          return current;
+        }
+
+        let nextFieldErrors = current.fieldErrors;
+
+        if (field === "name") {
+          nextFieldErrors = clearFormFieldError(current.fieldErrors, "name");
+        } else if (field === "balance") {
+          nextFieldErrors = clearFormFieldError(current.fieldErrors, "balance");
+        }
+
+        return {
+          ...current,
+          [field]: value,
+          fieldErrors: nextFieldErrors,
+        };
+      });
     },
     [editorMode],
   );
@@ -219,27 +269,54 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
-    const remoteIdForSave = form.remoteId ?? Crypto.randomUUID();
+    const nextFieldErrors = validateMoneyAccountForm({
+      mode: editorMode,
+      name: form.name,
+      balance: form.balance,
+    });
 
-    if (editorMode === "create" && form.remoteId !== remoteIdForSave) {
+    if (Object.values(nextFieldErrors).some(Boolean)) {
       setForm((current) => ({
         ...current,
-        remoteId: remoteIdForSave,
+        fieldErrors: nextFieldErrors,
       }));
+      setErrorMessage(null);
+      return;
     }
 
+    const remoteIdForSave = form.remoteId ?? Crypto.randomUUID();
     const isFirstScopeAccount = accounts.length === 0;
-    const existingRecord = accounts.find(
-      (account) => account.remoteId === form.remoteId,
-    );
+    const existingRecord = form.remoteId
+      ? accounts.find((account) => account.remoteId === form.remoteId)
+      : null;
+
+    if (editorMode === "edit") {
+      if (!form.remoteId) {
+        setErrorMessage("Money account id is required.");
+        return;
+      }
+
+      if (!existingRecord) {
+        setErrorMessage("Money account not found.");
+        return;
+      }
+    }
+
     const parsedOpeningBalance = parseBalance(form.balance);
     const balanceForSave =
-      editorMode === "edit" && existingRecord
-        ? existingRecord.currentBalance
+      editorMode === "edit"
+        ? existingRecord!.currentBalance
         : parsedOpeningBalance;
 
     if (balanceForSave === null) {
-      setErrorMessage("Opening balance is required.");
+      setForm((current) => ({
+        ...current,
+        fieldErrors: {
+          ...current.fieldErrors,
+          balance: "Opening balance is required.",
+        },
+      }));
+      setErrorMessage(null);
       return;
     }
 
@@ -248,10 +325,10 @@ export const useMoneyAccountsViewModel = ({
       ownerUserRemoteId: activeUserRemoteId,
       scopeAccountRemoteId,
       scopeAccountDisplayNameSnapshot: scopeAccountDisplayName,
-      name: form.name,
+      name: form.name.trim(),
       type: form.type,
       currentBalance: balanceForSave,
-      description: form.description || null,
+      description: form.description.trim() || null,
       currencyCode,
       isPrimary: existingRecord?.isPrimary ?? isFirstScopeAccount,
       isActive: true,
@@ -279,19 +356,19 @@ export const useMoneyAccountsViewModel = ({
     );
     setErrorMessage(null);
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm());
     void loadMoneyAccounts();
   }, [
     accounts,
     activeUserRemoteId,
     canManage,
-    form,
+    currencyCode,
     editorMode,
-    scopeAccountDisplayName,
+    form,
     loadMoneyAccounts,
     saveMoneyAccountUseCase,
+    scopeAccountDisplayName,
     scopeAccountRemoteId,
-    currencyCode,
   ]);
 
   const onOpenHistoryForCurrent = useCallback(() => {
@@ -299,7 +376,9 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
-    const targetAccount = accounts.find((account) => account.remoteId === form.remoteId);
+    const targetAccount = accounts.find(
+      (account) => account.remoteId === form.remoteId,
+    );
     if (!targetAccount) {
       setErrorMessage("Money account not found.");
       return;
@@ -318,7 +397,9 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
-    const targetAccount = accounts.find((account) => account.remoteId === form.remoteId);
+    const targetAccount = accounts.find(
+      (account) => account.remoteId === form.remoteId,
+    );
     if (!targetAccount) {
       setErrorMessage("Money account not found.");
       return;
@@ -334,6 +415,7 @@ export const useMoneyAccountsViewModel = ({
       }),
       targetBalance: String(targetAccount.currentBalance),
       reason: "",
+      fieldErrors: {},
       errorMessage: null,
       isSaving: false,
     });
@@ -354,22 +436,27 @@ export const useMoneyAccountsViewModel = ({
     }
 
     setIsAdjustmentModalVisible(false);
-    setAdjustmentForm(EMPTY_ADJUSTMENT_FORM);
+    setAdjustmentForm(createEmptyAdjustmentForm());
   }, [adjustmentForm.isSaving]);
 
   const onAdjustmentFormChange = useCallback(
     (
-      field: keyof Pick<
-        MoneyAccountAdjustmentFormState,
-        "targetBalance" | "reason"
-      >,
+      field: keyof Pick<MoneyAccountAdjustmentFormState, "targetBalance" | "reason">,
       value: string,
     ) => {
-      setAdjustmentForm((current) => ({
-        ...current,
-        [field]: value,
-        errorMessage: null,
-      }));
+      setAdjustmentForm((current) => {
+        const nextFieldErrors =
+          field === "targetBalance"
+            ? clearAdjustmentFieldError(current.fieldErrors, "targetBalance")
+            : clearAdjustmentFieldError(current.fieldErrors, "reason");
+
+        return {
+          ...current,
+          [field]: value,
+          fieldErrors: nextFieldErrors,
+          errorMessage: null,
+        };
+      });
     },
     [],
   );
@@ -407,25 +494,36 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
-    const parsedTargetBalance = parseBalance(adjustmentForm.targetBalance);
-    if (parsedTargetBalance === null) {
+    const nextFieldErrors = validateMoneyAccountAdjustmentForm({
+      targetBalance: adjustmentForm.targetBalance,
+      reason: adjustmentForm.reason,
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
       setAdjustmentForm((current) => ({
         ...current,
-        errorMessage: "Correct balance is required.",
+        fieldErrors: nextFieldErrors,
+        errorMessage: null,
       }));
       return;
     }
 
-    if (!adjustmentForm.reason.trim()) {
+    const parsedTargetBalance = parseBalance(adjustmentForm.targetBalance);
+    if (parsedTargetBalance === null) {
       setAdjustmentForm((current) => ({
         ...current,
-        errorMessage: "Reason is required.",
+        fieldErrors: {
+          ...current.fieldErrors,
+          targetBalance: "Correct balance is required.",
+        },
+        errorMessage: null,
       }));
       return;
     }
 
     setAdjustmentForm((current) => ({
       ...current,
+      fieldErrors: {},
       errorMessage: null,
       isSaving: true,
     }));
@@ -436,7 +534,7 @@ export const useMoneyAccountsViewModel = ({
       scopeAccountDisplayNameSnapshot: scopeAccountDisplayName,
       moneyAccountRemoteId: adjustmentForm.moneyAccountRemoteId,
       targetBalance: parsedTargetBalance,
-      reason: adjustmentForm.reason,
+      reason: adjustmentForm.reason.trim(),
       adjustedAt: Date.now(),
     });
 
@@ -457,7 +555,7 @@ export const useMoneyAccountsViewModel = ({
       ),
     );
     setIsAdjustmentModalVisible(false);
-    setAdjustmentForm(EMPTY_ADJUSTMENT_FORM);
+    setAdjustmentForm(createEmptyAdjustmentForm());
     setErrorMessage(null);
     void loadMoneyAccounts();
   }, [
@@ -477,7 +575,9 @@ export const useMoneyAccountsViewModel = ({
       return false;
     }
 
-    const targetAccount = accounts.find((account) => account.remoteId === form.remoteId);
+    const targetAccount = accounts.find(
+      (account) => account.remoteId === form.remoteId,
+    );
     if (!targetAccount) {
       return false;
     }
@@ -499,7 +599,9 @@ export const useMoneyAccountsViewModel = ({
       return;
     }
 
-    const targetAccount = accounts.find((account) => account.remoteId === form.remoteId);
+    const targetAccount = accounts.find(
+      (account) => account.remoteId === form.remoteId,
+    );
     if (!targetAccount) {
       setErrorMessage("Money account not found.");
       return;
@@ -549,14 +651,16 @@ export const useMoneyAccountsViewModel = ({
 
     setAccounts((currentAccounts) =>
       sortAccounts(
-        currentAccounts.filter((account) => account.remoteId !== pendingDeleteRemoteId),
+        currentAccounts.filter(
+          (account) => account.remoteId !== pendingDeleteRemoteId,
+        ),
       ),
     );
     setPendingDeleteRemoteId(null);
     setDeleteErrorMessage(null);
     setErrorMessage(null);
     setIsEditorVisible(false);
-    setForm(EMPTY_FORM);
+    setForm(createEmptyForm());
     void loadMoneyAccounts();
   }, [
     archiveMoneyAccountUseCase,
@@ -569,7 +673,9 @@ export const useMoneyAccountsViewModel = ({
     if (!pendingDeleteRemoteId) {
       return null;
     }
-    const account = accounts.find((item) => item.remoteId === pendingDeleteRemoteId);
+    const account = accounts.find(
+      (item) => item.remoteId === pendingDeleteRemoteId,
+    );
     return account?.name ?? null;
   }, [accounts, pendingDeleteRemoteId]);
 
@@ -614,6 +720,8 @@ export const useMoneyAccountsViewModel = ({
     }),
     [
       accounts,
+      activeAccountCountryCode,
+      adjustmentForm,
       canDeleteCurrent,
       canManage,
       currencyCode,
@@ -621,28 +729,26 @@ export const useMoneyAccountsViewModel = ({
       editorMode,
       errorMessage,
       form,
-      adjustmentForm,
-      activeAccountCountryCode,
       isAdjustmentModalVisible,
       isDeleting,
-      pendingDeleteAccountName,
-      pendingDeleteRemoteId,
       isEditorVisible,
       isLoading,
       loadMoneyAccounts,
+      onAdjustmentFormChange,
+      onCloseAdjustment,
       onCloseDeleteModal,
       onCloseEditor,
-      onCloseAdjustment,
       onConfirmDelete,
-      onAdjustmentFormChange,
       onFormChange,
-      onOpenHistoryForCurrent,
+      onOpenAdjustmentForCurrent,
       onOpenCreate,
       onOpenEdit,
-      onOpenAdjustmentForCurrent,
+      onOpenHistoryForCurrent,
       onRequestDeleteCurrent,
-      onSubmitAdjustment,
       onSubmit,
+      onSubmitAdjustment,
+      pendingDeleteAccountName,
+      pendingDeleteRemoteId,
       totalBalance,
     ],
   );

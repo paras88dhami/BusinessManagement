@@ -65,6 +65,7 @@ export function MoneyAccountAdjustmentModal({
         placeholder="0"
         keyboardType="decimal-pad"
         helperText="Enter the cash, bank, or wallet balance you counted."
+        errorText={viewModel.adjustmentForm.fieldErrors.targetBalance}
       />
 
       <LabeledTextInput
@@ -74,6 +75,7 @@ export function MoneyAccountAdjustmentModal({
           viewModel.onAdjustmentFormChange("reason", value)
         }
         placeholder="Example: cash counted at closing"
+        errorText={viewModel.adjustmentForm.fieldErrors.reason}
       />
 
       {viewModel.adjustmentForm.errorMessage ? (

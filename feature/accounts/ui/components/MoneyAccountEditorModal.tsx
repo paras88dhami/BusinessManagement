@@ -1,10 +1,10 @@
 import {
-    MONEY_ACCOUNT_TYPE_OPTIONS,
+  MONEY_ACCOUNT_TYPE_OPTIONS,
 } from "@/feature/accounts/types/moneyAccount.types";
 import { MoneyAccountsViewModel } from "@/feature/accounts/viewModel/moneyAccounts.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import {
-    DropdownOption,
+  DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
@@ -77,6 +77,7 @@ export function MoneyAccountEditorModal({
         value={viewModel.form.name}
         onChangeText={(value) => viewModel.onFormChange("name", value)}
         placeholder="Account Name"
+        errorText={viewModel.form.fieldErrors.name}
       />
 
       <LabeledDropdownField
@@ -109,6 +110,11 @@ export function MoneyAccountEditorModal({
           isOpeningBalanceEditable
             ? "Set the starting amount for this cash, bank, or wallet account."
             : "Current balance changes through posted money movements."
+        }
+        errorText={
+          isOpeningBalanceEditable
+            ? viewModel.form.fieldErrors.balance
+            : undefined
         }
       />
 
@@ -144,7 +150,6 @@ export function MoneyAccountEditorModal({
       {viewModel.errorMessage ? (
         <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
       ) : null}
-
     </FormSheetModal>
   );
 }
