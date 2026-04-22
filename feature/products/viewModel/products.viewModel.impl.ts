@@ -6,6 +6,7 @@ import {
   ProductKindValue,
   ProductStatus,
 } from "@/feature/products/types/product.types";
+import { validateProductForm } from "@/feature/products/validation/validateProductForm";
 import { DeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase";
 import { GetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase";
 import { CreateProductWithOpeningStockUseCase } from "@/feature/products/useCase/createProductWithOpeningStock.useCase";
@@ -57,37 +58,27 @@ const mapProductToForm = (
 });
 
 const parseNumber = (value: string): number | null => {
-  const normalized = value.trim();
-  if (!normalized) return null;
+  const normalized = value.trim().replace(/,/g, "");
+  if (!normalized) {
+    return null;
+  }
+
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const validateProductForm = ({
-  name,
-  salePrice,
-}: {
-  name: string;
-  salePrice: string;
-}): ProductFormFieldErrors => {
-  const nextFieldErrors: ProductFormFieldErrors = {};
-  const normalizedName = name.trim();
-  const normalizedSalePrice = salePrice.trim();
-
-  if (!normalizedName) {
-    nextFieldErrors.name = "Product name is required.";
+const clearFieldError = (
+  fieldErrors: ProductFormFieldErrors,
+  field: keyof ProductFormFieldErrors,
+): ProductFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
   }
 
-  if (normalizedSalePrice.length > 0) {
-    const parsedSalePrice = Number(normalizedSalePrice.replace(/,/g, ""));
-    if (!Number.isFinite(parsedSalePrice)) {
-      nextFieldErrors.salePrice = "Sale price must be a valid number.";
-    } else if (parsedSalePrice < 0) {
-      nextFieldErrors.salePrice = "Sale price cannot be negative.";
-    }
-  }
-
-  return nextFieldErrors;
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
 };
 
 type Params = {
@@ -264,11 +255,39 @@ export const useProductsViewModel = ({
     (field: keyof ProductFormState, value: string) => {
       setForm((current) => ({ ...current, [field]: value }));
 
-      if (field === "name") {
-        setFieldErrors((current) => ({ ...current, name: undefined }));
-      } else if (field === "salePrice") {
-        setFieldErrors((current) => ({ ...current, salePrice: undefined }));
-      }
+      setFieldErrors((current) => {
+        if (field === "name") {
+          return clearFieldError(current, "name");
+        }
+
+        if (field === "salePrice") {
+          return clearFieldError(current, "salePrice");
+        }
+
+        if (field === "costPrice") {
+          return clearFieldError(current, "costPrice");
+        }
+
+        if (field === "openingStockQuantity") {
+          return clearFieldError(current, "openingStockQuantity");
+        }
+
+        if (field === "unitLabel") {
+          return clearFieldError(current, "unitLabel");
+        }
+
+        if (field === "kind") {
+          return {
+            ...current,
+            unitLabel: undefined,
+            openingStockQuantity: undefined,
+          };
+        }
+
+        return current;
+      });
+
+      setErrorMessage(null);
     },
     [],
   );
@@ -308,8 +327,8 @@ export const useProductsViewModel = ({
     }
 
     const nextFieldErrors = validateProductForm({
-      name: form.name,
-      salePrice: form.salePrice,
+      mode: editorMode,
+      form,
     });
 
     if (Object.values(nextFieldErrors).some(Boolean)) {
@@ -318,25 +337,20 @@ export const useProductsViewModel = ({
       return;
     }
 
-    const salePrice = parseNumber(form.salePrice);
+    const normalizedName = form.name.trim();
+    const normalizedCategoryName = form.categoryName.trim();
+    const normalizedUnitLabel = form.unitLabel.trim();
+    const normalizedSkuOrBarcode = form.skuOrBarcode.trim();
+    const normalizedTaxRateLabel = form.taxRateLabel.trim();
+    const normalizedDescription = form.description.trim();
+    const normalizedImageUrl = form.imageUrl.trim();
+
+    const salePrice = Number(form.salePrice.trim().replace(/,/g, ""));
     const costPrice = parseNumber(form.costPrice);
-    const normalizedOpeningStock = form.openingStockQuantity.trim();
-    const openingStockQuantity = parseNumber(form.openingStockQuantity);
-
-    if (salePrice === null) {
-      setErrorMessage("Sale price is required.");
-      return;
-    }
-
-    if (normalizedOpeningStock.length > 0 && openingStockQuantity === null) {
-      setErrorMessage("Opening stock must be a valid number.");
-      return;
-    }
-
-    if (openingStockQuantity !== null && openingStockQuantity < 0) {
-      setErrorMessage("Opening stock cannot be negative.");
-      return;
-    }
+    const openingStockQuantity =
+      editorMode === "create" && form.kind === ProductKind.Item
+        ? parseNumber(form.openingStockQuantity)
+        : null;
 
     setFieldErrors({});
     setErrorMessage(null);
@@ -344,16 +358,16 @@ export const useProductsViewModel = ({
     const productPayload = {
       remoteId: form.remoteId ?? Crypto.randomUUID(),
       accountRemoteId,
-      name: form.name,
+      name: normalizedName,
       kind: form.kind,
-      categoryName: form.categoryName || null,
+      categoryName: normalizedCategoryName || null,
       salePrice,
       costPrice,
-      unitLabel: form.kind === ProductKind.Item ? form.unitLabel || null : null,
-      skuOrBarcode: form.skuOrBarcode || null,
-      taxRateLabel: form.taxRateLabel || null,
-      description: form.description || null,
-      imageUrl: form.imageUrl || null,
+      unitLabel: form.kind === ProductKind.Item ? normalizedUnitLabel || null : null,
+      skuOrBarcode: normalizedSkuOrBarcode || null,
+      taxRateLabel: normalizedTaxRateLabel || null,
+      description: normalizedDescription || null,
+      imageUrl: normalizedImageUrl || null,
       status: ProductStatus.Active,
     };
 

@@ -191,6 +191,7 @@ export function ProductEditorModal({
         placeholder="0"
         keyboardType="decimal-pad"
         onChangeText={(value) => onChange("costPrice", value)}
+        errorText={fieldErrors.costPrice}
       />
 
       {mode === "create" && isItemKind ? (
@@ -198,8 +199,9 @@ export function ProductEditorModal({
           label="Opening Stock"
           value={form.openingStockQuantity}
           placeholder="0"
-          keyboardType="number-pad"
+          keyboardType="decimal-pad"
           onChangeText={(value) => onChange("openingStockQuantity", value)}
+          errorText={fieldErrors.openingStockQuantity}
         />
       ) : null}
 
@@ -214,6 +216,7 @@ export function ProductEditorModal({
         placeholder="Select unit"
         modalTitle="Select unit"
         disabled={!isItemKind}
+        errorText={isItemKind ? fieldErrors.unitLabel : undefined}
       />
 
       <LabeledTextInput

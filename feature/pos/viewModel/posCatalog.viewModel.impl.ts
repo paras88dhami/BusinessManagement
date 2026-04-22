@@ -1,19 +1,23 @@
 import {
-    ProductKind,
-    ProductStatus,
+  ProductKind,
+  ProductStatus,
 } from "@/feature/products/types/product.types";
+import { validatePosQuickProductForm } from "@/feature/pos/validation/validatePosQuickProductForm";
 import { SaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { POS_DEFAULT_QUICK_PRODUCT_PRICE_INPUT } from "../types/pos.constant";
 import type { PosProduct } from "../types/pos.entity.types";
-import type { PosQuickProductFieldErrors, PosScreenCoordinatorState } from "../types/pos.state.types";
+import type {
+  PosQuickProductFieldErrors,
+  PosScreenCoordinatorState,
+} from "../types/pos.state.types";
 import { AddProductToCartUseCase } from "../useCase/addProductToCart.useCase";
 import { SearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase";
 import {
-    buildNextRecentProducts,
-    calculateTotals,
-    parseAmountInput,
-    type PosSessionStateOverrides,
+  buildNextRecentProducts,
+  calculateTotals,
+  parseAmountInput,
+  type PosSessionStateOverrides,
 } from "./internal/posScreen.shared";
 import type { PosCatalogViewModel } from "./posCatalog.viewModel";
 
@@ -30,6 +34,20 @@ interface UsePosCatalogViewModelParams {
   ) => Promise<void>;
 }
 
+const clearFieldError = (
+  fieldErrors: PosQuickProductFieldErrors,
+  field: keyof PosQuickProductFieldErrors,
+): PosQuickProductFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
 export function usePosCatalogViewModel({
   state,
   setState,
@@ -42,33 +60,6 @@ export function usePosCatalogViewModel({
 }: UsePosCatalogViewModelParams): PosCatalogViewModel {
   const productSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const productSearchRequestIdRef = useRef(0);
-
-  const validatePosQuickProductForm = ({
-    name,
-    salePrice,
-  }: {
-    name: string;
-    salePrice: string;
-  }): PosQuickProductFieldErrors => {
-    const nextFieldErrors: PosQuickProductFieldErrors = {};
-    const normalizedName = name.trim();
-    const normalizedSalePrice = salePrice.trim();
-
-    if (!normalizedName) {
-      nextFieldErrors.name = "Product name is required.";
-    }
-
-    if (normalizedSalePrice.length > 0) {
-      const parsedSalePrice = Number(normalizedSalePrice.replace(/,/g, ""));
-      if (!Number.isFinite(parsedSalePrice)) {
-        nextFieldErrors.salePrice = "Sale price must be a valid number.";
-      } else if (parsedSalePrice < 0) {
-        nextFieldErrors.salePrice = "Sale price cannot be negative.";
-      }
-    }
-
-    return nextFieldErrors;
-  };
 
   const onProductSearchChange = useCallback(
     async (value: string) => {
@@ -165,7 +156,13 @@ export function usePosCatalogViewModel({
         recentProducts: nextRecentProducts,
       });
     },
-    [addProductToCartUseCase, saveCurrentSession, setState, state.products, state.recentProducts],
+    [
+      addProductToCartUseCase,
+      saveCurrentSession,
+      setState,
+      state.products,
+      state.recentProducts,
+    ],
   );
 
   const onOpenCreateProductModal = useCallback(() => {
@@ -198,10 +195,10 @@ export function usePosCatalogViewModel({
       setState((currentState) => ({
         ...currentState,
         quickProductNameInput: value,
-        quickProductFieldErrors: {
-          ...currentState.quickProductFieldErrors,
-          name: undefined,
-        },
+        quickProductFieldErrors: clearFieldError(
+          currentState.quickProductFieldErrors,
+          "name",
+        ),
         errorMessage: null,
       }));
     },
@@ -213,10 +210,10 @@ export function usePosCatalogViewModel({
       setState((currentState) => ({
         ...currentState,
         quickProductPriceInput: value,
-        quickProductFieldErrors: {
-          ...currentState.quickProductFieldErrors,
-          salePrice: undefined,
-        },
+        quickProductFieldErrors: clearFieldError(
+          currentState.quickProductFieldErrors,
+          "salePrice",
+        ),
         errorMessage: null,
       }));
     },
@@ -259,14 +256,15 @@ export function usePosCatalogViewModel({
 
     const normalizedName = state.quickProductNameInput.trim();
     const normalizedPrice = state.quickProductPriceInput.trim();
+    const normalizedCategoryName = state.quickProductCategoryInput.trim();
     const parsedPrice = parseAmountInput(normalizedPrice);
 
     const saveResult = await saveProductUseCase.execute({
-      remoteId: `product-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      remoteId: `product-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       accountRemoteId: activeBusinessAccountRemoteId,
       name: normalizedName,
       kind: ProductKind.Item,
-      categoryName: state.quickProductCategoryInput.trim() || null,
+      categoryName: normalizedCategoryName || null,
       salePrice: parsedPrice,
       costPrice: null,
       unitLabel: "pcs",
@@ -299,6 +297,7 @@ export function usePosCatalogViewModel({
     const refreshedProducts = await searchPosProductsUseCase.execute(
       state.productSearchTerm,
     );
+
     const createdProduct: PosProduct = {
       id: saveResult.value.remoteId,
       name: saveResult.value.name,
@@ -306,8 +305,10 @@ export function usePosCatalogViewModel({
       unitLabel: saveResult.value.unitLabel ?? null,
       price: saveResult.value.salePrice,
       taxRate: 0,
-      shortCode: saveResult.value.name.trim().slice(0, 1).toUpperCase() || "P",
+      shortCode:
+        saveResult.value.name.trim().slice(0, 1).toUpperCase() || "P",
     };
+
     const nextRecentProducts = buildNextRecentProducts(
       state.recentProducts,
       createdProduct,
@@ -384,6 +385,7 @@ export function usePosCatalogViewModel({
       state.filteredProducts,
       state.productSearchTerm,
       state.quickProductCategoryInput,
+      state.quickProductFieldErrors,
       state.quickProductNameInput,
       state.quickProductPriceInput,
       state.recentProducts,

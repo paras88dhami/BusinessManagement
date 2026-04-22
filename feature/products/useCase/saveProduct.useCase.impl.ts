@@ -5,36 +5,59 @@ import {
 } from "@/feature/products/types/product.types";
 import { SaveProductUseCase } from "./saveProduct.useCase";
 
+const normalizeNullableText = (
+  value: string | null | undefined,
+): string | null => {
+  const normalizedValue = value?.trim() ?? "";
+  return normalizedValue.length > 0 ? normalizedValue : null;
+};
+
 export const createSaveProductUseCase = (
   repository: ProductRepository,
 ): SaveProductUseCase => ({
   async execute(payload) {
-    const normalizedRemoteId = payload.remoteId.trim();
-    const normalizedAccountRemoteId = payload.accountRemoteId.trim();
-    const normalizedName = payload.name.trim();
+    const normalizedPayload = {
+      ...payload,
+      remoteId: payload.remoteId.trim(),
+      accountRemoteId: payload.accountRemoteId.trim(),
+      name: payload.name.trim(),
+      categoryName: normalizeNullableText(payload.categoryName),
+      unitLabel: normalizeNullableText(payload.unitLabel),
+      skuOrBarcode: normalizeNullableText(payload.skuOrBarcode),
+      taxRateLabel: normalizeNullableText(payload.taxRateLabel),
+      description: normalizeNullableText(payload.description),
+      imageUrl: normalizeNullableText(payload.imageUrl),
+    };
 
-    if (!normalizedRemoteId) {
+    if (!normalizedPayload.remoteId) {
       return {
         success: false,
         error: ProductValidationError("Product remote id is required."),
       };
     }
 
-    if (!normalizedAccountRemoteId) {
+    if (!normalizedPayload.accountRemoteId) {
       return {
         success: false,
         error: ProductValidationError("Account remote id is required."),
       };
     }
 
-    if (!normalizedName) {
+    if (!normalizedPayload.name) {
       return {
         success: false,
         error: ProductValidationError("Product name is required."),
       };
     }
 
-    if (payload.salePrice < 0) {
+    if (!Number.isFinite(normalizedPayload.salePrice)) {
+      return {
+        success: false,
+        error: ProductValidationError("Sale price must be a valid number."),
+      };
+    }
+
+    if (normalizedPayload.salePrice < 0) {
       return {
         success: false,
         error: ProductValidationError("Sale price cannot be negative."),
@@ -42,9 +65,18 @@ export const createSaveProductUseCase = (
     }
 
     if (
-      payload.costPrice !== null &&
-      Number.isFinite(payload.costPrice) &&
-      payload.costPrice < 0
+      normalizedPayload.costPrice !== null &&
+      !Number.isFinite(normalizedPayload.costPrice)
+    ) {
+      return {
+        success: false,
+        error: ProductValidationError("Cost price must be a valid number."),
+      };
+    }
+
+    if (
+      normalizedPayload.costPrice !== null &&
+      normalizedPayload.costPrice < 0
     ) {
       return {
         success: false,
@@ -53,8 +85,8 @@ export const createSaveProductUseCase = (
     }
 
     if (
-      payload.kind !== ProductKind.Item &&
-      payload.kind !== ProductKind.Service
+      normalizedPayload.kind !== ProductKind.Item &&
+      normalizedPayload.kind !== ProductKind.Service
     ) {
       return {
         success: false,
@@ -62,7 +94,22 @@ export const createSaveProductUseCase = (
       };
     }
 
-    if (payload.kind === ProductKind.Service && payload.unitLabel !== null) {
+    if (
+      normalizedPayload.kind === ProductKind.Item &&
+      !normalizedPayload.unitLabel
+    ) {
+      return {
+        success: false,
+        error: ProductValidationError(
+          "Item products require a unit label.",
+        ),
+      };
+    }
+
+    if (
+      normalizedPayload.kind === ProductKind.Service &&
+      normalizedPayload.unitLabel !== null
+    ) {
       return {
         success: false,
         error: ProductValidationError(
@@ -71,35 +118,6 @@ export const createSaveProductUseCase = (
       };
     }
 
-    const existingProductsResult = await repository.getProductsByAccountRemoteId(
-      normalizedAccountRemoteId,
-    );
-
-    if (!existingProductsResult.success) {
-      return {
-        success: false,
-        error: existingProductsResult.error,
-      };
-    }
-
-    const existingProduct = existingProductsResult.value.find(
-      (product) => product.remoteId === normalizedRemoteId,
-    );
-
-    if (existingProduct && existingProduct.kind !== payload.kind) {
-      return {
-        success: false,
-        error: ProductValidationError(
-          "Product type cannot be changed after creation.",
-        ),
-      };
-    }
-
-    return repository.saveProduct({
-      ...payload,
-      remoteId: normalizedRemoteId,
-      accountRemoteId: normalizedAccountRemoteId,
-      name: normalizedName,
-    });
+    return repository.saveProduct(normalizedPayload);
   },
 });

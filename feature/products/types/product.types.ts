@@ -102,7 +102,12 @@ export const PRODUCT_CATEGORY_OPTIONS = [
 
 export const PRODUCT_UNIT_OPTIONS = ["pcs", "kg", "bag", "bottle", "box", "ltr"] as const;
 
-export type ProductFormFieldName = "name" | "salePrice";
+export type ProductFormFieldName =
+  | "name"
+  | "salePrice"
+  | "costPrice"
+  | "openingStockQuantity"
+  | "unitLabel";
 
 export type ProductFormFieldErrors = Partial<
   Record<ProductFormFieldName, string>

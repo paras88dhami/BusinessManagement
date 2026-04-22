@@ -1,3 +1,4 @@
+import type { PosQuickProductFieldErrors } from "@/feature/pos/types/pos.state.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
@@ -11,10 +12,7 @@ type PosQuickProductModalProps = {
   name: string;
   salePrice: string;
   categoryName: string;
-  fieldErrors: {
-    name?: string;
-    salePrice?: string;
-  };
+  fieldErrors: PosQuickProductFieldErrors;
   onNameChange: (value: string) => void;
   onSalePriceChange: (value: string) => void;
   onCategoryNameChange: (value: string) => void;
@@ -62,9 +60,9 @@ export function PosQuickProductModal({
       }
     >
       <LabeledTextInput
-        label="Product Name *"
+        label="Product Name"
         value={name}
-        placeholder="Product name *"
+        placeholder="Product name"
         onChangeText={onNameChange}
         autoCapitalize="words"
         errorText={fieldErrors.name}
