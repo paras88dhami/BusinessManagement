@@ -1,12 +1,12 @@
-import { InventoryRepository } from "@/feature/inventory/data/repository/inventory.repository";
-import {
-  InventoryMovementType,
-  SaveInventoryMovementPayload,
-} from "@/feature/inventory/types/inventory.types";
-import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
-import { ProductRepository } from "@/feature/products/data/repository/product.repository";
-import { Product, ProductKind, ProductStatus } from "@/feature/products/types/product.types";
 import { describe, expect, it, vi } from "vitest";
+
+import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
+import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
+import {
+  ProductKind,
+  ProductStatus,
+  type Product,
+} from "@/feature/products/types/product.types";
 
 const buildProduct = (overrides: Partial<Product> = {}): Product => ({
   remoteId: "product-1",
@@ -28,64 +28,65 @@ const buildProduct = (overrides: Partial<Product> = {}): Product => ({
   ...overrides,
 });
 
-const createProductRepository = (
-  products: Product[],
-): {
-  productRepository: ProductRepository;
-  getProductsByAccountRemoteIdMock: ReturnType<typeof vi.fn>;
-} => {
-  const getProductsByAccountRemoteIdMock = vi.fn(async () => ({
-    success: true as const,
-    value: products,
-  }));
+describe("createSaveInventoryMovementUseCase", () => {
+  it("rejects when account remote id is missing", async () => {
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(),
+    };
 
-  return {
-    productRepository: {
-      saveProduct: vi.fn(async () => {
-        throw new Error("Not implemented for this test");
-      }),
-      getProductsByAccountRemoteId: getProductsByAccountRemoteIdMock,
-      deleteProductByRemoteId: vi.fn(async () => {
-        throw new Error("Not implemented for this test");
-      }),
-    },
-    getProductsByAccountRemoteIdMock,
-  };
-};
-
-const createInventoryRepository = (
-  saveInventoryMovementMock: InventoryRepository["saveInventoryMovement"],
-): InventoryRepository => ({
-  getInventorySnapshotByAccountRemoteId: vi.fn(async () => {
-    throw new Error("Not implemented for this test");
-  }),
-  getInventoryMovementsBySource: vi.fn(async () => {
-    throw new Error("Not implemented for this test");
-  }),
-  saveInventoryMovement: saveInventoryMovementMock,
-  saveInventoryMovements: vi.fn(async () => {
-    throw new Error("Not implemented for this test");
-  }),
-  deleteInventoryMovementsByRemoteIds: vi.fn(async () => {
-    throw new Error("Not implemented for this test");
-  }),
-});
-
-describe("saveInventoryMovementUseCase", () => {
-  it("rejects stock mutation for non-item products", async () => {
-    const { productRepository } = createProductRepository([
-      buildProduct({ kind: ProductKind.Service, stockQuantity: null }),
-    ]);
-    const saveInventoryMovementMock = vi.fn<
-      InventoryRepository["saveInventoryMovement"]
-    >(async () => {
-      throw new Error("Should not be called");
-    });
-    const inventoryRepository = createInventoryRepository(saveInventoryMovementMock);
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(),
+    };
 
     const useCase = createSaveInventoryMovementUseCase({
-      inventoryRepository,
-      productRepository,
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "move-1",
+      accountRemoteId: "   ",
+      productRemoteId: "product-1",
+      type: InventoryMovementType.StockIn,
+      quantity: 2,
+      unitRate: 80,
+      reason: null,
+      remark: "Restock",
+      sourceModule: "manual",
+      sourceRemoteId: "source-1",
+      sourceLineRemoteId: null,
+      sourceAction: null,
+      movementAt: Date.now(),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toBe("Account remote id is required.");
+    }
+    expect(productRepository.getProductsByAccountRemoteId).not.toHaveBeenCalled();
+    expect(inventoryRepository.saveInventoryMovement).not.toHaveBeenCalled();
+  });
+
+  it("rejects stock mutation for non-item products", async () => {
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          buildProduct({
+            kind: ProductKind.Service,
+            stockQuantity: null,
+          }),
+        ],
+      })),
+    };
+
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(),
+    };
+
+    const useCase = createSaveInventoryMovementUseCase({
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
     });
 
     const result = await useCase.execute({
@@ -98,30 +99,40 @@ describe("saveInventoryMovementUseCase", () => {
       reason: null,
       remark: "Restock",
       sourceModule: "manual",
-      sourceRemoteId: "manual-1",
+      sourceRemoteId: "source-1",
       sourceLineRemoteId: null,
       sourceAction: null,
       movementAt: Date.now(),
     });
 
     expect(result.success).toBe(false);
-    expect(saveInventoryMovementMock).not.toHaveBeenCalled();
+    if (!result.success) {
+      expect(result.error.message).toBe(
+        "Inventory movement can only be recorded for item products",
+      );
+    }
+    expect(inventoryRepository.saveInventoryMovement).not.toHaveBeenCalled();
   });
 
   it("rejects movement that would reduce stock below zero", async () => {
-    const { productRepository } = createProductRepository([
-      buildProduct({ stockQuantity: 1 }),
-    ]);
-    const saveInventoryMovementMock = vi.fn<
-      InventoryRepository["saveInventoryMovement"]
-    >(async () => {
-      throw new Error("Should not be called");
-    });
-    const inventoryRepository = createInventoryRepository(saveInventoryMovementMock);
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          buildProduct({
+            stockQuantity: 1,
+          }),
+        ],
+      })),
+    };
+
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(),
+    };
 
     const useCase = createSaveInventoryMovementUseCase({
-      inventoryRepository,
-      productRepository,
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
     });
 
     const result = await useCase.execute({
@@ -132,57 +143,107 @@ describe("saveInventoryMovementUseCase", () => {
       quantity: 2,
       unitRate: 100,
       reason: null,
-      remark: "Sale out",
-      sourceModule: "pos",
-      sourceRemoteId: "sale-1",
+      remark: "Sold item",
+      sourceModule: "orders",
+      sourceRemoteId: "order-1",
+      sourceLineRemoteId: "line-1",
+      sourceAction: "deliver",
+      movementAt: Date.now(),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toBe(
+        "Inventory movement would reduce Rice Bag below zero",
+      );
+    }
+    expect(inventoryRepository.saveInventoryMovement).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid source metadata combinations", async () => {
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: [buildProduct()],
+      })),
+    };
+
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(),
+    };
+
+    const useCase = createSaveInventoryMovementUseCase({
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
+    });
+
+    const result = await useCase.execute({
+      remoteId: "move-1",
+      accountRemoteId: "account-1",
+      productRemoteId: "product-1",
+      type: InventoryMovementType.StockIn,
+      quantity: 2,
+      unitRate: 80,
+      reason: null,
+      remark: "Restock",
+      sourceModule: "manual",
+      sourceRemoteId: null,
       sourceLineRemoteId: null,
       sourceAction: null,
       movementAt: Date.now(),
     });
 
     expect(result.success).toBe(false);
-    expect(saveInventoryMovementMock).not.toHaveBeenCalled();
+    if (!result.success) {
+      expect(result.error.message).toBe(
+        "Inventory movement source remote id is required",
+      );
+    }
+    expect(inventoryRepository.saveInventoryMovement).not.toHaveBeenCalled();
   });
 
-  it("passes validated movement to repository", async () => {
-    const { productRepository } = createProductRepository([
-      buildProduct({ stockQuantity: 5 }),
-    ]);
-    const saveInventoryMovementMock = vi.fn<
-      InventoryRepository["saveInventoryMovement"]
-    >(async (payload: SaveInventoryMovementPayload) => ({
-      success: true as const,
-      value: {
-        remoteId: payload.remoteId,
-        accountRemoteId: payload.accountRemoteId,
-        productRemoteId: payload.productRemoteId,
-        productName: "Rice Bag",
-        productUnitLabel: "bag",
-        type: payload.type,
-        quantity: payload.quantity,
-        deltaQuantity:
-          payload.type === InventoryMovementType.SaleOut
-            ? payload.quantity * -1
-            : payload.quantity,
-        unitRate: payload.unitRate,
-        totalValue:
-          payload.unitRate === null ? null : payload.unitRate * payload.quantity,
-        reason: payload.reason,
-        remark: payload.remark,
-        sourceModule: payload.sourceModule ?? null,
-        sourceRemoteId: payload.sourceRemoteId ?? null,
-        sourceLineRemoteId: payload.sourceLineRemoteId ?? null,
-        sourceAction: payload.sourceAction ?? null,
-        movementAt: payload.movementAt,
-        createdAt: payload.movementAt,
-        updatedAt: payload.movementAt,
-      },
-    }));
-    const inventoryRepository = createInventoryRepository(saveInventoryMovementMock);
+  it("passes normalized validated movement to repository", async () => {
+    const productRepository = {
+      getProductsByAccountRemoteId: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          buildProduct({
+            stockQuantity: 5,
+          }),
+        ],
+      })),
+    };
+
+    const inventoryRepository = {
+      saveInventoryMovement: vi.fn(async (payload) => ({
+        success: true as const,
+        value: {
+          remoteId: payload.remoteId,
+          accountRemoteId: payload.accountRemoteId,
+          productRemoteId: payload.productRemoteId,
+          productName: "Rice Bag",
+          productUnitLabel: "bag",
+          type: payload.type,
+          quantity: payload.quantity,
+          deltaQuantity: payload.quantity,
+          unitRate: payload.unitRate,
+          totalValue: 160,
+          reason: payload.reason,
+          remark: payload.remark,
+          sourceModule: payload.sourceModule ?? null,
+          sourceRemoteId: payload.sourceRemoteId ?? null,
+          sourceLineRemoteId: payload.sourceLineRemoteId ?? null,
+          sourceAction: payload.sourceAction ?? null,
+          movementAt: payload.movementAt,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+      })),
+    };
 
     const useCase = createSaveInventoryMovementUseCase({
-      inventoryRepository,
-      productRepository,
+      inventoryRepository: inventoryRepository as never,
+      productRepository: productRepository as never,
     });
 
     const result = await useCase.execute({
@@ -202,8 +263,11 @@ describe("saveInventoryMovementUseCase", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(saveInventoryMovementMock).toHaveBeenCalledTimes(1);
-    expect(saveInventoryMovementMock).toHaveBeenCalledWith(
+    expect(productRepository.getProductsByAccountRemoteId).toHaveBeenCalledWith(
+      "account-1",
+    );
+    expect(inventoryRepository.saveInventoryMovement).toHaveBeenCalledTimes(1);
+    expect(inventoryRepository.saveInventoryMovement).toHaveBeenCalledWith(
       expect.objectContaining({
         remoteId: "move-1",
         accountRemoteId: "account-1",
