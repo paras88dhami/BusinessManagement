@@ -42,7 +42,7 @@ export type OrderMoneyActionViewModelState = {
   onOpenMoneyAction: (action: OrderMoneyActionValue) => void;
   onCloseMoneyAction: () => void;
   onMoneyFormChange: (
-    field: keyof Omit<OrderMoneyFormState, "visible" | "action">,
+    field: keyof Omit<OrderMoneyFormState, "visible" | "action" | "fieldErrors">,
     value: string,
   ) => void;
   onSubmitMoneyAction: () => Promise<void>;

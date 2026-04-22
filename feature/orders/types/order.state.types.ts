@@ -1,10 +1,23 @@
 import { OrderStatusValue } from "@/feature/orders/types/order.types";
 
+export type OrderLineFormFieldName = "productRemoteId" | "quantity";
+
+export type OrderLineFormFieldErrors = Partial<
+  Record<OrderLineFormFieldName, string>
+>;
+
 export type OrderLineFormState = {
   remoteId: string;
   productRemoteId: string;
   quantity: string;
+  fieldErrors: OrderLineFormFieldErrors;
 };
+
+export type OrderFormFieldName = "items";
+
+export type OrderFormFieldErrors = Partial<
+  Record<OrderFormFieldName, string>
+>;
 
 export type OrderFormState = {
   remoteId: string | null;
@@ -17,6 +30,7 @@ export type OrderFormState = {
   internalRemarks: string;
   status: OrderStatusValue;
   items: OrderLineFormState[];
+  fieldErrors: OrderFormFieldErrors;
 };
 
 export type OrderFormPricingPreview = {
@@ -44,6 +58,15 @@ export type OrderSummaryState = {
 
 export type OrderMoneyActionValue = "payment" | "refund";
 
+export type OrderMoneyFormFieldName =
+  | "amount"
+  | "happenedAt"
+  | "settlementMoneyAccountRemoteId";
+
+export type OrderMoneyFormFieldErrors = Partial<
+  Record<OrderMoneyFormFieldName, string>
+>;
+
 export type OrderMoneyFormState = {
   visible: boolean;
   action: OrderMoneyActionValue;
@@ -54,4 +77,5 @@ export type OrderMoneyFormState = {
   settlementMoneyAccountRemoteId: string;
   note: string;
   attemptRemoteId: string | null;
+  fieldErrors: OrderMoneyFormFieldErrors;
 };

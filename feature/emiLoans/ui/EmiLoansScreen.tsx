@@ -142,16 +142,11 @@ export function EmiLoansScreen({
         footer={
           <BottomTabAwareFooter>
             <AppButton
-              label={
-                listViewModel.planMode === "business"
-                  ? "Create New Plan"
-                  : "Create New EMI"
-              }
-              variant="secondary"
+              label={listViewModel.primaryActionLabel}
+              variant="primary"
               size="lg"
-              style={styles.createPlanButton}
-              labelStyle={styles.createPlanLabel}
-              leadingIcon={<Plus size={18} color={colors.primary} />}
+              style={styles.primaryActionButton}
+              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
               onPress={listViewModel.onOpenCreate}
             />
           </BottomTabAwareFooter>
@@ -311,15 +306,8 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.sm,
   },
-  createPlanButton: {
+  primaryActionButton: {
     width: "100%",
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "rgba(31, 99, 64, 0.35)",
-    backgroundColor: colors.background,
-  },
-  createPlanLabel: {
-    color: colors.primary,
   },
   alertCard: {
     borderRadius: radius.lg,

@@ -19,7 +19,7 @@ type Props = {
   moneyAccountOptions: DropdownOption[];
   onClose: () => void;
   onChange: (
-    field: keyof Omit<OrderMoneyFormState, "visible" | "action">,
+    field: keyof Omit<OrderMoneyFormState, "visible" | "action" | "fieldErrors">,
     value: string,
   ) => void;
   onSubmit: () => Promise<void>;
@@ -48,19 +48,22 @@ export function OrderMoneyActionModal({
       contentContainerStyle={styles.content}
     >
       <LabeledTextInput
-        label="Amount"
+        label="Amount *"
         value={form.amount}
         onChangeText={(value) => onChange("amount", value)}
         keyboardType="decimal-pad"
         placeholder="Enter amount"
+        errorText={form.fieldErrors.amount}
       />
       <LabeledTextInput
-        label="Date"
+        label="Date *"
         value={form.happenedAt}
         onChangeText={(value) => onChange("happenedAt", value)}
         placeholder="YYYY-MM-DD"
+        errorText={form.fieldErrors.happenedAt}
       />
-      <Text style={styles.label}>Money Account</Text>
+
+      <Text style={styles.label}>Money Account *</Text>
       <Dropdown
         value={form.settlementMoneyAccountRemoteId}
         options={moneyAccountOptions}
@@ -69,6 +72,12 @@ export function OrderMoneyActionModal({
         modalTitle="Select money account"
         showLeadingIcon={false}
       />
+      {form.fieldErrors.settlementMoneyAccountRemoteId ? (
+        <Text style={styles.errorText}>
+          {form.fieldErrors.settlementMoneyAccountRemoteId}
+        </Text>
+      ) : null}
+
       <LabeledTextInput
         label="Note"
         value={form.note}
@@ -76,9 +85,19 @@ export function OrderMoneyActionModal({
         placeholder="Optional note"
         multiline
       />
+
       <View style={styles.actionRow}>
-        <AppButton label="Cancel" variant="secondary" style={styles.actionButton} onPress={onClose} />
-        <AppButton label={getSubmitLabel(form.action)} style={styles.actionButton} onPress={() => void onSubmit()} />
+        <AppButton
+          label="Cancel"
+          variant="secondary"
+          style={styles.actionButton}
+          onPress={onClose}
+        />
+        <AppButton
+          label={getSubmitLabel(form.action)}
+          style={styles.actionButton}
+          onPress={() => void onSubmit()}
+        />
       </View>
     </FormSheetModal>
   );
@@ -92,6 +111,13 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
     marginBottom: -4,
+  },
+  errorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: "InterMedium",
+    marginTop: -2,
   },
   actionRow: {
     flexDirection: "row",

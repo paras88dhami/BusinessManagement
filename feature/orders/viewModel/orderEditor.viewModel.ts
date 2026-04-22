@@ -1,7 +1,7 @@
 import {
-    OrderFormPricingPreview,
-    OrderFormState,
-    OrderLineFormState,
+  OrderFormPricingPreview,
+  OrderFormState,
+  OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
 import { Order } from "@/feature/orders/types/order.types";
 import { OrderSettlementSnapshot } from "@/feature/orders/types/orderSettlement.dto.types";
@@ -40,12 +40,12 @@ export type OrderEditorViewModelState = {
   onOpenEdit: (remoteId: string) => Promise<void>;
   onCloseEditor: () => void;
   onFormChange: (
-    field: keyof Omit<OrderFormState, "items">,
+    field: keyof Omit<OrderFormState, "items" | "fieldErrors">,
     value: string,
   ) => void;
   onLineItemChange: (
     remoteId: string,
-    field: keyof OrderLineFormState,
+    field: keyof Omit<OrderLineFormState, "fieldErrors">,
     value: string,
   ) => void;
   onAddLineItem: () => void;

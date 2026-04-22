@@ -1,12 +1,12 @@
 import {
-    OrderFormPricingPreview,
-    OrderFormState,
-    OrderLineFormState,
+  OrderFormPricingPreview,
+  OrderFormState,
+  OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import {
-    Dropdown,
-    DropdownOption,
+  Dropdown,
+  DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
@@ -29,10 +29,13 @@ type Props = {
   productPriceByRemoteId: Readonly<Record<string, number>>;
   paymentMethodOptions: readonly DropdownOption[];
   onClose: () => void;
-  onChange: (field: keyof Omit<OrderFormState, "items">, value: string) => void;
+  onChange: (
+    field: keyof Omit<OrderFormState, "items" | "fieldErrors">,
+    value: string,
+  ) => void;
   onLineItemChange: (
     remoteId: string,
-    field: keyof OrderLineFormState,
+    field: keyof Omit<OrderLineFormState, "fieldErrors">,
     value: string,
   ) => void;
   onAddLineItem: () => void;
@@ -112,7 +115,11 @@ export function OrderEditorModal({
 
       <View style={styles.itemsHeaderRow}>
         <Text style={styles.fieldLabel}>Items</Text>
+        {form.fieldErrors.items ? (
+          <Text style={styles.sectionErrorText}>{form.fieldErrors.items}</Text>
+        ) : null}
       </View>
+
       <View style={styles.itemsTableHeader}>
         <Text style={[styles.tableHeaderText, styles.itemNameWrap]}>Item</Text>
         <Text style={[styles.tableHeaderText, styles.quantityWrap]}>Qty</Text>
@@ -123,46 +130,75 @@ export function OrderEditorModal({
       <View style={styles.itemsWrap}>
         {lineItems.map((item) => {
           const salePriceAmount = productPriceByRemoteId[item.productRemoteId] ?? 0;
+          const hasInlineError =
+            Boolean(item.fieldErrors.productRemoteId) ||
+            Boolean(item.fieldErrors.quantity);
 
           return (
-            <View key={item.remoteId} style={styles.itemRow}>
-              <View style={styles.itemNameWrap}>
-                <Dropdown
-                  value={item.productRemoteId}
-                  options={productOptions}
-                  onChange={(value) =>
-                    onLineItemChange(item.remoteId, "productRemoteId", value)
+            <View key={item.remoteId} style={styles.itemBlock}>
+              <View style={styles.itemRow}>
+                <View style={styles.itemNameWrap}>
+                  <Dropdown
+                    value={item.productRemoteId}
+                    options={productOptions}
+                    onChange={(value) =>
+                      onLineItemChange(item.remoteId, "productRemoteId", value)
+                    }
+                    placeholder="Item name"
+                    modalTitle="Select item"
+                    showLeadingIcon={false}
+                  />
+                </View>
+
+                <LabeledTextInput
+                  label=""
+                  value={item.quantity}
+                  onChangeText={(value) =>
+                    onLineItemChange(item.remoteId, "quantity", value)
                   }
-                  placeholder="Item name"
-                  modalTitle="Select item"
-                  showLeadingIcon={false}
+                  keyboardType="decimal-pad"
+                  placeholder="1"
+                  containerStyle={styles.quantityWrap}
+                  inputStyle={styles.centeredInput}
                 />
+
+                <LabeledTextInput
+                  label=""
+                  value={formatCompactAmount(salePriceAmount)}
+                  editable={false}
+                  containerStyle={styles.priceWrap}
+                  inputStyle={styles.centeredInput}
+                />
+
+                {lineItems.length > 1 ? (
+                  <Pressable
+                    style={styles.removeItemIconButton}
+                    onPress={() => onRemoveLineItem(item.remoteId)}
+                  >
+                    <Trash2 size={14} color={colors.destructive} />
+                  </Pressable>
+                ) : null}
               </View>
-              <LabeledTextInput
-                label=""
-                value={item.quantity}
-                onChangeText={(value) =>
-                  onLineItemChange(item.remoteId, "quantity", value)
-                }
-                keyboardType="decimal-pad"
-                placeholder="1"
-                containerStyle={styles.quantityWrap}
-                inputStyle={styles.centeredInput}
-              />
-              <LabeledTextInput
-                label=""
-                value={formatCompactAmount(salePriceAmount)}
-                editable={false}
-                containerStyle={styles.priceWrap}
-                inputStyle={styles.centeredInput}
-              />
-              {lineItems.length > 1 ? (
-                <Pressable
-                  style={styles.removeItemIconButton}
-                  onPress={() => onRemoveLineItem(item.remoteId)}
-                >
-                  <Trash2 size={14} color={colors.destructive} />
-                </Pressable>
+
+              {hasInlineError ? (
+                <View style={styles.itemErrorRow}>
+                  <View style={styles.itemNameWrap}>
+                    {item.fieldErrors.productRemoteId ? (
+                      <Text style={styles.inlineErrorText}>
+                        {item.fieldErrors.productRemoteId}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.quantityWrap}>
+                    {item.fieldErrors.quantity ? (
+                      <Text style={[styles.inlineErrorText, styles.centeredErrorText]}>
+                        {item.fieldErrors.quantity}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.priceWrap} />
+                  <View style={styles.itemActionSpacer} />
+                </View>
               ) : null}
             </View>
           );
@@ -254,13 +290,27 @@ const styles = StyleSheet.create({
   },
   itemsHeaderRow: {
     marginTop: spacing.xs,
+    gap: 4,
+  },
+  sectionErrorText: {
+    color: colors.destructive,
+    fontSize: 12,
+    fontFamily: "InterMedium",
   },
   itemsWrap: {
     gap: spacing.sm,
   },
+  itemBlock: {
+    gap: 4,
+  },
   itemRow: {
     flexDirection: "row",
     alignItems: "flex-end",
+    gap: spacing.xs,
+  },
+  itemErrorRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: spacing.xs,
   },
   itemNameWrap: {
@@ -278,6 +328,15 @@ const styles = StyleSheet.create({
   centeredInput: {
     textAlign: "center",
     paddingHorizontal: spacing.xs,
+  },
+  centeredErrorText: {
+    textAlign: "center",
+  },
+  inlineErrorText: {
+    color: colors.destructive,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: "InterMedium",
   },
   removeItemIconButton: {
     width: 30,

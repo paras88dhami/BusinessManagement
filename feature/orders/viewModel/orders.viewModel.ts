@@ -60,12 +60,12 @@ export interface OrdersViewModel {
   onCloseDetail: () => void;
 
   onFormChange: (
-    field: keyof Omit<OrderFormState, "items">,
+    field: keyof Omit<OrderFormState, "items" | "fieldErrors">,
     value: string,
   ) => void;
   onLineItemChange: (
     remoteId: string,
-    field: keyof OrderLineFormState,
+    field: keyof Omit<OrderLineFormState, "fieldErrors">,
     value: string,
   ) => void;
   onAddLineItem: () => void;
@@ -85,7 +85,7 @@ export interface OrdersViewModel {
   onOpenMoneyAction: (action: OrderMoneyActionValue) => void;
   onCloseMoneyAction: () => void;
   onMoneyFormChange: (
-    field: keyof Omit<OrderMoneyFormState, "visible" | "action">,
+    field: keyof Omit<OrderMoneyFormState, "visible" | "action" | "fieldErrors">,
     value: string,
   ) => void;
   onSubmitMoneyAction: () => Promise<void>;

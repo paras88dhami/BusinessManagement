@@ -1,23 +1,54 @@
 import {
-    OrderFormState,
-    OrderLineFormState,
+  OrderFormFieldErrors,
+  OrderFormState,
+  OrderLineFormFieldErrors,
+  OrderLineFormState,
 } from "@/feature/orders/types/order.state.types";
 import { getOrderEditBlockedReason } from "@/feature/orders/utils/orderLifecyclePolicy.util";
+import { validateOrderEditorForm } from "@/feature/orders/validation/validateOrderEditorForm";
 import * as Crypto from "expo-crypto";
 import { useCallback, useMemo, useState } from "react";
 import {
-    OrderEditorViewModelParams,
-    OrderEditorViewModelState,
+  OrderEditorViewModelParams,
+  OrderEditorViewModelState,
 } from "./orderEditor.viewModel";
 import {
-    buildNextOrderNumber,
-    calculateFormPricingPreview,
-    createEmptyLineItem,
-    EMPTY_FORM,
-    mapOrderToForm,
-    parseNumber,
-    safeTrim,
+  buildNextOrderNumber,
+  calculateFormPricingPreview,
+  createEmptyLineItem,
+  EMPTY_FORM,
+  mapOrderToForm,
+  parseNumber,
+  safeTrim,
 } from "./ordersPresentation.helpers";
+
+const clearFormFieldError = (
+  fieldErrors: OrderFormFieldErrors,
+  field: keyof OrderFormFieldErrors,
+): OrderFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const clearLineFieldError = (
+  fieldErrors: OrderLineFormFieldErrors,
+  field: keyof OrderLineFormFieldErrors,
+): OrderLineFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
 
 export const useOrderEditorViewModel = ({
   accountRemoteId,
@@ -77,6 +108,7 @@ export const useOrderEditorViewModel = ({
       orderNumber: buildNextOrderNumber([...orders]),
       orderDate: new Date().toISOString().slice(0, 10),
       items: [createEmptyLineItem()],
+      fieldErrors: {},
     });
     setErrorMessage(null);
     setIsEditorVisible(true);
@@ -128,53 +160,90 @@ export const useOrderEditorViewModel = ({
       setErrorMessage(null);
       setIsEditorVisible(true);
     },
-    [canManage, getOrderByIdUseCase, getOrderSettlementSnapshotsUseCase, accountRemoteId, ownerUserRemoteId, setErrorMessage],
+    [
+      accountRemoteId,
+      canManage,
+      getOrderByIdUseCase,
+      getOrderSettlementSnapshotsUseCase,
+      ownerUserRemoteId,
+      setErrorMessage,
+    ],
   );
 
   const onCloseEditor = useCallback(() => {
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
-  }, []);
+    setErrorMessage(null);
+  }, [setErrorMessage]);
 
   const onFormChange = useCallback(
-    (field: keyof Omit<OrderFormState, "items">, value: string) => {
-      setForm((current) => ({ ...current, [field]: value }));
+    (field: keyof Omit<OrderFormState, "items" | "fieldErrors">, value: string) => {
+      setErrorMessage(null);
+      setForm((current) => ({
+        ...current,
+        [field]: value,
+        fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
+      }));
     },
-    [],
+    [setErrorMessage],
   );
 
   const onLineItemChange = useCallback(
-    (remoteId: string, field: keyof OrderLineFormState, value: string) => {
+    (
+      remoteId: string,
+      field: keyof Omit<OrderLineFormState, "fieldErrors">,
+      value: string,
+    ) => {
+      setErrorMessage(null);
       setForm((current) => ({
         ...current,
+        fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
         items: (Array.isArray(current.items) ? current.items : []).map((item) =>
-          item.remoteId === remoteId ? { ...item, [field]: value } : item,
+          item.remoteId === remoteId
+            ? {
+                ...item,
+                [field]: value,
+                fieldErrors:
+                  field === "productRemoteId"
+                    ? clearLineFieldError(item.fieldErrors, "productRemoteId")
+                    : field === "quantity"
+                      ? clearLineFieldError(item.fieldErrors, "quantity")
+                      : item.fieldErrors,
+              }
+            : item,
         ),
       }));
     },
-    [],
+    [setErrorMessage],
   );
 
   const onAddLineItem = useCallback(() => {
+    setErrorMessage(null);
     setForm((current) => ({
       ...current,
+      fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
       items: [...(Array.isArray(current.items) ? current.items : []), createEmptyLineItem()],
     }));
-  }, []);
+  }, [setErrorMessage]);
 
-  const onRemoveLineItem = useCallback((remoteId: string) => {
-    setForm((current) => ({
-      ...current,
-      items:
-        (Array.isArray(current.items) ? current.items : []).length > 1
-          ? (Array.isArray(current.items) ? current.items : []).filter(
-              (item) => item.remoteId !== remoteId,
-            )
-          : Array.isArray(current.items)
-            ? current.items
-            : [createEmptyLineItem()],
-    }));
-  }, []);
+  const onRemoveLineItem = useCallback(
+    (remoteId: string) => {
+      setErrorMessage(null);
+      setForm((current) => ({
+        ...current,
+        fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
+        items:
+          (Array.isArray(current.items) ? current.items : []).length > 1
+            ? (Array.isArray(current.items) ? current.items : []).filter(
+                (item) => item.remoteId !== remoteId,
+              )
+            : Array.isArray(current.items)
+              ? current.items
+              : [createEmptyLineItem()],
+      }));
+    },
+    [setErrorMessage],
+  );
 
   const onSubmit = useCallback(async () => {
     if (!canManage) {
@@ -186,8 +255,23 @@ export const useOrderEditorViewModel = ({
       return;
     }
 
+    const validationResult = validateOrderEditorForm(form);
+
+    if (
+      Object.values(validationResult.formFieldErrors).some(Boolean) ||
+      validationResult.items.some((item) => Object.values(item.fieldErrors).some(Boolean))
+    ) {
+      setForm((current) => ({
+        ...current,
+        fieldErrors: validationResult.formFieldErrors,
+        items: validationResult.items,
+      }));
+      setErrorMessage(null);
+      return;
+    }
+
     const remoteId = form.remoteId ?? Crypto.randomUUID();
-    const formItems = Array.isArray(form.items) ? form.items : [];
+    const formItems = Array.isArray(validationResult.items) ? validationResult.items : [];
     const normalizedItems = formItems
       .map((item, index) => ({
         remoteId: item.remoteId || Crypto.randomUUID(),
@@ -198,17 +282,8 @@ export const useOrderEditorViewModel = ({
       }))
       .filter((item) => item.productRemoteId.length > 0);
 
-    if (normalizedItems.length === 0) {
-      setErrorMessage("Add at least one order item.");
-      return;
-    }
-
-    if (normalizedItems.some((item) => item.quantity <= 0)) {
-      setErrorMessage("Each order item must have quantity greater than zero.");
-      return;
-    }
-
     const orderDate = new Date(form.orderDate || new Date().toISOString()).getTime();
+
     let currentOrder =
       form.remoteId !== null
         ? orders.find((order) => order.remoteId === form.remoteId) ?? null

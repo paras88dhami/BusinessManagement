@@ -4,6 +4,7 @@ import {
     OrderStatusValue,
 } from "@/feature/orders/types/order.types";
 import { OrdersViewModel } from "@/feature/orders/viewModel/orders.viewModel";
+import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { Pill } from "@/shared/components/reusable/List/Pill";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
@@ -77,23 +78,19 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
     <>
       <DashboardTabScaffold
         footer={
-          <BottomTabAwareFooter style={styles.fabFooter}>
-            <View style={styles.fabRow}>
-              <Pressable
-                style={[
-                  styles.fabButton,
-                  !viewModel.canManage ? styles.fabButtonDisabled : null,
-                ]}
-                onPress={viewModel.onOpenCreate}
-                disabled={!viewModel.canManage}
-                accessibilityRole="button"
-              >
-                <Plus size={24} color={colors.primaryForeground} />
-              </Pressable>
-            </View>
+          <BottomTabAwareFooter>
+            <AppButton
+              label="Add Order"
+              variant="primary"
+              size="lg"
+              style={styles.primaryActionButton}
+              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              onPress={viewModel.onOpenCreate}
+              disabled={!viewModel.canManage}
+            />
           </BottomTabAwareFooter>
         }
-        baseBottomPadding={170}
+        baseBottomPadding={140}
         contentContainerStyle={styles.content}
         showDivider={false}
       >
@@ -465,23 +462,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "InterSemiBold",
   },
-  fabFooter: {
-    paddingTop: 0,
-  },
-  fabRow: {
-    alignItems: "flex-end",
-  },
-  fabButton: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(31, 99, 64, 0.2)",
-  },
-  fabButtonDisabled: {
-    opacity: 0.5,
+  primaryActionButton: {
+    width: "100%",
   },
 });

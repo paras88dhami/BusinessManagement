@@ -1,13 +1,14 @@
 import { OrderStatus, OrderStatusValue } from "@/feature/orders/types/order.types";
+import { validateOrderMoneyForm, parseOrderMoneyDateInput } from "@/feature/orders/validation/validateOrderMoneyForm";
 import * as Crypto from "expo-crypto";
 import { useCallback, useState } from "react";
 import {
-    OrderMoneyActionViewModelParams,
-    OrderMoneyActionViewModelState,
+  OrderMoneyActionViewModelParams,
+  OrderMoneyActionViewModelState,
 } from "./orderMoneyAction.viewModel";
 import {
-    EMPTY_MONEY_FORM,
-    parseNumber,
+  EMPTY_MONEY_FORM,
+  parseNumber,
 } from "./ordersPresentation.helpers";
 
 export const useOrderMoneyActionViewModel = ({
@@ -144,9 +145,11 @@ export const useOrderMoneyActionViewModel = ({
         settlementMoneyAccountRemoteId: moneyAccountOptions[0]?.value ?? "",
         note: "",
         attemptRemoteId: Crypto.randomUUID(),
+        fieldErrors: {},
       });
+      setErrorMessage(null);
     },
-    [canManage, detail, moneyAccountOptions],
+    [canManage, detail, moneyAccountOptions, setErrorMessage],
   );
 
   const onCloseMoneyAction = useCallback(() => {
@@ -155,12 +158,27 @@ export const useOrderMoneyActionViewModel = ({
 
   const onMoneyFormChange = useCallback(
     (
-      field: keyof Omit<typeof moneyForm, "visible" | "action">,
+      field: keyof Omit<typeof moneyForm, "visible" | "action" | "fieldErrors">,
       value: string,
     ) => {
-      setMoneyForm((current) => ({ ...current, [field]: value }));
+      setErrorMessage(null);
+      setMoneyForm((current) => ({
+        ...current,
+        [field]: value,
+        fieldErrors:
+          field === "amount"
+            ? { ...current.fieldErrors, amount: undefined }
+            : field === "happenedAt"
+              ? { ...current.fieldErrors, happenedAt: undefined }
+              : field === "settlementMoneyAccountRemoteId"
+                ? {
+                    ...current.fieldErrors,
+                    settlementMoneyAccountRemoteId: undefined,
+                  }
+                : current.fieldErrors,
+      }));
     },
-    [],
+    [setErrorMessage],
   );
 
   const onSubmitMoneyAction = useCallback(async () => {
@@ -180,23 +198,48 @@ export const useOrderMoneyActionViewModel = ({
       setErrorMessage("Active business account context is required.");
       return;
     }
-    const amount = parseNumber(moneyForm.amount);
-    if (amount === null || amount <= 0) {
-      setErrorMessage("Amount must be greater than zero.");
-      return;
-    }
+
     const selectedMoneyAccount = moneyAccountOptions.find(
       (option) => option.value === moneyForm.settlementMoneyAccountRemoteId,
     );
-    if (!selectedMoneyAccount) {
-      setErrorMessage("Choose a valid money account.");
+
+    const nextFieldErrors = validateOrderMoneyForm({
+      amount: moneyForm.amount,
+      happenedAt: moneyForm.happenedAt,
+      settlementMoneyAccountRemoteId: moneyForm.settlementMoneyAccountRemoteId,
+      selectedMoneyAccountExists: Boolean(selectedMoneyAccount),
+    });
+
+    if (Object.values(nextFieldErrors).some(Boolean)) {
+      setMoneyForm((current) => ({
+        ...current,
+        fieldErrors: nextFieldErrors,
+      }));
+      setErrorMessage(null);
       return;
     }
-    const happenedAt = new Date(
-      moneyForm.happenedAt || new Date().toISOString(),
-    ).getTime();
-    if (!Number.isFinite(happenedAt) || happenedAt <= 0) {
-      setErrorMessage("Enter a valid date.");
+
+    const amount = parseNumber(moneyForm.amount);
+    const happenedAt = parseOrderMoneyDateInput(moneyForm.happenedAt);
+
+    if (amount === null || happenedAt === null || !selectedMoneyAccount) {
+      setMoneyForm((current) => ({
+        ...current,
+        fieldErrors: {
+          amount:
+            amount === null || amount <= 0
+              ? "Amount must be greater than zero."
+              : undefined,
+          happenedAt:
+            happenedAt === null
+              ? "Enter a valid date in YYYY-MM-DD format."
+              : undefined,
+          settlementMoneyAccountRemoteId: !selectedMoneyAccount
+            ? "Choose a valid money account."
+            : undefined,
+        },
+      }));
+      setErrorMessage(null);
       return;
     }
 

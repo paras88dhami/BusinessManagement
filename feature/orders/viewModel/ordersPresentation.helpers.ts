@@ -50,6 +50,7 @@ export const createEmptyLineItem = (): OrderLineFormState => ({
   remoteId: Crypto.randomUUID(),
   productRemoteId: "",
   quantity: "1",
+  fieldErrors: {},
 });
 
 export const EMPTY_FORM: OrderFormState = {
@@ -63,6 +64,7 @@ export const EMPTY_FORM: OrderFormState = {
   internalRemarks: "",
   status: OrderStatus.Draft,
   items: [createEmptyLineItem()],
+  fieldErrors: {},
 };
 
 export const EMPTY_MONEY_FORM: OrderMoneyFormState = {
@@ -75,6 +77,7 @@ export const EMPTY_MONEY_FORM: OrderMoneyFormState = {
   settlementMoneyAccountRemoteId: "",
   note: "",
   attemptRemoteId: null,
+  fieldErrors: {},
 };
 
 export const parseNumber = (value: string): number | null => {
@@ -124,8 +127,10 @@ export const mapOrderToForm = (order: Order): OrderFormState => {
             remoteId: item.remoteId,
             productRemoteId: item.productRemoteId,
             quantity: String(item.quantity),
+            fieldErrors: {},
           }))
         : [createEmptyLineItem()],
+    fieldErrors: {},
   };
 };
 
