@@ -22,7 +22,8 @@ export type UseBillingEditorViewModelParams = {
   runBillingDocumentIssueUseCase: RunBillingDocumentIssueUseCase;
   onRefresh: () => Promise<void>;
   setErrorMessage: (message: string | null) => void;
-  validateSettlementAccountForPaidNow: (
+  // Kept optional for compatibility with existing caller wiring.
+  validateSettlementAccountForPaidNow?: (
     params: ValidateSettlementAccountForPaidNowParams,
   ) => string | null;
   runPostIssuePayment: (params: RunPostIssuePaymentParams) => Promise<boolean>;
@@ -37,12 +38,12 @@ export type BillingEditorViewModelModule = {
   onOpenEdit: (document: BillingDocument) => void;
   onCloseEditor: () => void;
   onFormChange: (
-    field: keyof Omit<BillingDocumentFormState, "items">,
+    field: keyof Omit<BillingDocumentFormState, "items" | "fieldErrors">,
     value: string,
   ) => void;
   onLineItemChange: (
     remoteId: string,
-    field: keyof BillingLineItemFormState,
+    field: keyof Omit<BillingLineItemFormState, "fieldErrors">,
     value: string,
   ) => void;
   onAddLineItem: () => void;

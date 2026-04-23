@@ -26,6 +26,7 @@ export const createEmptyLineItem = (): BillingLineItemFormState => ({
   itemName: "",
   quantity: "1",
   unitRate: "0",
+  fieldErrors: {},
 });
 
 export const createEmptyForm = (
@@ -42,6 +43,7 @@ export const createEmptyForm = (
   paidNowAmount: "0",
   settlementAccountRemoteId: "",
   items: [createEmptyLineItem()],
+  fieldErrors: {},
 });
 
 export const parseNumber = (value: string): number => {
@@ -82,6 +84,8 @@ export const mapDocumentToEditorForm = (
           itemName: item.itemName,
           quantity: String(item.quantity),
           unitRate: String(item.unitRate),
+          fieldErrors: {},
         }))
       : [createEmptyLineItem()],
+  fieldErrors: {},
 });

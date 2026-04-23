@@ -188,7 +188,7 @@ export function PosSaleHistory({
         </View>
 
         <Text style={styles.recoverySubtitle}>
-          Inspect linked accounting artifacts and clean up abnormal POS sales safely.
+          Inspect linked inventory and accounting artifacts and clean up abnormal POS sales safely.
         </Text>
 
         {recoveryMessage ? (
@@ -196,6 +196,21 @@ export function PosSaleHistory({
             <Text style={styles.recoveryInfoText}>{recoveryMessage}</Text>
           </View>
         ) : null}
+
+        <View style={styles.recoveryRow}>
+          <Text style={styles.recoveryLabel}>Inventory movements</Text>
+          <Text style={styles.recoveryValue}>
+            {reconciliation
+              ? `${getStatusLabel(reconciliation.inventoryMovements.status)} | ${reconciliation.inventoryMovements.remoteIds.length}`
+              : isReconciling
+                ? "Checking..."
+                : "Not checked"}
+          </Text>
+        </View>
+        <Text style={styles.recoveryDetail}>
+          {reconciliation?.inventoryMovements.detail ??
+            "Load reconciliation to verify whether inventory movements are still linked to this POS sale."}
+        </Text>
 
         <View style={styles.recoveryRow}>
           <Text style={styles.recoveryLabel}>Billing document</Text>

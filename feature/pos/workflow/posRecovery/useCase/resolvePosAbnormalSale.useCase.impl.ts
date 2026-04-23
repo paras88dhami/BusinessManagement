@@ -1,10 +1,13 @@
+import { BillingErrorType } from "@/feature/billing/types/billing.types";
+import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { InventoryMovementSourceModule } from "@/feature/inventory/types/inventory.types";
 import type { DeleteInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/deleteInventoryMovementsBySource.useCase";
-import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
+import { LedgerErrorType } from "@/feature/ledger/types/ledger.error.types";
 import type { DeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteLedgerEntry.useCase";
 import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import { PosSaleWorkflowStatus } from "@/feature/pos/types/posSale.constant";
 import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/updatePosSaleWorkflowState.useCase";
+import { TransactionErrorType } from "@/feature/transactions/types/transaction.error.types";
 import type { DeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase";
 import type { ResolvePosAbnormalSaleUseCase } from "./resolvePosAbnormalSale.useCase";
 
@@ -23,6 +26,16 @@ const isAbnormalSaleStatus = (workflowStatus: string): boolean => {
   );
 };
 
+const isBillingAlreadyClearedError = (error: { type?: string } | null | undefined) =>
+  error?.type === BillingErrorType.DocumentNotFound;
+
+const isLedgerAlreadyClearedError = (error: { type?: string } | null | undefined) =>
+  error?.type === LedgerErrorType.LedgerEntryNotFound;
+
+const isTransactionAlreadyClearedError = (
+  error: { type?: string } | null | undefined,
+) => error?.type === TransactionErrorType.TransactionNotFound;
+
 export const createResolvePosAbnormalSaleUseCase = ({
   deleteInventoryMovementsBySourceUseCase,
   deleteBillingDocumentUseCase,
@@ -33,6 +46,12 @@ export const createResolvePosAbnormalSaleUseCase = ({
   async execute({ sale }) {
     const saleRemoteId = sale.remoteId.trim();
     const businessAccountRemoteId = sale.businessAccountRemoteId.trim();
+    const normalizedBillingDocumentRemoteId =
+      sale.billingDocumentRemoteId?.trim() || null;
+    const normalizedLedgerEntryRemoteId = sale.ledgerEntryRemoteId?.trim() || null;
+    const normalizedTransactionRemoteIds = sale.postedTransactionRemoteIds
+      .map((remoteId) => remoteId.trim())
+      .filter((remoteId) => remoteId.length > 0);
 
     if (!saleRemoteId) {
       return {
@@ -65,8 +84,8 @@ export const createResolvePosAbnormalSaleUseCase = ({
       };
     }
 
-    let remainingBillingDocumentRemoteId = sale.billingDocumentRemoteId;
-    let remainingLedgerEntryRemoteId = sale.ledgerEntryRemoteId;
+    let remainingBillingDocumentRemoteId = normalizedBillingDocumentRemoteId;
+    let remainingLedgerEntryRemoteId = normalizedLedgerEntryRemoteId;
     const remainingTransactionRemoteIds: string[] = [];
     const cleanupErrors: string[] = [];
 
@@ -88,7 +107,10 @@ export const createResolvePosAbnormalSaleUseCase = ({
         remainingLedgerEntryRemoteId,
       );
 
-      if (deleteLedgerResult.success) {
+      if (
+        deleteLedgerResult.success ||
+        isLedgerAlreadyClearedError(deleteLedgerResult.error)
+      ) {
         remainingLedgerEntryRemoteId = null;
       } else {
         cleanupErrors.push(
@@ -102,7 +124,10 @@ export const createResolvePosAbnormalSaleUseCase = ({
         remainingBillingDocumentRemoteId,
       );
 
-      if (deleteBillingResult.success) {
+      if (
+        deleteBillingResult.success ||
+        isBillingAlreadyClearedError(deleteBillingResult.error)
+      ) {
         remainingBillingDocumentRemoteId = null;
       } else {
         cleanupErrors.push(
@@ -111,22 +136,21 @@ export const createResolvePosAbnormalSaleUseCase = ({
       }
     }
 
-    for (const transactionRemoteId of [...sale.postedTransactionRemoteIds].reverse()) {
-      const normalizedTransactionRemoteId = transactionRemoteId.trim();
-      if (!normalizedTransactionRemoteId) {
+    for (const transactionRemoteId of [...normalizedTransactionRemoteIds].reverse()) {
+      const deleteTransactionResult =
+        await deleteBusinessTransactionUseCase.execute(transactionRemoteId);
+
+      if (
+        deleteTransactionResult.success ||
+        isTransactionAlreadyClearedError(deleteTransactionResult.error)
+      ) {
         continue;
       }
 
-      const deleteTransactionResult = await deleteBusinessTransactionUseCase.execute(
-        normalizedTransactionRemoteId,
+      cleanupErrors.push(
+        `could not void transaction ${transactionRemoteId}: ${deleteTransactionResult.error.message}`,
       );
-
-      if (!deleteTransactionResult.success) {
-        cleanupErrors.push(
-          `could not void transaction ${normalizedTransactionRemoteId}: ${deleteTransactionResult.error.message}`,
-        );
-        remainingTransactionRemoteIds.unshift(normalizedTransactionRemoteId);
-      }
+      remainingTransactionRemoteIds.unshift(transactionRemoteId);
     }
 
     const updateResult = await updatePosSaleWorkflowStateUseCase.execute({

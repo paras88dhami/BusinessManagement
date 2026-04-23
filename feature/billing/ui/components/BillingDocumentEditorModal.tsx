@@ -1,7 +1,7 @@
 import {
-    BillingDocumentFormState,
-    BillingLineItemFormState,
-    BillingSettlementAccountOption
+  BillingDocumentFormState,
+  BillingLineItemFormState,
+  BillingSettlementAccountOption,
 } from "@/feature/billing/viewModel/billing.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
@@ -15,7 +15,6 @@ import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { Plus, Printer, Trash2 } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-
 
 export function BillingDocumentEditorModal({
   visible,
@@ -42,12 +41,12 @@ export function BillingDocumentEditorModal({
   canManage: boolean;
   onClose: () => void;
   onChange: (
-    field: keyof Omit<BillingDocumentFormState, "items">,
+    field: keyof Omit<BillingDocumentFormState, "items" | "fieldErrors">,
     value: string,
   ) => void;
   onLineItemChange: (
     remoteId: string,
-    field: keyof BillingLineItemFormState,
+    field: keyof Omit<BillingLineItemFormState, "fieldErrors">,
     value: string,
   ) => void;
   onAddLineItem: () => void;
@@ -65,6 +64,7 @@ export function BillingDocumentEditorModal({
     const parsed = Number(value.trim());
     return Number.isFinite(parsed) ? parsed : 0;
   };
+
   const lineItems = Array.isArray(form.items) ? form.items : [];
   const paidNowAmount = Number(parseNumber(form.paidNowAmount).toFixed(2));
   const pendingAmount = Number(
@@ -106,53 +106,101 @@ export function BillingDocumentEditorModal({
         onChangeText={(value) => onChange("customerName", value)}
         placeholder="Enter customer name"
         editable={canManage}
+        errorText={form.fieldErrors.customerName}
       />
 
-      <Text style={styles.sectionLabel}>Items</Text>
+      <View style={styles.itemsHeaderWrap}>
+        <Text style={styles.sectionLabel}>Items</Text>
+        {form.fieldErrors.items ? (
+          <Text style={styles.sectionErrorText}>{form.fieldErrors.items}</Text>
+        ) : null}
+      </View>
+
       <View style={styles.lineItemHeaderRow}>
         <Text style={[styles.lineItemHeaderText, styles.lineItemName]}>Item</Text>
         <Text style={[styles.lineItemHeaderText, styles.lineItemQty]}>Qty</Text>
         <Text style={[styles.lineItemHeaderText, styles.lineItemRate]}>Rate</Text>
         <View style={styles.lineItemActionSpacer} />
       </View>
-      {lineItems.map((item) => (
-        <View key={item.remoteId} style={styles.lineItemWrap}>
-          <View style={styles.lineItemRow}>
-            <AppTextInput
-              value={item.itemName}
-              onChangeText={(value) => onLineItemChange(item.remoteId, "itemName", value)}
-              placeholder="Item"
-              containerStyle={styles.lineItemName}
-              editable={canManage}
-            />
-            <AppTextInput
-              value={item.quantity}
-              onChangeText={(value) => onLineItemChange(item.remoteId, "quantity", value)}
-              placeholder="1"
-              keyboardType="decimal-pad"
-              containerStyle={styles.lineItemQty}
-              editable={canManage}
-            />
-            <AppTextInput
-              value={item.unitRate}
-              onChangeText={(value) => onLineItemChange(item.remoteId, "unitRate", value)}
-              placeholder="Rate"
-              keyboardType="decimal-pad"
-              containerStyle={styles.lineItemRate}
-              editable={canManage}
-            />
-            {lineItems.length > 1 ? (
-              <Pressable
-                style={styles.removeItemButton}
-                onPress={() => onRemoveLineItem(item.remoteId)}
-                disabled={!canManage}
-              >
-                <Trash2 size={16} color={colors.destructive} />
-              </Pressable>
+
+      {lineItems.map((item) => {
+        const hasInlineError =
+          Boolean(item.fieldErrors.itemName) ||
+          Boolean(item.fieldErrors.quantity) ||
+          Boolean(item.fieldErrors.unitRate);
+
+        return (
+          <View key={item.remoteId} style={styles.lineItemWrap}>
+            <View style={styles.lineItemRow}>
+              <AppTextInput
+                value={item.itemName}
+                onChangeText={(value) =>
+                  onLineItemChange(item.remoteId, "itemName", value)
+                }
+                placeholder="Item"
+                containerStyle={styles.lineItemName}
+                editable={canManage}
+              />
+              <AppTextInput
+                value={item.quantity}
+                onChangeText={(value) =>
+                  onLineItemChange(item.remoteId, "quantity", value)
+                }
+                placeholder="1"
+                keyboardType="decimal-pad"
+                containerStyle={styles.lineItemQty}
+                editable={canManage}
+              />
+              <AppTextInput
+                value={item.unitRate}
+                onChangeText={(value) =>
+                  onLineItemChange(item.remoteId, "unitRate", value)
+                }
+                placeholder="Rate"
+                keyboardType="decimal-pad"
+                containerStyle={styles.lineItemRate}
+                editable={canManage}
+              />
+              {lineItems.length > 1 ? (
+                <Pressable
+                  style={styles.removeItemButton}
+                  onPress={() => onRemoveLineItem(item.remoteId)}
+                  disabled={!canManage}
+                >
+                  <Trash2 size={16} color={colors.destructive} />
+                </Pressable>
+              ) : null}
+            </View>
+
+            {hasInlineError ? (
+              <View style={styles.lineItemErrorRow}>
+                <View style={styles.lineItemName}>
+                  {item.fieldErrors.itemName ? (
+                    <Text style={styles.inlineErrorText}>
+                      {item.fieldErrors.itemName}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.lineItemQty}>
+                  {item.fieldErrors.quantity ? (
+                    <Text style={[styles.inlineErrorText, styles.centeredInlineError]}>
+                      {item.fieldErrors.quantity}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.lineItemRate}>
+                  {item.fieldErrors.unitRate ? (
+                    <Text style={[styles.inlineErrorText, styles.centeredInlineError]}>
+                      {item.fieldErrors.unitRate}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.lineItemActionSpacer} />
+              </View>
             ) : null}
           </View>
-        </View>
-      ))}
+        );
+      })}
 
       <Pressable
         style={[styles.addItemRow, !canManage ? styles.disabledAction : null]}
@@ -181,6 +229,7 @@ export function BillingDocumentEditorModal({
         onChangeText={(value) => onChange("issuedAt", value)}
         placeholder="YYYY-MM-DD"
         editable={canManage}
+        errorText={form.fieldErrors.issuedAt}
       />
 
       <LabeledTextInput
@@ -190,23 +239,23 @@ export function BillingDocumentEditorModal({
         placeholder="0"
         keyboardType="decimal-pad"
         editable={canManage}
+        errorText={form.fieldErrors.paidNowAmount}
       />
 
       {paidNowAmount > 0 ? (
-        <>
-          <LabeledDropdownField
-            label="Money Account"
-            value={form.settlementAccountRemoteId}
-            options={availableSettlementAccounts.map((account) => ({
-              label: account.label,
-              value: account.remoteId,
-            }))}
-            onChange={(value) => onChange("settlementAccountRemoteId", value)}
-            modalTitle="Select money account"
-            placeholder="Select money account"
-            disabled={!canManage}
-          />
-        </>
+        <LabeledDropdownField
+          label="Money Account"
+          value={form.settlementAccountRemoteId}
+          options={availableSettlementAccounts.map((account) => ({
+            label: account.label,
+            value: account.remoteId,
+          }))}
+          onChange={(value) => onChange("settlementAccountRemoteId", value)}
+          modalTitle="Select money account"
+          placeholder="Select money account"
+          disabled={!canManage}
+          errorText={form.fieldErrors.settlementAccountRemoteId}
+        />
       ) : null}
 
       <LabeledTextInput
@@ -215,6 +264,7 @@ export function BillingDocumentEditorModal({
         onChangeText={(value) => onChange("dueAt", value)}
         placeholder="YYYY-MM-DD"
         editable={canManage}
+        errorText={form.fieldErrors.dueAt}
       />
 
       <LabeledTextInput
@@ -290,10 +340,18 @@ const styles = StyleSheet.create({
   formWrap: {
     gap: spacing.sm,
   },
+  itemsHeaderWrap: {
+    gap: 4,
+  },
   sectionLabel: {
     color: colors.cardForeground,
     fontFamily: "InterSemiBold",
     fontSize: 14,
+  },
+  sectionErrorText: {
+    color: colors.destructive,
+    fontFamily: "InterMedium",
+    fontSize: 12,
   },
   lineItemHeaderRow: {
     flexDirection: "row",
@@ -329,6 +387,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
     alignItems: "center",
+  },
+  lineItemErrorRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "flex-start",
+  },
+  inlineErrorText: {
+    color: colors.destructive,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: "InterMedium",
+  },
+  centeredInlineError: {
+    textAlign: "center",
   },
   removeItemButton: {
     width: 34,

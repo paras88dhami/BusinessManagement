@@ -3,6 +3,7 @@ import {
   BillingDocumentStatus,
   BillingDocumentType,
 } from "@/feature/billing/types/billing.types";
+import { validateBillingDocumentForm } from "@/feature/billing/validation/validateBillingDocumentForm";
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -11,6 +12,8 @@ import {
 } from "./billingEditor.viewModel";
 import {
   BillingDocumentFormState,
+  BillingDocumentFormFieldErrors,
+  BillingLineItemFormFieldErrors,
   BillingLineItemFormState,
 } from "./billing.viewModel";
 import {
@@ -20,6 +23,34 @@ import {
   mapDocumentToEditorForm,
   parseNumber,
 } from "./billingViewModel.shared";
+
+const clearFormFieldError = (
+  fieldErrors: BillingDocumentFormFieldErrors,
+  field: keyof BillingDocumentFormFieldErrors,
+): BillingDocumentFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
+
+const clearLineFieldError = (
+  fieldErrors: BillingLineItemFormFieldErrors,
+  field: keyof BillingLineItemFormFieldErrors,
+): BillingLineItemFormFieldErrors => {
+  if (!fieldErrors[field]) {
+    return fieldErrors;
+  }
+
+  return {
+    ...fieldErrors,
+    [field]: undefined,
+  };
+};
 
 export const useBillingEditorViewModel = ({
   accountRemoteId,
@@ -31,7 +62,6 @@ export const useBillingEditorViewModel = ({
   runBillingDocumentIssueUseCase,
   onRefresh,
   setErrorMessage,
-  validateSettlementAccountForPaidNow,
   runPostIssuePayment,
 }: UseBillingEditorViewModelParams): BillingEditorViewModelModule => {
   const [isEditorVisible, setIsEditorVisible] = useState(false);
@@ -75,7 +105,8 @@ export const useBillingEditorViewModel = ({
 
       return {
         ...currentForm,
-        settlementAccountRemoteId: availableSettlementAccounts[0]?.remoteId ?? "",
+        settlementAccountRemoteId:
+          availableSettlementAccounts[0]?.remoteId ?? "",
       };
     });
   }, [availableSettlementAccounts]);
@@ -97,6 +128,7 @@ export const useBillingEditorViewModel = ({
       paidNowAmount: form.paidNowAmount,
       settlementAccountRemoteId: form.settlementAccountRemoteId,
       items: form.items,
+      fieldErrors: form.fieldErrors,
     }),
     [form],
   );
@@ -116,6 +148,7 @@ export const useBillingEditorViewModel = ({
       dueAt: "",
       paidNowAmount: "0",
       settlementAccountRemoteId: availableSettlementAccounts[0]?.remoteId ?? "",
+      fieldErrors: {},
     });
     setErrorMessage(null);
     setIsEditorVisible(true);
@@ -145,44 +178,93 @@ export const useBillingEditorViewModel = ({
   }, [defaultTaxRatePercent]);
 
   const onFormChange = useCallback(
-    (field: keyof Omit<BillingDocumentFormState, "items">, value: string) => {
-      setForm((current) => ({ ...current, [field]: value }));
+    (
+      field: keyof Omit<BillingDocumentFormState, "items" | "fieldErrors">,
+      value: string,
+    ) => {
+      setErrorMessage(null);
+      setForm((current) => {
+        let nextFieldErrors = current.fieldErrors;
+
+        if (field === "customerName") {
+          nextFieldErrors = clearFormFieldError(current.fieldErrors, "customerName");
+        } else if (field === "issuedAt") {
+          nextFieldErrors = clearFormFieldError(current.fieldErrors, "issuedAt");
+        } else if (field === "dueAt") {
+          nextFieldErrors = clearFormFieldError(current.fieldErrors, "dueAt");
+        } else if (field === "paidNowAmount") {
+          nextFieldErrors = clearFormFieldError(
+            current.fieldErrors,
+            "paidNowAmount",
+          );
+        } else if (field === "settlementAccountRemoteId") {
+          nextFieldErrors = clearFormFieldError(
+            current.fieldErrors,
+            "settlementAccountRemoteId",
+          );
+        }
+
+        return {
+          ...current,
+          [field]: value,
+          fieldErrors: nextFieldErrors,
+        };
+      });
     },
-    [],
+    [setErrorMessage],
   );
 
   const onLineItemChange = useCallback(
     (
       remoteId: string,
-      field: keyof BillingLineItemFormState,
+      field: keyof Omit<BillingLineItemFormState, "fieldErrors">,
       value: string,
     ) => {
+      setErrorMessage(null);
       setForm((current) => ({
         ...current,
+        fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
         items: current.items.map((item) =>
-          item.remoteId === remoteId ? { ...item, [field]: value } : item,
+          item.remoteId === remoteId
+            ? {
+                ...item,
+                [field]: value,
+                fieldErrors:
+                  field === "itemName"
+                    ? clearLineFieldError(item.fieldErrors, "itemName")
+                    : field === "quantity"
+                      ? clearLineFieldError(item.fieldErrors, "quantity")
+                      : field === "unitRate"
+                        ? clearLineFieldError(item.fieldErrors, "unitRate")
+                        : item.fieldErrors,
+              }
+            : item,
         ),
       }));
     },
-    [],
+    [setErrorMessage],
   );
 
   const onAddLineItem = useCallback(() => {
+    setErrorMessage(null);
     setForm((current) => ({
       ...current,
+      fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
       items: [...current.items, createEmptyLineItem()],
     }));
-  }, []);
+  }, [setErrorMessage]);
 
   const onRemoveLineItem = useCallback((remoteId: string) => {
+    setErrorMessage(null);
     setForm((current) => ({
       ...current,
+      fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
       items:
         current.items.length > 1
           ? current.items.filter((item) => item.remoteId !== remoteId)
           : current.items,
     }));
-  }, []);
+  }, [setErrorMessage]);
 
   const onSubmit = useCallback(async () => {
     if (!canManage) {
@@ -195,99 +277,59 @@ export const useBillingEditorViewModel = ({
       return;
     }
 
-    const normalizedItems = form.items
-      .map((item, index) => ({
-        remoteId: item.remoteId || Crypto.randomUUID(),
-        itemName: item.itemName.trim(),
-        quantity: parseNumber(item.quantity),
-        unitRate: parseNumber(item.unitRate),
-        lineOrder: index,
-      }))
-      .filter((item) => item.itemName.length > 0);
-
-    if (!form.customerName.trim()) {
-      setErrorMessage("Customer name is required.");
-      return;
-    }
-
-    if (normalizedItems.length === 0) {
-      setErrorMessage("Add at least one item.");
-      return;
-    }
-
-    if (normalizedItems.some((item) => item.quantity <= 0)) {
-      setErrorMessage("Item quantity must be greater than zero.");
-      return;
-    }
-
-    const paidNowAmount = Number(parseNumber(form.paidNowAmount).toFixed(2));
-    if (paidNowAmount < 0) {
-      setErrorMessage("Paid amount cannot be negative.");
-      return;
-    }
-
-    if (paidNowAmount > draftTotals.totalAmount + 0.0001) {
-      setErrorMessage("Paid amount cannot be greater than total amount.");
-      return;
-    }
-
-    const settlementValidationError = validateSettlementAccountForPaidNow({
-      paidNowAmount,
-      settlementAccountRemoteId: form.settlementAccountRemoteId,
-    });
-    if (settlementValidationError) {
-      setErrorMessage(settlementValidationError);
-      return;
-    }
-
-    if (form.status === BillingDocumentStatus.Draft && paidNowAmount > 0) {
-      setErrorMessage("Draft billing documents cannot take payment.");
-      return;
-    }
-
-    const pendingAfterPayment = Number(
-      Math.max(draftTotals.totalAmount - paidNowAmount, 0).toFixed(2),
+    const hasSettlementAccountMatch = availableSettlementAccounts.some(
+      (account) => account.remoteId === form.settlementAccountRemoteId.trim(),
     );
 
-    const issuedAt = new Date(form.issuedAt || new Date().toISOString()).getTime();
-    const normalizedIssuedAt = Number.isFinite(issuedAt) ? issuedAt : Date.now();
-    const dueAt =
-      form.dueAt.trim().length > 0 ? new Date(form.dueAt).getTime() : null;
+    const validationResult = validateBillingDocumentForm({
+      status: form.status,
+      customerName: form.customerName,
+      taxRatePercent: form.taxRatePercent,
+      issuedAt: form.issuedAt,
+      dueAt: form.dueAt,
+      paidNowAmount: form.paidNowAmount,
+      settlementAccountRemoteId: form.settlementAccountRemoteId,
+      hasSettlementAccountMatch,
+      items: form.items,
+    });
 
-    if (
-      form.dueAt.trim().length > 0 &&
-      (!Number.isFinite(dueAt) || dueAt === null)
-    ) {
-      setErrorMessage("Enter a valid due date in YYYY-MM-DD format.");
+    const hasLineErrors = validationResult.items.some((item) =>
+      Object.values(item.fieldErrors).some(Boolean),
+    );
+    const hasFormErrors = Object.values(validationResult.formFieldErrors).some(Boolean);
+
+    if (hasFormErrors || hasLineErrors) {
+      setForm((current) => ({
+        ...current,
+        fieldErrors: validationResult.formFieldErrors,
+        items: validationResult.items,
+      }));
+      setErrorMessage(null);
       return;
     }
 
-    if (
-      form.status !== BillingDocumentStatus.Draft &&
-      pendingAfterPayment > 0 &&
-      dueAt === null
-    ) {
-      setErrorMessage("Due date is required when pending amount exists.");
-      return;
-    }
+    const normalizedItems = validationResult.normalizedItems.map((item, index) => ({
+      remoteId: item.remoteId || Crypto.randomUUID(),
+      itemName: item.itemName,
+      quantity: item.quantity,
+      unitRate: item.unitRate,
+      lineOrder: index,
+    }));
 
-    const resolvedRemoteId = form.remoteId ?? Crypto.randomUUID();
     const issueResult = await runBillingDocumentIssueUseCase.execute({
-      remoteId: resolvedRemoteId,
+      remoteId: form.remoteId ?? Crypto.randomUUID(),
       accountRemoteId,
       ownerUserRemoteId,
       documentType: form.documentType,
       desiredStatus: form.status,
-      customerName: form.customerName,
+      customerName: form.customerName.trim(),
       taxRatePercent: parseNumber(form.taxRatePercent),
       notes: form.notes.trim() || null,
-      issuedAt: normalizedIssuedAt,
+      issuedAt: validationResult.normalizedIssuedAt ?? Date.now(),
       dueAt:
         form.status === BillingDocumentStatus.Draft
           ? null
-          : pendingAfterPayment > 0
-            ? dueAt
-            : null,
+          : validationResult.normalizedDueAt,
       items: normalizedItems,
     });
 
@@ -296,13 +338,13 @@ export const useBillingEditorViewModel = ({
       return;
     }
 
-    if (paidNowAmount > 0) {
+    if (validationResult.normalizedPaidNowAmount > 0) {
       const paymentSucceeded = await runPostIssuePayment({
         billingDocumentRemoteId: issueResult.value.remoteId,
         documentNumber: issueResult.value.documentNumber,
         documentType: form.documentType,
-        amount: paidNowAmount,
-        settledAt: normalizedIssuedAt,
+        amount: validationResult.normalizedPaidNowAmount,
+        settledAt: validationResult.normalizedIssuedAt ?? Date.now(),
         note: form.notes.trim() || null,
         settlementAccountRemoteId: form.settlementAccountRemoteId,
       });
@@ -318,16 +360,15 @@ export const useBillingEditorViewModel = ({
     setErrorMessage(null);
   }, [
     accountRemoteId,
+    availableSettlementAccounts,
     canManage,
     defaultTaxRatePercent,
-    draftTotals.totalAmount,
     form,
     onRefresh,
     ownerUserRemoteId,
     runBillingDocumentIssueUseCase,
     runPostIssuePayment,
     setErrorMessage,
-    validateSettlementAccountForPaidNow,
   ]);
 
   return useMemo(

@@ -6,12 +6,31 @@ import {
 
 export type BillingTabValue = "invoices" | "receipts" | "billPhotos";
 
+export type BillingLineItemFormFieldName = "itemName" | "quantity" | "unitRate";
+
+export type BillingLineItemFormFieldErrors = Partial<
+  Record<BillingLineItemFormFieldName, string>
+>;
+
 export type BillingLineItemFormState = {
   remoteId: string;
   itemName: string;
   quantity: string;
   unitRate: string;
+  fieldErrors: BillingLineItemFormFieldErrors;
 };
+
+export type BillingDocumentFormFieldName =
+  | "customerName"
+  | "items"
+  | "issuedAt"
+  | "dueAt"
+  | "paidNowAmount"
+  | "settlementAccountRemoteId";
+
+export type BillingDocumentFormFieldErrors = Partial<
+  Record<BillingDocumentFormFieldName, string>
+>;
 
 export type BillingDocumentFormState = {
   documentType: BillingDocumentTypeValue;
@@ -23,6 +42,7 @@ export type BillingDocumentFormState = {
   paidNowAmount: string;
   settlementAccountRemoteId: string;
   items: BillingLineItemFormState[];
+  fieldErrors: BillingDocumentFormFieldErrors;
 };
 
 export type BillingSettlementAccountOption = {
@@ -55,8 +75,15 @@ export interface BillingViewModel {
   onOpenCreate: () => void;
   onOpenEdit: (document: BillingDocument) => void;
   onCloseEditor: () => void;
-  onFormChange: (field: keyof Omit<BillingDocumentFormState, "items">, value: string) => void;
-  onLineItemChange: (remoteId: string, field: keyof BillingLineItemFormState, value: string) => void;
+  onFormChange: (
+    field: keyof Omit<BillingDocumentFormState, "items" | "fieldErrors">,
+    value: string,
+  ) => void;
+  onLineItemChange: (
+    remoteId: string,
+    field: keyof Omit<BillingLineItemFormState, "fieldErrors">,
+    value: string,
+  ) => void;
   onAddLineItem: () => void;
   onRemoveLineItem: (remoteId: string) => void;
   onSubmit: () => Promise<void>;

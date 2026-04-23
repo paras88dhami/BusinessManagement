@@ -15,6 +15,7 @@ import { createLocalInventoryDatasource } from "@/feature/inventory/data/dataSou
 import { createInventoryRepository } from "@/feature/inventory/data/repository/inventory.repository.impl";
 import { createCreateOpeningStockForProductUseCase } from "@/feature/inventory/useCase/createOpeningStockForProduct.useCase.impl";
 import { createDeleteInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/deleteInventoryMovementsBySource.useCase.impl";
+import { createGetInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/getInventoryMovementsBySource.useCase.impl";
 import { createSaveInventoryMovementUseCase } from "@/feature/inventory/useCase/saveInventoryMovement.useCase.impl";
 import { createSaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase.impl";
 import { createLocalLedgerDatasource } from "@/feature/ledger/data/dataSource/local.ledger.datasource.impl";
@@ -373,6 +374,10 @@ export function GetPosScreenFactory({
       }),
     [inventoryRepository],
   );
+  const getInventoryMovementsBySourceUseCase = React.useMemo(
+    () => createGetInventoryMovementsBySourceUseCase(inventoryRepository),
+    [inventoryRepository],
+  );
   const saveInventoryMovementsUseCase = React.useMemo(
     () =>
       createSaveInventoryMovementsUseCase({
@@ -437,10 +442,15 @@ export function GetPosScreenFactory({
   const reconcilePosSaleUseCase = React.useMemo(
     () =>
       createReconcilePosSaleUseCase({
+        getInventoryMovementsBySourceUseCase,
         getBillingDocumentByRemoteIdUseCase,
         getLedgerEntryByRemoteIdUseCase,
       }),
-    [getBillingDocumentByRemoteIdUseCase, getLedgerEntryByRemoteIdUseCase],
+    [
+      getInventoryMovementsBySourceUseCase,
+      getBillingDocumentByRemoteIdUseCase,
+      getLedgerEntryByRemoteIdUseCase,
+    ],
   );
 
   const resolvePosAbnormalSaleUseCase = React.useMemo(

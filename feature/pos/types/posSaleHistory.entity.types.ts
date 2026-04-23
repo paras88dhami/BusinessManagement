@@ -20,14 +20,17 @@ export type PosArtifactReconciliationItem = {
   detail: string;
 };
 
+export type PosArtifactReconciliationRefs = {
+  remoteIds: readonly string[];
+  status: PosArtifactReconciliationStatusValue;
+  detail: string;
+};
+
 export type PosSaleReconciliation = {
+  inventoryMovements: PosArtifactReconciliationRefs;
   billingDocument: PosArtifactReconciliationItem;
   ledgerEntry: PosArtifactReconciliationItem;
-  transactionRefs: {
-    remoteIds: readonly string[];
-    status: PosArtifactReconciliationStatusValue;
-    detail: string;
-  };
+  transactionRefs: PosArtifactReconciliationRefs;
   hasUnresolvedArtifacts: boolean;
   canRunCleanup: boolean;
   checkedAt: number;

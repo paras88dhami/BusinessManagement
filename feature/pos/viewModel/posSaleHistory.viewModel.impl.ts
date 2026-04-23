@@ -348,8 +348,8 @@ export function usePosSaleHistoryViewModel({
       reconciliation: null,
       recoveryMessage: result.success
         ? result.value.wasFullyCleaned
-          ? "Cleanup completed. Remaining linked accounting artifacts were cleared."
-          : "Cleanup updated the sale, but some linked accounting artifacts still remain."
+          ? "Cleanup completed. Remaining linked inventory and accounting artifacts were cleared."
+          : "Cleanup updated the sale, but some linked inventory or accounting artifacts still remain."
         : null,
       errorMessage: result.success ? null : result.error.message,
     }));
