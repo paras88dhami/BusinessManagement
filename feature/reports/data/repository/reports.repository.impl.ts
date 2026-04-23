@@ -1,39 +1,42 @@
 import { EmiPlanStatus } from "@/feature/emiLoans/types/emi.entity.types";
 import { LedgerBalanceDirection, LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
-import {
-  ReportDualSeriesPoint,
-  ReportSeriesPoint,
-  ReportSegment,
-  ReportDetailResult,
-  ReportMenuItem,
-  ReportMenuSection,
-  ReportPeriod,
-  ReportQuery,
-  ReportScope,
-  ReportsDashboardResult,
-} from "@/feature/reports/types/report.entity.types";
-import {
-  ReportDatabaseError,
-  ReportNotFoundError,
-  ReportUnknownError,
-  ReportValidationError,
-} from "@/feature/reports/types/report.error.types";
 import { ReportsDatasource } from "@/feature/reports/data/dataSource/reports.datasource";
-import {
-  BillingDocumentRecord,
-  LedgerEntryRecord,
-  mapBillingDocumentModel,
-  mapEmiPlanModel,
-  mapInventoryMovementModel,
-  mapLedgerEntryModel,
-  mapMoneyAccountModel,
-  mapProductModel,
-  mapTransactionModel,
-  TransactionRecord,
-} from "./mapper/reports.mapper";
-import { ReportsRepository } from "./reports.repository";
 import { colors } from "@/shared/components/theme/colors";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import {
+    ReportDetailResult,
+    ReportDualSeriesPoint,
+    ReportMenuItem,
+    ReportMenuSection,
+    ReportQuery,
+    ReportScope,
+    ReportsDashboardResult,
+    ReportSegment,
+    ReportSeriesPoint
+} from "../../types/report.entity.types";
+import {
+    ReportDatabaseError,
+    ReportNotFoundError,
+    ReportUnknownError,
+    ReportValidationError,
+} from "../../types/report.error.types";
+import {
+    buildReportSeriesBucketsForPeriod,
+    getReportDateRangeForPeriod,
+} from "../../utils/reportPeriod.shared";
+import {
+    BillingDocumentRecord,
+    LedgerEntryRecord,
+    mapBillingDocumentModel,
+    mapEmiPlanModel,
+    mapInventoryMovementModel,
+    mapLedgerEntryModel,
+    mapMoneyAccountModel,
+    mapProductModel,
+    mapTransactionModel,
+    TransactionRecord,
+} from "./mapper/reports.mapper";
+import { ReportsRepository } from "./reports.repository";
 
 const CATEGORY_COLORS = [
   colors.success,
@@ -84,44 +87,6 @@ const endOfDay = (value: number): Date => {
   return date;
 };
 
-const getRangeForPeriod = (period: ReportQuery["period"], nowMs: number) => {
-  const now = new Date(nowMs);
-  const start = startOfDay(nowMs);
-  const end = endOfDay(nowMs);
-
-  switch (period) {
-    case ReportPeriod.Today:
-      return { startMs: start.getTime(), endMs: end.getTime(), label: "Today" };
-    case ReportPeriod.ThisWeek: {
-      const weekStart = startOfDay(nowMs);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weekEnd = endOfDay(weekStart.getTime());
-      weekEnd.setDate(weekStart.getDate() + 6);
-      return { startMs: weekStart.getTime(), endMs: weekEnd.getTime(), label: "This Week" };
-    }
-    case ReportPeriod.ThisMonth: {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      return { startMs: monthStart.getTime(), endMs: monthEnd.getTime(), label: `${monthLabels[now.getMonth()]} ${now.getFullYear()}` };
-    }
-    case ReportPeriod.ThisQuarter: {
-      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-      const quarterStart = new Date(now.getFullYear(), quarterStartMonth, 1);
-      const quarterEnd = new Date(now.getFullYear(), quarterStartMonth + 3, 0, 23, 59, 59, 999);
-      return { startMs: quarterStart.getTime(), endMs: quarterEnd.getTime(), label: "This Quarter" };
-    }
-    case ReportPeriod.ThisYear: {
-      const yearStart = new Date(now.getFullYear(), 0, 1);
-      const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-      return { startMs: yearStart.getTime(), endMs: yearEnd.getTime(), label: `${now.getFullYear()}` };
-    }
-    case ReportPeriod.LastSixMonths:
-    default: {
-      const startMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-      return { startMs: startMonth.getTime(), endMs: end.getTime(), label: "Last 6 Months" };
-    }
-  }
-};
 
 const isWithinRange = (value: number, startMs: number, endMs: number): boolean => {
   return value >= startMs && value <= endMs;
@@ -159,6 +124,16 @@ const buildLastSixMonthDualSeries = (
       secondaryValue: secondaryBuilder(bucketStart, bucketEnd),
     };
   });
+};
+
+const buildSeriesForBuckets = (
+  buckets: readonly { label: string; startMs: number; endMs: number }[],
+  valueBuilder: (startMs: number, endMs: number) => number,
+): ReportSeriesPoint[] => {
+  return buckets.map((bucket) => ({
+    label: bucket.label,
+    value: valueBuilder(bucket.startMs, bucket.endMs),
+  }));
 };
 
 const buildLastSevenDayDualSeries = (
@@ -376,7 +351,7 @@ export const createReportsRepository = (
       }
 
       const nowMs = Date.now();
-      const range = getRangeForPeriod(query.period, nowMs);
+      const range = getReportDateRangeForPeriod(query.period, nowMs);
       const transactions = datasetResult.value.transactions.map(mapTransactionModel);
       const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
       const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
@@ -488,7 +463,8 @@ export const createReportsRepository = (
       }
 
       const nowMs = Date.now();
-      const range = getRangeForPeriod(query.period, nowMs);
+      const range = getReportDateRangeForPeriod(query.period, nowMs);
+      const periodBuckets = buildReportSeriesBucketsForPeriod(query.period, nowMs);
       const transactions = datasetResult.value.transactions.map(mapTransactionModel);
       const billingDocuments = datasetResult.value.billingDocuments.map(mapBillingDocumentModel);
       const ledgerEntries = datasetResult.value.ledgerEntries.map(mapLedgerEntryModel);
@@ -499,14 +475,25 @@ export const createReportsRepository = (
 
       switch (query.reportId) {
         case ReportMenuItem.Sales: {
-          const series = buildLastSixMonthSeries(
-            (bucketStart, bucketEnd) =>
-              billingDocuments
-                .filter((document) => isWithinRange(document.issuedAt, bucketStart.getTime(), bucketEnd.getTime()))
-                .reduce((sum, document) => sum + document.totalAmount, 0),
-            nowMs,
+          const periodBillingDocuments = billingDocuments.filter((document) =>
+            isWithinRange(document.issuedAt, range.startMs, range.endMs),
           );
-          const totalSales = series.reduce((sum, item) => sum + item.value, 0);
+
+          const series = buildSeriesForBuckets(
+            periodBuckets,
+            (bucketStartMs, bucketEndMs) =>
+              billingDocuments
+                .filter((document) =>
+                  isWithinRange(document.issuedAt, bucketStartMs, bucketEndMs),
+                )
+                .reduce((sum, document) => sum + document.totalAmount, 0),
+          );
+
+          const totalSales = periodBillingDocuments.reduce(
+            (sum, document) => sum + document.totalAmount,
+            0,
+          );
+
           return {
             success: true,
             value: {
@@ -514,11 +501,21 @@ export const createReportsRepository = (
               title: "Sales Report",
               periodLabel: range.label,
               summaryCards: [
-                { id: "sales-total", label: "Total Sales", value: formatCurrency(totalSales), tone: "positive" },
-                { id: "sales-docs", label: "Documents", value: `${billingDocuments.length}`, tone: "neutral" },
+                {
+                  id: "sales-total",
+                  label: "Total Sales",
+                  value: formatCurrency(totalSales),
+                  tone: "positive",
+                },
+                {
+                  id: "sales-docs",
+                  label: "Documents",
+                  value: `${periodBillingDocuments.length}`,
+                  tone: "neutral",
+                },
               ],
               chartTitle: "Sales Trend",
-              chartSubtitle: "Daily, weekly, monthly sales summary",
+              chartSubtitle: "Trend for the selected period",
               chartKind: "line",
               lineSeries: series,
             },
@@ -592,17 +589,18 @@ export const createReportsRepository = (
           };
         }
         case ReportMenuItem.Collection: {
-          const bars = buildLastSixMonthSeries(
-            (bucketStart, bucketEnd) =>
+          const bars = buildSeriesForBuckets(
+            periodBuckets,
+            (bucketStartMs, bucketEndMs) =>
               ledgerEntries
                 .filter(
                   (entry) =>
                     entry.entryType === LedgerEntryType.Collection &&
-                    isWithinRange(entry.happenedAt, bucketStart.getTime(), bucketEnd.getTime()),
+                    isWithinRange(entry.happenedAt, bucketStartMs, bucketEndMs),
                 )
                 .reduce((sum, entry) => sum + entry.amount, 0),
-            nowMs,
           );
+
           return {
             success: true,
             value: {
@@ -610,27 +608,35 @@ export const createReportsRepository = (
               title: "Collection Report",
               periodLabel: range.label,
               summaryCards: [
-                { id: "collection-total", label: "Total Collected", value: formatCurrency(bars.reduce((sum, item) => sum + item.value, 0)), tone: "positive" },
+                {
+                  id: "collection-total",
+                  label: "Total Collected",
+                  value: formatCurrency(
+                    bars.reduce((sum, item) => sum + item.value, 0),
+                  ),
+                  tone: "positive",
+                },
               ],
               chartTitle: "Collection Trend",
-              chartSubtitle: "Payment received history",
+              chartSubtitle: "Trend for the selected period",
               chartKind: "bars",
               barSeries: bars,
             },
           };
         }
         case ReportMenuItem.Payment: {
-          const bars = buildLastSixMonthSeries(
-            (bucketStart, bucketEnd) =>
+          const bars = buildSeriesForBuckets(
+            periodBuckets,
+            (bucketStartMs, bucketEndMs) =>
               ledgerEntries
                 .filter(
                   (entry) =>
                     entry.entryType === LedgerEntryType.PaymentOut &&
-                    isWithinRange(entry.happenedAt, bucketStart.getTime(), bucketEnd.getTime()),
+                    isWithinRange(entry.happenedAt, bucketStartMs, bucketEndMs),
                 )
                 .reduce((sum, entry) => sum + entry.amount, 0),
-            nowMs,
           );
+
           return {
             success: true,
             value: {
@@ -638,10 +644,17 @@ export const createReportsRepository = (
               title: "Payment Report",
               periodLabel: range.label,
               summaryCards: [
-                { id: "payment-total", label: "Total Paid", value: formatCurrency(bars.reduce((sum, item) => sum + item.value, 0)), tone: "negative" },
+                {
+                  id: "payment-total",
+                  label: "Total Paid",
+                  value: formatCurrency(
+                    bars.reduce((sum, item) => sum + item.value, 0),
+                  ),
+                  tone: "negative",
+                },
               ],
               chartTitle: "Payment Trend",
-              chartSubtitle: "Payment made history",
+              chartSubtitle: "Trend for the selected period",
               chartKind: "bars",
               barSeries: bars,
             },

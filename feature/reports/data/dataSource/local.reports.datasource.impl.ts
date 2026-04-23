@@ -1,18 +1,21 @@
+import { MoneyAccountModel } from "@/feature/accounts/data/dataSource/db/moneyAccount.model";
 import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billingDocument.model";
-import { EmiPlanMode } from "@/feature/emiLoans/types/emi.entity.types";
 import { EmiPlanModel } from "@/feature/emiLoans/data/dataSource/db/emiPlan.model";
+import { EmiPlanMode } from "@/feature/emiLoans/types/emi.entity.types";
 import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
-import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerEntryModel } from "@/feature/ledger/data/dataSource/db/ledger.model";
+import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
 import {
-  ReportMenuItem,
-  ReportPeriod,
-  ReportQuery,
-  ReportScope,
+    ReportMenuItem,
+    ReportQuery,
+    ReportScope,
 } from "@/feature/reports/types/report.entity.types";
+import {
+    getDashboardDatasetDateWindow,
+    getReportDateRangeForPeriod,
+} from "@/feature/reports/utils/reportPeriod.shared";
 import { TransactionModel } from "@/feature/transactions/data/dataSource/db/transaction.model";
-import { MoneyAccountModel } from "@/feature/accounts/data/dataSource/db/moneyAccount.model";
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import { ReportsDatasource, ReportsRawDataset } from "./reports.datasource";
@@ -42,105 +45,12 @@ type DatasetRequirements = {
   ledgerEntryTypes: readonly string[] | null;
 };
 
-const startOfDay = (value: number): number => {
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-};
-
-const endOfDay = (value: number): number => {
-  const date = new Date(value);
-  date.setHours(23, 59, 59, 999);
-  return date.getTime();
-};
-
-const getRangeForPeriod = (period: ReportQuery["period"], nowMs: number): DateWindow => {
-  const now = new Date(nowMs);
-
-  switch (period) {
-    case ReportPeriod.Today:
-      return { startMs: startOfDay(nowMs), endMs: endOfDay(nowMs) };
-    case ReportPeriod.ThisWeek: {
-      const weekStart = new Date(startOfDay(nowMs));
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weekEnd = new Date(endOfDay(weekStart.getTime()));
-      weekEnd.setDate(weekStart.getDate() + 6);
-      return { startMs: weekStart.getTime(), endMs: weekEnd.getTime() };
-    }
-    case ReportPeriod.ThisMonth:
-      return {
-        startMs: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
-        endMs: new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999,
-        ).getTime(),
-      };
-    case ReportPeriod.ThisQuarter: {
-      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-      return {
-        startMs: new Date(now.getFullYear(), quarterStartMonth, 1).getTime(),
-        endMs: new Date(
-          now.getFullYear(),
-          quarterStartMonth + 3,
-          0,
-          23,
-          59,
-          59,
-          999,
-        ).getTime(),
-      };
-    }
-    case ReportPeriod.ThisYear:
-      return {
-        startMs: new Date(now.getFullYear(), 0, 1).getTime(),
-        endMs: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999).getTime(),
-      };
-    case ReportPeriod.LastSixMonths:
-    default:
-      return {
-        startMs: new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime(),
-        endMs: endOfDay(nowMs),
-      };
-  }
-};
-
-const getDashboardDateWindow = (
-  period: ReportQuery["period"],
-  nowMs: number,
-): DateWindow => {
-  const periodRange = getRangeForPeriod(period, nowMs);
-  const sixMonthStart = new Date(
-    new Date(nowMs).getFullYear(),
-    new Date(nowMs).getMonth() - 5,
-    1,
-  ).getTime();
-  const sevenDayStart = new Date(startOfDay(nowMs));
-  sevenDayStart.setDate(sevenDayStart.getDate() - 6);
-
-  return {
-    startMs: Math.min(periodRange.startMs ?? sixMonthStart, sixMonthStart, sevenDayStart.getTime()),
-    endMs: periodRange.endMs ?? endOfDay(nowMs),
-  };
-};
-
-const getSixMonthWindow = (nowMs: number): DateWindow => {
-  const now = new Date(nowMs);
-  return {
-    startMs: new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime(),
-    endMs: endOfDay(nowMs),
-  };
-};
 
 const resolveDatasetRequirements = (
   query: ReportQuery,
   nowMs: number,
 ): DatasetRequirements => {
-  const periodWindow = getRangeForPeriod(query.period, nowMs);
+  const periodWindow = getReportDateRangeForPeriod(query.period, nowMs);
   const businessFinancialDataRequired = query.scope === ReportScope.Business;
 
   switch (query.reportId) {
@@ -154,9 +64,10 @@ const resolveDatasetRequirements = (
         loadInventoryMovements: false,
         loadProducts: false,
         loadMoneyAccounts: false,
-        dateWindow: getDashboardDateWindow(query.period, nowMs),
+        dateWindow: getDashboardDatasetDateWindow(query.period, nowMs),
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.Sales:
       return {
         loadTransactions: false,
@@ -166,9 +77,10 @@ const resolveDatasetRequirements = (
         loadInventoryMovements: false,
         loadProducts: false,
         loadMoneyAccounts: false,
-        dateWindow: getSixMonthWindow(nowMs),
+        dateWindow: periodWindow,
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.PartyBalances:
       return {
         loadTransactions: false,
@@ -181,6 +93,7 @@ const resolveDatasetRequirements = (
         dateWindow: { startMs: null, endMs: null },
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.Collection:
       return {
         loadTransactions: false,
@@ -190,9 +103,10 @@ const resolveDatasetRequirements = (
         loadInventoryMovements: false,
         loadProducts: false,
         loadMoneyAccounts: false,
-        dateWindow: getSixMonthWindow(nowMs),
+        dateWindow: periodWindow,
         ledgerEntryTypes: [LedgerEntryType.Collection],
       };
+
     case ReportMenuItem.Payment:
       return {
         loadTransactions: false,
@@ -202,9 +116,10 @@ const resolveDatasetRequirements = (
         loadInventoryMovements: false,
         loadProducts: false,
         loadMoneyAccounts: false,
-        dateWindow: getSixMonthWindow(nowMs),
+        dateWindow: periodWindow,
         ledgerEntryTypes: [LedgerEntryType.PaymentOut],
       };
+
     case ReportMenuItem.CategorySummary:
       return {
         loadTransactions: true,
@@ -217,6 +132,7 @@ const resolveDatasetRequirements = (
         dateWindow: periodWindow,
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.AccountStatement:
       return {
         loadTransactions: true,
@@ -229,6 +145,7 @@ const resolveDatasetRequirements = (
         dateWindow: periodWindow,
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.EmiLoan:
       return {
         loadTransactions: false,
@@ -241,6 +158,7 @@ const resolveDatasetRequirements = (
         dateWindow: { startMs: null, endMs: null },
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.Stock:
       return {
         loadTransactions: false,
@@ -253,6 +171,7 @@ const resolveDatasetRequirements = (
         dateWindow: { startMs: null, endMs: null },
         ledgerEntryTypes: null,
       };
+
     case ReportMenuItem.ExportData:
       return {
         loadTransactions: true,
@@ -265,6 +184,7 @@ const resolveDatasetRequirements = (
         dateWindow: periodWindow,
         ledgerEntryTypes: null,
       };
+
     default:
       return {
         loadTransactions: true,

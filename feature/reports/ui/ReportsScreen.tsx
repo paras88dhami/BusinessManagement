@@ -1,17 +1,18 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { ArrowLeft } from "lucide-react-native";
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
-import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
+import { ReportHomeTab } from "@/feature/reports/types/report.entity.types";
+import { REPORT_PERIOD_OPTIONS } from "@/feature/reports/types/report.state.types";
+import { ReportsViewModel } from "@/feature/reports/viewModel/reports.viewModel";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
-import { ReportsViewModel } from "@/feature/reports/viewModel/reports.viewModel";
-import { REPORT_PERIOD_OPTIONS } from "@/feature/reports/types/report.state.types";
-import { ReportHomeTab } from "@/feature/reports/types/report.entity.types";
-import { LineAreaChart, GroupedBarChart, DualLineChart, SemiDonutChart, SingleBarChart } from "./components/ReportCharts";
-import { ExportPreviewCard, ReportListItems, ReportsSummaryRow, ReportMenuSections } from "./components/ReportCards";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import { ArrowLeft } from "lucide-react-native";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { isReportPeriodFilterable } from "../utils/reportPeriod.shared";
+import { ExportPreviewCard, ReportListItems, ReportMenuSections, ReportsSummaryRow } from "./components/ReportCards";
+import { DualLineChart, GroupedBarChart, LineAreaChart, SemiDonutChart, SingleBarChart } from "./components/ReportCharts";
 
 const HOME_TAB_OPTIONS = [
   { value: ReportHomeTab.Overview, label: "Overview" },
@@ -94,6 +95,14 @@ function ReportsHomeView({ viewModel }: Props) {
       </Card>
 
       <FilterChipGroup
+        options={REPORT_PERIOD_OPTIONS}
+        selectedValue={viewModel.activePeriod}
+        onSelect={(value) => {
+          void viewModel.onSelectPeriod(value);
+        }}
+      />
+
+      <FilterChipGroup
         options={HOME_TAB_OPTIONS}
         selectedValue={viewModel.activeHomeTab}
         onSelect={viewModel.onSelectHomeTab}
@@ -147,6 +156,8 @@ function ReportDetailView({ viewModel }: Props) {
     return null;
   }
 
+  const supportsPeriodFilter = isReportPeriodFilterable(detail.reportId);
+
   return (
     <View style={styles.screenGap}>
       <Pressable style={styles.backRow} onPress={viewModel.onBackToReports}>
@@ -154,13 +165,15 @@ function ReportDetailView({ viewModel }: Props) {
         <Text style={styles.backText}>Back to Reports</Text>
       </Pressable>
 
-      <FilterChipGroup
-        options={REPORT_PERIOD_OPTIONS}
-        selectedValue={viewModel.activePeriod}
-        onSelect={(value) => {
-          void viewModel.onSelectPeriod(value);
-        }}
-      />
+      {supportsPeriodFilter ? (
+        <FilterChipGroup
+          options={REPORT_PERIOD_OPTIONS}
+          selectedValue={viewModel.activePeriod}
+          onSelect={(value) => {
+            void viewModel.onSelectPeriod(value);
+          }}
+        />
+      ) : null}
 
       {viewModel.errorMessage ? <ErrorCard message={viewModel.errorMessage} /> : null}
 

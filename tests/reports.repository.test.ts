@@ -2,10 +2,10 @@ import { AccountType } from "@/feature/auth/accountSelection/types/accountSelect
 import { ReportsDatasource } from "@/feature/reports/data/dataSource/reports.datasource";
 import { createReportsRepository } from "@/feature/reports/data/repository/reports.repository.impl";
 import {
-  ReportMenuItem,
-  ReportPeriod,
-  ReportQuery,
-  ReportScope,
+    ReportMenuItem,
+    ReportPeriod,
+    ReportQuery,
+    ReportScope,
 } from "@/feature/reports/types/report.entity.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { describe, expect, it, vi } from "vitest";
@@ -174,6 +174,65 @@ describe("reports.repository", () => {
 
     expect(stockValueCard?.value).toBe(expectedStockValue);
     expect(result.value.listItems?.[0]?.subtitle.includes("|")).toBe(true);
+  });
+
+  it("uses the selected period for the sales detail trend instead of a fixed six-month window", async () => {
+    const currentIssuedAt = Date.now();
+    const olderIssuedAt = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth() - 2,
+      1,
+    ).getTime();
+
+    const dataset = createDataset({
+      billingDocuments: [
+        {
+          customerName: "Walk-in",
+          status: "paid",
+          totalAmount: 120,
+          issuedAt: currentIssuedAt,
+        },
+        {
+          customerName: "Archived",
+          status: "paid",
+          totalAmount: 900,
+          issuedAt: olderIssuedAt,
+        },
+      ],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportDetail({
+      ...createBaseQuery(ReportMenuItem.Sales),
+      period: ReportPeriod.ThisWeek,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    expect(result.value.lineSeries).toHaveLength(7);
+    expect(
+      result.value.lineSeries?.reduce((sum, item) => sum + item.value, 0),
+    ).toBe(120);
+
+    const salesTotalCard = result.value.summaryCards.find(
+      (item) => item.id === "sales-total",
+    );
+
+    expect(salesTotalCard?.value).toBe(
+      formatCurrencyAmount({
+        amount: 120,
+        currencyCode: CURRENCY_CODE,
+        countryCode: COUNTRY_CODE,
+        maximumFractionDigits: 0,
+      }),
+    );
   });
 });
 
