@@ -9,6 +9,7 @@ import { createContactRepository } from "@/feature/contacts/data/repository/cont
 import { createGetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase.impl";
 import { createSaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase.impl";
 import { createArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase.impl";
+import { createGetContactByRemoteIdUseCase } from "@/feature/contacts/useCase/getContactByRemoteId.useCase.impl";
 import {
   Account,
   AccountTypeValue,
@@ -21,6 +22,9 @@ import { createUserManagementRepository } from "@/feature/userManagement/data/re
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
+import { createLocalContactHistoryDatasource } from "@/readModel/contactHistory/data/dataSource/local.contactHistory.datasource.impl";
+import { createContactHistoryRepository } from "@/readModel/contactHistory/data/repository/contactHistory.repository.impl";
+import { createGetContactHistoryReadModelUseCase } from "@/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase.impl";
 
 type GetContactsScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -99,6 +103,23 @@ export function GetContactsScreenFactory({
     () => createArchiveContactUseCase(contactRepository),
     [contactRepository],
   );
+  const getContactByRemoteIdUseCase = useMemo(
+    () => createGetContactByRemoteIdUseCase(contactRepository),
+    [contactRepository],
+  );
+
+  const contactHistoryDatasource = useMemo(
+    () => createLocalContactHistoryDatasource(appDatabase),
+    [],
+  );
+  const contactHistoryRepository = useMemo(
+    () => createContactHistoryRepository(contactHistoryDatasource),
+    [contactHistoryDatasource],
+  );
+  const getContactHistoryReadModelUseCase = useMemo(
+    () => createGetContactHistoryReadModelUseCase(contactHistoryRepository),
+    [contactHistoryRepository],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -136,7 +157,8 @@ export function GetContactsScreenFactory({
 
   const activeAccount = useMemo(
     () =>
-      accounts.find((account) => account.remoteId === activeAccountRemoteId) ?? null,
+      accounts.find((account) => account.remoteId === activeAccountRemoteId) ??
+      null,
     [accounts, activeAccountRemoteId],
   );
 
@@ -148,6 +170,8 @@ export function GetContactsScreenFactory({
     currencyCode: activeAccount?.currencyCode ?? activeAccountCurrencyCode,
     countryCode: activeAccount?.countryCode ?? activeAccountCountryCode,
     getContactsUseCase,
+    getContactByRemoteIdUseCase,
+    getContactHistoryReadModelUseCase,
     saveContactUseCase,
     archiveContactUseCase,
   });

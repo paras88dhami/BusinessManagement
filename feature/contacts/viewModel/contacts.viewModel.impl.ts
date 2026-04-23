@@ -6,13 +6,16 @@ import {
   PERSONAL_CONTACT_TYPE_OPTIONS,
 } from "@/feature/contacts/types/contact.types";
 import { ArchiveContactUseCase } from "@/feature/contacts/useCase/archiveContact.useCase";
+import { GetContactByRemoteIdUseCase } from "@/feature/contacts/useCase/getContactByRemoteId.useCase";
 import { GetContactsUseCase } from "@/feature/contacts/useCase/getContacts.useCase";
 import { SaveContactUseCase } from "@/feature/contacts/useCase/saveContact.useCase";
 import {
   AccountType,
   AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
+import { GetContactHistoryReadModelUseCase } from "@/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase";
 import { useCallback, useMemo } from "react";
+import { useContactDetailsViewModel } from "./contactDetails.viewModel.impl";
 import { ContactsViewModel } from "./contacts.viewModel";
 import { useContactArchiveState } from "./internal/contactArchive.state";
 import { useContactEditorState } from "./internal/contactEditor.state";
@@ -29,6 +32,8 @@ type UseContactsViewModelParams = {
   currencyCode: string | null;
   countryCode: string | null;
   getContactsUseCase: GetContactsUseCase;
+  getContactByRemoteIdUseCase: GetContactByRemoteIdUseCase;
+  getContactHistoryReadModelUseCase: GetContactHistoryReadModelUseCase;
   saveContactUseCase: SaveContactUseCase;
   archiveContactUseCase: ArchiveContactUseCase;
 };
@@ -41,6 +46,8 @@ export const useContactsViewModel = ({
   currencyCode,
   countryCode,
   getContactsUseCase,
+  getContactByRemoteIdUseCase,
+  getContactHistoryReadModelUseCase,
   saveContactUseCase,
   archiveContactUseCase,
 }: UseContactsViewModelParams): ContactsViewModel => {
@@ -76,6 +83,14 @@ export const useContactsViewModel = ({
     canManage,
     typeOptions,
     setErrorMessage: listState.setErrorMessage,
+  });
+
+  const detailState = useContactDetailsViewModel({
+    accountRemoteId,
+    currencyCode,
+    countryCode,
+    getContactByRemoteIdUseCase,
+    getContactHistoryReadModelUseCase,
   });
 
   const getEditorContext = useCallback(
@@ -129,6 +144,23 @@ export const useContactsViewModel = ({
     [archiveState.clearDeleteErrorMessage, editorState.onOpenEdit],
   );
 
+  const onOpenEditFromDetails = useCallback(() => {
+    if (!detailState.selectedContact) {
+      return;
+    }
+
+    detailState.onCloseDetails();
+    const didOpenEditor = editorState.onOpenEdit(detailState.selectedContact);
+
+    if (didOpenEditor) {
+      archiveState.clearDeleteErrorMessage();
+    }
+  }, [
+    archiveState.clearDeleteErrorMessage,
+    detailState,
+    editorState.onOpenEdit,
+  ]);
+
   const onCloseEditor = useCallback(() => {
     editorState.onCloseEditor();
     archiveState.clearDeleteErrorMessage();
@@ -157,6 +189,7 @@ export const useContactsViewModel = ({
       pendingDeleteContactName: archiveState.pendingDeleteContactName,
       deleteErrorMessage: archiveState.deleteErrorMessage,
       isDeleting: archiveState.isDeleting,
+      details: detailState,
       filterOptions,
       typeOptions,
       onRefresh: listState.loadContacts,
@@ -164,6 +197,7 @@ export const useContactsViewModel = ({
       onFilterChange: filterState.setSelectedFilter,
       onOpenCreate,
       onOpenEdit,
+      onOpenEditFromDetails,
       onCloseEditor,
       onFormChange: editorState.onFormChange,
       onSubmit: submitState.onSubmit,
@@ -181,6 +215,7 @@ export const useContactsViewModel = ({
       archiveState.onRequestDeleteFromEditor,
       archiveState.pendingDeleteContactName,
       canManageContacts,
+      detailState,
       editorState.editorMode,
       editorState.editorTitle,
       editorState.form,
@@ -199,6 +234,7 @@ export const useContactsViewModel = ({
       onCloseEditor,
       onOpenCreate,
       onOpenEdit,
+      onOpenEditFromDetails,
       submitState.onSubmit,
       summaryState.currencyPrefix,
       summaryState.getContactAmountTone,

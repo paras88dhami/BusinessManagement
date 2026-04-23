@@ -16,13 +16,8 @@ import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Plus } from "lucide-react-native";
 import React from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ContactDetailsModal } from "./components/ContactDetailsModal";
 import { ContactEditorModal } from "./components/ContactEditorModal";
 
 const formatAmount = (amount: number): string => {
@@ -110,8 +105,9 @@ export function ContactsScreen({
                 <Pressable
                   key={contact.remoteId}
                   style={[styles.row, !isLast ? styles.rowBorder : null]}
-                  onPress={() => viewModel.onOpenEdit(contact)}
-                  disabled={!viewModel.canManage}
+                  onPress={() => {
+                    void viewModel.details.onOpenDetails(contact);
+                  }}
                 >
                   <View style={styles.avatarWrap}>
                     <Text style={styles.avatarText}>
@@ -168,6 +164,20 @@ export function ContactsScreen({
         canDelete={viewModel.canManage && viewModel.editorMode === "edit"}
         isDeleting={viewModel.isDeleting}
         onDelete={viewModel.onRequestDeleteFromEditor}
+      />
+
+      <ContactDetailsModal
+        visible={viewModel.details.isVisible}
+        isLoading={viewModel.details.isLoading}
+        errorMessage={viewModel.details.errorMessage}
+        emptyStateMessage={viewModel.details.emptyStateMessage}
+        selectedContact={viewModel.details.selectedContact}
+        summaryCards={viewModel.details.summaryCards}
+        timelineItems={viewModel.details.timelineItems}
+        currencyPrefix={viewModel.currencyPrefix}
+        canManage={viewModel.canManage}
+        onClose={viewModel.details.onCloseDetails}
+        onEdit={viewModel.onOpenEditFromDetails}
       />
 
       <ConfirmDeleteModal

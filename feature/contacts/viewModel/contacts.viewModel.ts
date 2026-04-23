@@ -7,10 +7,9 @@ import {
   PERSONAL_CONTACT_FILTER_OPTIONS,
   PERSONAL_CONTACT_TYPE_OPTIONS,
 } from "@/feature/contacts/types/contact.types";
+import { ContactDetailsViewModel } from "@/feature/contacts/viewModel/contactDetails.viewModel";
 
-export type ContactFilterValue =
-  | "all"
-  | ContactTypeValue;
+export type ContactFilterValue = "all" | ContactTypeValue;
 
 export type ContactSummaryState = {
   totalCount: number;
@@ -18,14 +17,9 @@ export type ContactSummaryState = {
   payAmountLabel: string;
 };
 
-export type ContactFormFieldName =
-  | "fullName"
-  | "phoneNumber"
-  | "openingBalance";
+export type ContactFormFieldName = "fullName" | "phoneNumber" | "openingBalance";
 
-export type ContactFormFieldErrors = Partial<
-  Record<ContactFormFieldName, string>
->;
+export type ContactFormFieldErrors = Partial<Record<ContactFormFieldName, string>>;
 
 export type ContactFormState = {
   remoteId: string | null;
@@ -59,6 +53,7 @@ export interface ContactsViewModel {
   pendingDeleteContactName: string | null;
   deleteErrorMessage: string | null;
   isDeleting: boolean;
+  details: ContactDetailsViewModel;
   filterOptions:
     | typeof BUSINESS_CONTACT_FILTER_OPTIONS
     | typeof PERSONAL_CONTACT_FILTER_OPTIONS;
@@ -70,6 +65,7 @@ export interface ContactsViewModel {
   onFilterChange: (value: ContactFilterValue) => void;
   onOpenCreate: () => void;
   onOpenEdit: (contact: Contact) => void;
+  onOpenEditFromDetails: () => void;
   onCloseEditor: () => void;
   onFormChange: (
     field: keyof Omit<ContactFormState, "fieldErrors">,
@@ -79,7 +75,5 @@ export interface ContactsViewModel {
   onRequestDeleteFromEditor: () => void;
   onCloseDeleteModal: () => void;
   onConfirmDelete: () => Promise<void>;
-  getContactAmountTone: (
-    contact: Contact,
-  ) => ContactBalanceDirectionValue | null;
+  getContactAmountTone: (contact: Contact) => ContactBalanceDirectionValue | null;
 }
