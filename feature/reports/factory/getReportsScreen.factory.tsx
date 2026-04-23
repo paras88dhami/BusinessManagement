@@ -2,7 +2,9 @@ import React from "react";
 import { Database } from "@nozbe/watermelondb";
 import { createLocalReportsDatasource } from "@/feature/reports/data/dataSource/local.reports.datasource.impl";
 import { createReportsRepository } from "@/feature/reports/data/repository/reports.repository.impl";
+import { createReportCsvFileAdapter } from "@/feature/reports/adapter/reportCsvFile.adapter.impl";
 import { createReportDetailDocumentAdapter } from "@/feature/reports/adapter/reportDetailDocument.adapter.impl";
+import { createExportReportCsvFileUseCase } from "@/feature/reports/useCase/exportReportCsvFile.useCase.impl";
 import { createExportReportDetailDocumentUseCase } from "@/feature/reports/useCase/exportReportDetailDocument.useCase.impl";
 import { createGetReportsDashboardUseCase } from "@/feature/reports/useCase/getReportsDashboard.useCase.impl";
 import { createGetReportDetailUseCase } from "@/feature/reports/useCase/getReportDetail.useCase.impl";
@@ -57,6 +59,16 @@ export function GetReportsScreenFactory({
     [reportDetailDocumentAdapter],
   );
 
+  const reportCsvFileAdapter = React.useMemo(
+    () => createReportCsvFileAdapter(),
+    [],
+  );
+
+  const exportReportCsvFileUseCase = React.useMemo(
+    () => createExportReportCsvFileUseCase(reportCsvFileAdapter),
+    [reportCsvFileAdapter],
+  );
+
   const viewModel = useReportsViewModel({
     accountType,
     ownerUserRemoteId,
@@ -65,6 +77,7 @@ export function GetReportsScreenFactory({
     getReportsDashboardUseCase,
     getReportDetailUseCase,
     exportReportDetailDocumentUseCase,
+    exportReportCsvFileUseCase,
   });
 
   return <ReportsScreen viewModel={viewModel} />;

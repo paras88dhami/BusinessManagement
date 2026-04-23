@@ -476,4 +476,66 @@ describe("reports.repository", () => {
 
     expect(result.value.listItems?.[0]?.subtitle).toContain("4 pcs");
   });
+
+  it("builds real csv export content for export data detail", async () => {
+    const now = Date.now();
+
+    const dataset = createDataset({
+      transactions: [
+        {
+          title: "Cash sale",
+          amount: 100,
+          categoryLabel: "Sales",
+          happenedAt: now,
+          direction: "in",
+          transactionType: "sale",
+          accountDisplayNameSnapshot: "Cash",
+        },
+        {
+          title: "Office rent",
+          amount: 30,
+          categoryLabel: "Rent",
+          happenedAt: now,
+          direction: "out",
+          transactionType: "expense",
+          accountDisplayNameSnapshot: "Cash",
+        },
+      ],
+      billingDocuments: [],
+      ledgerEntries: [],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportDetail({
+      ...createBaseQuery(ReportMenuItem.ExportData),
+      period: ReportPeriod.ThisWeek,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    const expectedCsv = [
+      "label,value",
+      "Period,This Week",
+      "Money In,100",
+      "Money Out,30",
+      "Net,70",
+      "Transactions,2",
+      "BillingDocs,0",
+      "LedgerEntries,0",
+    ].join("\n");
+
+    expect(result.value.csvPreview).toBe(expectedCsv);
+    expect(result.value.csvExport).toEqual({
+      fileName: "report_export_business_this_week.csv",
+      content: expectedCsv,
+      mimeType: "text/csv",
+    });
+  });
 });

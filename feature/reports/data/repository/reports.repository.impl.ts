@@ -335,12 +335,41 @@ const buildSections = (scope: string): ReportMenuSection[] => {
   ];
 };
 
-const buildCsvPreview = (
-  title: string,
-  rows: { label: string; value: string }[],
+const escapeCsvValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const normalized = String(value).replace(/\r?\n/g, "\\n");
+  if (
+    normalized.includes(",") ||
+    normalized.includes("\"") ||
+    normalized.includes("\n")
+  ) {
+    return `"${normalized.replace(/"/g, "\"\"")}"`;
+  }
+
+  return normalized;
+};
+
+const toCsvLine = (values: readonly unknown[]): string => {
+  return values.map((value) => escapeCsvValue(value)).join(",");
+};
+
+const buildCsvContent = (
+  rows: readonly { label: string; value: string }[],
 ): string => {
-  const lines = ["label,value", ...rows.map((row) => `${row.label},${row.value}`)];
-  return `# ${title}\n${lines.join("\n")}`;
+  return [
+    toCsvLine(["label", "value"]),
+    ...rows.map((row) => toCsvLine([row.label, row.value])),
+  ].join("\n");
+};
+
+const buildReportCsvFileName = (query: ReportQuery): string => {
+  const scopePart =
+    query.scope === ReportScope.Business ? "business" : "personal";
+
+  return `report_export_${scopePart}_${query.period}.csv`;
 };
 
 export const createReportsRepository = (
@@ -785,6 +814,7 @@ export const createReportsRepository = (
             range.startMs,
             range.endMs,
           );
+
           const rows = [
             { label: "Period", value: range.label },
             { label: "Money In", value: String(topSummary.totalIncome) },
@@ -794,6 +824,9 @@ export const createReportsRepository = (
             { label: "BillingDocs", value: String(billingDocuments.length) },
             { label: "LedgerEntries", value: String(ledgerEntries.length) },
           ];
+
+          const csvContent = buildCsvContent(rows);
+
           return {
             success: true,
             value: {
@@ -807,7 +840,12 @@ export const createReportsRepository = (
               chartTitle: "Export Preview",
               chartSubtitle: "Same filtered query model used for exports",
               chartKind: "export-preview",
-              csvPreview: buildCsvPreview("Report Export", rows),
+              csvPreview: csvContent,
+              csvExport: {
+                fileName: buildReportCsvFileName(query),
+                content: csvContent,
+                mimeType: "text/csv",
+              },
             },
           };
         }

@@ -167,6 +167,7 @@ function ReportDetailView({ viewModel }: Props) {
   }
 
   const supportsPeriodFilter = isReportPeriodFilterable(detail.reportId);
+  const hasCsvExport = Boolean(detail.csvExport);
 
   return (
     <View style={styles.screenGap}>
@@ -186,54 +187,99 @@ function ReportDetailView({ viewModel }: Props) {
       ) : null}
 
       {viewModel.canExportReports ? (
-        <View style={styles.exportActionsRow}>
-          <Pressable
-            style={[
-              styles.exportActionButton,
-              viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-            ]}
-            disabled={viewModel.isExporting}
-            onPress={() => {
-              void viewModel.onExportDetail("share");
-            }}
-          >
-            <Share2 size={16} color={colors.primary} />
-            <Text style={styles.exportActionText}>
-              {viewModel.isExporting ? "Exporting..." : "Share PDF"}
-            </Text>
-          </Pressable>
+        <View style={styles.exportBlock}>
+          {hasCsvExport ? (
+            <>
+              <Text style={styles.exportSectionTitle}>CSV Export</Text>
+              <View style={styles.exportActionsRow}>
+                <Pressable
+                  style={[
+                    styles.exportActionButton,
+                    viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+                  ]}
+                  disabled={viewModel.isExporting}
+                  onPress={() => {
+                    void viewModel.onExportCsv("share");
+                  }}
+                >
+                  <Share2 size={16} color={colors.primary} />
+                  <Text style={styles.exportActionText}>
+                    {viewModel.isExporting ? "Exporting..." : "Share CSV"}
+                  </Text>
+                </Pressable>
 
-          <Pressable
-            style={[
-              styles.exportActionButton,
-              viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-            ]}
-            disabled={viewModel.isExporting}
-            onPress={() => {
-              void viewModel.onExportDetail("save");
-            }}
-          >
-            <Download size={16} color={colors.primary} />
-            <Text style={styles.exportActionText}>
-              {viewModel.isExporting ? "Exporting..." : "Save PDF"}
-            </Text>
-          </Pressable>
+                <Pressable
+                  style={[
+                    styles.exportActionButton,
+                    viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+                  ]}
+                  disabled={viewModel.isExporting}
+                  onPress={() => {
+                    void viewModel.onExportCsv("save");
+                  }}
+                >
+                  <Download size={16} color={colors.primary} />
+                  <Text style={styles.exportActionText}>
+                    {viewModel.isExporting ? "Exporting..." : "Save CSV"}
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          ) : null}
 
-          <Pressable
-            style={[
-              styles.exportActionButton,
-              viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-            ]}
-            disabled={viewModel.isExporting}
-            onPress={() => {
-              void viewModel.onExportDetail("print");
-            }}
-          >
-            <Printer size={16} color={colors.primary} />
-            <Text style={styles.exportActionText}>
-              {viewModel.isExporting ? "Exporting..." : "Print"}
-            </Text>
-          </Pressable>
+          <Text style={styles.exportSectionTitle}>
+            {hasCsvExport ? "PDF Export" : "Export"}
+          </Text>
+
+          <View style={styles.exportActionsRow}>
+            <Pressable
+              style={[
+                styles.exportActionButton,
+                viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+              ]}
+              disabled={viewModel.isExporting}
+              onPress={() => {
+                void viewModel.onExportDetail("share");
+              }}
+            >
+              <Share2 size={16} color={colors.primary} />
+              <Text style={styles.exportActionText}>
+                {viewModel.isExporting ? "Exporting..." : "Share PDF"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.exportActionButton,
+                viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+              ]}
+              disabled={viewModel.isExporting}
+              onPress={() => {
+                void viewModel.onExportDetail("save");
+              }}
+            >
+              <Download size={16} color={colors.primary} />
+              <Text style={styles.exportActionText}>
+                {viewModel.isExporting ? "Exporting..." : "Save PDF"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.exportActionButton,
+                viewModel.isExporting ? styles.exportActionButtonDisabled : null,
+              ]}
+              disabled={viewModel.isExporting}
+              onPress={() => {
+                void viewModel.onExportDetail("print");
+              }}
+            >
+              <Printer size={16} color={colors.primary} />
+              <Text style={styles.exportActionText}>
+                {viewModel.isExporting ? "Exporting..." : "Print"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       ) : viewModel.isBusinessMode ? (
         <Text style={styles.permissionHint}>
@@ -361,6 +407,14 @@ const styles = StyleSheet.create({
   backText: {
     color: colors.primary,
     fontSize: 15,
+    fontFamily: "InterBold",
+  },
+  exportBlock: {
+    gap: spacing.sm,
+  },
+  exportSectionTitle: {
+    color: colors.cardForeground,
+    fontSize: 12,
     fontFamily: "InterBold",
   },
   exportActionsRow: {

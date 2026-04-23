@@ -82,6 +82,12 @@ export type ReportListItem = {
   progressRatio?: number | null;
 };
 
+export type ReportCsvExportSnapshot = {
+  fileName: string;
+  content: string;
+  mimeType: "text/csv";
+};
+
 export type ReportMenuEntry = {
   id: ReportMenuItemValue;
   title: string;
@@ -133,6 +139,7 @@ export type ReportDetailSnapshot = {
   segments?: readonly ReportSegment[];
   listItems?: readonly ReportListItem[];
   csvPreview?: string;
+  csvExport?: ReportCsvExportSnapshot;
 };
 
 export type ReportsDashboardResult = Result<

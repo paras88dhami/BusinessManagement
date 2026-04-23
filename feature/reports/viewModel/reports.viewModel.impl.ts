@@ -6,6 +6,7 @@ import {
   ReportScope,
 } from "@/feature/reports/types/report.entity.types";
 import { ReportsViewState } from "@/feature/reports/types/report.state.types";
+import { ReportCsvExportAction } from "@/feature/reports/adapter/reportCsvFile.adapter";
 import { DocumentExportAction } from "@/shared/utils/document/exportDocument";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -42,6 +43,7 @@ export const useReportsViewModel = (
     getReportsDashboardUseCase,
     getReportDetailUseCase,
     exportReportDetailDocumentUseCase,
+    exportReportCsvFileUseCase,
   } = params;
 
   const [state, setState] = useState<ReportsViewState>({
@@ -282,6 +284,51 @@ export const useReportsViewModel = (
     [accountType, canExportReports, exportReportDetailDocumentUseCase, state.detail],
   );
 
+  const onExportCsv = useCallback(
+    async (action: ReportCsvExportAction) => {
+      if (!state.detail?.csvExport) {
+        return;
+      }
+
+      if (!canExportReports) {
+        setState((current) => ({
+          ...current,
+          errorMessage:
+            "You have view access only. Ask admin for export permission.",
+        }));
+        return;
+      }
+
+      setState((current) => ({
+        ...current,
+        isExporting: true,
+        errorMessage: null,
+      }));
+
+      const result = await exportReportCsvFileUseCase.execute({
+        csvExport: state.detail.csvExport,
+        action,
+        dialogTitle: `${state.detail.title} CSV`,
+      });
+
+      if (!result.success) {
+        setState((current) => ({
+          ...current,
+          isExporting: false,
+          errorMessage: result.error.message,
+        }));
+        return;
+      }
+
+      setState((current) => ({
+        ...current,
+        isExporting: false,
+        errorMessage: null,
+      }));
+    },
+    [canExportReports, exportReportCsvFileUseCase, state.detail],
+  );
+
   return useMemo(
     () => ({
       ...state,
@@ -293,6 +340,7 @@ export const useReportsViewModel = (
       onOpenReport,
       onBackToReports,
       onExportDetail,
+      onExportCsv,
     }),
     [
       accountType,
@@ -303,6 +351,7 @@ export const useReportsViewModel = (
       onSelectHomeTab,
       onSelectPeriod,
       onExportDetail,
+      onExportCsv,
       state,
     ],
   );
