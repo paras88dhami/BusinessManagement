@@ -38,8 +38,7 @@ import { useLedgerListViewModel } from "@/feature/ledger/viewModel/ledgerList.vi
 import { useLedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPartyDetail.viewModel.impl";
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
@@ -167,14 +166,12 @@ export function GetLedgerScreenFactory({
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
   );
-  const postBusinessTransactionUseCase = useMemo(
-    () => createPostBusinessTransactionUseCase(appDatabase),
+  const moneyPostingRuntime = useMemo(
+    () => createMoneyPostingRuntime(appDatabase),
     [],
   );
-  const deleteBusinessTransactionUseCase = useMemo(
-    () => createDeleteBusinessTransactionUseCase(appDatabase),
-    [],
-  );
+  const { postBusinessTransactionUseCase, deleteBusinessTransactionUseCase } =
+    moneyPostingRuntime;
   const billingDatasource = useMemo(
     () => createLocalBillingDatasource(appDatabase),
     [],

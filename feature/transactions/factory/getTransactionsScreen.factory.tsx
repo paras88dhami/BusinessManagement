@@ -13,13 +13,12 @@ import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
+import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import { TransactionsScreen } from "@/feature/transactions/ui/TransactionsScreen";
 import { createAddTransactionUseCase } from "@/feature/transactions/useCase/addTransaction.useCase.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
 import { createDeleteTransactionUseCase } from "@/feature/transactions/useCase/deleteTransaction.useCase.impl";
 import { createGetTransactionByIdUseCase } from "@/feature/transactions/useCase/getTransactionById.useCase.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
 import { createUpdateTransactionUseCase } from "@/feature/transactions/useCase/updateTransaction.useCase.impl";
 import { useTransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel.impl";
 import { useTransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel.impl";
@@ -114,25 +113,30 @@ export function GetTransactionsScreenFactory({
     () => createGetTransactionByIdUseCase(transactionRepository),
     [transactionRepository],
   );
-  const postBusinessTransactionUseCase = useMemo(
-    () => createPostBusinessTransactionUseCase(appDatabase),
-    [],
-  );
-  const deleteBusinessTransactionUseCase = useMemo(
-    () => createDeleteBusinessTransactionUseCase(appDatabase),
+  const moneyPostingRuntime = useMemo(
+    () => createMoneyPostingRuntime(appDatabase),
     [],
   );
   const addTransactionUseCase = useMemo(
-    () => createAddTransactionUseCase(postBusinessTransactionUseCase),
-    [postBusinessTransactionUseCase],
+    () =>
+      createAddTransactionUseCase(
+        moneyPostingRuntime.postMoneyMovementUseCase,
+      ),
+    [moneyPostingRuntime],
   );
   const updateTransactionUseCase = useMemo(
-    () => createUpdateTransactionUseCase(postBusinessTransactionUseCase),
-    [postBusinessTransactionUseCase],
+    () =>
+      createUpdateTransactionUseCase(
+        moneyPostingRuntime.postMoneyMovementUseCase,
+      ),
+    [moneyPostingRuntime],
   );
   const deleteTransactionUseCase = useMemo(
-    () => createDeleteTransactionUseCase(deleteBusinessTransactionUseCase),
-    [deleteBusinessTransactionUseCase],
+    () =>
+      createDeleteTransactionUseCase(
+        moneyPostingRuntime.deleteMoneyMovementUseCase,
+      ),
+    [moneyPostingRuntime],
   );
 
   const [accounts, setAccounts] = useState<readonly Account[]>([]);

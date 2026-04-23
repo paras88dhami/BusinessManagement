@@ -54,8 +54,7 @@ import { createProductRepository } from "@/feature/products/data/repository/prod
 import { createGetProductsUseCase } from "@/feature/products/useCase/getProducts.useCase.impl";
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
 
@@ -218,14 +217,12 @@ export function GetOrdersScreenFactory({
     () => createTransactionRepository(transactionDatasource),
     [transactionDatasource],
   );
-  const postBusinessTransactionUseCase = React.useMemo(
-    () => createPostBusinessTransactionUseCase(appDatabase),
+  const moneyPostingRuntime = React.useMemo(
+    () => createMoneyPostingRuntime(appDatabase),
     [],
   );
-  const deleteBusinessTransactionUseCase = React.useMemo(
-    () => createDeleteBusinessTransactionUseCase(appDatabase),
-    [],
-  );
+  const { postBusinessTransactionUseCase, deleteBusinessTransactionUseCase } =
+    moneyPostingRuntime;
 
   const inventoryDatasource = React.useMemo(
     () => createLocalInventoryDatasource(appDatabase),

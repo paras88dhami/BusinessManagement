@@ -27,8 +27,7 @@ import { createDeleteLedgerEntryUseCase } from "@/feature/ledger/useCase/deleteL
 import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedgerEntries.useCase.impl";
 import { createSaveLedgerEntryWithSettlementUseCase } from "@/feature/ledger/useCase/saveLedgerEntryWithSettlement.useCase.impl";
 import { createUpdateLedgerEntryUseCase } from "@/feature/ledger/useCase/updateLedgerEntry.useCase.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import { Database } from "@nozbe/watermelondb";
 import React from "react";
 
@@ -201,14 +200,12 @@ export function GetBillingScreenFactory({
     ],
   );
 
-  const postBusinessTransactionUseCase = React.useMemo(
-    () => createPostBusinessTransactionUseCase(database),
+  const moneyPostingRuntime = React.useMemo(
+    () => createMoneyPostingRuntime(database),
     [database],
   );
-  const deleteBusinessTransactionUseCase = React.useMemo(
-    () => createDeleteBusinessTransactionUseCase(database),
-    [database],
-  );
+  const { postBusinessTransactionUseCase, deleteBusinessTransactionUseCase } =
+    moneyPostingRuntime;
 
   const saveLedgerEntryWithSettlementUseCase = React.useMemo(
     () =>

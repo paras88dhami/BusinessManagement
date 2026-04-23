@@ -28,8 +28,7 @@ import { createProductRepository } from "@/feature/products/data/repository/prod
 import { createCreateProductWithOpeningStockUseCase } from "@/feature/products/useCase/createProductWithOpeningStock.useCase.impl";
 import { createDeleteProductUseCase } from "@/feature/products/useCase/deleteProduct.useCase.impl";
 import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct.useCase.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import appDatabase from "@/shared/database/appDatabase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
 import { Q } from "@nozbe/watermelondb";
@@ -303,14 +302,12 @@ export function GetPosScreenFactory({
     () => createDeleteLedgerEntryUseCase(ledgerRepository),
     [ledgerRepository],
   );
-  const postBusinessTransactionUseCase = React.useMemo(
-    () => createPostBusinessTransactionUseCase(appDatabase),
+  const moneyPostingRuntime = React.useMemo(
+    () => createMoneyPostingRuntime(appDatabase),
     [],
   );
-  const deleteBusinessTransactionUseCase = React.useMemo(
-    () => createDeleteBusinessTransactionUseCase(appDatabase),
-    [],
-  );
+  const { postBusinessTransactionUseCase, deleteBusinessTransactionUseCase } =
+    moneyPostingRuntime;
   const contactDatasource = React.useMemo(
     () => createLocalContactDatasource(appDatabase),
     [],

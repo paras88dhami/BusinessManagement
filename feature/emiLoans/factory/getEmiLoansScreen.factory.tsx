@@ -37,8 +37,7 @@ import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import { createLocalUserManagementDatasource } from "@/feature/userManagement/data/dataSource/local.userManagement.datasource.impl";
 import { createUserManagementRepository } from "@/feature/userManagement/data/repository/userManagement.repository.impl";
-import { createDeleteBusinessTransactionUseCase } from "@/feature/transactions/useCase/deleteBusinessTransaction.useCase.impl";
-import { createPostBusinessTransactionUseCase } from "@/feature/transactions/useCase/postBusinessTransaction.useCase.impl";
+import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import appDatabase from "@/shared/database/appDatabase";
 import React, { useCallback, useMemo, useState } from "react";
 import { resolveCurrencyCode } from "@/shared/utils/currency/accountCurrency";
@@ -155,14 +154,12 @@ export function GetEmiLoansScreenFactory({
     () => createGetMoneyAccountsUseCase(moneyAccountRepository),
     [moneyAccountRepository],
   );
-  const postBusinessTransactionUseCase = useMemo(
-    () => createPostBusinessTransactionUseCase(appDatabase),
+  const moneyPostingRuntime = useMemo(
+    () => createMoneyPostingRuntime(appDatabase),
     [],
   );
-  const deleteBusinessTransactionUseCase = useMemo(
-    () => createDeleteBusinessTransactionUseCase(appDatabase),
-    [],
-  );
+  const { postBusinessTransactionUseCase, deleteBusinessTransactionUseCase } =
+    moneyPostingRuntime;
   const billingDatasource = useMemo(
     () => createLocalBillingDatasource(appDatabase),
     [],
