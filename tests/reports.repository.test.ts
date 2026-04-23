@@ -538,4 +538,201 @@ describe("reports.repository", () => {
       mimeType: "text/csv",
     });
   });
+
+  it("groups party balances by contact remote id instead of mutable party name", async () => {
+    const now = Date.now();
+
+    const dataset = createDataset({
+      ledgerEntries: [
+        {
+          remoteId: "led-1",
+          contactRemoteId: "contact-1",
+          partyName: "Kapil Old Name",
+          partyPhone: "9800000000",
+          entryType: "sale",
+          balanceDirection: "receive",
+          amount: 70,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now - 1000,
+          dueAt: null,
+        },
+        {
+          remoteId: "led-2",
+          contactRemoteId: "contact-1",
+          partyName: "Kapil New Name",
+          partyPhone: "9800000000",
+          entryType: "collection",
+          balanceDirection: "receive",
+          amount: 30,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now,
+          dueAt: null,
+        },
+        {
+          remoteId: "led-3",
+          contactRemoteId: "contact-2",
+          partyName: "Supplier B",
+          partyPhone: "9811111111",
+          entryType: "payment_out",
+          balanceDirection: "pay",
+          amount: 80,
+          currencyCode: CURRENCY_CODE,
+          happenedAt: now,
+          dueAt: null,
+        },
+      ],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportDetail(
+      createBaseQuery(ReportMenuItem.PartyBalances),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    expect(result.value.listItems).toHaveLength(2);
+    expect(result.value.listItems?.[0]?.id).toBe("contact:contact-1");
+    expect(result.value.listItems?.[0]?.title).toBe("Kapil New Name");
+    expect(result.value.listItems?.[0]?.value).toBe(
+      formatCurrencyAmount({
+        amount: 100,
+        currencyCode: CURRENCY_CODE,
+        countryCode: COUNTRY_CODE,
+        maximumFractionDigits: 0,
+      }),
+    );
+
+    expect(result.value.listItems?.[1]?.id).toBe("contact:contact-2");
+    expect(result.value.listItems?.[1]?.value).toBe(
+      formatCurrencyAmount({
+        amount: 80,
+        currencyCode: CURRENCY_CODE,
+        countryCode: COUNTRY_CODE,
+        maximumFractionDigits: 0,
+      }),
+    );
+  });
+
+  it("groups account statement by settlement money account remote id instead of mutable display snapshot", async () => {
+    const now = Date.now();
+
+    const dataset = createDataset({
+      transactions: [
+        {
+          remoteId: "txn-1",
+          title: "Cash sale 1",
+          amount: 100,
+          categoryLabel: "Sales",
+          happenedAt: now,
+          direction: "in",
+          transactionType: "income",
+          accountDisplayNameSnapshot: "Business Account",
+          settlementMoneyAccountRemoteId: "cash-1",
+          settlementMoneyAccountDisplayNameSnapshot: "Cash Old",
+        },
+        {
+          remoteId: "txn-2",
+          title: "Cash expense",
+          amount: 40,
+          categoryLabel: "Expense",
+          happenedAt: now + 1000,
+          direction: "out",
+          transactionType: "expense",
+          accountDisplayNameSnapshot: "Business Account",
+          settlementMoneyAccountRemoteId: "cash-1",
+          settlementMoneyAccountDisplayNameSnapshot: "Cash Renamed Snapshot",
+        },
+        {
+          remoteId: "txn-3",
+          title: "Bank income",
+          amount: 60,
+          categoryLabel: "Sales",
+          happenedAt: now + 2000,
+          direction: "in",
+          transactionType: "income",
+          accountDisplayNameSnapshot: "Business Account",
+          settlementMoneyAccountRemoteId: "bank-1",
+          settlementMoneyAccountDisplayNameSnapshot: "Bank Snapshot",
+        },
+      ],
+      moneyAccounts: [
+        {
+          remoteId: "cash-1",
+          name: "Cash Current",
+          accountType: "cash",
+          currentBalance: 1000,
+          currencyCode: CURRENCY_CODE,
+          isPrimary: true,
+          isActive: true,
+        },
+        {
+          remoteId: "bank-1",
+          name: "Bank Current",
+          accountType: "bank",
+          currentBalance: 500,
+          currencyCode: CURRENCY_CODE,
+          isPrimary: false,
+          isActive: true,
+        },
+        {
+          remoteId: "unused-1",
+          name: "Unused Account",
+          accountType: "cash",
+          currentBalance: 0,
+          currencyCode: CURRENCY_CODE,
+          isPrimary: false,
+          isActive: true,
+        },
+      ],
+    });
+
+    const repository = createReportsRepository(createDatasource(dataset), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const result = await repository.getReportDetail(
+      createBaseQuery(ReportMenuItem.AccountStatement),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    const accountsCard = result.value.summaryCards.find(
+      (item) => item.id === "statement-accounts",
+    );
+    expect(accountsCard?.value).toBe("2");
+
+    expect(result.value.listItems).toHaveLength(2);
+    expect(result.value.listItems?.[0]?.id).toBe("money_account:cash-1");
+    expect(result.value.listItems?.[0]?.title).toBe("Cash Current");
+    expect(result.value.listItems?.[0]?.subtitle).toContain(
+      formatCurrencyAmount({
+        amount: 100,
+        currencyCode: CURRENCY_CODE,
+        countryCode: COUNTRY_CODE,
+        maximumFractionDigits: 0,
+      }),
+    );
+    expect(result.value.listItems?.[0]?.subtitle).toContain(
+      formatCurrencyAmount({
+        amount: 40,
+        currencyCode: CURRENCY_CODE,
+        countryCode: COUNTRY_CODE,
+        maximumFractionDigits: 0,
+      }),
+    );
+
+    expect(result.value.listItems?.[1]?.id).toBe("money_account:bank-1");
+    expect(result.value.listItems?.[1]?.title).toBe("Bank Current");
+  });
 });

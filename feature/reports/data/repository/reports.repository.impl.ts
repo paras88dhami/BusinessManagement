@@ -26,15 +26,17 @@ import {
     getReportDateRangeForPeriod,
 } from "../../utils/reportPeriod.shared";
 import {
-    BillingDocumentRecord,
-    mapBillingDocumentModel,
-    mapEmiPlanModel,
-    mapInventoryMovementModel,
-    mapLedgerEntryModel,
-    mapMoneyAccountModel,
-    mapProductModel,
-    mapTransactionModel,
-    TransactionRecord,
+  BillingDocumentRecord,
+  LedgerEntryRecord,
+  MoneyAccountRecord,
+  TransactionRecord,
+  mapBillingDocumentModel,
+  mapEmiPlanModel,
+  mapInventoryMovementModel,
+  mapLedgerEntryModel,
+  mapMoneyAccountModel,
+  mapProductModel,
+  mapTransactionModel,
 } from "./mapper/reports.mapper";
 import { ReportsRepository } from "./reports.repository";
 
@@ -335,6 +337,233 @@ const buildSections = (scope: string): ReportMenuSection[] => {
   ];
 };
 
+const normalizeReportLabel = (
+  value: string | null | undefined,
+): string | null => {
+  const trimmed = value?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const normalizeReportKeyPart = (
+  value: string | null | undefined,
+): string => {
+  return normalizeReportLabel(value)?.toLowerCase() ?? "";
+};
+
+type PartyBalanceGroup = {
+  id: string;
+  displayName: string;
+  displayPhone: string | null;
+  receive: number;
+  pay: number;
+  lastAt: number;
+};
+
+type AccountStatementGroup = {
+  id: string;
+  displayName: string;
+  totalIn: number;
+  totalOut: number;
+  lastAt: number;
+};
+
+const resolvePartyGroupDisplayName = (
+  entry: LedgerEntryRecord,
+): string => {
+  return (
+    normalizeReportLabel(entry.partyName) ??
+    normalizeReportLabel(entry.partyPhone) ??
+    "Unknown Party"
+  );
+};
+
+const buildPartyBalanceGroupId = (
+  entry: LedgerEntryRecord,
+): string => {
+  const contactRemoteId = normalizeReportLabel(entry.contactRemoteId);
+  if (contactRemoteId) {
+    return `contact:${contactRemoteId}`;
+  }
+
+  const partyNameKey = normalizeReportKeyPart(entry.partyName) || "unknown";
+  const partyPhoneKey =
+    normalizeReportKeyPart(entry.partyPhone) || "no-phone";
+
+  return `unlinked:${partyNameKey}:${partyPhoneKey}`;
+};
+
+const buildPartyBalanceGroups = (
+  ledgerEntries: readonly LedgerEntryRecord[],
+): PartyBalanceGroup[] => {
+  const grouped = new Map<string, PartyBalanceGroup>();
+
+  ledgerEntries.forEach((entry) => {
+    const groupId = buildPartyBalanceGroupId(entry);
+    const current = grouped.get(groupId) ?? {
+      id: groupId,
+      displayName: resolvePartyGroupDisplayName(entry),
+      displayPhone: normalizeReportLabel(entry.partyPhone),
+      receive: 0,
+      pay: 0,
+      lastAt: 0,
+    };
+
+    if (entry.balanceDirection === LedgerBalanceDirection.Receive) {
+      current.receive += entry.amount;
+    } else {
+      current.pay += entry.amount;
+    }
+
+    if (entry.happenedAt >= current.lastAt) {
+      current.lastAt = entry.happenedAt;
+      current.displayName = resolvePartyGroupDisplayName(entry);
+      current.displayPhone = normalizeReportLabel(entry.partyPhone);
+    }
+
+    grouped.set(groupId, current);
+  });
+
+  return [...grouped.values()];
+};
+
+const buildDisplayNameCounts = <T extends { displayName: string }>(
+  items: readonly T[],
+): Map<string, number> => {
+  const counts = new Map<string, number>();
+
+  items.forEach((item) => {
+    const key = item.displayName.toLowerCase();
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+
+  return counts;
+};
+
+const resolvePartyGroupLabel = (
+  group: Pick<PartyBalanceGroup, "displayName" | "displayPhone">,
+  labelCounts: ReadonlyMap<string, number>,
+): string => {
+  const duplicateCount =
+    labelCounts.get(group.displayName.toLowerCase()) ?? 0;
+
+  if (duplicateCount > 1 && group.displayPhone) {
+    return `${group.displayName} • ${group.displayPhone}`;
+  }
+
+  return group.displayName;
+};
+
+const buildMoneyAccountNameMap = (
+  moneyAccounts: readonly MoneyAccountRecord[],
+): Map<string, string> => {
+  const map = new Map<string, string>();
+
+  moneyAccounts.forEach((account) => {
+    const remoteId = normalizeReportLabel(account.remoteId);
+    const name = normalizeReportLabel(account.name);
+
+    if (!remoteId || !name) {
+      return;
+    }
+
+    map.set(remoteId, name);
+  });
+
+  return map;
+};
+
+const buildAccountStatementGroupId = (
+  transaction: TransactionRecord,
+): string => {
+  const settlementMoneyAccountRemoteId = normalizeReportLabel(
+    transaction.settlementMoneyAccountRemoteId,
+  );
+  if (settlementMoneyAccountRemoteId) {
+    return `money_account:${settlementMoneyAccountRemoteId}`;
+  }
+
+  const snapshotLabel = normalizeReportLabel(
+    transaction.settlementMoneyAccountDisplayNameSnapshot,
+  );
+  if (snapshotLabel) {
+    return `snapshot:${snapshotLabel.toLowerCase()}`;
+  }
+
+  return "unassigned";
+};
+
+const resolveAccountStatementDisplayName = (params: {
+  transaction: TransactionRecord;
+  moneyAccountNameMap: ReadonlyMap<string, string>;
+}): string => {
+  const settlementMoneyAccountRemoteId = normalizeReportLabel(
+    params.transaction.settlementMoneyAccountRemoteId,
+  );
+
+  if (settlementMoneyAccountRemoteId) {
+    return (
+      params.moneyAccountNameMap.get(settlementMoneyAccountRemoteId) ??
+      normalizeReportLabel(
+        params.transaction.settlementMoneyAccountDisplayNameSnapshot,
+      ) ??
+      "Unknown Account"
+    );
+  }
+
+  return (
+    normalizeReportLabel(
+      params.transaction.settlementMoneyAccountDisplayNameSnapshot,
+    ) ?? "Unassigned Account"
+  );
+};
+
+const buildAccountStatementGroups = (params: {
+  transactions: readonly TransactionRecord[];
+  moneyAccounts: readonly MoneyAccountRecord[];
+}): AccountStatementGroup[] => {
+  const moneyAccountNameMap = buildMoneyAccountNameMap(params.moneyAccounts);
+  const grouped = new Map<string, AccountStatementGroup>();
+
+  params.transactions.forEach((transaction) => {
+    const groupId = buildAccountStatementGroupId(transaction);
+    const current = grouped.get(groupId) ?? {
+      id: groupId,
+      displayName: resolveAccountStatementDisplayName({
+        transaction,
+        moneyAccountNameMap,
+      }),
+      totalIn: 0,
+      totalOut: 0,
+      lastAt: 0,
+    };
+
+    if (transaction.direction === "in") {
+      current.totalIn += transaction.amount;
+    } else {
+      current.totalOut += transaction.amount;
+    }
+
+    current.lastAt = Math.max(current.lastAt, transaction.happenedAt);
+    current.displayName = resolveAccountStatementDisplayName({
+      transaction,
+      moneyAccountNameMap,
+    });
+
+    grouped.set(groupId, current);
+  });
+
+  return [...grouped.values()].sort((left, right) => {
+    const rightActivity = right.totalIn + right.totalOut;
+    const leftActivity = left.totalIn + left.totalOut;
+
+    if (rightActivity !== leftActivity) {
+      return rightActivity - leftActivity;
+    }
+
+    return left.displayName.localeCompare(right.displayName);
+  });
+};
+
 const escapeCsvValue = (value: unknown): string => {
   if (value === null || value === undefined) {
     return "";
@@ -551,49 +780,48 @@ export const createReportsRepository = (
           };
         }
         case ReportMenuItem.PartyBalances: {
-          const grouped = new Map<string, { receive: number; pay: number; lastAt: number }>();
-          ledgerEntries.forEach((entry) => {
-            const current = grouped.get(entry.partyName) ?? { receive: 0, pay: 0, lastAt: 0 };
-            if (entry.balanceDirection === LedgerBalanceDirection.Receive) {
-              current.receive += entry.amount;
-            } else {
-              current.pay += entry.amount;
-            }
-            current.lastAt = Math.max(current.lastAt, entry.happenedAt);
-            grouped.set(entry.partyName, current);
-          });
-          const balances = [...grouped.entries()]
-            .map(([partyName, totals]) => {
-              const outstandingAmount = Math.abs(totals.receive - totals.pay);
-              return {
-                partyName,
-                lastAt: totals.lastAt,
-                outstandingAmount,
-                tone:
-                  totals.receive >= totals.pay
-                    ? ("positive" as const)
-                    : ("negative" as const),
-              };
-            })
-            .sort((left, right) => right.outstandingAmount - left.outstandingAmount)
+          const groupedBalances = buildPartyBalanceGroups(ledgerEntries)
+            .map((group) => ({
+              ...group,
+              outstandingAmount: Math.abs(group.receive - group.pay),
+              tone:
+                group.receive >= group.pay
+                  ? ("positive" as const)
+                  : ("negative" as const),
+            }))
+            .sort(
+              (left, right) => right.outstandingAmount - left.outstandingAmount,
+            )
             .slice(0, 6);
-          const items = balances.map((balance) => ({
-            id: balance.partyName,
-            title: balance.partyName,
-            subtitle: `Last activity ${new Date(balance.lastAt).toLocaleDateString()}`,
-            value: formatCurrency(balance.outstandingAmount),
-            tone: balance.tone,
-            progressRatio: null,
-          }));
-          const segments = balances.map((balance, index) => ({
-            label: balance.partyName,
-            value: balance.outstandingAmount,
+
+          const labelCounts = buildDisplayNameCounts(groupedBalances);
+
+          const items = groupedBalances.map((group) => {
+            const label = resolvePartyGroupLabel(group, labelCounts);
+
+            return {
+              id: group.id,
+              title: label,
+              subtitle: `Last activity ${new Date(
+                group.lastAt,
+              ).toLocaleDateString()}`,
+              value: formatCurrency(group.outstandingAmount),
+              tone: group.tone,
+              progressRatio: null,
+            };
+          });
+
+          const segments = groupedBalances.map((group, index) => ({
+            label: resolvePartyGroupLabel(group, labelCounts),
+            value: group.outstandingAmount,
             color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
           }));
-          const totalOutstanding = balances.reduce(
-            (sum, balance) => sum + balance.outstandingAmount,
+
+          const totalOutstanding = groupedBalances.reduce(
+            (sum, group) => sum + group.outstandingAmount,
             0,
           );
+
           return {
             success: true,
             value: {
@@ -601,7 +829,12 @@ export const createReportsRepository = (
               title: "Party Balances",
               periodLabel: range.label,
               summaryCards: [
-                { id: "open-parties", label: "Open Parties", value: `${items.length}`, tone: "neutral" },
+                {
+                  id: "open-parties",
+                  label: "Open Parties",
+                  value: `${groupedBalances.length}`,
+                  tone: "neutral",
+                },
                 {
                   id: "total-outstanding",
                   label: "Outstanding",
@@ -709,25 +942,29 @@ export const createReportsRepository = (
           };
         }
         case ReportMenuItem.AccountStatement: {
-          const filteredTransactions = transactions.filter((item) => isWithinRange(item.happenedAt, range.startMs, range.endMs));
-          const grouped = new Map<string, { totalIn: number; totalOut: number }>();
-          filteredTransactions.forEach((transaction) => {
-            const current = grouped.get(transaction.accountDisplayNameSnapshot) ?? { totalIn: 0, totalOut: 0 };
-            if (transaction.direction === "in") {
-              current.totalIn += transaction.amount;
-            } else {
-              current.totalOut += transaction.amount;
-            }
-            grouped.set(transaction.accountDisplayNameSnapshot, current);
+          const filteredTransactions = transactions.filter((item) =>
+            isWithinRange(item.happenedAt, range.startMs, range.endMs),
+          );
+
+          const groupedAccounts = buildAccountStatementGroups({
+            transactions: filteredTransactions,
+            moneyAccounts,
           });
-          const listItems = [...grouped.entries()].map(([accountName, totals]) => ({
-            id: accountName,
-            title: accountName,
-            subtitle: `Money In ${formatCurrency(totals.totalIn)} | Money Out ${formatCurrency(totals.totalOut)}`,
-            value: formatSignedCurrency(totals.totalIn - totals.totalOut),
-            tone: totals.totalIn >= totals.totalOut ? ("positive" as const) : ("negative" as const),
+
+          const listItems = groupedAccounts.map((group) => ({
+            id: group.id,
+            title: group.displayName,
+            subtitle: `Money In ${formatCurrency(
+              group.totalIn,
+            )} | Money Out ${formatCurrency(group.totalOut)}`,
+            value: formatSignedCurrency(group.totalIn - group.totalOut),
+            tone:
+              group.totalIn >= group.totalOut
+                ? ("positive" as const)
+                : ("negative" as const),
             progressRatio: null,
           }));
+
           return {
             success: true,
             value: {
@@ -735,11 +972,21 @@ export const createReportsRepository = (
               title: "Account Statement",
               periodLabel: range.label,
               summaryCards: [
-                { id: "statement-accounts", label: "Accounts", value: `${moneyAccounts.length}`, tone: "neutral" },
-                { id: "statement-entries", label: "Entries", value: `${filteredTransactions.length}`, tone: "neutral" },
+                {
+                  id: "statement-accounts",
+                  label: "Accounts",
+                  value: `${groupedAccounts.length}`,
+                  tone: "neutral",
+                },
+                {
+                  id: "statement-entries",
+                  label: "Entries",
+                  value: `${filteredTransactions.length}`,
+                  tone: "neutral",
+                },
               ],
               chartTitle: "Account-wise activity",
-              chartSubtitle: "Account-wise transaction history",
+              chartSubtitle: "Money account-wise transaction history",
               chartKind: "list",
               listItems,
             },

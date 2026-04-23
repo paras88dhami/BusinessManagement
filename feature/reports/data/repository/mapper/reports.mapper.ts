@@ -1,3 +1,4 @@
+import { MoneyAccountModel } from "@/feature/accounts/data/dataSource/db/moneyAccount.model";
 import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billingDocument.model";
 import { BillingDocumentTypeValue } from "@/feature/billing/types/billing.types";
 import { EmiPlanModel } from "@/feature/emiLoans/data/dataSource/db/emiPlan.model";
@@ -5,9 +6,9 @@ import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/i
 import { LedgerEntryModel } from "@/feature/ledger/data/dataSource/db/ledger.model";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
 import { TransactionModel } from "@/feature/transactions/data/dataSource/db/transaction.model";
-import { MoneyAccountModel } from "@/feature/accounts/data/dataSource/db/moneyAccount.model";
 
 export type TransactionRecord = {
+  remoteId: string;
   title: string;
   amount: number;
   categoryLabel: string | null;
@@ -15,6 +16,8 @@ export type TransactionRecord = {
   direction: string;
   transactionType: string;
   accountDisplayNameSnapshot: string;
+  settlementMoneyAccountRemoteId: string | null;
+  settlementMoneyAccountDisplayNameSnapshot: string | null;
 };
 
 export type BillingDocumentRecord = {
@@ -27,7 +30,10 @@ export type BillingDocumentRecord = {
 };
 
 export type LedgerEntryRecord = {
+  remoteId: string;
   partyName: string;
+  partyPhone: string | null;
+  contactRemoteId: string | null;
   entryType: string;
   balanceDirection: string;
   amount: number;
@@ -68,14 +74,17 @@ export type ProductRecord = {
 };
 
 export type MoneyAccountRecord = {
+  remoteId: string;
   name: string;
   accountType: string;
   currentBalance: number;
   currencyCode: string | null;
   isPrimary: boolean;
+  isActive: boolean;
 };
 
 export const mapTransactionModel = (model: TransactionModel): TransactionRecord => ({
+  remoteId: model.remoteId,
   title: model.title,
   amount: model.amount,
   categoryLabel: model.categoryLabel,
@@ -83,6 +92,9 @@ export const mapTransactionModel = (model: TransactionModel): TransactionRecord 
   direction: model.direction,
   transactionType: model.transactionType,
   accountDisplayNameSnapshot: model.accountDisplayNameSnapshot,
+  settlementMoneyAccountRemoteId: model.settlementMoneyAccountRemoteId,
+  settlementMoneyAccountDisplayNameSnapshot:
+    model.settlementMoneyAccountDisplayNameSnapshot,
 });
 
 export const mapBillingDocumentModel = (
@@ -97,7 +109,10 @@ export const mapBillingDocumentModel = (
 });
 
 export const mapLedgerEntryModel = (model: LedgerEntryModel): LedgerEntryRecord => ({
+  remoteId: model.remoteId,
   partyName: model.partyName,
+  partyPhone: model.partyPhone,
+  contactRemoteId: model.contactRemoteId,
   entryType: model.entryType,
   balanceDirection: model.balanceDirection,
   amount: model.amount,
@@ -142,9 +157,11 @@ export const mapProductModel = (model: ProductModel): ProductRecord => ({
 export const mapMoneyAccountModel = (
   model: MoneyAccountModel,
 ): MoneyAccountRecord => ({
+  remoteId: model.remoteId,
   name: model.name,
   accountType: model.accountType,
   currentBalance: model.currentBalance,
   currencyCode: model.currencyCode,
   isPrimary: model.isPrimary,
+  isActive: model.isActive,
 });
