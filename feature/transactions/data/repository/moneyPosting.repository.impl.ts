@@ -1,3 +1,4 @@
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
 import {
   SaveTransactionPayload,
   TransactionOperationResult,
@@ -15,9 +16,11 @@ import { MoneyPostingRepository } from "./moneyPosting.repository";
 
 export const createMoneyPostingRepository = (
   workflowRepository: MoneyPostingWorkflowRepository,
+  recordAuditEventUseCase?: RecordAuditEventUseCase,
 ): MoneyPostingRepository => {
   const workflowUseCase = createRunMoneyPostingWorkflowUseCase({
     workflowRepository,
+    recordAuditEventUseCase,
   });
 
   return {

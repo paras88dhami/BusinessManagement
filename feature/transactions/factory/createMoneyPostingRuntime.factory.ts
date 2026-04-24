@@ -1,3 +1,6 @@
+import { createLocalAuditDatasource } from "@/feature/audit/data/dataSource/local.audit.datasource.impl";
+import { createAuditRepository } from "@/feature/audit/data/repository/audit.repository.impl";
+import { createRecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase.impl";
 import { createLocalMoneyAccountBalanceDatasource } from "@/feature/transactions/data/dataSource/local.moneyAccountBalance.datasource.impl";
 import { createLocalMoneyPostingDatasource } from "@/feature/transactions/data/dataSource/local.moneyPosting.datasource.impl";
 import { createMoneyPostingRepository } from "@/feature/transactions/data/repository/moneyPosting.repository.impl";
@@ -30,9 +33,13 @@ export const createMoneyPostingRuntime = (
     transactionDatasource,
     moneyAccountBalanceDatasource,
   });
+  const auditDatasource = createLocalAuditDatasource(database);
+  const auditRepository = createAuditRepository(auditDatasource);
+  const recordAuditEventUseCase = createRecordAuditEventUseCase(auditRepository);
 
   const moneyPostingRepository = createMoneyPostingRepository(
     workflowRepository,
+    recordAuditEventUseCase,
   );
 
   const postMoneyMovementUseCase =

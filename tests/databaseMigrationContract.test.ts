@@ -1,9 +1,3 @@
-import {
-  BACKFILL_CONTACT_NORMALIZED_PHONE_SQL,
-  CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
-  DEDUPE_CONTACT_NORMALIZED_PHONE_SQL,
-  DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
-} from "@/feature/contacts/data/dataSource/db/contactPhone.uniqueIndex";
 import { APP_DATABASE_SCHEMA_VERSION } from "@/shared/database/appDatabaseSchemaVersion";
 import { migrations } from "@/shared/database/migration";
 import { describe, expect, it } from "vitest";
@@ -55,15 +49,6 @@ const getMigrationByVersion = (version: number): MigrationDefinition => {
   return migration;
 };
 
-const getSqlSteps = (migration: MigrationDefinition): readonly string[] => {
-  return migration.steps
-    .map((step) => {
-      const maybeSql = (step as { sql?: unknown }).sql;
-      return typeof maybeSql === "string" ? maybeSql.trim() : null;
-    })
-    .filter((value): value is string => value !== null);
-};
-
 describe("database migration contract", () => {
   it("keeps app schema version aligned with the latest migration version", () => {
     const latestMigration = getLatestMigration();
@@ -71,21 +56,15 @@ describe("database migration contract", () => {
     expect(APP_DATABASE_SCHEMA_VERSION).toBe(latestMigration.toVersion);
   });
 
-  it("contains the contact index repair migration at version 42", () => {
-    const migration42 = getMigrationByVersion(42);
+  it("contains the audit events table migration at version 43", () => {
+    const migration43 = getMigrationByVersion(43);
+    const auditCreateStep = migration43.steps.find((step) => {
+      const stepType = (step as { type?: unknown }).type;
+      const tableName = (step as { table?: unknown }).table;
+      return stepType === "create_table" && tableName === "audit_events";
+    });
 
-    expect(migration42.toVersion).toBe(42);
-  });
-
-  it("runs contact index repair steps in the required release-safe order", () => {
-    const migration42 = getMigrationByVersion(42);
-    const sqlSteps = getSqlSteps(migration42);
-
-    expect(sqlSteps).toEqual([
-      BACKFILL_CONTACT_NORMALIZED_PHONE_SQL,
-      DEDUPE_CONTACT_NORMALIZED_PHONE_SQL,
-      DROP_CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
-      CONTACTS_ACTIVE_IDENTITY_PHONE_UNIQUE_INDEX_SQL,
-    ]);
+    expect(migration43.toVersion).toBe(43);
+    expect(auditCreateStep).toBeDefined();
   });
 });

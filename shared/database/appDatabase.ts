@@ -4,6 +4,7 @@ import { appSettingsDbConfig } from "@/feature/appSettings/data/dataSource/db/ap
 import { businessNotesDbConfig } from "@/feature/appSettings/notes/data/dataSource/db/businessNoteDbConfig";
 import { appRatingDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/appRatingDbConfig";
 import { bugReportDbConfig } from "@/feature/appSettings/settings/data/dataSource/db/bugReportDbConfig";
+import { auditDbConfig } from "@/feature/audit/data/dataSource/db/auditDbConfig";
 import { accountDbConfig } from "@/feature/auth/accountSelection/data/dataSource/db/accountDbConfig";
 import { billingDbConfig } from "@/feature/billing/data/dataSource/db/billingDbConfig";
 import { budgetPlanDbConfig } from "@/feature/budget/data/dataSource/db/budgetPlanDbConfig";
@@ -58,6 +59,7 @@ const schema = appSchema({
     ...budgetPlanDbConfig.tables,
     ...appRatingDbConfig.tables,
     ...bugReportDbConfig.tables,
+    ...auditDbConfig.tables,
   ],
 });
 
@@ -85,6 +87,7 @@ export const database = createDatabase({
     ...budgetPlanDbConfig.models,
     ...appRatingDbConfig.models,
     ...bugReportDbConfig.models,
+    ...auditDbConfig.models,
   ],
   migrations,
 });

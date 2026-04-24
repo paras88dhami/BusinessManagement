@@ -1,3 +1,9 @@
+import {
+  AuditModule,
+  AuditOutcome,
+  AuditSeverity,
+} from "@/feature/audit/types/audit.entity.types";
+import type { RecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase";
 import { BillingErrorType } from "@/feature/billing/types/billing.types";
 import type { DeleteBillingDocumentUseCase } from "@/feature/billing/useCase/deleteBillingDocument.useCase";
 import { InventoryMovementSourceModule } from "@/feature/inventory/types/inventory.types";
@@ -18,6 +24,7 @@ type CreateResolvePosAbnormalSaleUseCaseParams = {
   deleteLedgerEntryUseCase: DeleteLedgerEntryUseCase;
   deleteBusinessTransactionUseCase: DeleteBusinessTransactionUseCase;
   updatePosSaleWorkflowStateUseCase: UpdatePosSaleWorkflowStateUseCase;
+  recordAuditEventUseCase: RecordAuditEventUseCase;
 };
 
 const isBillingAlreadyClearedError = (error: { type?: string } | null | undefined) =>
@@ -36,6 +43,7 @@ export const createResolvePosAbnormalSaleUseCase = ({
   deleteLedgerEntryUseCase,
   deleteBusinessTransactionUseCase,
   updatePosSaleWorkflowStateUseCase,
+  recordAuditEventUseCase,
 }: CreateResolvePosAbnormalSaleUseCaseParams): ResolvePosAbnormalSaleUseCase => ({
   async execute({ sale }) {
     const saleRemoteId = sale.remoteId.trim();
@@ -175,6 +183,44 @@ export const createResolvePosAbnormalSaleUseCase = ({
         error: {
           type: PosErrorType.Unknown,
           message: updateResult.error.message,
+        },
+      };
+    }
+
+    const auditResult = await recordAuditEventUseCase.execute({
+      accountRemoteId: businessAccountRemoteId,
+      ownerUserRemoteId: sale.ownerUserRemoteId,
+      actorUserRemoteId: sale.ownerUserRemoteId,
+      module: AuditModule.Pos,
+      action: "pos_abnormal_cleanup",
+      sourceModule: "pos",
+      sourceRemoteId: saleRemoteId,
+      sourceAction: "cleanup_abnormal_sale",
+      outcome:
+        cleanupErrors.length === 0 ? AuditOutcome.Success : AuditOutcome.Partial,
+      severity:
+        cleanupErrors.length === 0 ? AuditSeverity.Warning : AuditSeverity.Critical,
+      summary:
+        cleanupErrors.length === 0
+          ? "POS abnormal sale cleanup completed."
+          : "POS abnormal sale cleanup completed partially.",
+      metadataJson: JSON.stringify({
+        billingDocumentRemoteId: normalizedBillingDocumentRemoteId,
+        ledgerEntryRemoteId: normalizedLedgerEntryRemoteId,
+        transactionRemoteIds: normalizedTransactionRemoteIds,
+        remainingBillingDocumentRemoteId,
+        remainingLedgerEntryRemoteId,
+        remainingTransactionRemoteIds,
+        cleanupErrors,
+      }),
+    });
+
+    if (!auditResult.success) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.Unknown,
+          message: auditResult.error.message,
         },
       };
     }

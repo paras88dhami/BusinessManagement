@@ -1,3 +1,8 @@
+import {
+  AuditModule,
+  AuditOutcome,
+  AuditSeverity,
+} from "@/feature/audit/types/audit.entity.types";
 import { SaveTransactionPayload } from "@/feature/transactions/types/transaction.entity.types";
 import { Result } from "@/shared/types/result.types";
 import { MoneyPostingWorkflowRepository } from "../repository/moneyPostingWorkflow.repository";
@@ -11,10 +16,12 @@ import { RunMoneyPostingWorkflowUseCase } from "./runMoneyPostingWorkflow.useCas
 
 type CreateRunMoneyPostingWorkflowUseCaseParams = {
   workflowRepository: MoneyPostingWorkflowRepository;
+  recordAuditEventUseCase?: import("@/feature/audit/useCase/recordAuditEvent.useCase").RecordAuditEventUseCase;
 };
 
 export const createRunMoneyPostingWorkflowUseCase = ({
   workflowRepository,
+  recordAuditEventUseCase,
 }: CreateRunMoneyPostingWorkflowUseCaseParams): RunMoneyPostingWorkflowUseCase => ({
   async postMoneyMovement(payload: SaveTransactionPayload) {
     try {
@@ -53,7 +60,46 @@ export const createRunMoneyPostingWorkflowUseCase = ({
         };
       }
 
-      return workflowRepository.applyPostMoneyMovementPlan(execution.plan);
+      const result = await workflowRepository.applyPostMoneyMovementPlan(
+        execution.plan,
+      );
+
+      if (!result.success) {
+        return result;
+      }
+
+      const auditResult = await recordAuditEventUseCase?.execute({
+        accountRemoteId: normalizedPayload.accountRemoteId,
+        ownerUserRemoteId: normalizedPayload.ownerUserRemoteId,
+        actorUserRemoteId: normalizedPayload.ownerUserRemoteId,
+        module: AuditModule.Transactions,
+        action: "money_movement_posted",
+        sourceModule: normalizedPayload.sourceModule ?? "transactions",
+        sourceRemoteId: normalizedPayload.remoteId,
+        sourceAction: normalizedPayload.sourceAction ?? "post_money_movement",
+        outcome: AuditOutcome.Success,
+        severity: AuditSeverity.Info,
+        summary: `Money movement posted: ${normalizedPayload.title}`,
+        metadataJson: JSON.stringify({
+          transactionRemoteId: normalizedPayload.remoteId,
+          amount: normalizedPayload.amount,
+          direction: normalizedPayload.direction,
+          settlementMoneyAccountRemoteId:
+            normalizedPayload.settlementMoneyAccountRemoteId,
+          idempotencyKey: normalizedPayload.idempotencyKey,
+        }),
+      });
+
+      if (auditResult && !auditResult.success) {
+        return {
+          success: false,
+          error: new Error(
+            `Money movement posted, but audit event failed: ${auditResult.error.message}`,
+          ),
+        };
+      }
+
+      return result;
     } catch (error) {
       return {
         success: false,
@@ -78,7 +124,47 @@ export const createRunMoneyPostingWorkflowUseCase = ({
         };
       }
 
-      return workflowRepository.applyDeleteMoneyMovementPlan(execution.plan);
+      const result = await workflowRepository.applyDeleteMoneyMovementPlan(
+        execution.plan,
+      );
+
+      if (!result.success) {
+        return result;
+      }
+
+      if (existing) {
+        const auditResult = await recordAuditEventUseCase?.execute({
+          accountRemoteId: existing.accountRemoteId,
+          ownerUserRemoteId: existing.ownerUserRemoteId,
+          actorUserRemoteId: existing.ownerUserRemoteId,
+          module: AuditModule.Transactions,
+          action: "money_movement_voided",
+          sourceModule: existing.sourceModule ?? "transactions",
+          sourceRemoteId: existing.remoteId,
+          sourceAction: "void_money_movement",
+          outcome: AuditOutcome.Success,
+          severity: AuditSeverity.Warning,
+          summary: `Money movement voided: ${existing.title}`,
+          metadataJson: JSON.stringify({
+            transactionRemoteId: existing.remoteId,
+            amount: existing.amount,
+            direction: existing.direction,
+            settlementMoneyAccountRemoteId:
+              existing.settlementMoneyAccountRemoteId,
+          }),
+        });
+
+        if (auditResult && !auditResult.success) {
+          return {
+            success: false,
+            error: new Error(
+              `Money movement voided, but audit event failed: ${auditResult.error.message}`,
+            ),
+          };
+        }
+      }
+
+      return result;
     } catch (error) {
       return {
         success: false,

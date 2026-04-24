@@ -1,5 +1,8 @@
 import { createLocalMoneyAccountDatasource } from "@/feature/accounts/data/dataSource/local.moneyAccount.datasource.impl";
 import { createMoneyAccountRepository } from "@/feature/accounts/data/repository/moneyAccount.repository.impl";
+import { createLocalAuditDatasource } from "@/feature/audit/data/dataSource/local.audit.datasource.impl";
+import { createAuditRepository } from "@/feature/audit/data/repository/audit.repository.impl";
+import { createRecordAuditEventUseCase } from "@/feature/audit/useCase/recordAuditEvent.useCase.impl";
 import { MoneyAccountsScreen } from "@/feature/accounts/ui/MoneyAccountsScreen";
 import { createAdjustMoneyAccountBalanceUseCase } from "@/feature/accounts/useCase/adjustMoneyAccountBalance.useCase.impl";
 import { createArchiveMoneyAccountUseCase } from "@/feature/accounts/useCase/archiveMoneyAccount.useCase.impl";
@@ -69,9 +72,25 @@ export function GetMoneyAccountsScreenFactory({
       }),
     [moneyAccountBalanceDatasource, moneyPostingTransactionDatasource],
   );
+  const auditDatasource = React.useMemo(
+    () => createLocalAuditDatasource(appDatabase),
+    [],
+  );
+  const auditRepository = React.useMemo(
+    () => createAuditRepository(auditDatasource),
+    [auditDatasource],
+  );
+  const recordAuditEventUseCase = React.useMemo(
+    () => createRecordAuditEventUseCase(auditRepository),
+    [auditRepository],
+  );
   const moneyPostingRepositoryAdapter = React.useMemo(
-    () => createMoneyPostingRepository(moneyPostingWorkflowRepository),
-    [moneyPostingWorkflowRepository],
+    () =>
+      createMoneyPostingRepository(
+        moneyPostingWorkflowRepository,
+        recordAuditEventUseCase,
+      ),
+    [moneyPostingWorkflowRepository, recordAuditEventUseCase],
   );
   const postMoneyMovementUseCase = React.useMemo(
     () => createPostMoneyMovementUseCase(moneyPostingRepositoryAdapter),

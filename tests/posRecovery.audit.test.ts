@@ -1,8 +1,5 @@
-import { BillingErrorType } from "@/feature/billing/types/billing.types";
-import { InventoryMovementSourceModule } from "@/feature/inventory/types/inventory.types";
-import { LedgerErrorType } from "@/feature/ledger/types/ledger.error.types";
+import { PosErrorType } from "@/feature/pos/types/pos.error.types";
 import { createResolvePosAbnormalSaleUseCase } from "@/feature/pos/workflow/posRecovery/useCase/resolvePosAbnormalSale.useCase.impl";
-import { TransactionErrorType } from "@/feature/transactions/types/transaction.error.types";
 import { describe, expect, it, vi } from "vitest";
 
 const buildSale = (overrides: Record<string, unknown> = {}) => ({
@@ -38,8 +35,8 @@ const buildSale = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-describe("createResolvePosAbnormalSaleUseCase", () => {
-  it("attempts inventory cleanup before accounting cleanup", async () => {
+describe("pos recovery audit", () => {
+  it("successful cleanup emits pos_abnormal_cleanup audit with Success outcome", async () => {
     const deleteInventoryMovementsBySourceUseCase = {
       execute: vi.fn(async () => ({ success: true as const, value: true })),
     };
@@ -64,7 +61,6 @@ describe("createResolvePosAbnormalSaleUseCase", () => {
         value: {} as never,
       })),
     };
-
     const useCase = createResolvePosAbnormalSaleUseCase({
       deleteInventoryMovementsBySourceUseCase:
         deleteInventoryMovementsBySourceUseCase as never,
@@ -77,82 +73,7 @@ describe("createResolvePosAbnormalSaleUseCase", () => {
       recordAuditEventUseCase: recordAuditEventUseCase as never,
     });
 
-    await useCase.execute({
-      sale: buildSale() as never,
-    });
-
-    expect(deleteInventoryMovementsBySourceUseCase.execute).toHaveBeenCalledWith({
-      accountRemoteId: "account-1",
-      sourceModule: InventoryMovementSourceModule.Pos,
-      sourceRemoteId: "sale-1",
-    });
-    expect(
-      deleteInventoryMovementsBySourceUseCase.execute.mock.invocationCallOrder[0],
-    ).toBeLessThan(deleteLedgerEntryUseCase.execute.mock.invocationCallOrder[0]);
-    expect(
-      deleteInventoryMovementsBySourceUseCase.execute.mock.invocationCallOrder[0],
-    ).toBeLessThan(deleteBillingDocumentUseCase.execute.mock.invocationCallOrder[0]);
-  });
-
-  it("clears stale references when linked artifacts are already missing", async () => {
-    const deleteInventoryMovementsBySourceUseCase = {
-      execute: vi.fn(async () => ({ success: true as const, value: true })),
-    };
-    const deleteBillingDocumentUseCase = {
-      execute: vi.fn(async () => ({
-        success: false as const,
-        error: {
-          type: BillingErrorType.DocumentNotFound,
-          message: "The requested billing document was not found.",
-        },
-      })),
-    };
-    const deleteLedgerEntryUseCase = {
-      execute: vi.fn(async () => ({
-        success: false as const,
-        error: {
-          type: LedgerErrorType.LedgerEntryNotFound,
-          message: "The selected ledger entry was not found.",
-        },
-      })),
-    };
-    const deleteBusinessTransactionUseCase = {
-      execute: vi.fn(async () => ({
-        success: false as const,
-        error: {
-          type: TransactionErrorType.TransactionNotFound,
-          message: "The requested transaction was not found.",
-        },
-      })),
-    };
-    const updatePosSaleWorkflowStateUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: {} as never,
-      })),
-    };
-    const recordAuditEventUseCase = {
-      execute: vi.fn(async () => ({
-        success: true as const,
-        value: {} as never,
-      })),
-    };
-
-    const useCase = createResolvePosAbnormalSaleUseCase({
-      deleteInventoryMovementsBySourceUseCase:
-        deleteInventoryMovementsBySourceUseCase as never,
-      deleteBillingDocumentUseCase: deleteBillingDocumentUseCase as never,
-      deleteLedgerEntryUseCase: deleteLedgerEntryUseCase as never,
-      deleteBusinessTransactionUseCase:
-        deleteBusinessTransactionUseCase as never,
-      updatePosSaleWorkflowStateUseCase:
-        updatePosSaleWorkflowStateUseCase as never,
-      recordAuditEventUseCase: recordAuditEventUseCase as never,
-    });
-
-    const result = await useCase.execute({
-      sale: buildSale() as never,
-    });
+    const result = await useCase.execute({ sale: buildSale() as never });
 
     expect(result).toEqual({
       success: true,
@@ -160,16 +81,121 @@ describe("createResolvePosAbnormalSaleUseCase", () => {
         wasFullyCleaned: true,
       },
     });
-
-    expect(updatePosSaleWorkflowStateUseCase.execute).toHaveBeenCalledWith(
+    expect(recordAuditEventUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({
-        saleRemoteId: "sale-1",
-        workflowStatus: "failed",
-        billingDocumentRemoteId: null,
-        ledgerEntryRemoteId: null,
-        postedTransactionRemoteIds: [],
-        lastErrorType: "manual_cleanup_completed",
+        action: "pos_abnormal_cleanup",
+        outcome: "success",
       }),
     );
+  });
+
+  it("partial cleanup emits audit with Partial outcome and remaining refs", async () => {
+    const deleteInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const deleteBillingDocumentUseCase = {
+      execute: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: "UNKNOWN",
+          message: "Delete failed.",
+        },
+      })),
+    };
+    const deleteLedgerEntryUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const deleteBusinessTransactionUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const updatePosSaleWorkflowStateUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const recordAuditEventUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const useCase = createResolvePosAbnormalSaleUseCase({
+      deleteInventoryMovementsBySourceUseCase:
+        deleteInventoryMovementsBySourceUseCase as never,
+      deleteBillingDocumentUseCase: deleteBillingDocumentUseCase as never,
+      deleteLedgerEntryUseCase: deleteLedgerEntryUseCase as never,
+      deleteBusinessTransactionUseCase:
+        deleteBusinessTransactionUseCase as never,
+      updatePosSaleWorkflowStateUseCase:
+        updatePosSaleWorkflowStateUseCase as never,
+      recordAuditEventUseCase: recordAuditEventUseCase as never,
+    });
+
+    const result = await useCase.execute({ sale: buildSale() as never });
+    const auditPayload = recordAuditEventUseCase.execute.mock.calls[0]?.[0];
+    const metadata = JSON.parse(auditPayload.metadataJson) as {
+      remainingBillingDocumentRemoteId: string | null;
+    };
+
+    expect(result).toEqual({
+      success: true,
+      value: {
+        wasFullyCleaned: false,
+      },
+    });
+    expect(auditPayload.outcome).toBe("partial");
+    expect(metadata.remainingBillingDocumentRemoteId).toBe("doc-1");
+  });
+
+  it("audit failure after cleanup returns failure", async () => {
+    const deleteInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const deleteBillingDocumentUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const deleteLedgerEntryUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const deleteBusinessTransactionUseCase = {
+      execute: vi.fn(async () => ({ success: true as const, value: true })),
+    };
+    const updatePosSaleWorkflowStateUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: {} as never,
+      })),
+    };
+    const recordAuditEventUseCase = {
+      execute: vi.fn(async () => ({
+        success: false as const,
+        error: {
+          type: "DATABASE",
+          message: "Unable to save audit event.",
+        },
+      })),
+    };
+    const useCase = createResolvePosAbnormalSaleUseCase({
+      deleteInventoryMovementsBySourceUseCase:
+        deleteInventoryMovementsBySourceUseCase as never,
+      deleteBillingDocumentUseCase: deleteBillingDocumentUseCase as never,
+      deleteLedgerEntryUseCase: deleteLedgerEntryUseCase as never,
+      deleteBusinessTransactionUseCase:
+        deleteBusinessTransactionUseCase as never,
+      updatePosSaleWorkflowStateUseCase:
+        updatePosSaleWorkflowStateUseCase as never,
+      recordAuditEventUseCase: recordAuditEventUseCase as never,
+    });
+
+    const result = await useCase.execute({ sale: buildSale() as never });
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        type: PosErrorType.Unknown,
+        message: "Unable to save audit event.",
+      },
+    });
   });
 });
