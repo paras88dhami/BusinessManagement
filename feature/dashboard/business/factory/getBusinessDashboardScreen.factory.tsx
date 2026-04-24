@@ -6,6 +6,7 @@ import { createGetLedgerEntriesUseCase } from "@/feature/ledger/useCase/getLedge
 import { createLocalTransactionDatasource } from "@/feature/transactions/data/dataSource/local.transaction.datasource.impl";
 import { createTransactionRepository } from "@/feature/transactions/data/repository/transaction.repository.impl";
 import { createGetTransactionsUseCase } from "@/feature/transactions/useCase/getTransactions.useCase.impl";
+import { createGetBusinessDashboardReadModelUseCase } from "../readModel/useCase/getBusinessDashboardReadModel.useCase.impl";
 import { useBusinessDashboardViewModel } from "../viewModel/businessDashboard.viewModel.impl";
 import { BusinessDashboardScreen } from "../ui/BusinessDashboardScreen";
 import { BusinessDashboardQuickAction } from "../types/businessDashboard.types";
@@ -57,6 +58,15 @@ export function GetBusinessDashboardScreenFactory({
     [ledgerRepository],
   );
 
+  const getBusinessDashboardReadModelUseCase = React.useMemo(
+    () =>
+      createGetBusinessDashboardReadModelUseCase({
+        getTransactionsUseCase,
+        getLedgerEntriesUseCase,
+      }),
+    [getLedgerEntriesUseCase, getTransactionsUseCase],
+  );
+
   const viewModel = useBusinessDashboardViewModel({
     activeUserRemoteId,
     activeAccountRemoteId,
@@ -64,8 +74,7 @@ export function GetBusinessDashboardScreenFactory({
     activeAccountCountryCode,
     hasQuickActionAccess,
     onQuickActionPress,
-    getTransactionsUseCase,
-    getLedgerEntriesUseCase,
+    getBusinessDashboardReadModelUseCase,
   });
 
   return <BusinessDashboardScreen viewModel={viewModel} />;
