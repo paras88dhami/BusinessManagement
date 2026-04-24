@@ -15,4 +15,5 @@ export type PosSaleError = {
 
 export type PosSaleResult = Result<PosSaleRecord, PosSaleError>;
 export type PosSaleLookupResult = Result<PosSaleRecord | null, PosSaleError>;
+export type PosSalesResult = Result<readonly PosSaleRecord[], PosSaleError>;
 export type PosSaleOperationResult = Result<boolean, PosSaleError>;

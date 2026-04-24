@@ -1,6 +1,7 @@
 import type {
   CreatePosSaleRecordParams,
   GetPosSaleByIdempotencyKeyParams,
+  GetPosSalesParams,
   UpdatePosSaleWorkflowStateParams,
 } from "../../types/posSale.dto.types";
 import type { PosSaleModel } from "./db/posSale.model";
@@ -13,6 +14,7 @@ export interface PosSaleDatasource {
   getPosSaleByIdempotencyKey(
     params: GetPosSaleByIdempotencyKeyParams,
   ): Promise<Result<PosSaleModel | null>>;
+  getPosSales(params: GetPosSalesParams): Promise<Result<readonly PosSaleModel[]>>;
   updatePosSaleWorkflowState(
     params: UpdatePosSaleWorkflowStateParams,
   ): Promise<Result<PosSaleModel>>;

@@ -3,6 +3,7 @@ import type { PosCartLine, PosReceipt } from "../../types/pos.entity.types";
 import type {
   CreatePosSaleRecordParams,
   GetPosSaleByIdempotencyKeyParams,
+  GetPosSalesParams,
   UpdatePosSaleWorkflowStateParams,
 } from "../../types/posSale.dto.types";
 import {
@@ -10,6 +11,7 @@ import {
   type PosSaleError,
   type PosSaleLookupResult,
   type PosSaleResult,
+  type PosSalesResult,
 } from "../../types/posSale.error.types";
 import type { PosSaleRecord } from "../../types/posSale.entity.types";
 import type { PosSaleDatasource } from "../dataSource/posSale.datasource";
@@ -136,6 +138,19 @@ export const createPosSaleRepository = (
     }
 
     return { success: true, value: mapModelToDomain(result.value) };
+  },
+
+  async getPosSales(params: GetPosSalesParams): Promise<PosSalesResult> {
+    const result = await datasource.getPosSales(params);
+
+    if (!result.success) {
+      return { success: false, error: mapDatasourceError(result.error) };
+    }
+
+    return {
+      success: true,
+      value: result.value.map(mapModelToDomain),
+    };
   },
 
   async updatePosSaleWorkflowState(

@@ -1,6 +1,4 @@
-import type {
-  PosReceipt,
-} from "@/feature/pos/types/pos.entity.types";
+import type { PosReceipt } from "@/feature/pos/types/pos.entity.types";
 import type { PosSaleRecord } from "./posSale.entity.types";
 import type { PosSaleWorkflowStatusValue } from "./posSale.constant";
 
@@ -12,6 +10,11 @@ export type CreatePosSaleRecordParams = Omit<
 export type GetPosSaleByIdempotencyKeyParams = {
   businessAccountRemoteId: string;
   idempotencyKey: string;
+};
+
+export type GetPosSalesParams = {
+  businessAccountRemoteId: string;
+  workflowStatus?: PosSaleWorkflowStatusValue;
 };
 
 export type UpdatePosSaleWorkflowStateParams = {

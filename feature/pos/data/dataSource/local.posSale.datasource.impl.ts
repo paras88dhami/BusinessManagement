@@ -4,6 +4,7 @@ import { Database, Q } from "@nozbe/watermelondb";
 import type {
   CreatePosSaleRecordParams,
   GetPosSaleByIdempotencyKeyParams,
+  GetPosSalesParams,
   UpdatePosSaleWorkflowStateParams,
 } from "../../types/posSale.dto.types";
 import type { PosSaleModel } from "./db/posSale.model";
@@ -251,6 +252,53 @@ export const createLocalPosSaleDatasource = ({
           error instanceof Error
             ? error
             : new Error("Unknown error while loading POS sale record."),
+      };
+    }
+  },
+
+  async getPosSales(
+    params: GetPosSalesParams,
+  ): Promise<Result<readonly PosSaleModel[]>> {
+    try {
+      const normalizedBusinessAccountRemoteId = normalizeRequired(
+        params.businessAccountRemoteId,
+      );
+
+      if (!normalizedBusinessAccountRemoteId) {
+        throw new Error(
+          "Business account context is required to load POS sale history.",
+        );
+      }
+
+      const collection = database.get<PosSaleModel>(POS_SALES_TABLE);
+      const queryConditions = [
+        Q.where("business_account_remote_id", normalizedBusinessAccountRemoteId),
+        Q.where("deleted_at", Q.eq(null)),
+      ];
+
+      if (params.workflowStatus) {
+        queryConditions.push(Q.where("workflow_status", params.workflowStatus));
+      }
+
+      const records = await collection
+        .query(
+          ...queryConditions,
+          Q.sortBy("updated_at", Q.desc),
+          Q.sortBy("created_at", Q.desc),
+        )
+        .fetch();
+
+      return {
+        success: true,
+        value: records,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error
+            : new Error("Failed to load POS sale records."),
       };
     }
   },

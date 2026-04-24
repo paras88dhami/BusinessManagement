@@ -34,10 +34,8 @@ import { createSaveProductUseCase } from "@/feature/products/useCase/saveProduct
 import { createMoneyPostingRuntime } from "@/feature/transactions/factory/createMoneyPostingRuntime.factory";
 import appDatabase from "@/shared/database/appDatabase";
 import { TaxModeValue } from "@/shared/types/regionalFinance.types";
-import { Q } from "@nozbe/watermelondb";
 import React from "react";
 import { createPosReceiptDocumentAdapter } from "../adapter/posReceiptDocument.adapter.impl";
-import { PosSaleModel } from "../data/dataSource/db/posSale.model";
 import { createLocalPosDatasource } from "../data/dataSource/local.pos.datasource.impl";
 import { createPosRepository } from "../data/repository/pos.repository.impl";
 import { PosScreen } from "../ui/PosScreen";
@@ -59,11 +57,6 @@ import { createSavePosSessionUseCase } from "../useCase/savePosSession.useCase.i
 import { createSearchPosProductsUseCase } from "../useCase/searchPosProducts.useCase.impl";
 import { createSharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase.impl";
 import { createUpdatePosSaleWorkflowStateUseCase } from "../useCase/updatePosSaleWorkflowState.useCase.impl";
-import type { PosSalesReaderRepository } from "../useCase/getPosSales.useCase";
-import type { PosPaymentPartInput } from "../types/pos.dto.types";
-import type { PosCartLine, PosReceipt } from "../types/pos.entity.types";
-import type { PosSaleRecord } from "../types/posSale.entity.types";
-import { PosSaleErrorType } from "../types/posSale.error.types";
 import { usePosSaleHistoryViewModel } from "../viewModel/posSaleHistory.viewModel.impl";
 import { usePosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel.impl";
 import { createLocalPosSaleDatasource } from "../data/dataSource/local.posSale.datasource.impl";
@@ -84,59 +77,6 @@ type GetPosScreenFactoryProps = {
   activeAccountDefaultTaxRatePercent: number | null;
   activeAccountDefaultTaxMode: TaxModeValue | null;
 };
-
-const parseJsonValue = <T,>(value: string | null, fallback: T): T => {
-  if (!value) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-};
-
-const mapPosSaleModelToDomain = (model: PosSaleModel): PosSaleRecord => ({
-  remoteId: model.remoteId,
-  receiptNumber: model.receiptNumber,
-  businessAccountRemoteId: model.businessAccountRemoteId,
-  ownerUserRemoteId: model.ownerUserRemoteId,
-  idempotencyKey: model.idempotencyKey,
-  workflowStatus: model.workflowStatus,
-  customerRemoteId: model.customerRemoteId,
-  customerNameSnapshot: model.customerNameSnapshot,
-  customerPhoneSnapshot: model.customerPhoneSnapshot,
-  currencyCode: model.currencyCode,
-  countryCode: model.countryCode,
-  cartLinesSnapshot: parseJsonValue<readonly PosCartLine[]>(
-    model.cartLinesSnapshotJson,
-    [],
-  ),
-  totalsSnapshot: {
-    itemCount: model.itemCount,
-    gross: model.gross,
-    discountAmount: model.discountAmount,
-    surchargeAmount: model.surchargeAmount,
-    taxAmount: model.taxAmount,
-    grandTotal: model.grandTotal,
-  },
-  paymentParts: parseJsonValue<readonly PosPaymentPartInput[]>(
-    model.paymentPartsSnapshotJson,
-    [],
-  ),
-  receipt: parseJsonValue<PosReceipt | null>(model.receiptSnapshotJson, null),
-  billingDocumentRemoteId: model.billingDocumentRemoteId,
-  ledgerEntryRemoteId: model.ledgerEntryRemoteId,
-  postedTransactionRemoteIds: parseJsonValue<readonly string[]>(
-    model.postedTransactionRemoteIdsJson,
-    [],
-  ),
-  lastErrorType: model.lastErrorType,
-  lastErrorMessage: model.lastErrorMessage,
-  createdAt: model.createdAt.getTime(),
-  updatedAt: model.updatedAt.getTime(),
-});
 
 export function GetPosScreenFactory({
   activeBusinessAccountRemoteId,
@@ -248,55 +188,9 @@ export function GetPosScreenFactory({
     () => createPosCheckoutRepository({ posSaleRepository }),
     [posSaleRepository],
   );
-  const posSalesReaderRepository = React.useMemo<PosSalesReaderRepository>(
-    () => ({
-      async getPosSales(params) {
-        const businessAccountRemoteId = params.businessAccountRemoteId.trim();
-        if (!businessAccountRemoteId) {
-          return {
-            success: false,
-            error: {
-              type: PosSaleErrorType.Validation,
-              message:
-                "Business account context is required to load POS sale history.",
-            },
-          };
-        }
-
-        try {
-          const collection = appDatabase.get<PosSaleModel>("pos_sales");
-          const records = await collection
-            .query(
-              Q.where("business_account_remote_id", businessAccountRemoteId),
-              Q.where("deleted_at", Q.eq(null)),
-              Q.sortBy("updated_at", Q.desc),
-              Q.sortBy("created_at", Q.desc),
-            )
-            .fetch();
-
-          return {
-            success: true,
-            value: records.map(mapPosSaleModelToDomain),
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: {
-              type: PosSaleErrorType.Unknown,
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to load POS sale records.",
-            },
-          };
-        }
-      },
-    }),
-    [],
-  );
   const getPosSalesUseCase = React.useMemo(
-    () => createGetPosSalesUseCase(posSalesReaderRepository),
-    [posSalesReaderRepository],
+    () => createGetPosSalesUseCase(posSaleRepository),
+    [posSaleRepository],
   );
   const ledgerDatasource = React.useMemo(
     () => createLocalLedgerDatasource(appDatabase),
