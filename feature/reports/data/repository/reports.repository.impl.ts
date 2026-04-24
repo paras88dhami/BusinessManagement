@@ -253,7 +253,7 @@ const buildSections = (scope: string): ReportMenuSection[] => {
           {
             id: ReportMenuItem.CategorySummary,
             title: "Category Summary",
-            subtitle: "Income & expense by category",
+            subtitle: "Expense by category",
           },
           {
             id: ReportMenuItem.AccountStatement,
@@ -304,7 +304,7 @@ const buildSections = (scope: string): ReportMenuSection[] => {
         {
           id: ReportMenuItem.CategorySummary,
           title: "Category Summary",
-          subtitle: "Income & expense by category",
+          subtitle: "Expense by category",
         },
         {
           id: ReportMenuItem.AccountStatement,
@@ -695,7 +695,7 @@ export const createReportsRepository = (
             topSummary: {
               totalIncome: topSummary.totalIncome,
               totalExpense: topSummary.totalExpense,
-              netProfit: topSummary.totalIncome - topSummary.totalExpense,
+              netCashFlow: topSummary.totalIncome - topSummary.totalExpense,
             },
             overviewTrend,
             incomeExpenseComparison,
@@ -935,7 +935,7 @@ export const createReportsRepository = (
                 { id: "category-total", label: "Money Out", value: formatCurrency(segments.reduce((sum, item) => sum + item.value, 0)), tone: "negative" },
               ],
               chartTitle: "Expense Breakdown",
-              chartSubtitle: "Income & expense by category",
+              chartSubtitle: "Expense by category",
               chartKind: "semi-donut",
               segments,
             },

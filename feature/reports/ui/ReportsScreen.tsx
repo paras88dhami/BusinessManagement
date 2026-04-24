@@ -46,7 +46,7 @@ function ReportsHomeView({ viewModel }: Props) {
   const topSummary = viewModel.dashboard?.topSummary ?? {
     totalIncome: 0,
     totalExpense: 0,
-    netProfit: 0,
+    netCashFlow: 0,
   };
 
   const formattedTotalIncome = formatCurrencyAmount({
@@ -61,8 +61,8 @@ function ReportsHomeView({ viewModel }: Props) {
     countryCode: viewModel.dashboard?.countryCode ?? null,
     maximumFractionDigits: 0,
   });
-  const formattedNetProfit = formatCurrencyAmount({
-    amount: topSummary.netProfit,
+  const formattedNetCashFlow = formatCurrencyAmount({
+    amount: topSummary.netCashFlow,
     currencyCode: viewModel.dashboard?.currencyCode,
     countryCode: viewModel.dashboard?.countryCode ?? null,
     maximumFractionDigits: 0,
@@ -91,8 +91,20 @@ function ReportsHomeView({ viewModel }: Props) {
         </View>
         <View style={styles.heroDivider} />
         <View style={styles.netRow}>
-          <Text style={styles.netLabel}>Net Profit</Text>
-          <Text style={[styles.netValue, { color: topSummary.netProfit >= 0 ? colors.success : colors.destructive }]}>{formattedNetProfit}</Text>
+          <Text style={styles.netLabel}>Net Cash Flow</Text>
+          <Text
+            style={[
+              styles.netValue,
+              {
+                color:
+                  topSummary.netCashFlow >= 0
+                    ? colors.success
+                    : colors.destructive,
+              },
+            ]}
+          >
+            {formattedNetCashFlow}
+          </Text>
         </View>
       </Card>
 
@@ -113,9 +125,9 @@ function ReportsHomeView({ viewModel }: Props) {
       <Card style={styles.chartCard}>
         {viewModel.activeHomeTab === ReportHomeTab.Overview ? (
           <>
-            <Text style={styles.chartTitle}>Profit Trend</Text>
+            <Text style={styles.chartTitle}>Net Cash Flow Trend</Text>
             <Text style={styles.chartSubtitle}>
-              {`Net profit trend for ${dashboardPeriodLabel}`}
+              {`Net cash flow trend for ${dashboardPeriodLabel}`}
             </Text>
             <LineAreaChart data={viewModel.dashboard?.overviewTrend ?? []} />
           </>

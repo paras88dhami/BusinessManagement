@@ -109,7 +109,7 @@ export type ReportsDashboardSnapshot = {
   topSummary: {
     totalIncome: number;
     totalExpense: number;
-    netProfit: number;
+    netCashFlow: number;
   };
   overviewTrend: readonly ReportSeriesPoint[];
   incomeExpenseComparison: readonly ReportDualSeriesPoint[];

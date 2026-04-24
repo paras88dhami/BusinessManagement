@@ -417,7 +417,69 @@ describe("reports.repository", () => {
 
     expect(result.value.topSummary.totalIncome).toBe(100);
     expect(result.value.topSummary.totalExpense).toBe(30);
-    expect(result.value.topSummary.netProfit).toBe(70);
+    expect(result.value.topSummary.netCashFlow).toBe(70);
+  });
+
+  it("uses expense-only wording for category summary in both menu sections and detail view", async () => {
+    const repository = createReportsRepository(createDatasource(createDataset()), {
+      currencyCode: CURRENCY_CODE,
+      countryCode: COUNTRY_CODE,
+    });
+
+    const businessDashboard = await repository.getReportsDashboard({
+      accountType: AccountType.Business,
+      scope: ReportScope.Business,
+      ownerUserRemoteId: "owner-1",
+      accountRemoteId: "account-1",
+      period: ReportPeriod.ThisMonth,
+      reportId: null,
+    });
+
+    expect(businessDashboard.success).toBe(true);
+    if (!businessDashboard.success) {
+      return;
+    }
+
+    const businessCategoryEntry = businessDashboard.value.sections
+      .flatMap((section) => section.items)
+      .find((item) => item.id === ReportMenuItem.CategorySummary);
+
+    expect(businessCategoryEntry?.subtitle).toBe("Expense by category");
+
+    const personalDashboard = await repository.getReportsDashboard({
+      accountType: AccountType.Personal,
+      scope: ReportScope.Personal,
+      ownerUserRemoteId: "owner-1",
+      accountRemoteId: null,
+      period: ReportPeriod.ThisMonth,
+      reportId: null,
+    });
+
+    expect(personalDashboard.success).toBe(true);
+    if (!personalDashboard.success) {
+      return;
+    }
+
+    const personalCategoryEntry = personalDashboard.value.sections
+      .flatMap((section) => section.items)
+      .find((item) => item.id === ReportMenuItem.CategorySummary);
+
+    expect(personalCategoryEntry?.subtitle).toBe("Expense by category");
+
+    const detailResult = await repository.getReportDetail(
+      createBaseQuery(ReportMenuItem.CategorySummary),
+    );
+
+    expect(detailResult.success).toBe(true);
+    if (!detailResult.success) {
+      return;
+    }
+
+    expect(detailResult.value.chartSubtitle).toBe("Expense by category");
+    const categoryTotalCard = detailResult.value.summaryCards.find(
+      (item) => item.id === "category-total",
+    );
+    expect(categoryTotalCard?.label).toBe("Money Out");
   });
 
   it("uses inventory movement remote-id truth for stock quantity instead of product snapshot stock", async () => {
