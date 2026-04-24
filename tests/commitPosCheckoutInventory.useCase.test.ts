@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { InventoryMovementType } from "@/feature/inventory/types/inventory.types";
+import {
+  InventoryMovementType,
+  type SaveInventoryMovementPayload,
+} from "@/feature/inventory/types/inventory.types";
 import { ProductKind } from "@/feature/products/types/product.types";
 import { createCommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase.impl";
 
@@ -34,9 +37,9 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
 
   it("builds sale_out inventory movements and delegates to Inventory", async () => {
     const saveInventoryMovementsUseCase = {
-      execute: vi.fn(async (payloads) => ({
+      execute: vi.fn(async (payloads: SaveInventoryMovementPayload[]) => ({
         success: true as const,
-        value: payloads.map((payload: any) => ({
+        value: payloads.map((payload) => ({
           remoteId: payload.remoteId,
         })),
       })),
