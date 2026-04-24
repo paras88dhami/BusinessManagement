@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import appDatabase from "@/shared/database/appDatabase";
 import {
   AppRouteSessionStatus,
@@ -180,6 +181,8 @@ export default function RootLayout() {
             <SessionStartupOverlayController fontsLoaded={fontsLoaded} />
           </AppRouteSessionProvider>
         ) : null}
+
+        <Toast />
       </View>
     </SafeAreaProvider>
   );

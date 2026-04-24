@@ -15,6 +15,7 @@ import {
     WalletCards,
 } from "lucide-react-native";
 import React from "react";
+import Toast from "react-native-toast-message";
 import {
     Platform,
     Pressable,
@@ -49,7 +50,48 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   const receipt = viewModel.receipt;
   const saleHistory = viewModel.saleHistory;
 
-  
+  const lastToastMessageRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (!viewModel.infoMessage && !viewModel.errorMessage) {
+      lastToastMessageRef.current = null;
+    }
+  }, [viewModel.infoMessage, viewModel.errorMessage]);
+
+  React.useEffect(() => {
+    if (!viewModel.infoMessage) {
+      return;
+    }
+
+    if (lastToastMessageRef.current === viewModel.infoMessage) {
+      return;
+    }
+
+    lastToastMessageRef.current = viewModel.infoMessage;
+
+    Toast.show({
+      type: "success",
+      text1: viewModel.infoMessage,
+    });
+  }, [viewModel.infoMessage]);
+
+  React.useEffect(() => {
+    if (!viewModel.errorMessage) {
+      return;
+    }
+
+    if (lastToastMessageRef.current === viewModel.errorMessage) {
+      return;
+    }
+
+    lastToastMessageRef.current = viewModel.errorMessage;
+
+    Toast.show({
+      type: "error",
+      text1: viewModel.errorMessage,
+    });
+  }, [viewModel.errorMessage]);
+
   return (
     <>
       <ScreenContainer

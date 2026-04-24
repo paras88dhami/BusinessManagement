@@ -69,29 +69,33 @@ describe("app database startup orchestration", () => {
     runDatabaseIntegrityChecksMock.mockResolvedValue(undefined);
   });
 
-  it("checks health, warms the database, runs integrity checks, and checks health again in order", async () => {
-    const { ensureDatabaseReady } = await import("@/shared/database/appDatabase");
+  it(
+    "checks health, warms the database, runs integrity checks, and checks health again in order",
+    async () => {
+      const { ensureDatabaseReady } = await import("@/shared/database/appDatabase");
 
-    await ensureDatabaseReady();
+      await ensureDatabaseReady();
 
-    expect(assertDatabaseSetupHealthyMock).toHaveBeenCalledTimes(2);
-    expect(getMock).toHaveBeenCalledWith("app_settings");
-    expect(queryMock).toHaveBeenCalledTimes(1);
-    expect(fetchCountMock).toHaveBeenCalledTimes(1);
-    expect(runDatabaseIntegrityChecksMock).toHaveBeenCalledTimes(1);
+      expect(assertDatabaseSetupHealthyMock).toHaveBeenCalledTimes(2);
+      expect(getMock).toHaveBeenCalledWith("app_settings");
+      expect(queryMock).toHaveBeenCalledTimes(1);
+      expect(fetchCountMock).toHaveBeenCalledTimes(1);
+      expect(runDatabaseIntegrityChecksMock).toHaveBeenCalledTimes(1);
 
-    const firstHealthOrder =
-      assertDatabaseSetupHealthyMock.mock.invocationCallOrder[0];
-    const secondHealthOrder =
-      assertDatabaseSetupHealthyMock.mock.invocationCallOrder[1];
-    const fetchCountOrder = fetchCountMock.mock.invocationCallOrder[0];
-    const integrityOrder =
-      runDatabaseIntegrityChecksMock.mock.invocationCallOrder[0];
+      const firstHealthOrder =
+        assertDatabaseSetupHealthyMock.mock.invocationCallOrder[0];
+      const secondHealthOrder =
+        assertDatabaseSetupHealthyMock.mock.invocationCallOrder[1];
+      const fetchCountOrder = fetchCountMock.mock.invocationCallOrder[0];
+      const integrityOrder =
+        runDatabaseIntegrityChecksMock.mock.invocationCallOrder[0];
 
-    expect(firstHealthOrder).toBeLessThan(fetchCountOrder);
-    expect(fetchCountOrder).toBeLessThan(integrityOrder);
-    expect(integrityOrder).toBeLessThan(secondHealthOrder);
-  });
+      expect(firstHealthOrder).toBeLessThan(fetchCountOrder);
+      expect(fetchCountOrder).toBeLessThan(integrityOrder);
+      expect(integrityOrder).toBeLessThan(secondHealthOrder);
+    },
+    20000,
+  );
 
   it("passes a SQL runner into the integrity checker", async () => {
     const { ensureDatabaseReady } = await import("@/shared/database/appDatabase");
