@@ -1,10 +1,8 @@
 import {
-  ReportDetailResult,
-  ReportsDashboardResult,
   ReportQuery,
+  ReportsDatasetResult,
 } from "@/feature/reports/types/report.entity.types";
 
 export interface ReportsRepository {
-  getReportsDashboard(query: ReportQuery): Promise<ReportsDashboardResult>;
-  getReportDetail(query: ReportQuery): Promise<ReportDetailResult>;
+  getReportsDataset(query: ReportQuery): Promise<ReportsDatasetResult>;
 }

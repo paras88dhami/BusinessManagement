@@ -32,21 +32,22 @@ export function GetReportsScreenFactory({
   canExportReports,
 }: Props) {
   const datasource = React.useMemo(() => createLocalReportsDatasource(database), [database]);
-  const repository = React.useMemo(
+  const repository = React.useMemo(() => createReportsRepository(datasource), [datasource]);
+  const getReportsDashboardUseCase = React.useMemo(
     () =>
-      createReportsRepository(datasource, {
+      createGetReportsDashboardUseCase(repository, {
         currencyCode: activeAccountCurrencyCode,
         countryCode: activeAccountCountryCode,
       }),
-    [activeAccountCountryCode, activeAccountCurrencyCode, datasource],
-  );
-  const getReportsDashboardUseCase = React.useMemo(
-    () => createGetReportsDashboardUseCase(repository),
-    [repository],
+    [activeAccountCountryCode, activeAccountCurrencyCode, repository],
   );
   const getReportDetailUseCase = React.useMemo(
-    () => createGetReportDetailUseCase(repository),
-    [repository],
+    () =>
+      createGetReportDetailUseCase(repository, {
+        currencyCode: activeAccountCurrencyCode,
+        countryCode: activeAccountCountryCode,
+      }),
+    [activeAccountCountryCode, activeAccountCurrencyCode, repository],
   );
 
   const reportDetailDocumentAdapter = React.useMemo(

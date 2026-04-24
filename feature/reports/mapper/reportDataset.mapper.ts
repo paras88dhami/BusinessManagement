@@ -1,89 +1,23 @@
 import { MoneyAccountModel } from "@/feature/accounts/data/dataSource/db/moneyAccount.model";
 import { BillingDocumentModel } from "@/feature/billing/data/dataSource/db/billingDocument.model";
-import { BillingDocumentTypeValue } from "@/feature/billing/types/billing.types";
 import { EmiPlanModel } from "@/feature/emiLoans/data/dataSource/db/emiPlan.model";
 import { InventoryMovementModel } from "@/feature/inventory/data/dataSource/db/inventoryMovement.model";
 import { LedgerEntryModel } from "@/feature/ledger/data/dataSource/db/ledger.model";
 import { ProductModel } from "@/feature/products/data/dataSource/db/product.model";
+import {
+  ReportBillingDocumentRecord,
+  ReportEmiPlanRecord,
+  ReportInventoryMovementRecord,
+  ReportLedgerEntryRecord,
+  ReportMoneyAccountRecord,
+  ReportProductRecord,
+  ReportTransactionRecord,
+} from "@/feature/reports/types/report.entity.types";
 import { TransactionModel } from "@/feature/transactions/data/dataSource/db/transaction.model";
 
-export type TransactionRecord = {
-  remoteId: string;
-  title: string;
-  amount: number;
-  categoryLabel: string | null;
-  happenedAt: number;
-  direction: string;
-  transactionType: string;
-  accountDisplayNameSnapshot: string;
-  settlementMoneyAccountRemoteId: string | null;
-  settlementMoneyAccountDisplayNameSnapshot: string | null;
-};
-
-export type BillingDocumentRecord = {
-  remoteId: string;
-  documentType: BillingDocumentTypeValue;
-  customerName: string;
-  status: string;
-  totalAmount: number;
-  issuedAt: number;
-};
-
-export type LedgerEntryRecord = {
-  remoteId: string;
-  partyName: string;
-  partyPhone: string | null;
-  contactRemoteId: string | null;
-  entryType: string;
-  balanceDirection: string;
-  amount: number;
-  currencyCode: string | null;
-  happenedAt: number;
-  dueAt: number | null;
-};
-
-export type EmiPlanRecord = {
-  title: string;
-  totalAmount: number;
-  paidAmount: number;
-  installmentCount: number;
-  paidInstallmentCount: number;
-  nextDueAt: number | null;
-  status: string;
-};
-
-export type InventoryMovementRecord = {
-  productRemoteId: string;
-  productNameSnapshot: string;
-  productUnitLabelSnapshot: string | null;
-  movementType: string;
-  deltaQuantity: number;
-  unitRate: number | null;
-  movementAt: number;
-};
-
-export type ProductRecord = {
-  remoteId: string;
-  name: string;
-  categoryName: string | null;
-  salePrice: number;
-  costPrice: number | null;
-  stockQuantity: number | null;
-  unitLabel: string | null;
-  status: string;
-};
-
-export type MoneyAccountRecord = {
-  remoteId: string;
-  name: string;
-  accountType: string;
-  currentBalance: number;
-  currencyCode: string | null;
-  isPrimary: boolean;
-  isActive: boolean;
-};
-
-export const mapTransactionModel = (model: TransactionModel): TransactionRecord => ({
+export const mapTransactionModel = (
+  model: TransactionModel,
+): ReportTransactionRecord => ({
   remoteId: model.remoteId,
   title: model.title,
   amount: model.amount,
@@ -99,7 +33,7 @@ export const mapTransactionModel = (model: TransactionModel): TransactionRecord 
 
 export const mapBillingDocumentModel = (
   model: BillingDocumentModel,
-): BillingDocumentRecord => ({
+): ReportBillingDocumentRecord => ({
   remoteId: model.remoteId,
   documentType: model.documentType,
   customerName: model.customerName,
@@ -108,7 +42,9 @@ export const mapBillingDocumentModel = (
   issuedAt: model.issuedAt,
 });
 
-export const mapLedgerEntryModel = (model: LedgerEntryModel): LedgerEntryRecord => ({
+export const mapLedgerEntryModel = (
+  model: LedgerEntryModel,
+): ReportLedgerEntryRecord => ({
   remoteId: model.remoteId,
   partyName: model.partyName,
   partyPhone: model.partyPhone,
@@ -121,7 +57,7 @@ export const mapLedgerEntryModel = (model: LedgerEntryModel): LedgerEntryRecord 
   dueAt: model.dueAt,
 });
 
-export const mapEmiPlanModel = (model: EmiPlanModel): EmiPlanRecord => ({
+export const mapEmiPlanModel = (model: EmiPlanModel): ReportEmiPlanRecord => ({
   title: model.title,
   totalAmount: model.totalAmount,
   paidAmount: model.paidAmount,
@@ -133,7 +69,7 @@ export const mapEmiPlanModel = (model: EmiPlanModel): EmiPlanRecord => ({
 
 export const mapInventoryMovementModel = (
   model: InventoryMovementModel,
-): InventoryMovementRecord => ({
+): ReportInventoryMovementRecord => ({
   productRemoteId: model.productRemoteId,
   productNameSnapshot: model.productNameSnapshot,
   productUnitLabelSnapshot: model.productUnitLabelSnapshot,
@@ -143,7 +79,7 @@ export const mapInventoryMovementModel = (
   movementAt: model.movementAt,
 });
 
-export const mapProductModel = (model: ProductModel): ProductRecord => ({
+export const mapProductModel = (model: ProductModel): ReportProductRecord => ({
   remoteId: model.remoteId,
   name: model.name,
   categoryName: model.categoryName,
@@ -156,7 +92,7 @@ export const mapProductModel = (model: ProductModel): ProductRecord => ({
 
 export const mapMoneyAccountModel = (
   model: MoneyAccountModel,
-): MoneyAccountRecord => ({
+): ReportMoneyAccountRecord => ({
   remoteId: model.remoteId,
   name: model.name,
   accountType: model.accountType,

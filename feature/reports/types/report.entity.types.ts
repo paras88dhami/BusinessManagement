@@ -142,6 +142,97 @@ export type ReportDetailSnapshot = {
   csvExport?: ReportCsvExportSnapshot;
 };
 
+export type ReportTransactionRecord = {
+  remoteId: string;
+  title: string;
+  amount: number;
+  categoryLabel: string | null;
+  happenedAt: number;
+  direction: string;
+  transactionType: string;
+  accountDisplayNameSnapshot: string;
+  settlementMoneyAccountRemoteId: string | null;
+  settlementMoneyAccountDisplayNameSnapshot: string | null;
+};
+
+export type ReportBillingDocumentRecord = {
+  remoteId: string;
+  documentType: import("@/feature/billing/types/billing.types").BillingDocumentTypeValue;
+  customerName: string;
+  status: string;
+  totalAmount: number;
+  issuedAt: number;
+};
+
+export type ReportLedgerEntryRecord = {
+  remoteId: string;
+  partyName: string;
+  partyPhone: string | null;
+  contactRemoteId: string | null;
+  entryType: string;
+  balanceDirection: string;
+  amount: number;
+  currencyCode: string | null;
+  happenedAt: number;
+  dueAt: number | null;
+};
+
+export type ReportEmiPlanRecord = {
+  title: string;
+  totalAmount: number;
+  paidAmount: number;
+  installmentCount: number;
+  paidInstallmentCount: number;
+  nextDueAt: number | null;
+  status: string;
+};
+
+export type ReportInventoryMovementRecord = {
+  productRemoteId: string;
+  productNameSnapshot: string;
+  productUnitLabelSnapshot: string | null;
+  movementType: string;
+  deltaQuantity: number;
+  unitRate: number | null;
+  movementAt: number;
+};
+
+export type ReportProductRecord = {
+  remoteId: string;
+  name: string;
+  categoryName: string | null;
+  salePrice: number;
+  costPrice: number | null;
+  stockQuantity: number | null;
+  unitLabel: string | null;
+  status: string;
+};
+
+export type ReportMoneyAccountRecord = {
+  remoteId: string;
+  name: string;
+  accountType: string;
+  currentBalance: number;
+  currencyCode: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+};
+
+export type ReportsDatasetSnapshot = {
+  transactions: readonly ReportTransactionRecord[];
+  billingDocuments: readonly ReportBillingDocumentRecord[];
+  ledgerEntries: readonly ReportLedgerEntryRecord[];
+  emiPlans: readonly ReportEmiPlanRecord[];
+  inventoryMovements: readonly ReportInventoryMovementRecord[];
+  products: readonly ReportProductRecord[];
+  moneyAccounts: readonly ReportMoneyAccountRecord[];
+};
+
+export type ReportsDatasetResult = Result<
+  ReportsDatasetSnapshot,
+  import("./report.error.types").ReportError
+>;
+
 export type ReportsDashboardResult = Result<
   ReportsDashboardSnapshot,
   import("./report.error.types").ReportError
