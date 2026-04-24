@@ -13,6 +13,7 @@ export interface PosSaleHistoryViewModel {
   reconciliation: PosSaleReconciliation | null;
   isReconciling: boolean;
   isResolving: boolean;
+  isRetrying: boolean;
   recoveryMessage: string | null;
   onSearchChange: (value: string) => void;
   onReceiptPress: (receipt: PosSaleHistoryItem) => void;
@@ -23,5 +24,6 @@ export interface PosSaleHistoryViewModel {
   onCloseDetail: () => void;
   onLoadReceipts: () => Promise<void>;
   onRefreshReconciliation: () => Promise<void>;
+  onRetryAbnormalSale: () => Promise<void>;
   onCleanupAbnormalSale: () => Promise<void>;
 }

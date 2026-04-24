@@ -69,6 +69,7 @@ import { createPosCheckoutRepository } from "../workflow/posCheckout/repository/
 import { createCommitPosCheckoutInventoryUseCase } from "../workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase.impl";
 import { createRunPosCheckoutUseCase } from "../workflow/posCheckout/useCase/runPosCheckout.useCase.impl";
 import { createReconcilePosSaleUseCase } from "../workflow/posRecovery/useCase/reconcilePosSale.useCase.impl";
+import { createRetryPosSalePostingUseCase } from "../workflow/posRecovery/useCase/retryPosSalePosting.useCase.impl";
 import { createResolvePosAbnormalSaleUseCase } from "../workflow/posRecovery/useCase/resolvePosAbnormalSale.useCase.impl";
 
 type GetPosScreenFactoryProps = {
@@ -387,8 +388,9 @@ export function GetPosScreenFactory({
     () =>
       createCommitPosCheckoutInventoryUseCase({
         saveInventoryMovementsUseCase,
+        getInventoryMovementsBySourceUseCase,
       }),
-    [saveInventoryMovementsUseCase],
+    [getInventoryMovementsBySourceUseCase, saveInventoryMovementsUseCase],
   );
   const saveInventoryMovementUseCase = React.useMemo(
     () =>
@@ -468,17 +470,6 @@ export function GetPosScreenFactory({
     ],
   );
 
-  const saleHistoryViewModel = usePosSaleHistoryViewModel({
-    accountRemoteId: activeBusinessAccountRemoteId ?? "",
-    currencyCode: activeAccountCurrencyCode ?? "NPR",
-    countryCode: activeAccountCountryCode,
-    getPosSaleHistoryUseCase,
-    printPosReceiptUseCase,
-    sharePosReceiptUseCase,
-    reconcilePosSaleUseCase,
-    resolvePosAbnormalSaleUseCase,
-  });
-
   const moneyAccountDatasource = React.useMemo(
     () => createLocalMoneyAccountDatasource(appDatabase),
     [],
@@ -518,6 +509,26 @@ export function GetPosScreenFactory({
       updatePosSaleWorkflowStateUseCase,
     ],
   );
+
+  const retryPosSalePostingUseCase = React.useMemo(
+    () =>
+      createRetryPosSalePostingUseCase({
+        runPosCheckoutUseCase,
+      }),
+    [runPosCheckoutUseCase],
+  );
+
+  const saleHistoryViewModel = usePosSaleHistoryViewModel({
+    accountRemoteId: activeBusinessAccountRemoteId ?? "",
+    currencyCode: activeAccountCurrencyCode ?? "NPR",
+    countryCode: activeAccountCountryCode,
+    getPosSaleHistoryUseCase,
+    printPosReceiptUseCase,
+    sharePosReceiptUseCase,
+    reconcilePosSaleUseCase,
+    resolvePosAbnormalSaleUseCase,
+    retryPosSalePostingUseCase,
+  });
 
   const viewModel = usePosScreenCoordinatorViewModel({
     activeBusinessAccountRemoteId,

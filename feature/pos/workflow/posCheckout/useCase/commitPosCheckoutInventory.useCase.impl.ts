@@ -1,3 +1,5 @@
+import { InventoryMovementSourceModule } from "@/feature/inventory/types/inventory.types";
+import type { GetInventoryMovementsBySourceUseCase } from "@/feature/inventory/useCase/getInventoryMovementsBySource.useCase";
 import type { SaveInventoryMovementsUseCase } from "@/feature/inventory/useCase/saveInventoryMovements.useCase";
 import { PosErrorType, type PosOperationResult } from "@/feature/pos/types/pos.error.types";
 import type { CommitPosCheckoutInventoryUseCase } from "./commitPosCheckoutInventory.useCase";
@@ -5,6 +7,7 @@ import { buildPosCheckoutInventoryMovements } from "../utils/buildPosCheckoutInv
 
 type CreateCommitPosCheckoutInventoryUseCaseParams = {
   saveInventoryMovementsUseCase: SaveInventoryMovementsUseCase;
+  getInventoryMovementsBySourceUseCase: GetInventoryMovementsBySourceUseCase;
 };
 
 const mapInventoryMessageToPosErrorType = (
@@ -18,6 +21,7 @@ const mapInventoryMessageToPosErrorType = (
 
 export const createCommitPosCheckoutInventoryUseCase = ({
   saveInventoryMovementsUseCase,
+  getInventoryMovementsBySourceUseCase,
 }: CreateCommitPosCheckoutInventoryUseCaseParams): CommitPosCheckoutInventoryUseCase => ({
   async execute(params): Promise<PosOperationResult> {
     const businessAccountRemoteId = params.businessAccountRemoteId.trim();
@@ -68,6 +72,50 @@ export const createCommitPosCheckoutInventoryUseCase = ({
 
     if (movementPayloads.length === 0) {
       return { success: true, value: true };
+    }
+
+    const existingMovementsResult =
+      await getInventoryMovementsBySourceUseCase.execute({
+        accountRemoteId: businessAccountRemoteId,
+        sourceModule: InventoryMovementSourceModule.Pos,
+        sourceRemoteId: saleRemoteId,
+      });
+
+    if (!existingMovementsResult.success) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.Unknown,
+          message: existingMovementsResult.error.message,
+        },
+      };
+    }
+
+    const expectedMovementRemoteIds = new Set(
+      movementPayloads.map((movement) => movement.remoteId),
+    );
+
+    const existingMovementRemoteIds = new Set(
+      existingMovementsResult.value.map((movement) => movement.remoteId),
+    );
+
+    const existingExpectedCount = [...expectedMovementRemoteIds].filter(
+      (remoteId) => existingMovementRemoteIds.has(remoteId),
+    ).length;
+
+    if (existingExpectedCount === expectedMovementRemoteIds.size) {
+      return { success: true, value: true };
+    }
+
+    if (existingExpectedCount > 0) {
+      return {
+        success: false,
+        error: {
+          type: PosErrorType.Validation,
+          message:
+            "POS inventory movements are partially recorded. Run POS reconciliation before retrying checkout.",
+        },
+      };
     }
 
     const result = await saveInventoryMovementsUseCase.execute(movementPayloads);

@@ -9,6 +9,7 @@ import type { PrintPosReceiptUseCase } from "../useCase/printPosReceipt.useCase"
 import type { SharePosReceiptUseCase } from "../useCase/sharePosReceipt.useCase";
 import type { PosSaleHistoryViewModel } from "./posSaleHistory.viewModel";
 import type { ReconcilePosSaleUseCase } from "../workflow/posRecovery/useCase/reconcilePosSale.useCase";
+import type { RetryPosSalePostingUseCase } from "../workflow/posRecovery/useCase/retryPosSalePosting.useCase";
 import type { ResolvePosAbnormalSaleUseCase } from "../workflow/posRecovery/useCase/resolvePosAbnormalSale.useCase";
 
 interface UsePosSaleHistoryViewModelParams {
@@ -20,6 +21,7 @@ interface UsePosSaleHistoryViewModelParams {
   sharePosReceiptUseCase: SharePosReceiptUseCase;
   reconcilePosSaleUseCase: ReconcilePosSaleUseCase;
   resolvePosAbnormalSaleUseCase: ResolvePosAbnormalSaleUseCase;
+  retryPosSalePostingUseCase: RetryPosSalePostingUseCase;
 }
 
 type PosSaleHistoryModalState = "history" | "detail" | "none";
@@ -35,6 +37,7 @@ type PosSaleHistoryViewModelState = {
   reconciliation: PosSaleReconciliation | null;
   isReconciling: boolean;
   isResolving: boolean;
+  isRetrying: boolean;
   recoveryMessage: string | null;
 };
 
@@ -49,6 +52,7 @@ const INITIAL_STATE: PosSaleHistoryViewModelState = {
   reconciliation: null,
   isReconciling: false,
   isResolving: false,
+  isRetrying: false,
   recoveryMessage: null,
 };
 
@@ -72,6 +76,7 @@ export function usePosSaleHistoryViewModel({
   sharePosReceiptUseCase,
   reconcilePosSaleUseCase,
   resolvePosAbnormalSaleUseCase,
+  retryPosSalePostingUseCase,
 }: UsePosSaleHistoryViewModelParams): PosSaleHistoryViewModel {
   const [state, setState] = useState<PosSaleHistoryViewModelState>(INITIAL_STATE);
   const historySearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -318,6 +323,51 @@ export function usePosSaleHistoryViewModel({
     await loadReconciliationForReceipt(state.selectedReceipt);
   }, [loadReconciliationForReceipt, state.selectedReceipt]);
 
+  const onRetryAbnormalSale = useCallback(async () => {
+    const selectedReceipt = state.selectedReceipt;
+    if (!selectedReceipt || !isAbnormalSale(selectedReceipt)) {
+      return;
+    }
+
+    setState((currentState) => ({
+      ...currentState,
+      isRetrying: true,
+      errorMessage: null,
+      recoveryMessage: null,
+    }));
+
+    const result = await retryPosSalePostingUseCase.execute({
+      sale: selectedReceipt.sale,
+    });
+
+    const refreshedReceipts = await loadReceipts(state.searchTerm);
+    const refreshedSelectedReceipt =
+      refreshedReceipts?.find(
+        (item) => item.sale.remoteId === selectedReceipt.sale.remoteId,
+      ) ?? null;
+
+    setState((currentState) => ({
+      ...currentState,
+      isRetrying: false,
+      selectedReceipt: refreshedSelectedReceipt,
+      reconciliation: null,
+      recoveryMessage: result.success
+        ? "Retry completed. POS sale posting is now synchronized."
+        : null,
+      errorMessage: result.success ? null : result.error.message,
+    }));
+
+    if (refreshedSelectedReceipt && isAbnormalSale(refreshedSelectedReceipt)) {
+      await loadReconciliationForReceipt(refreshedSelectedReceipt);
+    }
+  }, [
+    loadReceipts,
+    loadReconciliationForReceipt,
+    retryPosSalePostingUseCase,
+    state.searchTerm,
+    state.selectedReceipt,
+  ]);
+
   const onCleanupAbnormalSale = useCallback(async () => {
     const selectedReceipt = state.selectedReceipt;
     if (!selectedReceipt || !isAbnormalSale(selectedReceipt)) {
@@ -376,6 +426,7 @@ export function usePosSaleHistoryViewModel({
       reconciliation: state.reconciliation,
       isReconciling: state.isReconciling,
       isResolving: state.isResolving,
+      isRetrying: state.isRetrying,
       recoveryMessage: state.recoveryMessage,
       onSearchChange,
       onReceiptPress,
@@ -386,6 +437,7 @@ export function usePosSaleHistoryViewModel({
       onCloseDetail,
       onLoadReceipts,
       onRefreshReconciliation,
+      onRetryAbnormalSale,
       onCleanupAbnormalSale,
     }),
     [
@@ -397,6 +449,7 @@ export function usePosSaleHistoryViewModel({
       onPrintReceipt,
       onReceiptPress,
       onRefreshReconciliation,
+      onRetryAbnormalSale,
       onSearchChange,
       onShareReceipt,
       state.activeModal,
@@ -404,6 +457,7 @@ export function usePosSaleHistoryViewModel({
       state.filteredReceipts,
       state.isLoading,
       state.isReconciling,
+      state.isRetrying,
       state.isResolving,
       state.reconciliation,
       state.recoveryMessage,

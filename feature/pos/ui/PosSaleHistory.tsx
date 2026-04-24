@@ -44,6 +44,7 @@ type PosSaleHistoryProps = {
   reconciliation: PosSaleReconciliation | null;
   isReconciling: boolean;
   isResolving: boolean;
+  isRetrying: boolean;
   recoveryMessage: string | null;
   onSearchChange: (value: string) => void;
   onReceiptPress: (receipt: PosSaleHistoryItem) => void;
@@ -52,6 +53,7 @@ type PosSaleHistoryProps = {
   onCloseHistory: () => void;
   onCloseDetail: () => void;
   onRefreshReconciliation: () => Promise<void>;
+  onRetryAbnormalSale: () => Promise<void>;
   onCleanupAbnormalSale: () => Promise<void>;
 };
 
@@ -84,6 +86,7 @@ export function PosSaleHistory({
   reconciliation,
   isReconciling,
   isResolving,
+  isRetrying,
   recoveryMessage,
   onSearchChange,
   onReceiptPress,
@@ -92,6 +95,7 @@ export function PosSaleHistory({
   onCloseHistory,
   onCloseDetail,
   onRefreshReconciliation,
+  onRetryAbnormalSale,
   onCleanupAbnormalSale,
 }: PosSaleHistoryProps) {
   const renderReceiptItem = ({ item }: { item: PosSaleHistoryItem }) => {
@@ -277,13 +281,28 @@ export function PosSaleHistory({
             disabled={isReconciling || isResolving}
           />
           <AppButton
+            label={isRetrying ? "Retrying..." : "Retry Posting"}
+            variant="secondary"
+            style={styles.recoveryActionButton}
+            leadingIcon={<RefreshCcw size={16} color={colors.mutedForeground} />}
+            onPress={() => {
+              void onRetryAbnormalSale();
+            }}
+            disabled={isRetrying || isResolving || isReconciling}
+          />
+          <AppButton
             label={isResolving ? "Cleaning..." : "Clean Up Artifacts"}
             variant="secondary"
             style={styles.recoveryActionButton}
             onPress={() => {
               void onCleanupAbnormalSale();
             }}
-            disabled={isResolving || isReconciling || !reconciliation?.canRunCleanup}
+            disabled={
+              isRetrying ||
+              isResolving ||
+              isReconciling ||
+              !reconciliation?.canRunCleanup
+            }
           />
         </View>
       </View>

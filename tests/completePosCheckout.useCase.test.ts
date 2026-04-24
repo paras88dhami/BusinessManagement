@@ -7,7 +7,12 @@ import type { UpdatePosSaleWorkflowStateUseCase } from "@/feature/pos/useCase/up
 import type { PosSaleRecord } from "@/feature/pos/types/posSale.entity.types";
 import { ProductKind } from "@/feature/products/types/product.types";
 import type { CommitPosCheckoutInventoryUseCase } from "@/feature/pos/workflow/posCheckout/useCase/commitPosCheckoutInventory.useCase";
-import type { PosCustomer, PosTotals, PosCartLine } from "@/feature/pos/types/pos.entity.types";
+import type {
+  PosCustomer,
+  PosTotals,
+  PosCartLine,
+  PosReceipt,
+} from "@/feature/pos/types/pos.entity.types";
 import type { PosCheckoutRepository } from "@/feature/pos/workflow/posCheckout/repository/posCheckout.repository";
 import {
   PosCheckoutWorkflowStatus,
@@ -71,8 +76,109 @@ const createRunParams = (
   ...overrides,
 });
 
+const buildReceiptSnapshot = ({
+  receiptNumber,
+  cartLines,
+  totals,
+  paymentParts,
+  selectedCustomer,
+}: {
+  receiptNumber: string;
+  cartLines: readonly PosCartLine[];
+  totals: PosTotals;
+  paymentParts: RunPosCheckoutParams["paymentParts"];
+  selectedCustomer: PosCustomer | null;
+}): PosReceipt => {
+  const paidAmount = Number(
+    paymentParts.reduce((sum, part) => sum + part.amount, 0).toFixed(2),
+  );
+  const dueAmount = Number(Math.max(totals.grandTotal - paidAmount, 0).toFixed(2));
+
+  return {
+    receiptNumber,
+    issuedAt: new Date(1710000000000).toISOString(),
+    lines: cartLines.map((line) => ({ ...line })),
+    totals: { ...totals },
+    paidAmount,
+    dueAmount,
+    paymentParts: paymentParts.map((part) => ({
+      paymentPartId: part.paymentPartId,
+      payerLabel: part.payerLabel,
+      amount: Number(part.amount.toFixed(2)),
+      settlementAccountRemoteId: part.settlementAccountRemoteId,
+      settlementAccountLabel: null,
+    })),
+    ledgerEffect:
+      dueAmount > 0
+        ? {
+            type: "due_balance_pending",
+            dueAmount,
+            accountRemoteId:
+              paymentParts[0]?.settlementAccountRemoteId?.trim() || null,
+          }
+        : {
+            type: "none",
+            dueAmount: 0,
+            accountRemoteId:
+              paymentParts[0]?.settlementAccountRemoteId?.trim() || null,
+          },
+    customerName: selectedCustomer?.fullName ?? null,
+    customerPhone: selectedCustomer?.phone ?? null,
+    contactRemoteId: selectedCustomer?.remoteId ?? null,
+  };
+};
+
+const createSaleRecord = (
+  overrides: Partial<PosSaleRecord> = {},
+): PosSaleRecord => {
+  const paymentParts = overrides.paymentParts ?? createRunParams().paymentParts;
+  const totalsSnapshot = overrides.totalsSnapshot ?? BASE_TOTALS;
+  const selectedCustomer =
+    overrides.customerRemoteId && overrides.customerNameSnapshot
+      ? {
+          remoteId: overrides.customerRemoteId,
+          fullName: overrides.customerNameSnapshot,
+          phone: overrides.customerPhoneSnapshot ?? null,
+          address: null,
+        }
+      : null;
+
+  return {
+    remoteId: "sale-1",
+    receiptNumber: "POS-001",
+    businessAccountRemoteId: "business-1",
+    ownerUserRemoteId: "user-1",
+    idempotencyKey: "idem-1",
+    workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
+    customerRemoteId: selectedCustomer?.remoteId ?? null,
+    customerNameSnapshot: selectedCustomer?.fullName ?? null,
+    customerPhoneSnapshot: selectedCustomer?.phone ?? null,
+    currencyCode: "NPR",
+    countryCode: "NP",
+    cartLinesSnapshot: BASE_CART_LINES,
+    totalsSnapshot,
+    paymentParts,
+    receipt: buildReceiptSnapshot({
+      receiptNumber: "POS-001",
+      cartLines: BASE_CART_LINES,
+      totals: totalsSnapshot,
+      paymentParts,
+      selectedCustomer,
+    }),
+    billingDocumentRemoteId: null,
+    ledgerEntryRemoteId: null,
+    postedTransactionRemoteIds: [],
+    lastErrorType: null,
+    lastErrorMessage: null,
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides,
+  };
+};
+
 type HarnessOptions = {
   getSaleByIdempotencyKey?: PosCheckoutRepository["getSaleByIdempotencyKey"];
+  initialSaleState?: PosSaleRecord | null;
   commitInventoryExecute?: CommitPosCheckoutInventoryUseCase["execute"];
   addLedgerEntryExecute?: AddLedgerEntryUseCase["execute"];
   verifyLinkedDocument?: AddLedgerEntryUseCase["verifyLinkedDocument"];
@@ -82,13 +188,13 @@ type HarnessOptions = {
 
 const createCheckoutHarness = (options: HarnessOptions = {}) => {
   let postedTransactionCount = 0;
-  let saleState: PosSaleRecord | null = null;
+  let saleState: PosSaleRecord | null = options.initialSaleState ?? null;
 
   const getSaleByIdempotencyKey: PosCheckoutRepository["getSaleByIdempotencyKey"] =
     options.getSaleByIdempotencyKey ??
     vi.fn(async () => ({
       success: true as const,
-      value: null,
+      value: saleState,
     }));
 
   const createPosSaleDraftUseCase: CreatePosSaleDraftUseCase = {
@@ -385,6 +491,150 @@ describe("runPosCheckout.useCase", () => {
       );
       expect(result.value.ledgerEntryRemoteId).toBeNull();
     }
+  });
+
+  it("returns posted sale for existing posted idempotency key", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.Posted,
+      billingDocumentRemoteId: "pos-doc-sale-1",
+      postedTransactionRemoteIds: ["txn-pos-sale-1-part-1"],
+    });
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(
+      createRunParams({
+        cartLinesSnapshot: [],
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(spies.createPosSaleDraftExecute).not.toHaveBeenCalled();
+    expect(spies.saveBillingDocumentExecute).not.toHaveBeenCalled();
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
+      expect(result.value.billingDocumentRemoteId).toBe("pos-doc-sale-1");
+    }
+  });
+
+  it("retries pending_posting sale from persisted snapshot", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
+    });
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(
+      createRunParams({
+        cartLinesSnapshot: [],
+        paymentParts: [],
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(spies.postBusinessTransactionExecute).toHaveBeenCalledTimes(1);
+    expect(spies.commitInventoryExecute).toHaveBeenCalledTimes(1);
+    if (result.success) {
+      expect(result.value.workflowStatus).toBe(PosCheckoutWorkflowStatus.Posted);
+    }
+  });
+
+  it("does not create a second POS sale draft during retry", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingValidation,
+    });
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(true);
+    expect(spies.createPosSaleDraftExecute).not.toHaveBeenCalled();
+  });
+
+  it("uses deterministic billing document id on retry", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
+      billingDocumentRemoteId: null,
+    });
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(true);
+    expect(spies.saveBillingDocumentExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteId: "pos-doc-sale-1",
+        sourceRemoteId: "sale-1",
+      }),
+    );
+    if (result.success) {
+      expect(result.value.billingDocumentRemoteId).toBe("pos-doc-sale-1");
+    }
+  });
+
+  it("uses deterministic transaction id per payment part", async () => {
+    const existingSale = createSaleRecord({
+      workflowStatus: PosCheckoutWorkflowStatus.PendingPosting,
+      paymentParts: [
+        {
+          paymentPartId: "part-1",
+          payerLabel: null,
+          amount: 700,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+        {
+          paymentPartId: "part-2",
+          payerLabel: null,
+          amount: 430,
+          settlementAccountRemoteId: "money-cash-1",
+        },
+      ],
+      receipt: buildReceiptSnapshot({
+        receiptNumber: "POS-001",
+        cartLines: BASE_CART_LINES,
+        totals: BASE_TOTALS,
+        paymentParts: [
+          {
+            paymentPartId: "part-1",
+            payerLabel: null,
+            amount: 700,
+            settlementAccountRemoteId: "money-cash-1",
+          },
+          {
+            paymentPartId: "part-2",
+            payerLabel: null,
+            amount: 430,
+            settlementAccountRemoteId: "money-cash-1",
+          },
+        ],
+        selectedCustomer: null,
+      }),
+    });
+    const { useCase, spies } = createCheckoutHarness({
+      initialSaleState: existingSale,
+    });
+
+    const result = await useCase.execute(createRunParams());
+
+    expect(result.success).toBe(true);
+    expect(spies.postBusinessTransactionExecute).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        remoteId: "txn-pos-sale-1-part-1",
+      }),
+    );
+    expect(spies.postBusinessTransactionExecute).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        remoteId: "txn-pos-sale-1-part-2",
+      }),
+    );
   });
 });
 

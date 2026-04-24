@@ -9,10 +9,15 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
     const saveInventoryMovementsUseCase = {
       execute: vi.fn(),
     };
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(),
+    };
 
     const useCase = createCommitPosCheckoutInventoryUseCase({
       saveInventoryMovementsUseCase:
         saveInventoryMovementsUseCase as never,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as never,
     });
 
     const result = await useCase.execute({
@@ -36,10 +41,18 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
         })),
       })),
     };
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
+    };
 
     const useCase = createCommitPosCheckoutInventoryUseCase({
       saveInventoryMovementsUseCase:
         saveInventoryMovementsUseCase as never,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as never,
     });
 
     const result = await useCase.execute({
@@ -115,10 +128,18 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
         },
       })),
     };
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
+    };
 
     const useCase = createCommitPosCheckoutInventoryUseCase({
       saveInventoryMovementsUseCase:
         saveInventoryMovementsUseCase as never,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as never,
     });
 
     const result = await useCase.execute({
@@ -155,9 +176,17 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
     const saveInventoryMovementsUseCase = {
       execute: vi.fn(),
     };
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [],
+      })),
+    };
 
     const useCase = createCommitPosCheckoutInventoryUseCase({
       saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as never,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as never,
     });
 
     const result = await useCase.execute({
@@ -182,6 +211,114 @@ describe("createCommitPosCheckoutInventoryUseCase", () => {
     });
 
     expect(result.success).toBe(true);
+    expect(saveInventoryMovementsUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it("returns success when all expected source movements already exist", async () => {
+    const saveInventoryMovementsUseCase = {
+      execute: vi.fn(),
+    };
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          {
+            remoteId: "pos-saleout-sale-1-product-1",
+          },
+        ],
+      })),
+    };
+
+    const useCase = createCommitPosCheckoutInventoryUseCase({
+      saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as never,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as never,
+    });
+
+    const result = await useCase.execute({
+      businessAccountRemoteId: "account-1",
+      saleRemoteId: "sale-1",
+      saleReferenceNumber: "RCPT-001",
+      movementAt: 1710000000000,
+      cartLines: [
+        {
+          lineId: "line-1",
+          productId: "product-1",
+          productName: "Rice",
+          categoryLabel: "Groceries",
+          shortCode: "RI",
+          kind: ProductKind.Item,
+          quantity: 2,
+          unitPrice: 100,
+          taxRate: 0,
+          lineSubtotal: 200,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(saveInventoryMovementsUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it("fails safely when source movements are only partially recorded", async () => {
+    const saveInventoryMovementsUseCase = {
+      execute: vi.fn(),
+    };
+    const getInventoryMovementsBySourceUseCase = {
+      execute: vi.fn(async () => ({
+        success: true as const,
+        value: [
+          {
+            remoteId: "pos-saleout-sale-1-product-1",
+          },
+        ],
+      })),
+    };
+
+    const useCase = createCommitPosCheckoutInventoryUseCase({
+      saveInventoryMovementsUseCase: saveInventoryMovementsUseCase as never,
+      getInventoryMovementsBySourceUseCase:
+        getInventoryMovementsBySourceUseCase as never,
+    });
+
+    const result = await useCase.execute({
+      businessAccountRemoteId: "account-1",
+      saleRemoteId: "sale-1",
+      saleReferenceNumber: "RCPT-001",
+      movementAt: 1710000000000,
+      cartLines: [
+        {
+          lineId: "line-1",
+          productId: "product-1",
+          productName: "Rice",
+          categoryLabel: "Groceries",
+          shortCode: "RI",
+          kind: ProductKind.Item,
+          quantity: 2,
+          unitPrice: 100,
+          taxRate: 0,
+          lineSubtotal: 200,
+        },
+        {
+          lineId: "line-2",
+          productId: "product-2",
+          productName: "Tea",
+          categoryLabel: "Beverages",
+          shortCode: "TE",
+          kind: ProductKind.Item,
+          quantity: 1,
+          unitPrice: 50,
+          taxRate: 0,
+          lineSubtotal: 50,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe("VALIDATION");
+      expect(result.error.message).toContain("partially recorded");
+    }
     expect(saveInventoryMovementsUseCase.execute).not.toHaveBeenCalled();
   });
 });

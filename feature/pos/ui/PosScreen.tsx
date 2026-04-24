@@ -503,6 +503,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           reconciliation={saleHistory.reconciliation}
           isReconciling={saleHistory.isReconciling}
           isResolving={saleHistory.isResolving}
+          isRetrying={saleHistory.isRetrying}
           recoveryMessage={saleHistory.recoveryMessage}
           onSearchChange={saleHistory.onSearchChange}
           onReceiptPress={saleHistory.onReceiptPress}
@@ -511,6 +512,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           onCloseHistory={saleHistory.onCloseHistory}
           onCloseDetail={saleHistory.onCloseDetail}
           onRefreshReconciliation={saleHistory.onRefreshReconciliation}
+          onRetryAbnormalSale={saleHistory.onRetryAbnormalSale}
           onCleanupAbnormalSale={saleHistory.onCleanupAbnormalSale}
         />
       ) : null}
