@@ -26,7 +26,7 @@ describe("audit.repository", () => {
           summary: "Money movement posted.",
           metadataJson: "{}",
           createdAt: new Date(1710000000000),
-          syncStatus: "pending" as const,
+          recordSyncStatus: "pending" as const,
           lastSyncedAt: null,
           deletedAt: null,
         },

@@ -23,7 +23,7 @@ const mapModelToEntity = (
   summary: model.summary,
   metadataJson: model.metadataJson,
   createdAt: model.createdAt.getTime(),
-  syncStatus: model.syncStatus,
+  syncStatus: model.recordSyncStatus,
   lastSyncedAt: model.lastSyncedAt,
   deletedAt: model.deletedAt,
 });

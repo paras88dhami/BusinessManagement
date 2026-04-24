@@ -6,6 +6,19 @@ import { AuditEventModel } from "./db/auditEvent.model";
 
 const AUDIT_EVENTS_TABLE = "audit_events";
 
+type TimestampWritableRecord = {
+  _raw: Record<string, number | string | boolean | null>;
+};
+
+const markCreatedAndUpdated = (
+  record: TimestampWritableRecord,
+  createdAt: number,
+  updatedAt: number,
+): void => {
+  record._raw["created_at"] = createdAt;
+  record._raw["updated_at"] = updatedAt;
+};
+
 export const createLocalAuditDatasource = (
   database: Database,
 ): AuditDatasource => ({
@@ -29,11 +42,14 @@ export const createLocalAuditDatasource = (
           record.severity = payload.severity;
           record.summary = payload.summary;
           record.metadataJson = payload.metadataJson ?? null;
-          record.syncStatus = "pending";
+          record.recordSyncStatus = "pending";
           record.lastSyncedAt = null;
           record.deletedAt = null;
-          record._raw.created_at = payload.createdAt;
-          record._raw.updated_at = now;
+          markCreatedAndUpdated(
+            record as unknown as TimestampWritableRecord,
+            payload.createdAt,
+            now,
+          );
         }),
       );
 
