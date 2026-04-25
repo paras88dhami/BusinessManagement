@@ -19,6 +19,7 @@ import {
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { SummaryCard } from "@/shared/components/reusable/Cards/SummaryCard";
+import { DropdownButton } from "@/shared/components/reusable/DropDown/DropdownButton";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
@@ -144,28 +145,41 @@ export function LedgerScreen({
         </View>
 
         {listViewModel.hasOverdueAging ? (
-          <>
-            <InlineSectionHeader title="Receivable Aging" />
-            <View style={styles.agingGrid}>
-              {listViewModel.agingBuckets.map((bucket) => (
-                <View
-                  key={bucket.id}
-                  style={[
-                    styles.agingCard,
-                    bucket.tone === "destructive"
-                      ? styles.agingCardCritical
-                      : bucket.tone === "warning"
-                        ? styles.agingCardWarning
-                        : null,
-                  ]}
-                >
-                  <Text style={styles.agingLabel}>{bucket.label}</Text>
-                  <Text style={styles.agingAmount}>{bucket.amountLabel}</Text>
-                  <Text style={styles.agingCount}>{bucket.countLabel}</Text>
-                </View>
-              ))}
-            </View>
-          </>
+          <View style={styles.agingSection}>
+            <DropdownButton
+              label="Receivable Aging"
+              subtitle={
+                listViewModel.isReceivableAgingExpanded
+                  ? "Hide receivable aging buckets"
+                  : "View receivable aging buckets"
+              }
+              expanded={listViewModel.isReceivableAgingExpanded}
+              onPress={listViewModel.onToggleReceivableAging}
+              leadingIcon={<CalendarClock size={16} color={colors.primary} />}
+            />
+
+            {listViewModel.isReceivableAgingExpanded ? (
+              <View style={styles.agingGrid}>
+                {listViewModel.agingBuckets.map((bucket) => (
+                  <View
+                    key={bucket.id}
+                    style={[
+                      styles.agingCard,
+                      bucket.tone === "destructive"
+                        ? styles.agingCardCritical
+                        : bucket.tone === "warning"
+                          ? styles.agingCardWarning
+                          : null,
+                    ]}
+                  >
+                    <Text style={styles.agingLabel}>{bucket.label}</Text>
+                    <Text style={styles.agingAmount}>{bucket.amountLabel}</Text>
+                    <Text style={styles.agingCount}>{bucket.countLabel}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
         ) : null}
 
         <InlineSectionHeader title="Collection Queue" />
@@ -325,6 +339,9 @@ const styles = StyleSheet.create({
   },
   miniStatGrid: {
     flexDirection: "row",
+    gap: spacing.sm,
+  },
+  agingSection: {
     gap: spacing.sm,
   },
   agingGrid: {

@@ -5,7 +5,11 @@ import {
   ReportQuery,
   ReportScope,
 } from "@/feature/reports/types/report.entity.types";
-import { ReportsViewState } from "@/feature/reports/types/report.state.types";
+import {
+  ReportExportAction,
+  ReportExportActionValue,
+  ReportsViewState,
+} from "@/feature/reports/types/report.state.types";
 import { ReportCsvExportAction } from "@/feature/reports/adapter/reportCsvFile.adapter";
 import { DocumentExportAction } from "@/shared/utils/document/exportDocument";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,6 +53,7 @@ export const useReportsViewModel = (
   const [state, setState] = useState<ReportsViewState>({
     isLoading: true,
     isExporting: false,
+    activeExportAction: null,
     errorMessage: null,
     activeHomeTab: ReportHomeTab.Overview,
     activePeriod: ReportPeriod.ThisMonth,
@@ -233,11 +238,15 @@ export const useReportsViewModel = (
       detail: null,
       errorMessage: null,
       isExporting: false,
+      activeExportAction: null,
     }));
   }, []);
 
   const onExportDetail = useCallback(
-    async (action: DocumentExportAction) => {
+    async (
+      action: DocumentExportAction,
+      activeExportAction: ReportExportActionValue,
+    ) => {
       if (!state.detail) {
         return;
       }
@@ -254,6 +263,7 @@ export const useReportsViewModel = (
       setState((current) => ({
         ...current,
         isExporting: true,
+        activeExportAction,
         errorMessage: null,
       }));
 
@@ -270,6 +280,7 @@ export const useReportsViewModel = (
         setState((current) => ({
           ...current,
           isExporting: false,
+          activeExportAction: null,
           errorMessage: result.error.message,
         }));
         return;
@@ -278,6 +289,7 @@ export const useReportsViewModel = (
       setState((current) => ({
         ...current,
         isExporting: false,
+        activeExportAction: null,
         errorMessage: null,
       }));
     },
@@ -285,7 +297,10 @@ export const useReportsViewModel = (
   );
 
   const onExportCsv = useCallback(
-    async (action: ReportCsvExportAction) => {
+    async (
+      action: ReportCsvExportAction,
+      activeExportAction: ReportExportActionValue,
+    ) => {
       if (!state.detail?.csvExport) {
         return;
       }
@@ -302,6 +317,7 @@ export const useReportsViewModel = (
       setState((current) => ({
         ...current,
         isExporting: true,
+        activeExportAction,
         errorMessage: null,
       }));
 
@@ -315,6 +331,7 @@ export const useReportsViewModel = (
         setState((current) => ({
           ...current,
           isExporting: false,
+          activeExportAction: null,
           errorMessage: result.error.message,
         }));
         return;
@@ -323,11 +340,24 @@ export const useReportsViewModel = (
       setState((current) => ({
         ...current,
         isExporting: false,
+        activeExportAction: null,
         errorMessage: null,
       }));
     },
     [canExportReports, exportReportCsvFileUseCase, state.detail],
   );
+
+  const onShareCsvReport = useCallback(async () => {
+    await onExportCsv("share", ReportExportAction.ShareCsv);
+  }, [onExportCsv]);
+
+  const onSharePdfReport = useCallback(async () => {
+    await onExportDetail("share", ReportExportAction.SharePdf);
+  }, [onExportDetail]);
+
+  const onPrintReport = useCallback(async () => {
+    await onExportDetail("print", ReportExportAction.Print);
+  }, [onExportDetail]);
 
   return useMemo(
     () => ({
@@ -339,8 +369,9 @@ export const useReportsViewModel = (
       onSelectPeriod,
       onOpenReport,
       onBackToReports,
-      onExportDetail,
-      onExportCsv,
+      onShareCsvReport,
+      onSharePdfReport,
+      onPrintReport,
     }),
     [
       accountType,
@@ -350,8 +381,9 @@ export const useReportsViewModel = (
       onRefresh,
       onSelectHomeTab,
       onSelectPeriod,
-      onExportDetail,
-      onExportCsv,
+      onShareCsvReport,
+      onSharePdfReport,
+      onPrintReport,
       state,
     ],
   );

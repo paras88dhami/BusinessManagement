@@ -3,9 +3,7 @@ import {
   ReportMenuItemValue,
   ReportPeriodValue,
 } from "@/feature/reports/types/report.entity.types";
-import { ReportCsvExportAction } from "@/feature/reports/adapter/reportCsvFile.adapter";
 import { ReportsViewState } from "@/feature/reports/types/report.state.types";
-import { DocumentExportAction } from "@/shared/utils/document/exportDocument";
 
 export type UseReportsViewModelParams = {
   accountType: import("@/feature/auth/accountSelection/types/accountSelection.types").AccountTypeValue;
@@ -26,6 +24,7 @@ export interface ReportsViewModel extends ReportsViewState {
   onSelectPeriod: (period: ReportPeriodValue) => Promise<void>;
   onOpenReport: (reportId: ReportMenuItemValue) => Promise<void>;
   onBackToReports: () => void;
-  onExportDetail: (action: DocumentExportAction) => Promise<void>;
-  onExportCsv: (action: ReportCsvExportAction) => Promise<void>;
+  onShareCsvReport: () => Promise<void>;
+  onSharePdfReport: () => Promise<void>;
+  onPrintReport: () => Promise<void>;
 }

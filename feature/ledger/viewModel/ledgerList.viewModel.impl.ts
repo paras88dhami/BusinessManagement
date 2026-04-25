@@ -56,6 +56,7 @@ export const useLedgerListViewModel = ({
   const [selectedFilter, setSelectedFilter] = useState<LedgerListFilterValue>(
     LedgerListFilter.All,
   );
+  const [isReceivableAgingExpanded, setIsReceivableAgingExpanded] = useState(false);
 
   const loadLedger = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -369,6 +370,16 @@ export const useLedgerListViewModel = ({
     );
   }, [outstandingDueItems]);
 
+  useEffect(() => {
+    if (!hasOverdueAging) {
+      setIsReceivableAgingExpanded(false);
+    }
+  }, [hasOverdueAging]);
+
+  const onToggleReceivableAging = useCallback(() => {
+    setIsReceivableAgingExpanded((currentValue) => !currentValue);
+  }, []);
+
   const partyItems = useMemo<readonly LedgerPartyListItemState[]>(() => {
     return filteredPartyBalances.map((partyBalance) => {
       const dueBadge =
@@ -438,6 +449,7 @@ export const useLedgerListViewModel = ({
       selectedFilter,
       summaryCards,
       hasOverdueAging,
+      isReceivableAgingExpanded,
       agingBuckets,
       collectionQueue,
       partyItems,
@@ -445,6 +457,7 @@ export const useLedgerListViewModel = ({
       refresh: loadLedger,
       onChangeSearchQuery: setSearchQuery,
       onChangeFilter: setSelectedFilter,
+      onToggleReceivableAging,
       onOpenCreate,
       onQuickCollectFromQueue: onQuickCollectForParty,
       onOpenPartyDetail: handleOpenPartyDetail,
@@ -456,9 +469,11 @@ export const useLedgerListViewModel = ({
       errorMessage,
       handleOpenPartyDetail,
       isLoading,
+      isReceivableAgingExpanded,
       loadLedger,
       onOpenCreate,
       onQuickCollectForParty,
+      onToggleReceivableAging,
       partyItems,
       searchQuery,
       selectedFilter,

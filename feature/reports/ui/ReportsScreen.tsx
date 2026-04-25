@@ -7,12 +7,13 @@ import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGro
 import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
-import { ArrowLeft, Download, Printer, Share2 } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { isReportPeriodFilterable } from "../utils/reportPeriod.shared";
 import { ExportPreviewCard, ReportListItems, ReportMenuSections, ReportsSummaryRow } from "./components/ReportCards";
 import { DualLineChart, GroupedBarChart, LineAreaChart, SemiDonutChart, SingleBarChart } from "./components/ReportCharts";
+import { ReportExportActionRow } from "./components/ReportExportActionRow";
 
 const HOME_TAB_OPTIONS = [
   { value: ReportHomeTab.Overview, label: "Overview" },
@@ -179,7 +180,6 @@ function ReportDetailView({ viewModel }: Props) {
   }
 
   const supportsPeriodFilter = isReportPeriodFilterable(detail.reportId);
-  const hasCsvExport = Boolean(detail.csvExport);
 
   return (
     <View style={styles.screenGap}>
@@ -199,100 +199,20 @@ function ReportDetailView({ viewModel }: Props) {
       ) : null}
 
       {viewModel.canExportReports ? (
-        <View style={styles.exportBlock}>
-          {hasCsvExport ? (
-            <>
-              <Text style={styles.exportSectionTitle}>CSV Export</Text>
-              <View style={styles.exportActionsRow}>
-                <Pressable
-                  style={[
-                    styles.exportActionButton,
-                    viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-                  ]}
-                  disabled={viewModel.isExporting}
-                  onPress={() => {
-                    void viewModel.onExportCsv("share");
-                  }}
-                >
-                  <Share2 size={16} color={colors.primary} />
-                  <Text style={styles.exportActionText}>
-                    {viewModel.isExporting ? "Exporting..." : "Share CSV"}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={[
-                    styles.exportActionButton,
-                    viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-                  ]}
-                  disabled={viewModel.isExporting}
-                  onPress={() => {
-                    void viewModel.onExportCsv("save");
-                  }}
-                >
-                  <Download size={16} color={colors.primary} />
-                  <Text style={styles.exportActionText}>
-                    {viewModel.isExporting ? "Exporting..." : "Save CSV"}
-                  </Text>
-                </Pressable>
-              </View>
-            </>
-          ) : null}
-
-          <Text style={styles.exportSectionTitle}>
-            {hasCsvExport ? "PDF Export" : "Export"}
-          </Text>
-
-          <View style={styles.exportActionsRow}>
-            <Pressable
-              style={[
-                styles.exportActionButton,
-                viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-              ]}
-              disabled={viewModel.isExporting}
-              onPress={() => {
-                void viewModel.onExportDetail("share");
-              }}
-            >
-              <Share2 size={16} color={colors.primary} />
-              <Text style={styles.exportActionText}>
-                {viewModel.isExporting ? "Exporting..." : "Share PDF"}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.exportActionButton,
-                viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-              ]}
-              disabled={viewModel.isExporting}
-              onPress={() => {
-                void viewModel.onExportDetail("save");
-              }}
-            >
-              <Download size={16} color={colors.primary} />
-              <Text style={styles.exportActionText}>
-                {viewModel.isExporting ? "Exporting..." : "Save PDF"}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.exportActionButton,
-                viewModel.isExporting ? styles.exportActionButtonDisabled : null,
-              ]}
-              disabled={viewModel.isExporting}
-              onPress={() => {
-                void viewModel.onExportDetail("print");
-              }}
-            >
-              <Printer size={16} color={colors.primary} />
-              <Text style={styles.exportActionText}>
-                {viewModel.isExporting ? "Exporting..." : "Print"}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+        <ReportExportActionRow
+          canShareCsv={Boolean(detail.csvExport)}
+          isExporting={viewModel.isExporting}
+          activeExportAction={viewModel.activeExportAction}
+          onShareCsv={() => {
+            void viewModel.onShareCsvReport();
+          }}
+          onSharePdf={() => {
+            void viewModel.onSharePdfReport();
+          }}
+          onPrint={() => {
+            void viewModel.onPrintReport();
+          }}
+        />
       ) : viewModel.isBusinessMode ? (
         <Text style={styles.permissionHint}>
           You have view access only. Ask admin for export permission.
@@ -419,38 +339,6 @@ const styles = StyleSheet.create({
   backText: {
     color: colors.primary,
     fontSize: 15,
-    fontFamily: "InterBold",
-  },
-  exportBlock: {
-    gap: spacing.sm,
-  },
-  exportSectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  exportActionsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  exportActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  exportActionButtonDisabled: {
-    opacity: 0.6,
-  },
-  exportActionText: {
-    color: colors.primary,
-    fontSize: 13,
     fontFamily: "InterBold",
   },
   permissionHint: {

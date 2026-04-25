@@ -15,9 +15,19 @@ export const REPORT_PERIOD_OPTIONS = [
   { value: "last_6_months", label: "6 Months" },
 ] as const;
 
+export const ReportExportAction = {
+  ShareCsv: "share_csv",
+  SharePdf: "share_pdf",
+  Print: "print",
+} as const;
+
+export type ReportExportActionValue =
+  (typeof ReportExportAction)[keyof typeof ReportExportAction];
+
 export type ReportsViewState = {
   isLoading: boolean;
   isExporting: boolean;
+  activeExportAction: ReportExportActionValue | null;
   errorMessage: string | null;
   activeHomeTab: ReportHomeTabValue;
   activePeriod: ReportPeriodValue;

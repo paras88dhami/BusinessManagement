@@ -14,6 +14,7 @@ export interface LedgerListViewModel {
   selectedFilter: LedgerListFilterValue;
   summaryCards: readonly LedgerSummaryCardState[];
   hasOverdueAging: boolean;
+  isReceivableAgingExpanded: boolean;
   agingBuckets: readonly LedgerAgingBucketState[];
   collectionQueue: readonly LedgerCollectionQueueItemState[];
   partyItems: readonly LedgerPartyListItemState[];
@@ -21,6 +22,7 @@ export interface LedgerListViewModel {
   refresh: () => Promise<void>;
   onChangeSearchQuery: (value: string) => void;
   onChangeFilter: (filter: LedgerListFilterValue) => void;
+  onToggleReceivableAging: () => void;
   onOpenCreate: (entryType: LedgerEntryTypeValue) => void;
   onQuickCollectFromQueue: (partyName: string) => void;
   onOpenPartyDetail: (partyId: string, partyName: string) => Promise<void> | void;

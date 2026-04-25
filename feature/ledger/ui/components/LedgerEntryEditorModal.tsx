@@ -10,6 +10,7 @@ import {
     DropdownOption
 } from "@/shared/components/reusable/DropDown/Dropdown";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
+import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
@@ -117,7 +118,7 @@ export function LedgerEntryEditorModal({
         editable={!state.isSaving}
       />
 
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="Date"
         value={state.happenedAt}
         onChangeText={viewModel.onChangeHappenedAt}
@@ -127,7 +128,7 @@ export function LedgerEntryEditorModal({
       />
 
       {shouldShowDueDate ? (
-        <LabeledTextInput
+        <DualCalendarDatePicker
           label="Due Date"
           value={state.dueAt}
           onChangeText={viewModel.onChangeDueAt}
@@ -186,7 +187,7 @@ export function LedgerEntryEditorModal({
             editable={!state.isSaving}
           />
 
-          <LabeledTextInput
+          <DualCalendarDatePicker
             label="Reminder Date"
             value={state.reminderAt}
             onChangeText={viewModel.onChangeReminderAt}
