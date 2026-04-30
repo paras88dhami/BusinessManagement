@@ -6,8 +6,8 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import { colors } from "../../theme/colors";
 import { radius } from "../../theme/spacing";
+import { useAppTheme } from "../../theme/AppThemeProvider";
 
 type AppIconButtonSize = "sm" | "md";
 
@@ -25,6 +25,34 @@ export function AppIconButton({
   accessibilityRole,
   ...props
 }: AppIconButtonProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        base: {
+          borderRadius: radius.pill,
+          backgroundColor: theme.colors.accent,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        sm: {
+          width: theme.scaleSpace(30),
+          height: theme.scaleSpace(30),
+        },
+        md: {
+          width: theme.scaleSpace(34),
+          height: theme.scaleSpace(34),
+        },
+        disabled: {
+          opacity: 0.6,
+        },
+        pressed: {
+          opacity: 0.88,
+        },
+      }),
+    [theme],
+  );
+
   return (
     <Pressable
       {...props}
@@ -42,26 +70,3 @@ export function AppIconButton({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sm: {
-    width: 30,
-    height: 30,
-  },
-  md: {
-    width: 34,
-    height: 34,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  pressed: {
-    opacity: 0.88,
-  },
-});

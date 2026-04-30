@@ -2,6 +2,7 @@ import {
   AppearanceTextSizePreferenceValue,
   AppearanceThemePreferenceValue,
 } from "@/feature/appSettings/appearance/types/appearance.types";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import {
   BugSeverityValue,
   DataRightItem,
@@ -105,6 +106,15 @@ export interface SettingsViewModel {
   ratingReview: string;
   changePasswordForm: SettingsChangePasswordForm;
   canOpenSecurity: boolean;
+  isSensitiveSettingsAccessLoading: boolean;
+  exportDataModalSubtitle: string;
+  importDataModalSubtitle: string;
+  importDataUnavailableMessage: string;
+  biometricLoginSubtitle: string;
+  biometricLoginToggleDisabled: boolean;
+  twoFactorAuthSubtitle: string;
+  twoFactorAuthToggleDisabled: boolean;
+  activeAccountType: AccountTypeValue;
   onOpenSecurity: () => void;
   onOpenRegionalFinance: () => void;
   onOpenExportData: () => void;

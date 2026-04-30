@@ -1,5 +1,6 @@
 import { Result } from "@/shared/types/result.types";
 import { TaxMode, TaxModeValue } from "@/shared/types/regionalFinance.types";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 
 export const SettingsModal = {
   None: "none",
@@ -43,6 +44,9 @@ export type SettingsDataTransferModuleValue =
 export type SettingsDataTransferModuleOption = {
   id: SettingsDataTransferModuleValue;
   label: string;
+  description?: string;
+  disabled?: boolean;
+  statusLabel?: string;
 };
 
 export const SETTINGS_DATA_TRANSFER_MODULE_OPTIONS: readonly SettingsDataTransferModuleOption[] =
@@ -82,6 +86,8 @@ export type SettingsDataTransferBundle = {
 
 export type ExportSettingsDataBundlePayload = {
   moduleIds: readonly SettingsDataTransferModuleValue[];
+  activeAccountRemoteId: string;
+  activeAccountType: AccountTypeValue;
 };
 
 export type ImportSettingsDataBundlePayload = {
@@ -118,23 +124,33 @@ export const BUG_SEVERITY_OPTIONS = [
 export type HelpFaqItem = {
   id: string;
   question: string;
+  answer: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type SupportContactItem = {
   id: string;
   title: string;
   value: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type TermsDocumentItem = {
   id: string;
   title: string;
   subtitle: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type DataRightItem = {
   id: string;
   label: string;
+  description?: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type SecurityPreferences = {

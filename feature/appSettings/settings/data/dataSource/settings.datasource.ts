@@ -17,23 +17,33 @@ export type SecurityPreferencesRecord = {
 export type HelpFaqItemRecord = {
   id: string;
   question: string;
+  answer: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type SupportContactItemRecord = {
   id: string;
   title: string;
   value: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type TermsDocumentItemRecord = {
   id: string;
   title: string;
   subtitle: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type DataRightItemRecord = {
   id: string;
   label: string;
+  description?: string;
+  href?: string;
+  actionLabel?: string;
 };
 
 export type SettingsBootstrapRecord = {

@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import { X } from "lucide-react-native";
 import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 
 type FormSheetModalPresentation = "bottom-sheet" | "dialog";
 
@@ -48,12 +48,111 @@ export function FormSheetModal({
   backdropStyle,
 }: FormSheetModalProps) {
   const isDialogPresentation = presentation === "dialog";
+  const theme = useAppTheme();
   const keyboardBehavior: "height" | "padding" | "position" | undefined =
     Platform.OS === "ios"
       ? "padding"
       : Platform.OS === "android"
         ? "position"
         : undefined;
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: theme.colors.overlay,
+        },
+        sheetBackdrop: {
+          justifyContent: "flex-end",
+        },
+        dialogBackdrop: {
+          justifyContent: "center",
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+        },
+        sheetDismissArea: {
+          flex: 1,
+        },
+        dialogDismissArea: {
+          ...StyleSheet.absoluteFillObject,
+        },
+        dialogKeyboardWrap: {
+          width: "100%",
+        },
+        keyboardWrap: {
+          maxHeight: "100%",
+        },
+        sheet: {
+          backgroundColor: theme.colors.card,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+        },
+        bottomSheet: {
+          maxHeight: "92%",
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+          paddingTop: theme.scaleSpace(spacing.xs),
+          paddingBottom: theme.scaleSpace(spacing.xl),
+        },
+        dialogSheet: {
+          maxHeight: "86%",
+          borderRadius: radius.xl,
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          paddingTop: theme.scaleSpace(spacing.md),
+          paddingBottom: theme.scaleSpace(spacing.md),
+        },
+        handle: {
+          width: theme.scaleSpace(42),
+          height: theme.scaleSpace(4),
+          borderRadius: radius.pill,
+          backgroundColor: theme.colors.border,
+          alignSelf: "center",
+          marginBottom: theme.scaleSpace(spacing.sm),
+        },
+        headerRow: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: theme.scaleSpace(spacing.sm),
+          marginBottom: theme.scaleSpace(spacing.sm),
+        },
+        headerTextWrap: {
+          flex: 1,
+          gap: 2,
+        },
+        title: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(18),
+          fontFamily: "InterBold",
+        },
+        subtitle: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterMedium",
+        },
+        body: {
+          flexShrink: 1,
+        },
+        scroll: {
+          flexShrink: 1,
+        },
+        content: {
+          gap: theme.scaleSpace(spacing.sm),
+          paddingBottom: theme.scaleSpace(spacing.md),
+        },
+        contentWithFooter: {
+          paddingBottom: theme.scaleSpace(spacing.sm),
+        },
+        footer: {
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.border,
+          paddingTop: theme.scaleSpace(spacing.sm),
+          backgroundColor: theme.colors.card,
+        },
+      }),
+    [theme],
+  );
 
   return (
     <Modal
@@ -104,7 +203,7 @@ export function FormSheetModal({
                 accessibilityRole="button"
                 accessibilityLabel={closeAccessibilityLabel}
               >
-                <X size={18} color={colors.mutedForeground} />
+                <X size={18} color={theme.colors.mutedForeground} />
               </AppIconButton>
             </View>
 
@@ -143,98 +242,3 @@ export function FormSheetModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-  },
-  sheetBackdrop: {
-    justifyContent: "flex-end",
-  },
-  dialogBackdrop: {
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-  },
-  sheetDismissArea: {
-    flex: 1,
-  },
-  dialogDismissArea: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  dialogKeyboardWrap: {
-    width: "100%",
-  },
-  keyboardWrap: {
-    maxHeight: "100%",
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  bottomSheet: {
-    maxHeight: "92%",
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xl,
-  },
-  dialogSheet: {
-    maxHeight: "86%",
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  handle: {
-    width: 42,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.border,
-    alignSelf: "center",
-    marginBottom: spacing.sm,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  headerTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  subtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-  },
-  body: {
-    flexShrink: 1,
-  },
-  scroll: {
-    flexShrink: 1,
-  },
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  contentWithFooter: {
-    paddingBottom: spacing.sm,
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.sm,
-    backgroundColor: colors.card,
-  },
-});

@@ -10,8 +10,8 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors } from "../../theme/colors";
 import { radius, spacing } from "../../theme/spacing";
+import { useAppTheme } from "../../theme/AppThemeProvider";
 
 type AppButtonVariant = "primary" | "secondary" | "accent";
 type AppButtonSize = "sm" | "md" | "lg";
@@ -26,42 +26,23 @@ type AppButtonProps = Omit<PressableProps, "style" | "children"> & {
   isLoading?: boolean;
 };
 
-const variantStyles = StyleSheet.create({
-  primary: {
-    backgroundColor: colors.primary,
+const resolveSpinnerColor = (
+  variant: AppButtonVariant,
+  foregroundColors: {
+    primary: string;
+    secondary: string;
+    accent: string;
   },
-  secondary: {
-    backgroundColor: colors.secondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  accent: {
-    backgroundColor: colors.accent,
-  },
-});
-
-const variantLabelStyles = StyleSheet.create({
-  primary: {
-    color: colors.primaryForeground,
-  },
-  secondary: {
-    color: colors.foreground,
-  },
-  accent: {
-    color: colors.primary,
-  },
-});
-
-const resolveSpinnerColor = (variant: AppButtonVariant): string => {
+): string => {
   if (variant === "primary") {
-    return colors.primaryForeground;
+    return foregroundColors.primary;
   }
 
   if (variant === "accent") {
-    return colors.primary;
+    return foregroundColors.accent;
   }
 
-  return colors.foreground;
+  return foregroundColors.secondary;
 };
 
 export function AppButton({
@@ -76,7 +57,90 @@ export function AppButton({
   accessibilityRole,
   ...props
 }: AppButtonProps) {
+  const theme = useAppTheme();
   const isDisabled = disabled || isLoading;
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        base: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: theme.scaleSpace(spacing.xs),
+        },
+        sm: {
+          minHeight: theme.scaleSpace(34),
+          borderRadius: radius.md,
+          paddingHorizontal: theme.scaleSpace(spacing.sm),
+        },
+        md: {
+          minHeight: theme.scaleSpace(44),
+          borderRadius: radius.md,
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+        },
+        lg: {
+          minHeight: theme.scaleSpace(52),
+          borderRadius: radius.lg,
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+        },
+        iconWrap: {
+          alignItems: "center",
+          justifyContent: "center",
+          minWidth: theme.scaleSpace(16),
+        },
+        label: {
+          fontFamily: "InterBold",
+          fontSize: theme.scaleText(14),
+        },
+        disabled: {
+          opacity: 0.6,
+        },
+        pressed: {
+          opacity: 0.88,
+        },
+      }),
+    [theme],
+  );
+  const variantStyles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        primary: {
+          backgroundColor: theme.colors.primary,
+        },
+        secondary: {
+          backgroundColor: theme.colors.secondary,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+        },
+        accent: {
+          backgroundColor: theme.colors.accent,
+        },
+      }),
+    [theme],
+  );
+  const variantLabelStyles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        primary: {
+          color: theme.colors.primaryForeground,
+        },
+        secondary: {
+          color: theme.colors.foreground,
+        },
+        accent: {
+          color: theme.colors.primary,
+        },
+      }),
+    [theme],
+  );
+  const spinnerColors = React.useMemo(
+    () => ({
+      primary: theme.colors.primaryForeground,
+      secondary: theme.colors.foreground,
+      accent: theme.colors.primary,
+    }),
+    [theme.colors.foreground, theme.colors.primary, theme.colors.primaryForeground],
+  );
 
   return (
     <Pressable
@@ -97,7 +161,7 @@ export function AppButton({
         <View style={styles.iconWrap}>
           <ActivityIndicator
             size="small"
-            color={resolveSpinnerColor(variant)}
+            color={resolveSpinnerColor(variant, spinnerColors)}
           />
         </View>
       ) : leadingIcon ? (
@@ -110,42 +174,3 @@ export function AppButton({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  sm: {
-    minHeight: 34,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-  },
-  md: {
-    minHeight: 44,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-  },
-  lg: {
-    minHeight: 52,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-  },
-  iconWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 16,
-  },
-  label: {
-    fontFamily: "InterBold",
-    fontSize: 14,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  pressed: {
-    opacity: 0.88,
-  },
-});

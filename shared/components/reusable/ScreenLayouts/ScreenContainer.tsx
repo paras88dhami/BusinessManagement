@@ -8,7 +8,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/AppThemeProvider";
 
 interface ScreenContainerProps {
   children: React.ReactNode;
@@ -28,20 +28,50 @@ export function ScreenContainer({
   footer,
   padded = false,
   showDivider = true,
-  dividerColor = colors.destructive,
+  dividerColor,
   contentContainerStyle,
   scrollProps,
   baseBottomPadding = 110,
 }: ScreenContainerProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: theme.colors.background,
+        },
+        divider: {
+          height: StyleSheet.hairlineWidth,
+        },
+        scroll: {
+          flex: 1,
+        },
+        content: {
+          flexGrow: 1,
+        },
+        padded: {
+          paddingHorizontal: theme.scaleSpace(16),
+          paddingTop: theme.scaleSpace(16),
+        },
+      }),
+    [theme],
+  );
+  const resolvedDividerColor = dividerColor ?? theme.colors.border;
+
   return (
     <View style={styles.container}>
       {header}
-      {showDivider ? <View style={[styles.divider, { backgroundColor: dividerColor }]} /> : null}
+      {showDivider ? (
+        <View
+          style={[styles.divider, { backgroundColor: resolvedDividerColor }]}
+        />
+      ) : null}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: baseBottomPadding },
+          { paddingBottom: theme.scaleSpace(baseBottomPadding) },
           padded ? styles.padded : null,
           contentContainerStyle,
         ]}
@@ -56,23 +86,3 @@ export function ScreenContainer({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  divider: {
-    height: 4,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-  },
-  padded: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-});

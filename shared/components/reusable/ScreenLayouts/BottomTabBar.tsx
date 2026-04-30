@@ -11,8 +11,8 @@ import {
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabIconName, BottomTabItem, RouteName } from "@/shared/types/navigation";
-import { colors } from "../../theme/colors";
 import { radius, spacing } from "../../theme/spacing";
+import { useAppTheme } from "../../theme/AppThemeProvider";
 
 type BottomTabBarProps<T extends string = RouteName> = {
   route: T;
@@ -44,7 +44,81 @@ export function BottomTabBar<T extends string = RouteName>({
   items,
 }: BottomTabBarProps<T>) {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const tabItems = items ?? (DEFAULT_ITEMS as readonly BottomTabItem<T>[]);
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        wrapper: {
+          position: "absolute",
+          left: spacing.md,
+          right: spacing.md,
+          minHeight: BOTTOM_TAB_BAR_MIN_HEIGHT,
+          backgroundColor: theme.colors.nav,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          borderRadius: radius.lg,
+          paddingVertical: theme.scaleSpace(spacing.xs),
+          paddingHorizontal: theme.scaleSpace(spacing.xs),
+          zIndex: 40,
+          shadowColor: "#000000",
+          shadowOffset: {
+            width: 0,
+            height: 10,
+          },
+          shadowOpacity: theme.isDarkMode ? 0.28 : 0.1,
+          shadowRadius: 16,
+          elevation: theme.isDarkMode ? 10 : 4,
+        },
+        row: {
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+        },
+        item: {
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+          paddingVertical: theme.scaleSpace(spacing.xs),
+        },
+        centerItem: {
+          flex: 1,
+          alignItems: "center",
+          marginTop: -(theme.scaleSpace(spacing.xl) + theme.scaleSpace(spacing.xs)),
+        },
+        centerCircle: {
+          width: theme.scaleSpace(56),
+          height: theme.scaleSpace(56),
+          borderRadius: radius.pill,
+          backgroundColor: theme.colors.primary,
+          borderWidth: 4,
+          borderColor: theme.colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000000",
+          shadowOffset: {
+            width: 0,
+            height: 8,
+          },
+          shadowOpacity: theme.isDarkMode ? 0.3 : 0.12,
+          shadowRadius: 10,
+          elevation: theme.isDarkMode ? 8 : 3,
+        },
+        label: {
+          marginTop: 2,
+          color: theme.colors.navForeground,
+          fontSize: theme.scaleText(10),
+          lineHeight: theme.scaleLineHeight(12),
+          fontFamily: "InterSemiBold",
+        },
+        activeLabel: {
+          color: theme.colors.navActive,
+          fontFamily: "InterBold",
+        },
+      }),
+    [theme],
+  );
 
   return (
     <View
@@ -77,7 +151,7 @@ export function BottomTabBar<T extends string = RouteName>({
                 accessibilityState={{ selected: isActive }}
               >
                 <View style={styles.centerCircle}>
-                  <Icon size={24} color={colors.primaryForeground} />
+                  <Icon size={24} color={theme.colors.primaryForeground} />
                 </View>
                 <Text style={[styles.label, isActive ? styles.activeLabel : null]}>
                   {tabItem.label}
@@ -103,7 +177,9 @@ export function BottomTabBar<T extends string = RouteName>({
             >
               <Icon
                 size={22}
-                color={isActive ? colors.navActive : colors.navForeground}
+                color={
+                  isActive ? theme.colors.navActive : theme.colors.navForeground
+                }
                 strokeWidth={isActive ? 2.5 : 2}
               />
               <Text style={[styles.label, isActive ? styles.activeLabel : null]}>
@@ -161,57 +237,4 @@ const routeToIconName = (route: string): BottomTabIconName => {
       return "home";
   }
 };
-
-const styles = StyleSheet.create({
-  wrapper: {
-    position: "absolute",
-    left: spacing.md,
-    right: spacing.md,
-    minHeight: BOTTOM_TAB_BAR_MIN_HEIGHT,
-    backgroundColor: colors.nav,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 7,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.xs,
-    zIndex: 40,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  item: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    paddingVertical: spacing.xs,
-  },
-  centerItem: {
-    flex: 1,
-    alignItems: "center",
-    marginTop: -(spacing.xl + spacing.xs),
-  },
-  centerCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-    borderWidth: 4,
-    borderColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  label: {
-    marginTop: 2,
-    color: colors.navForeground,
-    fontSize: 10,
-    fontFamily: "InterSemiBold",
-  },
-  activeLabel: {
-    color: colors.navActive,
-    fontFamily: "InterBold",
-  },
-});
 

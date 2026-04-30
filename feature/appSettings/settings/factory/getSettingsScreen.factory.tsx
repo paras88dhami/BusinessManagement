@@ -23,16 +23,25 @@ import { createAuthCredentialRepository } from "@/feature/session/data/repositor
 import { createPasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import appDatabase from "@/shared/database/appDatabase";
 import React from "react";
+import { AccountTypeValue } from "@/feature/auth/accountSelection/types/accountSelection.types";
 
 type GetSettingsScreenFactoryProps = {
   activeUserRemoteId: string | null;
   activeAccountRemoteId: string | null;
+  activeAccountType: AccountTypeValue;
+  activeAccountDisplayName: string;
+  canManageSensitiveSettings: boolean;
+  isSensitiveSettingsAccessLoading: boolean;
   onBack: () => void;
 };
 
 export function GetSettingsScreenFactory({
   activeUserRemoteId,
   activeAccountRemoteId,
+  activeAccountType,
+  activeAccountDisplayName,
+  canManageSensitiveSettings,
+  isSensitiveSettingsAccessLoading,
   onBack,
 }: GetSettingsScreenFactoryProps) {
   const appearanceDatasource = React.useMemo(
@@ -131,6 +140,10 @@ export function GetSettingsScreenFactory({
   const viewModel = useSettingsViewModel({
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountType,
+    activeAccountDisplayName,
+    canManageSensitiveSettings,
+    isSensitiveSettingsAccessLoading,
     getAppearancePreferencesUseCase,
     saveAppearancePreferencesUseCase,
     getSettingsBootstrapUseCase,

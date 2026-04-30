@@ -5,13 +5,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { StatusBar } from "expo-status-bar";
 import appDatabase from "@/shared/database/appDatabase";
 import {
   AppRouteSessionStatus,
   AppRouteSessionProvider,
   useAppRouteSession,
 } from "@/feature/session/ui/AppRouteSessionProvider";
-import { colors } from "@/shared/components/theme/colors";
 import { useCurrentLanguageCode } from "@/shared/i18n/resources";
 import { applyGlobalTypographyDefaults } from "@/shared/components/theme/typography";
 import { StartupBootstrapStatus } from "@/feature/startup/types/startup.types";
@@ -23,6 +23,10 @@ import {
   resolveStartupPresentationState,
   StartupPresentationMode,
 } from "@/feature/startup/utils/resolveStartupPresentationState.util";
+import {
+  AppThemeProvider,
+  useAppTheme,
+} from "@/shared/components/theme/AppThemeProvider";
 
 applyGlobalTypographyDefaults();
 
@@ -68,6 +72,7 @@ function SessionStartupOverlayController({
 function SessionRootNavigator({ languageCode }: SessionRootNavigatorProps) {
   const { isLoading, hasActiveSession, hasActiveAccount, sessionStatus } =
     useAppRouteSession();
+  const theme = useAppTheme();
 
   if (isLoading) {
     return null;
@@ -83,7 +88,7 @@ function SessionRootNavigator({ languageCode }: SessionRootNavigatorProps) {
       screenOptions={{
         headerShown: false,
         animation: "none",
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
       <Stack.Protected guard={!isAuthenticated}>
@@ -103,7 +108,7 @@ function SessionRootNavigator({ languageCode }: SessionRootNavigatorProps) {
   );
 }
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const [fontsLoaded, fontsError] = useFonts({
     InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
     InterMedium: require("../assets/fonts/Inter_18pt-Medium.ttf"),
@@ -116,6 +121,7 @@ export default function RootLayout() {
   });
 
   const languageCode = useCurrentLanguageCode();
+  const theme = useAppTheme();
 
   const fontErrorMessage = React.useMemo(() => {
     if (!fontsError) {
@@ -162,8 +168,23 @@ export default function RootLayout() {
   );
 
   return (
-    <SafeAreaProvider style={styles.rootSafeArea}>
-      <View style={styles.rootContainer}>
+    <SafeAreaProvider
+      style={[
+        styles.rootSafeArea,
+        { backgroundColor: theme.colors.background },
+      ]}
+    >
+      <StatusBar
+        style={theme.isDarkMode ? "light" : "dark"}
+        backgroundColor={theme.colors.header}
+      />
+
+      <View
+        style={[
+          styles.rootContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         {startupPresentationState.mode !== StartupPresentationMode.Session ? (
           <StartupBootstrapBoundary
             fontsLoaded={fontsLoaded}
@@ -188,13 +209,20 @@ export default function RootLayout() {
   );
 }
 
+export default function RootLayout() {
+  return (
+    <AppThemeProvider database={appDatabase}>
+      <RootLayoutContent />
+    </AppThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   rootSafeArea: {
     flex: 1,
   },
   rootContainer: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   startupOverlay: {
     ...StyleSheet.absoluteFillObject,

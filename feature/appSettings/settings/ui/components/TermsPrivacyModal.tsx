@@ -1,11 +1,10 @@
-import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { ArrowUpRight, FileText, Shield } from "lucide-react-native";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { DataRightItem, TermsDocumentItem } from "../../types/settings.types";
 
 type TermsPrivacyModalProps = {
@@ -15,12 +14,107 @@ type TermsPrivacyModalProps = {
   onClose: () => void;
 };
 
+const openLink = async (href: string): Promise<void> => {
+  try {
+    await Linking.openURL(href);
+  } catch (error) {
+    console.error("Failed to open legal or privacy link.", error);
+  }
+};
+
 export function TermsPrivacyModal({
   visible,
   items,
   dataRights,
   onClose,
 }: TermsPrivacyModalProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        content: {
+          gap: theme.scaleSpace(spacing.md),
+        },
+        listCard: {
+          padding: 0,
+          overflow: "hidden",
+        },
+        row: {
+          minHeight: theme.scaleSpace(72),
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          paddingVertical: theme.scaleSpace(spacing.md),
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        rowBorder: {
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.border,
+        },
+        iconWrap: {
+          width: theme.scaleSpace(38),
+          height: theme.scaleSpace(38),
+          borderRadius: radius.pill,
+          backgroundColor: theme.colors.accent,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        textWrap: {
+          flex: 1,
+        },
+        rowTitle: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(15),
+          fontFamily: "InterBold",
+          marginBottom: 2,
+        },
+        rowSubtitle: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(17),
+          fontFamily: "InterMedium",
+        },
+        dataRightsCard: {
+          backgroundColor: theme.colors.accent,
+          gap: theme.scaleSpace(8),
+        },
+        dataRightsTitle: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(16),
+          fontFamily: "InterBold",
+        },
+        dataRightRow: {
+          gap: 4,
+          paddingVertical: theme.scaleSpace(2),
+        },
+        dataRightLabel: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(13),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterSemiBold",
+        },
+        dataRightDescription: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterMedium",
+        },
+        dataRightAction: {
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(6),
+          paddingTop: theme.scaleSpace(2),
+        },
+        dataRightActionLabel: {
+          color: theme.colors.primary,
+          fontSize: theme.scaleText(12),
+          fontFamily: "InterSemiBold",
+        },
+      }),
+    [theme],
+  );
+
   return (
     <FormSheetModal
       visible={visible}
@@ -37,20 +131,29 @@ export function TermsPrivacyModal({
             <Pressable
               key={item.id}
               style={[styles.row, !isLast ? styles.rowBorder : null]}
-              accessibilityRole="button"
+              accessibilityRole={item.href ? "button" : "text"}
+              onPress={
+                item.href
+                  ? () => {
+                      void openLink(item.href!);
+                    }
+                  : undefined
+              }
             >
               <View style={styles.iconWrap}>
                 {item.id === "privacy-policy" ? (
-                  <Shield size={18} color={colors.primary} />
+                  <Shield size={18} color={theme.colors.primary} />
                 ) : (
-                  <FileText size={18} color={colors.primary} />
+                  <FileText size={18} color={theme.colors.primary} />
                 )}
               </View>
               <View style={styles.textWrap}>
                 <Text style={styles.rowTitle}>{item.title}</Text>
                 <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
               </View>
-              <ArrowUpRight size={16} color={colors.mutedForeground} />
+              {item.href ? (
+                <ArrowUpRight size={16} color={theme.colors.mutedForeground} />
+              ) : null}
             </Pressable>
           );
         })}
@@ -59,77 +162,26 @@ export function TermsPrivacyModal({
       <Card style={styles.dataRightsCard}>
         <Text style={styles.dataRightsTitle}>Your Data Rights</Text>
         {dataRights.map((item) => (
-          <Text key={item.id} style={styles.dataRightItem}>
-            • {item.label}
-          </Text>
+          <View key={item.id} style={styles.dataRightRow}>
+            <Text style={styles.dataRightLabel}>{item.label}</Text>
+            {item.description ? (
+              <Text style={styles.dataRightDescription}>{item.description}</Text>
+            ) : null}
+            {item.href && item.actionLabel ? (
+              <Pressable
+                style={styles.dataRightAction}
+                onPress={() => {
+                  void openLink(item.href!);
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={styles.dataRightActionLabel}>{item.actionLabel}</Text>
+                <ArrowUpRight size={14} color={theme.colors.primary} />
+              </Pressable>
+            ) : null}
+          </View>
         ))}
-
-        <AppButton label="Manage Data Preferences" variant="accent" size="md" style={styles.manageButton} disabled={true} />
       </Card>
     </FormSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.md,
-  },
-  listCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  row: {
-    minHeight: 72,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  textWrap: {
-    flex: 1,
-  },
-  rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-    marginBottom: 2,
-  },
-  rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterMedium",
-  },
-  dataRightsCard: {
-    backgroundColor: colors.accent,
-    gap: 8,
-  },
-  dataRightsTitle: {
-    color: colors.cardForeground,
-    fontSize: 16,
-    fontFamily: "InterBold",
-  },
-  dataRightItem: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    lineHeight: 19,
-    fontFamily: "InterMedium",
-  },
-  manageButton: {
-    alignSelf: "flex-start",
-    marginTop: spacing.xs,
-  },
-});

@@ -1,7 +1,12 @@
 import React, { useCallback } from "react";
 import { GetSettingsScreenFactory } from "@/feature/appSettings/settings/factory/getSettingsScreen.factory";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { useDashboardRouteContext } from "@/feature/dashboard/shared/hooks/useDashboardRouteContext";
+import { useAccountPermissionAccess } from "@/feature/userManagement/factory/useAccountPermissionAccess.factory";
 import { useSmoothNavigation } from "@/shared/hooks/useSmoothNavigation";
+
+const PROFILE_EDIT_PERMISSION_CODE = "profile.edit";
+const MANAGE_STAFF_PERMISSION_CODE = "user_management.manage_staff";
 
 export default function SettingsDashboardRoute() {
   const navigation = useSmoothNavigation();
@@ -11,7 +16,18 @@ export default function SettingsDashboardRoute() {
     hasActiveAccount,
     activeUserRemoteId,
     activeAccountRemoteId,
+    activeAccountType,
+    activeAccountDisplayName,
   } = useDashboardRouteContext();
+  const permissionAccess = useAccountPermissionAccess({
+    activeUserRemoteId,
+    activeAccountRemoteId,
+  });
+  const isBusinessAccount = activeAccountType === AccountType.Business;
+  const canManageSensitiveSettings =
+    !isBusinessAccount ||
+    (permissionAccess.hasPermission(PROFILE_EDIT_PERMISSION_CODE) &&
+      permissionAccess.hasPermission(MANAGE_STAFF_PERMISSION_CODE));
 
   const handleBack = useCallback(() => {
     navigation.replace("/(dashboard)/more");
@@ -25,6 +41,12 @@ export default function SettingsDashboardRoute() {
     <GetSettingsScreenFactory
       activeUserRemoteId={activeUserRemoteId}
       activeAccountRemoteId={activeAccountRemoteId}
+      activeAccountType={activeAccountType ?? AccountType.Personal}
+      activeAccountDisplayName={activeAccountDisplayName}
+      canManageSensitiveSettings={canManageSensitiveSettings}
+      isSensitiveSettingsAccessLoading={
+        isBusinessAccount && permissionAccess.isLoading
+      }
       onBack={handleBack}
     />
   );

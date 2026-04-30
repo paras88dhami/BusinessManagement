@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
+import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { SettingsRepository } from "../data/repository/settings.repository";
 import {
   SettingsDataTransferBundle,
@@ -142,7 +143,33 @@ export const createExportSettingsDataUseCase = (
   settingsRepository: SettingsRepository,
 ): ExportSettingsDataUseCase => ({
   async execute(payload: ExportSettingsDataPayload) {
+    const activeUserRemoteId = payload.activeUserRemoteId.trim();
+    const activeAccountRemoteId = payload.activeAccountRemoteId.trim();
     const moduleIds = [...new Set(payload.moduleIds)];
+
+    if (!activeUserRemoteId) {
+      return {
+        success: false,
+        error: SettingsValidationError("An active user is required to export data."),
+      };
+    }
+
+    if (!activeAccountRemoteId) {
+      return {
+        success: false,
+        error: SettingsValidationError("An active account is required to export data."),
+      };
+    }
+
+    if (
+      payload.activeAccountType !== AccountType.Business &&
+      payload.activeAccountType !== AccountType.Personal
+    ) {
+      return {
+        success: false,
+        error: SettingsValidationError("The active account type is invalid."),
+      };
+    }
 
     if (moduleIds.length === 0) {
       return {
@@ -153,6 +180,8 @@ export const createExportSettingsDataUseCase = (
 
     const bundleResult = await settingsRepository.exportDataBundle({
       moduleIds,
+      activeAccountRemoteId,
+      activeAccountType: payload.activeAccountType,
     });
 
     if (!bundleResult.success) {

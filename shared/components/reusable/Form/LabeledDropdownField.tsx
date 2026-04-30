@@ -2,7 +2,7 @@ import {
     Dropdown,
     DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import React from "react";
 import {
     StyleProp,
@@ -46,6 +46,36 @@ export function LabeledDropdownField({
   triggerStyle,
   triggerTextStyle,
 }: LabeledDropdownFieldProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          gap: theme.scaleSpace(6),
+        },
+        label: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(11),
+          fontFamily: "InterBold",
+          textTransform: "uppercase",
+          letterSpacing: 0.45,
+        },
+        helperText: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterMedium",
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterSemiBold",
+        },
+      }),
+    [theme],
+  );
+
   return (
     <View style={[styles.container, containerStyle]}>
       <Text style={[styles.label, labelStyle]}>{label}</Text>
@@ -70,28 +100,3 @@ export function LabeledDropdownField({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: 6,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  helperText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-});

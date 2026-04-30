@@ -9,8 +9,8 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 
 type LabeledTextInputProps = Omit<TextInputProps, "style"> & {
   label: string;
@@ -33,9 +33,65 @@ export function LabeledTextInput({
   editable = true,
   multiline = false,
   numberOfLines,
-  placeholderTextColor = colors.mutedForeground,
+  placeholderTextColor,
   ...props
 }: LabeledTextInputProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          gap: theme.scaleSpace(6),
+        },
+        label: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(11),
+          fontFamily: "InterBold",
+          textTransform: "uppercase",
+          letterSpacing: 0.45,
+        },
+        input: {
+          minHeight: theme.scaleSpace(50),
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          borderRadius: radius.lg,
+          backgroundColor: theme.colors.background,
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          paddingVertical: theme.scaleSpace(12),
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(14),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterMedium",
+        },
+        textArea: {
+          minHeight: theme.scaleSpace(108),
+          paddingTop: theme.scaleSpace(spacing.md),
+          paddingBottom: theme.scaleSpace(spacing.md),
+        },
+        inputDisabled: {
+          opacity: 0.72,
+        },
+        inputError: {
+          borderColor: theme.colors.destructive,
+        },
+        helperText: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterMedium",
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterSemiBold",
+        },
+      }),
+    [theme],
+  );
+  const resolvedPlaceholderTextColor =
+    placeholderTextColor ?? theme.colors.mutedForeground;
+
   return (
     <View style={[styles.container, containerStyle]}>
       <Text style={[styles.label, labelStyle]}>{label}</Text>
@@ -44,7 +100,7 @@ export function LabeledTextInput({
         editable={editable}
         multiline={multiline}
         numberOfLines={numberOfLines ?? (multiline ? 4 : 1)}
-        placeholderTextColor={placeholderTextColor}
+        placeholderTextColor={resolvedPlaceholderTextColor}
         style={[
           styles.input,
           multiline ? styles.textArea : null,
@@ -62,52 +118,3 @@ export function LabeledTextInput({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: 6,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  input: {
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    color: colors.cardForeground,
-    fontSize: 14,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-  },
-  textArea: {
-    minHeight: 108,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  inputDisabled: {
-    opacity: 0.72,
-  },
-  inputError: {
-    borderColor: colors.destructive,
-  },
-  helperText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-});

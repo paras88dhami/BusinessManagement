@@ -1,8 +1,9 @@
+import { AppearanceModal } from "@/feature/appSettings/appearance/ui/components/AppearanceModal";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import {
   Bug,
   ChevronRight,
@@ -16,51 +17,155 @@ import {
   Upload,
 } from "lucide-react-native";
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { SettingsRowId, SettingsViewModel } from "../viewModel/settings.viewModel";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SettingsModal } from "../types/settings.types";
+import { SettingsRowId, SettingsViewModel } from "../viewModel/settings.viewModel";
 import { ChangePasswordModal } from "./components/ChangePasswordModal";
+import { ExportDataModal } from "./components/ExportDataModal";
 import { HelpFaqModal } from "./components/HelpFaqModal";
+import { ImportDataModal } from "./components/ImportDataModal";
 import { RateELekhaModal } from "./components/RateELekhaModal";
-import { ReportBugModal } from "./components/ReportBugModal";
 import { RegionalFinanceModal } from "./components/RegionalFinanceModal";
+import { ReportBugModal } from "./components/ReportBugModal";
 import { SecurityModal } from "./components/SecurityModal";
 import { TermsPrivacyModal } from "./components/TermsPrivacyModal";
-import { AppearanceModal } from "@/feature/appSettings/appearance/ui/components/AppearanceModal";
-import { ExportDataModal } from "./components/ExportDataModal";
-import { ImportDataModal } from "./components/ImportDataModal";
 
 type SettingsScreenProps = {
   viewModel: SettingsViewModel;
   onBack: () => void;
 };
 
-const getIcon = (id: SettingsRowId) => {
+const getIcon = (
+  id: SettingsRowId,
+  colorPalette: ReturnType<typeof useAppTheme>["colors"],
+) => {
   switch (id) {
     case "appearance":
-      return <Palette size={18} color={colors.primary} />;
+      return <Palette size={18} color={colorPalette.primary} />;
     case "security":
-      return <LockKeyhole size={18} color={colors.primary} />;
+      return <LockKeyhole size={18} color={colorPalette.primary} />;
     case "regionalFinance":
-      return <Landmark size={18} color={colors.primary} />;
+      return <Landmark size={18} color={colorPalette.primary} />;
     case "exportData":
-      return <Download size={18} color={colors.primary} />;
+      return <Download size={18} color={colorPalette.primary} />;
     case "importData":
-      return <Upload size={18} color={colors.primary} />;
+      return <Upload size={18} color={colorPalette.primary} />;
     case "helpFaq":
-      return <CircleHelp size={18} color={colors.primary} />;
+      return <CircleHelp size={18} color={colorPalette.primary} />;
     case "termsPrivacy":
-      return <ShieldCheck size={18} color={colors.primary} />;
+      return <ShieldCheck size={18} color={colorPalette.primary} />;
     case "rateELekha":
-      return <Star size={18} color={colors.primary} fill={colors.primary} />;
+      return (
+        <Star
+          size={18}
+          color={colorPalette.primary}
+          fill={colorPalette.primary}
+        />
+      );
     case "reportBug":
-      return <Bug size={18} color={colors.primary} />;
+      return <Bug size={18} color={colorPalette.primary} />;
     default:
-      return <LockKeyhole size={18} color={colors.primary} />;
+      return <LockKeyhole size={18} color={colorPalette.primary} />;
   }
 };
 
 export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        content: {
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+          paddingTop: theme.scaleSpace(spacing.lg),
+          gap: theme.scaleSpace(spacing.md),
+        },
+        sectionWrap: {
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        sectionTitle: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          fontFamily: "InterBold",
+          letterSpacing: 0.7,
+          textTransform: "uppercase",
+        },
+        listCard: {
+          padding: 0,
+          overflow: "hidden",
+        },
+        row: {
+          minHeight: theme.scaleSpace(72),
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(spacing.sm),
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          paddingVertical: theme.scaleSpace(spacing.md),
+        },
+        rowBorder: {
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.border,
+        },
+        iconWrap: {
+          width: theme.scaleSpace(40),
+          height: theme.scaleSpace(40),
+          borderRadius: radius.pill,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.colors.accent,
+        },
+        rowTextWrap: {
+          flex: 1,
+        },
+        rowTitle: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(15),
+          fontFamily: "InterBold",
+          marginBottom: 2,
+        },
+        rowSubtitle: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(17),
+          fontFamily: "InterMedium",
+        },
+        rowValue: {
+          marginTop: theme.scaleSpace(6),
+          color: theme.colors.primary,
+          fontSize: theme.scaleText(12),
+          fontFamily: "InterSemiBold",
+        },
+        feedbackRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        feedbackText: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(13),
+          fontFamily: "InterMedium",
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(13),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterSemiBold",
+        },
+        successText: {
+          color: theme.colors.success,
+          fontSize: theme.scaleText(13),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterSemiBold",
+        },
+      }),
+    [theme],
+  );
+
   const onRowPress = (id: SettingsRowId): void => {
     switch (id) {
       case "appearance":
@@ -125,7 +230,9 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
                     onPress={() => onRowPress(row.id)}
                     accessibilityRole="button"
                   >
-                    <View style={styles.iconWrap}>{getIcon(row.id)}</View>
+                    <View style={styles.iconWrap}>
+                      {getIcon(row.id, theme.colors)}
+                    </View>
                     <View style={styles.rowTextWrap}>
                       <Text style={styles.rowTitle}>{row.title}</Text>
                       <Text style={styles.rowSubtitle}>{row.subtitle}</Text>
@@ -140,7 +247,10 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
                         </Text>
                       ) : null}
                     </View>
-                    <ChevronRight size={16} color={colors.mutedForeground} />
+                    <ChevronRight
+                      size={16}
+                      color={theme.colors.mutedForeground}
+                    />
                   </Pressable>
                 );
               })}
@@ -150,7 +260,7 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
 
         {viewModel.isLoading ? (
           <View style={styles.feedbackRow}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
             <Text style={styles.feedbackText}>Loading settings...</Text>
           </View>
         ) : null}
@@ -159,7 +269,8 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
           <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
         ) : null}
 
-        {viewModel.successMessage && viewModel.activeModal === SettingsModal.None ? (
+        {viewModel.successMessage &&
+        viewModel.activeModal === SettingsModal.None ? (
           <Text style={styles.successText}>{viewModel.successMessage}</Text>
         ) : null}
       </ScreenContainer>
@@ -202,6 +313,7 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
 
       <ExportDataModal
         visible={viewModel.activeModal === SettingsModal.ExportData}
+        subtitle={viewModel.exportDataModalSubtitle}
         format={viewModel.exportDataFormat}
         moduleSelections={viewModel.exportDataModuleSelections}
         isExporting={viewModel.isExportingData}
@@ -214,6 +326,8 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
 
       <ImportDataModal
         visible={viewModel.activeModal === SettingsModal.ImportData}
+        subtitle={viewModel.importDataModalSubtitle}
+        unavailableMessage={viewModel.importDataUnavailableMessage}
         moduleOptions={viewModel.importDataModuleOptions}
         isImporting={viewModel.isImportingData}
         errorMessage={viewModel.errorMessage}
@@ -228,7 +342,11 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
         isSavingPreference={viewModel.isSavingPreference}
         passwordChangedLabel={viewModel.passwordChangedLabel}
         biometricLoginEnabled={viewModel.biometricLoginEnabled}
+        biometricLoginSubtitle={viewModel.biometricLoginSubtitle}
+        biometricLoginToggleDisabled={viewModel.biometricLoginToggleDisabled}
         twoFactorAuthEnabled={viewModel.twoFactorAuthEnabled}
+        twoFactorAuthSubtitle={viewModel.twoFactorAuthSubtitle}
+        twoFactorAuthToggleDisabled={viewModel.twoFactorAuthToggleDisabled}
         securitySessions={viewModel.securitySessions}
         onClose={viewModel.onCloseModal}
         onOpenChangePassword={viewModel.onOpenChangePassword}
@@ -289,88 +407,3 @@ export function SettingsScreen({ viewModel, onBack }: SettingsScreenProps) {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.md,
-  },
-  sectionWrap: {
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
-  },
-  listCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  row: {
-    minHeight: 72,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.accent,
-  },
-  rowTextWrap: {
-    flex: 1,
-  },
-  rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
-    fontFamily: "InterBold",
-    marginBottom: 2,
-  },
-  rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterMedium",
-  },
-  rowValue: {
-    marginTop: 6,
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  feedbackRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  feedbackText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "InterSemiBold",
-  },
-  successText: {
-    color: colors.success,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "InterSemiBold",
-  },
-});

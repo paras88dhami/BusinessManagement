@@ -24,6 +24,9 @@ export const mapHelpFaqRecordToEntity = (
 ): HelpFaqItem => ({
   id: record.id,
   question: record.question,
+  answer: record.answer,
+  href: record.href,
+  actionLabel: record.actionLabel,
 });
 
 export const mapSupportContactRecordToEntity = (
@@ -32,6 +35,8 @@ export const mapSupportContactRecordToEntity = (
   id: record.id,
   title: record.title,
   value: record.value,
+  href: record.href,
+  actionLabel: record.actionLabel,
 });
 
 export const mapTermsDocumentRecordToEntity = (
@@ -40,6 +45,8 @@ export const mapTermsDocumentRecordToEntity = (
   id: record.id,
   title: record.title,
   subtitle: record.subtitle,
+  href: record.href,
+  actionLabel: record.actionLabel,
 });
 
 export const mapDataRightRecordToEntity = (
@@ -47,6 +54,9 @@ export const mapDataRightRecordToEntity = (
 ): DataRightItem => ({
   id: record.id,
   label: record.label,
+  description: record.description,
+  href: record.href,
+  actionLabel: record.actionLabel,
 });
 
 export const mapSecurityPreferencesRecordToEntity = (

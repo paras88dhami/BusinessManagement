@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { TransactionDeleteViewModel } from "@/feature/transactions/viewModel/transactionDelete.viewModel";
 
@@ -12,6 +12,60 @@ type TransactionDeleteModalProps = {
 export function TransactionDeleteModal({
   viewModel,
 }: TransactionDeleteModalProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: theme.colors.overlay,
+          justifyContent: "center",
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+        },
+        dismissArea: {
+          ...StyleSheet.absoluteFillObject,
+        },
+        card: {
+          backgroundColor: theme.colors.card,
+          borderRadius: radius.xl,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          padding: theme.scaleSpace(spacing.lg),
+          zIndex: 1,
+        },
+        title: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(18),
+          lineHeight: theme.scaleLineHeight(22),
+          fontFamily: "InterBold",
+        },
+        subtitle: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(13),
+          marginTop: theme.scaleSpace(spacing.xs),
+          lineHeight: theme.scaleLineHeight(20),
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          marginTop: theme.scaleSpace(spacing.sm),
+          fontFamily: "InterMedium",
+        },
+        actionRow: {
+          flexDirection: "row",
+          gap: theme.scaleSpace(spacing.sm),
+          marginTop: theme.scaleSpace(spacing.lg),
+        },
+        actionButton: {
+          flex: 1,
+        },
+        deleteButton: {
+          backgroundColor: theme.colors.destructive,
+        },
+      }),
+    [theme],
+  );
+
   return (
     <Modal
       visible={Boolean(viewModel.pendingDeleteRemoteId)}
@@ -56,51 +110,3 @@ export function TransactionDeleteModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-  },
-  dismissArea: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    zIndex: 1,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-  },
-  subtitle: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    marginTop: spacing.xs,
-    lineHeight: 20,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    marginTop: spacing.sm,
-    fontFamily: "InterMedium",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  deleteButton: {
-    backgroundColor: colors.destructive,
-  },
-});

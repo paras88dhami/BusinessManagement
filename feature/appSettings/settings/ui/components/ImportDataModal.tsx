@@ -1,14 +1,16 @@
 import { SettingsViewModel } from "@/feature/appSettings/settings/viewModel/settings.viewModel";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
-import { Upload } from "lucide-react-native";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
+import { Clock3, Upload } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SettingsDataTransferModuleValue } from "../../types/settings.types";
 
 type ImportDataModalProps = {
   visible: boolean;
+  subtitle: string;
+  unavailableMessage: string;
   moduleOptions: SettingsViewModel["importDataModuleOptions"];
   isImporting: boolean;
   errorMessage: string | null;
@@ -18,17 +20,106 @@ type ImportDataModalProps = {
 
 export function ImportDataModal({
   visible,
+  subtitle,
+  unavailableMessage,
   moduleOptions,
   isImporting,
   errorMessage,
   onClose,
   onImportModule,
 }: ImportDataModalProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        content: {
+          gap: theme.scaleSpace(spacing.md),
+        },
+        sectionBlock: {
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        sectionLabel: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          fontFamily: "InterBold",
+          letterSpacing: 0.3,
+        },
+        moduleList: {
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        moduleRow: {
+          minHeight: theme.scaleSpace(58),
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.secondary,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(spacing.sm),
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+        },
+        moduleRowDisabled: {
+          opacity: 0.72,
+        },
+        moduleTextWrap: {
+          flex: 1,
+        },
+        moduleLabel: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(17),
+          fontFamily: "InterMedium",
+        },
+        moduleMeta: {
+          marginTop: 2,
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterMedium",
+        },
+        supportCard: {
+          borderRadius: radius.xl,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.accent,
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          paddingVertical: theme.scaleSpace(spacing.md),
+          gap: theme.scaleSpace(6),
+        },
+        supportHeader: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(8),
+        },
+        supportTitle: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(16),
+          fontFamily: "InterBold",
+        },
+        supportBody: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(20),
+          fontFamily: "InterMedium",
+        },
+        infoText: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(12),
+          fontFamily: "InterMedium",
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          fontFamily: "InterSemiBold",
+        },
+      }),
+    [theme],
+  );
+
   return (
     <FormSheetModal
       visible={visible}
       title="Import Data"
-      subtitle="Import data from CSV or JSON files into your business."
+      subtitle={subtitle}
       onClose={onClose}
       closeAccessibilityLabel="Close import data"
       presentation="bottom-sheet"
@@ -40,95 +131,48 @@ export function ImportDataModal({
           {moduleOptions.map((moduleOption) => (
             <Pressable
               key={moduleOption.id}
-              style={styles.moduleRow}
+              style={[
+                styles.moduleRow,
+                moduleOption.disabled ? styles.moduleRowDisabled : null,
+              ]}
               onPress={() => {
                 void onImportModule(moduleOption.id);
               }}
               accessibilityRole="button"
-              disabled={isImporting}
+              disabled={isImporting || moduleOption.disabled}
             >
-              <Text style={styles.moduleLabel}>{moduleOption.label}</Text>
-              <Upload size={17} color={colors.mutedForeground} />
+              <View style={styles.moduleTextWrap}>
+                <Text style={styles.moduleLabel}>{moduleOption.label}</Text>
+                {moduleOption.statusLabel || moduleOption.description ? (
+                  <Text style={styles.moduleMeta}>
+                    {[moduleOption.statusLabel, moduleOption.description]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </Text>
+                ) : null}
+              </View>
+              {moduleOption.disabled ? (
+                <Clock3 size={17} color={theme.colors.mutedForeground} />
+              ) : (
+                <Upload size={17} color={theme.colors.mutedForeground} />
+              )}
             </Pressable>
           ))}
         </View>
       </View>
 
       <View style={styles.supportCard}>
-        <Text style={styles.supportTitle}>Supported Formats</Text>
-        <Text style={styles.supportBody}>
-          CSV (.csv) and JSON (.json) files. Ensure headers match the expected
-          format. Download a template from Export Data first.
-        </Text>
+        <View style={styles.supportHeader}>
+          <Clock3 size={16} color={theme.colors.primary} />
+          <Text style={styles.supportTitle}>Import Availability</Text>
+        </View>
+        <Text style={styles.supportBody}>{unavailableMessage}</Text>
       </View>
 
-      {isImporting ? <Text style={styles.infoText}>Importing selected file...</Text> : null}
+      {isImporting ? (
+        <Text style={styles.infoText}>Importing selected file...</Text>
+      ) : null}
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
     </FormSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.md,
-  },
-  sectionBlock: {
-    gap: spacing.sm,
-  },
-  sectionLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    letterSpacing: 0.3,
-  },
-  moduleList: {
-    gap: spacing.sm,
-  },
-  moduleRow: {
-    minHeight: 58,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  moduleLabel: {
-    flex: 1,
-    color: colors.cardForeground,
-    fontSize: 17,
-    fontFamily: "InterMedium",
-  },
-  supportCard: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: "rgba(31, 99, 64, 0.08)",
-    backgroundColor: "#EAF4EF",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: 6,
-  },
-  supportTitle: {
-    color: colors.cardForeground,
-    fontSize: 16,
-    fontFamily: "InterBold",
-  },
-  supportBody: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 20,
-    fontFamily: "InterMedium",
-  },
-  infoText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-});

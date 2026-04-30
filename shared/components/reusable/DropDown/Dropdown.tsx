@@ -1,4 +1,4 @@
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Check, ChevronDown, Globe } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
@@ -49,6 +49,7 @@ export function Dropdown({
   triggerStyle,
   triggerTextStyle,
 }: DropdownProps) {
+  const theme = useAppTheme();
   const [visible, setVisible] = useState(false);
   const reopenBlockedUntilRef = useRef(0);
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,6 +61,92 @@ export function Dropdown({
   const selectedOption = useMemo(() => {
     return safeOptions.find((item) => item.value === value);
   }, [safeOptions, value]);
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        trigger: {
+          minHeight: theme.scaleSpace(50),
+          paddingHorizontal: theme.scaleSpace(spacing.md),
+          borderRadius: radius.lg,
+          backgroundColor: theme.colors.secondary,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        triggerDisabled: {
+          opacity: 0.6,
+        },
+        leftContent: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.scaleSpace(8),
+          flex: 1,
+        },
+        triggerText: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(14),
+          lineHeight: theme.scaleLineHeight(18),
+          fontFamily: "InterMedium",
+          flexShrink: 1,
+        },
+        backdrop: {
+          flex: 1,
+          backgroundColor: theme.colors.overlay,
+          justifyContent: "center",
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+        },
+        backdropDismissArea: {
+          ...StyleSheet.absoluteFillObject,
+        },
+        sheet: {
+          backgroundColor: theme.colors.card,
+          borderRadius: radius.xl,
+          padding: theme.scaleSpace(spacing.md),
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          maxHeight: "72%",
+          zIndex: 1,
+        },
+        sheetTitle: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(16),
+          lineHeight: theme.scaleLineHeight(20),
+          fontFamily: "InterBold",
+          marginBottom: theme.scaleSpace(spacing.sm),
+        },
+        optionRow: {
+          minHeight: theme.scaleSpace(44),
+          borderRadius: radius.md,
+          paddingHorizontal: theme.scaleSpace(spacing.sm),
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: theme.scaleSpace(spacing.sm),
+        },
+        optionRowSelected: {
+          backgroundColor: theme.colors.accent,
+        },
+        optionText: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(14),
+          fontFamily: "InterSemiBold",
+          flex: 1,
+        },
+        optionTextSelected: {
+          color: theme.isDarkMode
+            ? theme.colors.foreground
+            : theme.colors.primary,
+          fontFamily: "InterBold",
+        },
+        separator: {
+          height: theme.scaleSpace(8),
+        },
+      }),
+    [theme],
+  );
 
   const closeDropdown = useCallback(() => {
     if (!visible) {
@@ -107,13 +194,13 @@ export function Dropdown({
         accessibilityState={{ disabled }}
       >
         <View style={styles.leftContent}>
-          {showLeadingIcon ? <Globe size={14} color={colors.primary} /> : null}
+          {showLeadingIcon ? <Globe size={14} color={theme.colors.primary} /> : null}
           <Text style={[styles.triggerText, triggerTextStyle]} numberOfLines={1}>
             {selectedOption?.label ?? placeholder}
           </Text>
         </View>
 
-        <ChevronDown size={16} color={colors.mutedForeground} />
+        <ChevronDown size={16} color={theme.colors.mutedForeground} />
       </Pressable>
 
       <Modal
@@ -156,7 +243,9 @@ export function Dropdown({
                       {item.label}
                     </Text>
 
-                    {isSelected ? <Check size={16} color={colors.primary} /> : null}
+                    {isSelected ? (
+                      <Check size={16} color={theme.colors.primary} />
+                    ) : null}
                   </Pressable>
                 );
               }}
@@ -169,85 +258,4 @@ export function Dropdown({
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  trigger: {
-    minHeight: 50,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.lg,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  triggerDisabled: {
-    opacity: 0.6,
-  },
-  leftContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  triggerText: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-    flexShrink: 1,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-  },
-  backdropDismissArea: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    maxHeight: "72%",
-    zIndex: 1,
-  },
-  sheetTitle: {
-    color: colors.cardForeground,
-    fontSize: 16,
-    lineHeight: 20,
-    fontFamily: "InterBold",
-    marginBottom: spacing.sm,
-  },
-  optionRow: {
-    minHeight: 44,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  optionRowSelected: {
-    backgroundColor: colors.accent,
-  },
-  optionText: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterSemiBold",
-    flex: 1,
-  },
-  optionTextSelected: {
-    color: colors.primary,
-    fontFamily: "InterBold",
-  },
-  separator: {
-    height: 8,
-  },
-});
 

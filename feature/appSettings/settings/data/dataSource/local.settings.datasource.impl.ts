@@ -3,7 +3,18 @@ import {
   setBiometricLoginEnabled,
   setTwoFactorAuthEnabled,
 } from "@/feature/appSettings/data/appSettings.store";
+import {
+  SETTINGS_DATA_RIGHT_ITEMS,
+  SETTINGS_HELP_FAQ_ITEMS,
+  SETTINGS_IMPORT_DISABLED_MESSAGE,
+  SETTINGS_SUPPORT_CONTACT_ITEMS,
+  SETTINGS_TERMS_DOCUMENT_ITEMS,
+} from "@/feature/appSettings/settings/constants/settings.constants";
 import { moneyAccountsTable } from "@/feature/accounts/data/dataSource/db/moneyAccount.schema";
+import {
+  AccountType,
+  AccountTypeValue,
+} from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { budgetPlansTable } from "@/feature/budget/data/dataSource/db/budgetPlan.schema";
 import { contactsTable } from "@/feature/contacts/data/dataSource/db/contact.schema";
 import { emiInstallmentsTable } from "@/feature/emiLoans/data/dataSource/db/emiInstallment.schema";
@@ -15,7 +26,7 @@ import { ordersTable } from "@/feature/orders/data/dataSource/db/order.schema";
 import { productsTable } from "@/feature/products/data/dataSource/db/product.schema";
 import { transactionsTable } from "@/feature/transactions/data/dataSource/db/transaction.schema";
 import { Result } from "@/shared/types/result.types";
-import { Database, Q } from "@nozbe/watermelondb";
+import { Database, Model, Q } from "@nozbe/watermelondb";
 import { Platform } from "react-native";
 import {
   SettingsDataTransferModule,
@@ -23,68 +34,38 @@ import {
   SettingsDataTransferTable,
 } from "../../types/settings.types";
 import { SettingsBootstrapRecord, SettingsDatasource } from "./settings.datasource";
-import { BugReportModel } from "./db/bugReport.model";
 import { AppRatingModel } from "./db/appRating.model";
+import { BugReportModel } from "./db/bugReport.model";
 
 const BUG_REPORTS_TABLE = "bug_reports";
 const APP_RATINGS_TABLE = "app_ratings";
 
-const HELP_FAQ_ITEMS = [
-  { id: "invoice", question: "How do I create an invoice?" },
-  { id: "product", question: "How to add a new product?" },
-  { id: "emi", question: "How do I track EMI payments?" },
-  { id: "export", question: "Can I export my data?" },
-  { id: "switch-account", question: "How to switch between accounts?" },
-] as const;
-
-const SUPPORT_CONTACT_ITEMS = [
-  { id: "email", title: "Email Support", value: "support@e-lekha.com" },
-  { id: "phone", title: "Phone Support", value: "+977-01-XXXXXXX" },
-] as const;
-
-const TERMS_DOCUMENT_ITEMS = [
-  {
-    id: "terms-of-service",
-    title: "Terms of Service",
-    subtitle: "Last updated: March 2026",
-  },
-  {
-    id: "privacy-policy",
-    title: "Privacy Policy",
-    subtitle: "Last updated: March 2026",
-  },
-  {
-    id: "data-processing-agreement",
-    title: "Data Processing Agreement",
-    subtitle: "GDPR & data handling",
-  },
-] as const;
-
-const DATA_RIGHT_ITEMS = [
-  { id: "copy", label: "Request a copy of your data" },
-  { id: "delete", label: "Delete your account and data" },
-  { id: "opt-out", label: "Opt out of data processing" },
-  { id: "consent", label: "Update your consent preferences" },
-] as const;
+type SqlValue = string | number | null;
 
 type TransferColumnDefinition = {
   name: string;
   type: "string" | "number" | "boolean";
-  isOptional?: boolean;
+};
+
+type ExportScope = {
+  activeAccountRemoteId: string;
+  activeAccountType: AccountTypeValue;
+};
+
+type ScopedQuery = {
+  sql: string;
+  values: readonly SqlValue[];
 };
 
 type TransferTableDefinition = {
   tableName: string;
   columns: readonly TransferColumnDefinition[];
+  buildScopedQuery: (scope: ExportScope) => ScopedQuery;
 };
 
 type TransferModuleDefinition = {
   label: string;
   tables: readonly TransferTableDefinition[];
-};
-
-type UnsafeAdapter = {
-  unsafeExecute: (params: { sqls: [string, unknown[]][] }) => Promise<void>;
 };
 
 const castTableColumns = (
@@ -95,20 +76,20 @@ const castTableColumns = (
     : Object.values(
         (schemaColumns ?? {}) as Record<
           string,
-          { name: string; type: unknown; isOptional?: boolean }
+          { name: string; type: unknown }
         >,
       )) as readonly {
     name: string;
     type: unknown;
-    isOptional?: boolean;
   }[];
 
   return columnList
     .filter(
-      (column): column is {
+      (
+        column,
+      ): column is {
         name: string;
         type: "string" | "number" | "boolean";
-        isOptional?: boolean;
       } =>
         column.type === "string" ||
         column.type === "number" ||
@@ -117,8 +98,61 @@ const castTableColumns = (
     .map((column) => ({
       name: column.name,
       type: column.type,
-      isOptional: column.isOptional,
     }));
+};
+
+const buildDirectScopedQuery = (
+  tableName: string,
+  scopeColumnName: string,
+): ((scope: ExportScope) => ScopedQuery) => {
+  return (scope) => ({
+    sql: `SELECT * FROM ${tableName} WHERE ${scopeColumnName} = ? AND deleted_at IS NULL;`,
+    values: [scope.activeAccountRemoteId],
+  });
+};
+
+const buildScopedEmiPlanQuery = (scope: ExportScope): ScopedQuery => {
+  if (scope.activeAccountType === AccountType.Business) {
+    return {
+      sql: `SELECT * FROM ${emiPlansTable.name} WHERE plan_mode = 'business' AND business_account_remote_id = ? AND deleted_at IS NULL;`,
+      values: [scope.activeAccountRemoteId],
+    };
+  }
+
+  return {
+    sql: `SELECT ${emiPlansTable.name}.* FROM ${emiPlansTable.name} INNER JOIN ${moneyAccountsTable.name} ON ${moneyAccountsTable.name}.remote_id = ${emiPlansTable.name}.linked_account_remote_id WHERE ${emiPlansTable.name}.plan_mode = 'personal' AND ${moneyAccountsTable.name}.scope_account_remote_id = ? AND ${moneyAccountsTable.name}.deleted_at IS NULL AND ${emiPlansTable.name}.deleted_at IS NULL;`,
+    values: [scope.activeAccountRemoteId],
+  };
+};
+
+const buildScopedEmiInstallmentQuery = (scope: ExportScope): ScopedQuery => {
+  if (scope.activeAccountType === AccountType.Business) {
+    return {
+      sql: `SELECT ${emiInstallmentsTable.name}.* FROM ${emiInstallmentsTable.name} INNER JOIN ${emiPlansTable.name} ON ${emiPlansTable.name}.remote_id = ${emiInstallmentsTable.name}.plan_remote_id WHERE ${emiPlansTable.name}.plan_mode = 'business' AND ${emiPlansTable.name}.business_account_remote_id = ? AND ${emiPlansTable.name}.deleted_at IS NULL;`,
+      values: [scope.activeAccountRemoteId],
+    };
+  }
+
+  return {
+    sql: `SELECT ${emiInstallmentsTable.name}.* FROM ${emiInstallmentsTable.name} INNER JOIN ${emiPlansTable.name} ON ${emiPlansTable.name}.remote_id = ${emiInstallmentsTable.name}.plan_remote_id INNER JOIN ${moneyAccountsTable.name} ON ${moneyAccountsTable.name}.remote_id = ${emiPlansTable.name}.linked_account_remote_id WHERE ${emiPlansTable.name}.plan_mode = 'personal' AND ${moneyAccountsTable.name}.scope_account_remote_id = ? AND ${moneyAccountsTable.name}.deleted_at IS NULL AND ${emiPlansTable.name}.deleted_at IS NULL;`,
+    values: [scope.activeAccountRemoteId],
+  };
+};
+
+const buildScopedInstallmentPaymentLinkQuery = (
+  scope: ExportScope,
+): ScopedQuery => {
+  if (scope.activeAccountType === AccountType.Business) {
+    return {
+      sql: `SELECT ${installmentPaymentLinksTable.name}.* FROM ${installmentPaymentLinksTable.name} INNER JOIN ${emiPlansTable.name} ON ${emiPlansTable.name}.remote_id = ${installmentPaymentLinksTable.name}.plan_remote_id WHERE ${emiPlansTable.name}.plan_mode = 'business' AND ${emiPlansTable.name}.business_account_remote_id = ? AND ${emiPlansTable.name}.deleted_at IS NULL;`,
+      values: [scope.activeAccountRemoteId],
+    };
+  }
+
+  return {
+    sql: `SELECT ${installmentPaymentLinksTable.name}.* FROM ${installmentPaymentLinksTable.name} INNER JOIN ${emiPlansTable.name} ON ${emiPlansTable.name}.remote_id = ${installmentPaymentLinksTable.name}.plan_remote_id INNER JOIN ${moneyAccountsTable.name} ON ${moneyAccountsTable.name}.remote_id = ${emiPlansTable.name}.linked_account_remote_id WHERE ${emiPlansTable.name}.plan_mode = 'personal' AND ${moneyAccountsTable.name}.scope_account_remote_id = ? AND ${moneyAccountsTable.name}.deleted_at IS NULL AND ${emiPlansTable.name}.deleted_at IS NULL;`,
+    values: [scope.activeAccountRemoteId],
+  };
 };
 
 const DATA_TRANSFER_MODULES: Record<
@@ -131,6 +165,10 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: transactionsTable.name,
         columns: castTableColumns(transactionsTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          transactionsTable.name,
+          "account_remote_id",
+        ),
       },
     ],
   },
@@ -140,6 +178,10 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: productsTable.name,
         columns: castTableColumns(productsTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          productsTable.name,
+          "account_remote_id",
+        ),
       },
     ],
   },
@@ -149,6 +191,10 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: contactsTable.name,
         columns: castTableColumns(contactsTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          contactsTable.name,
+          "account_remote_id",
+        ),
       },
     ],
   },
@@ -158,10 +204,18 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: ordersTable.name,
         columns: castTableColumns(ordersTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          ordersTable.name,
+          "account_remote_id",
+        ),
       },
       {
         tableName: orderLinesTable.name,
         columns: castTableColumns(orderLinesTable.columns),
+        buildScopedQuery: (scope) => ({
+          sql: `SELECT ${orderLinesTable.name}.* FROM ${orderLinesTable.name} INNER JOIN ${ordersTable.name} ON ${ordersTable.name}.remote_id = ${orderLinesTable.name}.order_remote_id WHERE ${ordersTable.name}.account_remote_id = ? AND ${ordersTable.name}.deleted_at IS NULL AND ${orderLinesTable.name}.deleted_at IS NULL;`,
+          values: [scope.activeAccountRemoteId],
+        }),
       },
     ],
   },
@@ -171,6 +225,10 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: budgetPlansTable.name,
         columns: castTableColumns(budgetPlansTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          budgetPlansTable.name,
+          "account_remote_id",
+        ),
       },
     ],
   },
@@ -180,6 +238,10 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: ledgerEntriesTable.name,
         columns: castTableColumns(ledgerEntriesTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          ledgerEntriesTable.name,
+          "business_account_remote_id",
+        ),
       },
     ],
   },
@@ -189,14 +251,17 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: emiPlansTable.name,
         columns: castTableColumns(emiPlansTable.columns),
+        buildScopedQuery: buildScopedEmiPlanQuery,
       },
       {
         tableName: emiInstallmentsTable.name,
         columns: castTableColumns(emiInstallmentsTable.columns),
+        buildScopedQuery: buildScopedEmiInstallmentQuery,
       },
       {
         tableName: installmentPaymentLinksTable.name,
         columns: castTableColumns(installmentPaymentLinksTable.columns),
+        buildScopedQuery: buildScopedInstallmentPaymentLinkQuery,
       },
     ],
   },
@@ -206,6 +271,10 @@ const DATA_TRANSFER_MODULES: Record<
       {
         tableName: moneyAccountsTable.name,
         columns: castTableColumns(moneyAccountsTable.columns),
+        buildScopedQuery: buildDirectScopedQuery(
+          moneyAccountsTable.name,
+          "scope_account_remote_id",
+        ),
       },
     ],
   },
@@ -218,6 +287,7 @@ const getModuleDefinition = (
 };
 
 const normalizeRequired = (value: string): string => value.trim();
+
 const normalizeOptional = (value: string | null | undefined): string | null => {
   const normalized = value?.trim() ?? "";
   return normalized.length > 0 ? normalized : null;
@@ -225,134 +295,6 @@ const normalizeOptional = (value: string | null | undefined): string | null => {
 
 const createLocalRemoteId = (prefix: string): string => {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-};
-
-const createLocalRowId = (prefix: string): string => {
-  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
-};
-
-const normalizeBooleanValue = (
-  value: unknown,
-): 0 | 1 | null => {
-  if (typeof value === "boolean") {
-    return value ? 1 : 0;
-  }
-
-  if (typeof value === "number") {
-    if (value === 1) return 1;
-    if (value === 0) return 0;
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "true" || normalized === "1") {
-      return 1;
-    }
-    if (normalized === "false" || normalized === "0") {
-      return 0;
-    }
-  }
-
-  return null;
-};
-
-const normalizeColumnValue = (
-  column: TransferColumnDefinition,
-  rawValue: unknown,
-): unknown => {
-  if (rawValue === undefined || rawValue === null) {
-    return null;
-  }
-
-  if (column.type === "number") {
-    if (typeof rawValue === "number" && Number.isFinite(rawValue)) {
-      return rawValue;
-    }
-
-    if (typeof rawValue === "string" && rawValue.trim().length > 0) {
-      const parsed = Number(rawValue.trim());
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    return null;
-  }
-
-  if (column.type === "boolean") {
-    return normalizeBooleanValue(rawValue);
-  }
-
-  if (typeof rawValue === "string") {
-    return rawValue;
-  }
-
-  return String(rawValue);
-};
-
-const normalizeImportedRows = (
-  table: TransferTableDefinition,
-  rows: readonly Record<string, unknown>[],
-): { preparedRows: [string, unknown[]][]; skippedRowCount: number } => {
-  const columns = ["id", ...table.columns.map((column) => column.name)];
-  const placeholders = columns.map(() => "?").join(", ");
-  const sql = `INSERT OR REPLACE INTO ${table.tableName} (${columns.join(", ")}) VALUES (${placeholders});`;
-
-  const preparedRows: [string, unknown[]][] = [];
-  let skippedRowCount = 0;
-  const now = Date.now();
-
-  for (const row of rows) {
-    const rowIdCandidate = row.id;
-    const rowId =
-      typeof rowIdCandidate === "string" && rowIdCandidate.trim().length > 0
-        ? rowIdCandidate.trim()
-        : createLocalRowId(table.tableName);
-
-    const values: unknown[] = [rowId];
-    let isValidRow = true;
-
-    for (const column of table.columns) {
-      const normalizedValue = normalizeColumnValue(column, row[column.name]);
-      const isMissingRequiredValue =
-        !column.isOptional &&
-        (normalizedValue === null ||
-          (typeof normalizedValue === "string" &&
-            normalizedValue.trim().length === 0));
-
-      if (isMissingRequiredValue) {
-        if (
-          column.type === "number" &&
-          (column.name === "created_at" || column.name === "updated_at")
-        ) {
-          values.push(now);
-          continue;
-        }
-
-        if (column.type === "string" && column.name === "sync_status") {
-          values.push("synced");
-          continue;
-        }
-
-        if (column.type === "boolean") {
-          values.push(0);
-          continue;
-        }
-
-        isValidRow = false;
-        break;
-      }
-
-      values.push(normalizedValue);
-    }
-
-    if (!isValidRow) {
-      skippedRowCount += 1;
-      continue;
-    }
-
-    preparedRows.push([sql, values]);
-  }
-
-  return { preparedRows, skippedRowCount };
 };
 
 const setCreatedAndUpdatedAt = (
@@ -404,6 +346,25 @@ const resolveCurrentDeviceSubtitle = (): string => {
   return `Current ${Platform.OS} session`;
 };
 
+const cloneRows = <TRow extends Record<string, unknown>>(
+  rows: readonly TRow[],
+): readonly TRow[] => {
+  return rows.map((row) => ({ ...row }));
+};
+
+const fetchScopedRows = async (
+  database: Database,
+  table: TransferTableDefinition,
+  scope: ExportScope,
+): Promise<readonly Record<string, unknown>[]> => {
+  const collection = database.get<Model>(table.tableName);
+  const scopedQuery = table.buildScopedQuery(scope);
+
+  return collection
+    .query(Q.unsafeSqlQuery(scopedQuery.sql, [...scopedQuery.values]))
+    .unsafeFetchRaw();
+};
+
 export const createLocalSettingsDatasource = (
   database: Database,
 ): SettingsDatasource => ({
@@ -418,10 +379,10 @@ export const createLocalSettingsDatasource = (
             biometric_login_enabled: securityPreferences.biometricLoginEnabled,
             two_factor_auth_enabled: securityPreferences.twoFactorAuthEnabled,
           },
-          help_faq_items: [...HELP_FAQ_ITEMS],
-          support_contact_items: [...SUPPORT_CONTACT_ITEMS],
-          terms_document_items: [...TERMS_DOCUMENT_ITEMS],
-          data_right_items: [...DATA_RIGHT_ITEMS],
+          help_faq_items: cloneRows(SETTINGS_HELP_FAQ_ITEMS),
+          support_contact_items: cloneRows(SETTINGS_SUPPORT_CONTACT_ITEMS),
+          terms_document_items: cloneRows(SETTINGS_TERMS_DOCUMENT_ITEMS),
+          data_right_items: cloneRows(SETTINGS_DATA_RIGHT_ITEMS),
           device_info: resolveDeviceInfo(),
           app_version: resolveAppVersion(),
           current_device_title: "This device",
@@ -514,7 +475,11 @@ export const createLocalSettingsDatasource = (
         throw new Error("User remote id is required");
       }
 
-      if (!Number.isInteger(payload.starCount) || payload.starCount < 1 || payload.starCount > 5) {
+      if (
+        !Number.isInteger(payload.starCount) ||
+        payload.starCount < 1 ||
+        payload.starCount > 5
+      ) {
         throw new Error("Star rating must be between one and five");
       }
 
@@ -542,18 +507,28 @@ export const createLocalSettingsDatasource = (
     }
   },
 
-  async exportDataBundle(payload): Promise<Result<{
-    version: 1;
-    exportedAt: number;
-    modules: readonly {
-      moduleId: SettingsDataTransferModuleValue;
-      label: string;
-      tables: readonly SettingsDataTransferTable[];
-    }[];
-  }>> {
+  async exportDataBundle(payload): Promise<
+    Result<{
+      version: 1;
+      exportedAt: number;
+      modules: readonly {
+        moduleId: SettingsDataTransferModuleValue;
+        label: string;
+        tables: readonly SettingsDataTransferTable[];
+      }[];
+    }>
+  > {
     try {
       const deduplicatedModuleIds = [...new Set(payload.moduleIds)];
-      const modules = [];
+      const scope: ExportScope = {
+        activeAccountRemoteId: payload.activeAccountRemoteId,
+        activeAccountType: payload.activeAccountType,
+      };
+      const modules: {
+        moduleId: SettingsDataTransferModuleValue;
+        label: string;
+        tables: readonly SettingsDataTransferTable[];
+      }[] = [];
 
       for (const moduleId of deduplicatedModuleIds) {
         const moduleDefinition = getModuleDefinition(moduleId);
@@ -564,17 +539,7 @@ export const createLocalSettingsDatasource = (
         const tables: SettingsDataTransferTable[] = [];
 
         for (const table of moduleDefinition.tables) {
-          const collection = database.get<any>(table.tableName);
-          const hasSoftDeleteColumn = table.columns.some(
-            (column) => column.name === "deleted_at",
-          );
-          const whereClause = hasSoftDeleteColumn
-            ? " WHERE deleted_at IS NULL"
-            : "";
-          const query = `SELECT * FROM ${table.tableName}${whereClause};`;
-          const rows = await collection
-            .query(Q.unsafeSqlQuery(query))
-            .unsafeFetchRaw();
+          const rows = await fetchScopedRows(database, table, scope);
 
           tables.push({
             tableName: table.tableName,
@@ -612,61 +577,16 @@ export const createLocalSettingsDatasource = (
     }
   },
 
-  async importDataBundle(payload): Promise<Result<{
-    moduleId: SettingsDataTransferModuleValue;
-    importedRowCount: number;
-    skippedRowCount: number;
-  }>> {
-    try {
-      const moduleDefinition = getModuleDefinition(payload.moduleId);
-
-      if (!moduleDefinition) {
-        return {
-          success: false,
-          error: new Error("Unsupported import module."),
-        };
-      }
-
-      const importTableMap = new Map(
-        payload.tables.map((table) => [table.tableName, table]),
-      );
-      const sqlStatements: [string, unknown[]][] = [];
-      let skippedRowCount = 0;
-
-      for (const tableDefinition of moduleDefinition.tables) {
-        const tableData = importTableMap.get(tableDefinition.tableName);
-        if (!tableData) {
-          continue;
-        }
-
-        const normalizedRows = normalizeImportedRows(
-          tableDefinition,
-          tableData.rows,
-        );
-        skippedRowCount += normalizedRows.skippedRowCount;
-        sqlStatements.push(...normalizedRows.preparedRows);
-      }
-
-      if (sqlStatements.length > 0) {
-        await database.write(async () => {
-          const adapter = database.adapter as unknown as UnsafeAdapter;
-          await adapter.unsafeExecute({ sqls: sqlStatements });
-        });
-      }
-
-      return {
-        success: true,
-        value: {
-          moduleId: payload.moduleId,
-          importedRowCount: sqlStatements.length,
-          skippedRowCount,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error : new Error("Unknown error"),
-      };
-    }
+  async importDataBundle(_payload): Promise<
+    Result<{
+      moduleId: SettingsDataTransferModuleValue;
+      importedRowCount: number;
+      skippedRowCount: number;
+    }>
+  > {
+    return {
+      success: false,
+      error: new Error(SETTINGS_IMPORT_DISABLED_MESSAGE),
+    };
   },
 });

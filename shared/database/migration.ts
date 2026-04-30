@@ -1111,5 +1111,9 @@ export const migrations = schemaMigrations({
         ),
       ],
     },
+    {
+      toVersion: 44,
+      steps: [],
+    },
     ],
 });

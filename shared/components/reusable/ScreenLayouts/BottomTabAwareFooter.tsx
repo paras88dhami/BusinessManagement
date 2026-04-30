@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "@/shared/components/theme/colors";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { getBottomTabBarClearance } from "./BottomTabBar";
 
 type BottomTabAwareFooterProps = {
@@ -17,6 +17,18 @@ export function BottomTabAwareFooter({
   reserveTabBarClearance = true,
 }: BottomTabAwareFooterProps) {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          paddingHorizontal: theme.scaleSpace(spacing.lg),
+          paddingTop: theme.scaleSpace(spacing.md),
+          backgroundColor: theme.colors.background,
+        },
+      }),
+    [theme],
+  );
   const resolvedBottomPadding = reserveTabBarClearance
     ? getBottomTabBarClearance(insets.bottom)
     : Math.max(insets.bottom, spacing.sm);
@@ -33,11 +45,3 @@ export function BottomTabAwareFooter({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    backgroundColor: colors.background,
-  },
-});

@@ -1,4 +1,5 @@
 import { moneyAccountDbConfig } from "@/feature/accounts/data/dataSource/db/moneyAccountDbConfig";
+import { ensureAppSettingsAppearanceColumns } from "@/feature/appSettings/data/appSettings.store";
 import { AppSettingsModel } from "@/feature/appSettings/data/dataSource/db/appSettings.model";
 import { appSettingsDbConfig } from "@/feature/appSettings/data/dataSource/db/appSettingsDbConfig";
 import { businessNotesDbConfig } from "@/feature/appSettings/notes/data/dataSource/db/businessNoteDbConfig";
@@ -109,6 +110,7 @@ export const ensureDatabaseReady = async (): Promise<void> => {
     database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
 
   await appSettingsCollection.query().fetchCount();
+  await ensureAppSettingsAppearanceColumns(database);
 
   await runDatabaseIntegrityChecks(
     createDatabaseIntegritySqlRunner(appSettingsCollection),

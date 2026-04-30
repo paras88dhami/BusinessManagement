@@ -9,7 +9,7 @@ import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormMod
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -21,7 +21,69 @@ type TransactionEditorModalProps = {
 export function TransactionEditorModal({
   viewModel,
 }: TransactionEditorModalProps) {
+  const theme = useAppTheme();
   const { state } = viewModel;
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        content: {
+          gap: theme.scaleSpace(spacing.sm),
+          paddingBottom: theme.scaleSpace(spacing.xl),
+        },
+        fieldWrap: {
+          gap: theme.scaleSpace(6),
+        },
+        fieldLabel: {
+          color: theme.colors.mutedForeground,
+          fontSize: theme.scaleText(11),
+          fontFamily: "InterBold",
+          textTransform: "uppercase",
+          letterSpacing: 0.45,
+        },
+        typeChipRow: {
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: theme.scaleSpace(spacing.xs),
+        },
+        typeChip: {
+          paddingHorizontal: theme.scaleSpace(12),
+          paddingVertical: theme.scaleSpace(10),
+          borderRadius: radius.pill,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.secondary,
+        },
+        typeChipSelected: {
+          backgroundColor: theme.isDarkMode
+            ? theme.colors.accent
+            : theme.colors.primary,
+          borderColor: theme.isDarkMode
+            ? theme.colors.foreground
+            : theme.colors.primary,
+        },
+        typeChipText: {
+          color: theme.colors.cardForeground,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterBold",
+        },
+        typeChipTextSelected: {
+          color: theme.isDarkMode
+            ? theme.colors.foreground
+            : theme.colors.primaryForeground,
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(16),
+          fontFamily: "InterSemiBold",
+        },
+        actionButton: {
+          flex: 1,
+        },
+      }),
+    [theme],
+  );
 
   const accountOptions: DropdownOption[] = viewModel.accountOptions.map(
     (account) => ({
@@ -202,54 +264,3 @@ export function TransactionEditorModal({
     </FormSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontFamily: "InterBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-  },
-  typeChipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  typeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  typeChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  typeChipText: {
-    color: colors.cardForeground,
-    fontSize: 12,
-    fontFamily: "InterBold",
-  },
-  typeChipTextSelected: {
-    color: colors.primaryForeground,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "InterSemiBold",
-  },
-  actionButton: {
-    flex: 1,
-  },
-});

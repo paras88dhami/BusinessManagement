@@ -5,6 +5,7 @@ import {
   SettingsOperationResult,
   SettingsValidationError,
 } from "@/feature/appSettings/settings/types/settings.types";
+import { SETTINGS_MIN_PASSWORD_LENGTH } from "../constants/settings.constants";
 import { PasswordHashService } from "@/shared/utils/auth/passwordHash.service";
 import { ChangePasswordUseCase } from "./changePassword.useCase";
 
@@ -43,6 +44,24 @@ export const createChangePasswordUseCase = (
       return {
         success: false,
         error: SettingsValidationError("Confirm the new password to continue."),
+      };
+    }
+
+    if (nextPassword === currentPassword) {
+      return {
+        success: false,
+        error: SettingsValidationError(
+          "New password must be different from the current password.",
+        ),
+      };
+    }
+
+    if (nextPassword.length < SETTINGS_MIN_PASSWORD_LENGTH) {
+      return {
+        success: false,
+        error: SettingsValidationError(
+          `New password must be at least ${SETTINGS_MIN_PASSWORD_LENGTH} characters long.`,
+        ),
       };
     }
 

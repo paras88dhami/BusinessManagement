@@ -1,14 +1,27 @@
-import { Database } from "@nozbe/watermelondb";
+import { Database, Q } from "@nozbe/watermelondb";
 import { AppSettingsModel } from "./dataSource/db/appSettings.model";
+import {
+  SETTINGS_BIOMETRIC_LOGIN_AVAILABLE,
+  SETTINGS_DEFAULT_APPEARANCE,
+  SETTINGS_TWO_FACTOR_AUTH_AVAILABLE,
+} from "@/feature/appSettings/settings/constants/settings.constants";
 
 const APP_SETTINGS_TABLE = "app_settings";
 const APP_SETTINGS_SINGLETON_ID = "singleton";
 const DEFAULT_LANGUAGE = "en";
-const DEFAULT_THEME_PREFERENCE = "light";
-const DEFAULT_TEXT_SIZE_PREFERENCE = "medium";
-const DEFAULT_COMPACT_MODE_ENABLED = false;
+const DEFAULT_THEME_PREFERENCE = SETTINGS_DEFAULT_APPEARANCE.themePreference;
+const DEFAULT_TEXT_SIZE_PREFERENCE =
+  SETTINGS_DEFAULT_APPEARANCE.textSizePreference;
+const DEFAULT_COMPACT_MODE_ENABLED =
+  SETTINGS_DEFAULT_APPEARANCE.compactModeEnabled;
 
 let pendingEnsureAppSettingsRecord: Promise<AppSettingsModel> | null = null;
+
+type SqlQueryArg = string | number | null;
+
+type AppSettingsTableInfoRow = {
+  name?: string | null;
+};
 
 export type AppSessionState = {
   activeUserRemoteId: string | null;
@@ -194,6 +207,89 @@ const ensureAppSettingsRecord = async (
   return pendingEnsureAppSettingsRecord;
 };
 
+const persistSecurityPreferenceNormalization = async (
+  database: Database,
+  settings: AppSettingsModel,
+): Promise<void> => {
+  const shouldDisableBiometric =
+    !SETTINGS_BIOMETRIC_LOGIN_AVAILABLE &&
+    Boolean(settings.biometricLoginEnabled);
+  const shouldDisableTwoFactor =
+    !SETTINGS_TWO_FACTOR_AUTH_AVAILABLE &&
+    Boolean(settings.twoFactorAuthEnabled);
+
+  if (!shouldDisableBiometric && !shouldDisableTwoFactor) {
+    return;
+  }
+
+  await database.write(async () => {
+    await settings.update((record) => {
+      if (shouldDisableBiometric) {
+        record.biometricLoginEnabled = false;
+      }
+
+      if (shouldDisableTwoFactor) {
+        record.twoFactorAuthEnabled = false;
+      }
+
+      setUpdatedAt(record, Date.now());
+    });
+  });
+};
+
+const APP_SETTINGS_APPEARANCE_COLUMN_DEFINITIONS = [
+  {
+    name: "appearance_theme_preference",
+    sqlType: "TEXT",
+  },
+  {
+    name: "appearance_text_size_preference",
+    sqlType: "TEXT",
+  },
+  {
+    name: "appearance_compact_mode_enabled",
+    sqlType: "INTEGER",
+  },
+] as const;
+
+const getAppSettingsColumnNames = async (
+  database: Database,
+): Promise<Set<string>> => {
+  const collection = database.get<AppSettingsModel>(APP_SETTINGS_TABLE);
+  const rows = (await collection
+    .query(Q.unsafeSqlQuery(`PRAGMA table_info("${APP_SETTINGS_TABLE}")`))
+    .unsafeFetchRaw()) as readonly AppSettingsTableInfoRow[];
+
+  return new Set(
+    rows
+      .map((row) => row.name?.trim() ?? "")
+      .filter((columnName) => columnName.length > 0),
+  );
+};
+
+export const ensureAppSettingsAppearanceColumns = async (
+  database: Database,
+): Promise<void> => {
+  const existingColumnNames = await getAppSettingsColumnNames(database);
+  const missingColumnStatements: [string, SqlQueryArg[]][] =
+    APP_SETTINGS_APPEARANCE_COLUMN_DEFINITIONS.filter(
+      (column) => !existingColumnNames.has(column.name),
+    ).map((column) => [
+      `ALTER TABLE "${APP_SETTINGS_TABLE}" ADD COLUMN "${column.name}" ${column.sqlType}`,
+      [],
+    ]);
+
+  if (missingColumnStatements.length === 0) {
+    return;
+  }
+
+  await database.write(async () => {
+    await database.adapter.unsafeExecute({
+      sqls: missingColumnStatements,
+    });
+  });
+};
+
 export const getAppSessionState = async (
   database: Database,
 ): Promise<AppSessionState> => {
@@ -211,10 +307,15 @@ export const getSecurityPreferenceState = async (
   database: Database,
 ): Promise<SecurityPreferenceState> => {
   const settings = await ensureAppSettingsRecord(database);
+  await persistSecurityPreferenceNormalization(database, settings);
 
   return {
-    biometricLoginEnabled: Boolean(settings.biometricLoginEnabled),
-    twoFactorAuthEnabled: Boolean(settings.twoFactorAuthEnabled),
+    biometricLoginEnabled: SETTINGS_BIOMETRIC_LOGIN_AVAILABLE
+      ? Boolean(settings.biometricLoginEnabled)
+      : false,
+    twoFactorAuthEnabled: SETTINGS_TWO_FACTOR_AUTH_AVAILABLE
+      ? Boolean(settings.twoFactorAuthEnabled)
+      : false,
   };
 };
 
@@ -254,6 +355,7 @@ export const setSelectedLanguage = async (
 export const getAppearanceSettingsState = async (
   database: Database,
 ): Promise<AppAppearanceState> => {
+  await ensureAppSettingsAppearanceColumns(database);
   const settings = await ensureAppSettingsRecord(database);
 
   return {
@@ -288,6 +390,7 @@ export const setAppearanceSettingsState = async (
     params.compactModeEnabled,
   );
 
+  await ensureAppSettingsAppearanceColumns(database);
   const settings = await ensureAppSettingsRecord(database);
 
   const currentThemePreference = normalizeThemePreference(

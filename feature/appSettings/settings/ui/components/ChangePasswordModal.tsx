@@ -1,8 +1,9 @@
+import { SETTINGS_MIN_PASSWORD_LENGTH } from "@/feature/appSettings/settings/constants/settings.constants";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
-import { colors } from "@/shared/components/theme/colors";
+import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import React from "react";
 import { StyleSheet, Text } from "react-native";
 import { SettingsChangePasswordForm } from "../../viewModel/settings.viewModel";
@@ -28,6 +29,29 @@ export function ChangePasswordModal({
   onChange,
   onSubmit,
 }: ChangePasswordModalProps) {
+  const theme = useAppTheme();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        content: {
+          gap: theme.scaleSpace(spacing.md),
+        },
+        errorText: {
+          color: theme.colors.destructive,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(17),
+          fontFamily: "InterSemiBold",
+        },
+        successText: {
+          color: theme.colors.success,
+          fontSize: theme.scaleText(12),
+          lineHeight: theme.scaleLineHeight(17),
+          fontFamily: "InterSemiBold",
+        },
+      }),
+    [theme],
+  );
+
   return (
     <FormSheetModal
       visible={visible}
@@ -53,6 +77,7 @@ export function ChangePasswordModal({
         secureTextEntry={true}
         autoCapitalize="none"
         autoCorrect={false}
+        helperText={`Use at least ${SETTINGS_MIN_PASSWORD_LENGTH} characters and choose a password different from the current one.`}
       />
 
       <LabeledTextInput
@@ -78,21 +103,3 @@ export function ChangePasswordModal({
     </FormSheetModal>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.md,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-  successText: {
-    color: colors.success,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-});

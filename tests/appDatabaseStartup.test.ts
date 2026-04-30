@@ -12,12 +12,16 @@ const queryMock = vi.fn(() => ({
   fetchCount: fetchCountMock,
   unsafeFetchRaw: unsafeFetchRawMock,
 }));
+const unsafeExecuteMock = vi.fn();
 
 const getMock = vi.fn(() => ({
   query: queryMock,
 }));
 
 const fakeDatabase = {
+  adapter: {
+    unsafeExecute: unsafeExecuteMock,
+  },
   get: getMock,
 };
 
@@ -58,6 +62,7 @@ describe("app database startup orchestration", () => {
     fetchCountMock.mockReset();
     unsafeFetchRawMock.mockReset();
     unsafeSqlQueryMock.mockClear();
+    unsafeExecuteMock.mockReset();
     queryMock.mockClear();
     getMock.mockClear();
     createDatabaseMock.mockClear();
@@ -65,7 +70,11 @@ describe("app database startup orchestration", () => {
     runDatabaseIntegrityChecksMock.mockReset();
 
     fetchCountMock.mockResolvedValue(1);
-    unsafeFetchRawMock.mockResolvedValue([]);
+    unsafeFetchRawMock.mockResolvedValue([
+      { name: "appearance_theme_preference" },
+      { name: "appearance_text_size_preference" },
+      { name: "appearance_compact_mode_enabled" },
+    ]);
     runDatabaseIntegrityChecksMock.mockResolvedValue(undefined);
   });
 
@@ -78,9 +87,10 @@ describe("app database startup orchestration", () => {
 
       expect(assertDatabaseSetupHealthyMock).toHaveBeenCalledTimes(2);
       expect(getMock).toHaveBeenCalledWith("app_settings");
-      expect(queryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).toHaveBeenCalledTimes(2);
       expect(fetchCountMock).toHaveBeenCalledTimes(1);
       expect(runDatabaseIntegrityChecksMock).toHaveBeenCalledTimes(1);
+      expect(unsafeExecuteMock).not.toHaveBeenCalled();
 
       const firstHealthOrder =
         assertDatabaseSetupHealthyMock.mock.invocationCallOrder[0];
@@ -112,6 +122,6 @@ describe("app database startup orchestration", () => {
     await runnerArg?.fetchRaw?.("SELECT 1", ["x"]);
 
     expect(unsafeSqlQueryMock).toHaveBeenCalledWith("SELECT 1", ["x"]);
-    expect(unsafeFetchRawMock).toHaveBeenCalledTimes(1);
+    expect(unsafeFetchRawMock).toHaveBeenCalledTimes(2);
   });
 });
