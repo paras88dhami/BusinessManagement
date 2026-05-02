@@ -6,7 +6,7 @@ import { useContactDetailsViewModel } from "@/feature/contacts/viewModel/contact
 import {
     ContactHistoryAmountTone,
     ContactHistoryEventType,
-} from "@/readModel/contactHistory/types/contactHistory.readModel.types";
+} from "@/shared/readModel/contactHistory/types/contactHistory.readModel.types";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import React, { act, useEffect } from "react";
 import { createRoot, Root } from "react-dom/client";
@@ -261,3 +261,4 @@ describe("contactDetails.viewModel", () => {
     expect(latestViewModel?.errorMessage).toBe(null);
   });
 });
+

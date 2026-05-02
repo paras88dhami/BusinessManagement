@@ -1,6 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Monitor, Moon, Sun } from "lucide-react-native";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
@@ -19,6 +20,7 @@ type AppearanceModalProps = {
   title: string;
   subtitle: string;
   errorMessage: string | null;
+  successMessage?: string | null;
   selectedThemePreference: AppearanceThemePreferenceValue;
   selectedTextSizePreference: AppearanceTextSizePreferenceValue;
   compactModeEnabled: boolean;
@@ -50,6 +52,7 @@ export function AppearanceModal({
   title,
   subtitle,
   errorMessage,
+  successMessage,
   selectedThemePreference,
   selectedTextSizePreference,
   compactModeEnabled,
@@ -60,6 +63,11 @@ export function AppearanceModal({
   onSelectTextSizePreference,
   onToggleCompactMode,
 }: AppearanceModalProps) {
+  useToastMessage({
+    message: visible ? successMessage ?? null : null,
+    type: "success",
+  });
+
   const theme = useAppTheme();
   const selectedToneColor = theme.isDarkMode
     ? theme.colors.foreground

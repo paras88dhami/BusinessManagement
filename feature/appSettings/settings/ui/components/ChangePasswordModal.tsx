@@ -13,7 +13,6 @@ type ChangePasswordModalProps = {
   form: SettingsChangePasswordForm;
   isSubmitting: boolean;
   errorMessage: string | null;
-  successMessage: string | null;
   onClose: () => void;
   onChange: (field: keyof SettingsChangePasswordForm, value: string) => void;
   onSubmit: () => Promise<void>;
@@ -24,7 +23,6 @@ export function ChangePasswordModal({
   form,
   isSubmitting,
   errorMessage,
-  successMessage,
   onClose,
   onChange,
   onSubmit,
@@ -38,12 +36,6 @@ export function ChangePasswordModal({
         },
         errorText: {
           color: theme.colors.destructive,
-          fontSize: theme.scaleText(12),
-          lineHeight: theme.scaleLineHeight(17),
-          fontFamily: "InterSemiBold",
-        },
-        successText: {
-          color: theme.colors.success,
           fontSize: theme.scaleText(12),
           lineHeight: theme.scaleLineHeight(17),
           fontFamily: "InterSemiBold",
@@ -90,7 +82,6 @@ export function ChangePasswordModal({
       />
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
       <AppButton
         label={isSubmitting ? "Updating Password..." : "Update Password"}

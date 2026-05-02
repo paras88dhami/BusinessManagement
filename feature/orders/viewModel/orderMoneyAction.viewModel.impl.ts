@@ -20,6 +20,7 @@ export const useOrderMoneyActionViewModel = ({
   detail,
   moneyAccountOptions,
   setErrorMessage,
+  setSuccessMessage,
   loadAll,
   refreshDetail,
   changeOrderStatusUseCase,
@@ -38,9 +39,10 @@ export const useOrderMoneyActionViewModel = ({
     if (!detail || !canManage) {
       return;
     }
+    setSuccessMessage(null);
     setStatusDraft(detail.order.status);
     setIsStatusModalVisible(true);
-  }, [canManage, detail]);
+  }, [canManage, detail, setSuccessMessage]);
 
   const onCloseStatusModal = useCallback(() => {
     setIsStatusModalVisible(false);
@@ -68,6 +70,7 @@ export const useOrderMoneyActionViewModel = ({
     setIsStatusModalVisible(false);
     await loadAll();
     await refreshDetail(detail.order.remoteId);
+    setSuccessMessage("Order status updated.");
   }, [
     canManage,
     changeOrderStatusUseCase,
@@ -75,6 +78,7 @@ export const useOrderMoneyActionViewModel = ({
     loadAll,
     refreshDetail,
     setErrorMessage,
+    setSuccessMessage,
     statusDraft,
   ]);
 
@@ -95,6 +99,7 @@ export const useOrderMoneyActionViewModel = ({
 
     await loadAll();
     await refreshDetail(detail.order.remoteId);
+    setSuccessMessage("Order cancelled.");
   }, [
     cancelOrderUseCase,
     canManage,
@@ -102,6 +107,7 @@ export const useOrderMoneyActionViewModel = ({
     loadAll,
     refreshDetail,
     setErrorMessage,
+    setSuccessMessage,
   ]);
 
   const onReturnOrder = useCallback(async () => {
@@ -121,6 +127,7 @@ export const useOrderMoneyActionViewModel = ({
 
     await loadAll();
     await refreshDetail(detail.order.remoteId);
+    setSuccessMessage("Order returned.");
   }, [
     canManage,
     detail,
@@ -128,6 +135,7 @@ export const useOrderMoneyActionViewModel = ({
     refreshDetail,
     returnOrderUseCase,
     setErrorMessage,
+    setSuccessMessage,
   ]);
 
   const onOpenMoneyAction = useCallback(
@@ -135,6 +143,7 @@ export const useOrderMoneyActionViewModel = ({
       if (!detail || !canManage) {
         return;
       }
+      setSuccessMessage(null);
       setMoneyForm({
         visible: true,
         action,
@@ -149,12 +158,13 @@ export const useOrderMoneyActionViewModel = ({
       });
       setErrorMessage(null);
     },
-    [canManage, detail, moneyAccountOptions, setErrorMessage],
+    [canManage, detail, moneyAccountOptions, setErrorMessage, setSuccessMessage],
   );
 
   const onCloseMoneyAction = useCallback(() => {
     setMoneyForm(EMPTY_MONEY_FORM);
-  }, []);
+    setSuccessMessage(null);
+  }, [setSuccessMessage]);
 
   const onMoneyFormChange = useCallback(
     (
@@ -162,6 +172,7 @@ export const useOrderMoneyActionViewModel = ({
       value: string,
     ) => {
       setErrorMessage(null);
+      setSuccessMessage(null);
       setMoneyForm((current) => ({
         ...current,
         [field]: value,
@@ -178,7 +189,7 @@ export const useOrderMoneyActionViewModel = ({
                 : current.fieldErrors,
       }));
     },
-    [setErrorMessage],
+    [setErrorMessage, setSuccessMessage],
   );
 
   const onSubmitMoneyAction = useCallback(async () => {
@@ -286,6 +297,11 @@ export const useOrderMoneyActionViewModel = ({
     setMoneyForm(EMPTY_MONEY_FORM);
     await loadAll();
     await refreshDetail(detail.order.remoteId);
+    setSuccessMessage(
+      moneyForm.action === "payment"
+        ? "Order payment recorded."
+        : "Order refund recorded.",
+    );
   }, [
     accountDisplayNameSnapshot,
     accountRemoteId,
@@ -300,6 +316,7 @@ export const useOrderMoneyActionViewModel = ({
     refundOrderUseCase,
     resolvedCurrencyCode,
     setErrorMessage,
+    setSuccessMessage,
   ]);
 
   const resetModalState = useCallback(() => {

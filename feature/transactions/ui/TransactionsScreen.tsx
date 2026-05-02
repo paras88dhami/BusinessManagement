@@ -5,6 +5,7 @@ import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/tra
 import { TransactionsListViewModel } from "@/feature/transactions/viewModel/transactionsList.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
@@ -33,6 +34,7 @@ type TransactionsScreenProps = {
   editorViewModel: TransactionEditorViewModel;
   deleteViewModel: TransactionDeleteViewModel;
   canManage: boolean;
+  successMessage: string | null;
 };
 
 const FILTER_OPTIONS = [
@@ -47,8 +49,15 @@ export function TransactionsScreen({
   editorViewModel,
   deleteViewModel,
   canManage,
+  successMessage,
 }: TransactionsScreenProps) {
   const theme = useAppTheme();
+
+  useToastMessage({
+    message: successMessage,
+    type: "success",
+  });
+
   const styles = React.useMemo(
     () =>
       StyleSheet.create({

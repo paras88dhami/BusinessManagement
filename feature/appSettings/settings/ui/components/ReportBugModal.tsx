@@ -17,7 +17,6 @@ type ReportBugModalProps = {
   appVersionLabel: string;
   isSubmitting: boolean;
   errorMessage: string | null;
-  successMessage: string | null;
   onClose: () => void;
   onChange: (field: keyof SettingsReportBugForm, value: string) => void;
   onSubmit: () => Promise<void>;
@@ -30,7 +29,6 @@ export function ReportBugModal({
   appVersionLabel,
   isSubmitting,
   errorMessage,
-  successMessage,
   onClose,
   onChange,
   onSubmit,
@@ -76,7 +74,6 @@ export function ReportBugModal({
       </Card>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
       <AppButton
         label={isSubmitting ? "Submitting Report..." : "Submit Bug Report"}
@@ -116,12 +113,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-  successText: {
-    color: colors.success,
     fontSize: 12,
     lineHeight: 17,
     fontFamily: "InterSemiBold",

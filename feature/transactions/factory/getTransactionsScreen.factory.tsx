@@ -46,6 +46,7 @@ export function GetTransactionsScreenFactory({
   canManage = true,
 }: GetTransactionsScreenFactoryProps) {
   const [reloadSignal, setReloadSignal] = useState(0);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const accountDatasource = useMemo(
     () => createLocalAccountDatasource(appDatabase),
@@ -184,7 +185,8 @@ export function GetTransactionsScreenFactory({
     getAccessibleAccountsByUserRemoteIdUseCase,
   ]);
 
-  const handleReload = useCallback(() => {
+  const handleSaved = useCallback((message: string) => {
+    setSuccessMessage(message);
     setReloadSignal((currentSignal) => currentSignal + 1);
   }, []);
 
@@ -196,12 +198,39 @@ export function GetTransactionsScreenFactory({
     getTransactionByIdUseCase,
     addTransactionUseCase,
     updateTransactionUseCase,
-    onSaved: handleReload,
+    onSaved: handleSaved,
   });
 
   const deleteViewModel = useTransactionDeleteViewModel(
     deleteTransactionUseCase,
-    handleReload,
+    handleSaved,
+  );
+
+  const handleOpenCreate = useCallback(
+    (type: Parameters<typeof editorViewModel.openCreate>[0]) => {
+      setSuccessMessage(null);
+      editorViewModel.openCreate(type);
+    },
+    [editorViewModel],
+  );
+
+  const handleOpenEdit = useCallback(
+    async (remoteId: string) => {
+      setSuccessMessage(null);
+      await editorViewModel.openEdit(remoteId);
+    },
+    [editorViewModel],
+  );
+
+  const deleteViewModelWithToast = useMemo(
+    () => ({
+      ...deleteViewModel,
+      openDelete: (remoteId: string) => {
+        setSuccessMessage(null);
+        deleteViewModel.openDelete(remoteId);
+      },
+    }),
+    [deleteViewModel],
   );
 
   const listViewModel = useTransactionsListViewModel({
@@ -210,8 +239,8 @@ export function GetTransactionsScreenFactory({
     activeAccountCurrencyCode,
     activeAccountCountryCode,
     getTransactionsUseCase,
-    onOpenCreate: editorViewModel.openCreate,
-    onOpenEdit: editorViewModel.openEdit,
+    onOpenCreate: handleOpenCreate,
+    onOpenEdit: handleOpenEdit,
     reloadSignal,
   });
 
@@ -219,8 +248,9 @@ export function GetTransactionsScreenFactory({
     <TransactionsScreen
       listViewModel={listViewModel}
       editorViewModel={editorViewModel}
-      deleteViewModel={deleteViewModel}
+      deleteViewModel={deleteViewModelWithToast}
       canManage={canManage}
+      successMessage={successMessage}
     />
   );
 }

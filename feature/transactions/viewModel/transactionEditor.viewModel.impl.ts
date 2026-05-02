@@ -104,7 +104,7 @@ type UseTransactionEditorViewModelParams = {
   getTransactionByIdUseCase: GetTransactionByIdUseCase;
   addTransactionUseCase: AddTransactionUseCase;
   updateTransactionUseCase: UpdateTransactionUseCase;
-  onSaved: () => void;
+  onSaved: (message: string) => void;
 };
 
 export const useTransactionEditorViewModel = ({
@@ -465,7 +465,11 @@ export const useTransactionEditorViewModel = ({
     }
 
     close();
-    onSaved();
+    onSaved(
+      state.mode === "create"
+        ? "Transaction added."
+        : "Transaction updated.",
+    );
   }, [
     accountOptions,
     addTransactionUseCase,

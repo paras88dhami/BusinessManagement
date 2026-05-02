@@ -5,6 +5,7 @@ import {
 } from "@/feature/billing/viewModel/billing.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppTextInput } from "@/shared/components/reusable/Form/AppTextInput";
+import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
@@ -223,7 +224,7 @@ export function BillingDocumentEditorModal({
         disabled={!canManage}
       />
 
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="Issue Date"
         value={form.issuedAt}
         onChangeText={(value) => onChange("issuedAt", value)}
@@ -258,7 +259,7 @@ export function BillingDocumentEditorModal({
         />
       ) : null}
 
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="Due Date"
         value={form.dueAt}
         onChangeText={(value) => onChange("dueAt", value)}

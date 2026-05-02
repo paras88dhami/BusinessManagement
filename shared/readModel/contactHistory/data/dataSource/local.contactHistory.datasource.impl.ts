@@ -4,7 +4,7 @@ import { LedgerEntryModel } from "@/feature/ledger/data/dataSource/db/ledger.mod
 import { OrderModel } from "@/feature/orders/data/dataSource/db/order.model";
 import { PosSaleModel } from "@/feature/pos/data/dataSource/db/posSale.model";
 import { TransactionModel } from "@/feature/transactions/data/dataSource/db/transaction.model";
-import { ContactHistoryQuery } from "@/readModel/contactHistory/types/contactHistory.query.types";
+import { ContactHistoryQuery } from "@/shared/readModel/contactHistory/types/contactHistory.query.types";
 import { Result } from "@/shared/types/result.types";
 import { Database, Q } from "@nozbe/watermelondb";
 import {
@@ -157,3 +157,4 @@ export const createLocalContactHistoryDatasource = (
     }
   },
 });
+

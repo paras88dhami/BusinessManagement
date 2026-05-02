@@ -64,6 +64,7 @@ export type BudgetDetailState = {
 export interface BudgetViewModel {
   isLoading: boolean;
   errorMessage: string | null;
+  successMessage: string | null;
   monthLabel: string;
   summaryCards: readonly BudgetSummaryCardState[];
   budgetItems: readonly BudgetListItemState[];

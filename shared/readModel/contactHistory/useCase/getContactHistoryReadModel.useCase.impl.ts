@@ -1,8 +1,8 @@
-import { ContactHistoryRepository } from "@/readModel/contactHistory/data/repository/contactHistory.repository";
-import { ContactHistoryError } from "@/readModel/contactHistory/types/contactHistory.error.types";
-import { ContactHistoryValidationError } from "@/readModel/contactHistory/types/contactHistory.error.types";
-import { ContactHistoryQuery } from "@/readModel/contactHistory/types/contactHistory.query.types";
-import { ContactHistoryReadModel } from "@/readModel/contactHistory/types/contactHistory.readModel.types";
+import { ContactHistoryRepository } from "@/shared/readModel/contactHistory/data/repository/contactHistory.repository";
+import { ContactHistoryError } from "@/shared/readModel/contactHistory/types/contactHistory.error.types";
+import { ContactHistoryValidationError } from "@/shared/readModel/contactHistory/types/contactHistory.error.types";
+import { ContactHistoryQuery } from "@/shared/readModel/contactHistory/types/contactHistory.query.types";
+import { ContactHistoryReadModel } from "@/shared/readModel/contactHistory/types/contactHistory.readModel.types";
 import { Result } from "@/shared/types/result.types";
 import { GetContactHistoryReadModelUseCase } from "./getContactHistoryReadModel.useCase";
 
@@ -48,3 +48,4 @@ export const createGetContactHistoryReadModelUseCase = (
   repository: ContactHistoryRepository,
 ): GetContactHistoryReadModelUseCase =>
   new GetContactHistoryReadModelUseCaseImpl(repository);
+

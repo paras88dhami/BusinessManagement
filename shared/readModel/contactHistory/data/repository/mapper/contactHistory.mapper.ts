@@ -15,7 +15,7 @@ import {
   ContactHistoryEventType,
   ContactHistoryReadModel,
   ContactHistoryTimelineItem,
-} from "@/readModel/contactHistory/types/contactHistory.readModel.types";
+} from "@/shared/readModel/contactHistory/types/contactHistory.readModel.types";
 
 export const OPEN_BILLING_DOCUMENT_STATUSES = new Set<string>([
   BillingDocumentStatus.Pending,
@@ -164,3 +164,4 @@ export const buildContactHistoryReadModel = (params: {
     timelineItems,
   };
 };
+

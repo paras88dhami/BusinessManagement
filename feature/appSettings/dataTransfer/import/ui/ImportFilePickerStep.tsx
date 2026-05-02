@@ -12,7 +12,6 @@ type ImportFilePickerStepProps = {
   isPickingFile: boolean;
   isPreviewing: boolean;
   errorMessage: string | null;
-  infoMessage: string | null;
   onPickFile: () => Promise<void>;
   onPreview: () => Promise<void>;
   onDownloadTemplate: () => Promise<void>;
@@ -25,7 +24,6 @@ export function ImportFilePickerStep({
   isPickingFile,
   isPreviewing,
   errorMessage,
-  infoMessage,
   onPickFile,
   onPreview,
   onDownloadTemplate,
@@ -97,11 +95,6 @@ export function ImportFilePickerStep({
           fontSize: theme.scaleText(12),
           fontFamily: "InterSemiBold",
         },
-        infoText: {
-          color: theme.colors.primary,
-          fontSize: theme.scaleText(12),
-          fontFamily: "InterSemiBold",
-        },
       }),
     [theme],
   );
@@ -164,7 +157,6 @@ export function ImportFilePickerStep({
         </View>
       ) : null}
 
-      {infoMessage ? <Text style={styles.infoText}>{infoMessage}</Text> : null}
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
     </View>
   );

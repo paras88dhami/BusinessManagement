@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useOrderDetailsViewModel } from "./orderDetails.viewModel.impl";
 import { useOrderEditorViewModel } from "./orderEditor.viewModel.impl";
 import { useOrderMoneyActionViewModel } from "./orderMoneyAction.viewModel.impl";
@@ -11,6 +11,7 @@ import { useOrdersListViewModel } from "./ordersList.viewModel.impl";
 export const useOrdersCoordinatorViewModel = (
   params: OrdersCoordinatorViewModelParams,
 ): OrdersViewModel => {
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const listViewModel = useOrdersListViewModel({
     accountRemoteId: params.accountRemoteId,
     ownerUserRemoteId: params.ownerUserRemoteId,
@@ -55,6 +56,7 @@ export const useOrdersCoordinatorViewModel = (
     loadAll: listViewModel.loadAll,
     refreshDetail: detailsViewModel.refreshDetail,
     setErrorMessage: listViewModel.setErrorMessage,
+    setSuccessMessage,
   });
 
   const moneyActionViewModel = useOrderMoneyActionViewModel({
@@ -66,6 +68,7 @@ export const useOrdersCoordinatorViewModel = (
     detail: detailsViewModel.detail,
     moneyAccountOptions: listViewModel.moneyAccountOptions,
     setErrorMessage: listViewModel.setErrorMessage,
+    setSuccessMessage,
     loadAll: listViewModel.loadAll,
     refreshDetail: detailsViewModel.refreshDetail,
     changeOrderStatusUseCase: params.changeOrderStatusUseCase,
@@ -77,6 +80,8 @@ export const useOrdersCoordinatorViewModel = (
 
   const onDelete = useCallback(
     async (remoteId: string) => {
+      setSuccessMessage(null);
+
       if (!params.canManage) {
         listViewModel.setErrorMessage(
           "You do not have permission to manage orders.",
@@ -93,6 +98,7 @@ export const useOrdersCoordinatorViewModel = (
       await listViewModel.loadAll();
       detailsViewModel.onCloseDetail();
       moneyActionViewModel.resetModalState();
+      setSuccessMessage("Order deleted.");
     },
     [
       detailsViewModel,
@@ -100,7 +106,42 @@ export const useOrdersCoordinatorViewModel = (
       moneyActionViewModel,
       params.canManage,
       params.deleteOrderUseCase,
+      setSuccessMessage,
     ],
+  );
+
+  const onOpenCreate = useCallback(() => {
+    setSuccessMessage(null);
+    editorViewModel.onOpenCreate();
+  }, [editorViewModel]);
+
+  const onOpenEdit = useCallback(
+    async (remoteId: string) => {
+      setSuccessMessage(null);
+      await editorViewModel.onOpenEdit(remoteId);
+    },
+    [editorViewModel],
+  );
+
+  const onOpenDetail = useCallback(
+    async (remoteId: string) => {
+      setSuccessMessage(null);
+      await detailsViewModel.onOpenDetail(remoteId);
+    },
+    [detailsViewModel],
+  );
+
+  const onOpenStatusModal = useCallback(() => {
+    setSuccessMessage(null);
+    moneyActionViewModel.onOpenStatusModal();
+  }, [moneyActionViewModel]);
+
+  const onOpenMoneyAction = useCallback(
+    (action: "payment" | "refund") => {
+      setSuccessMessage(null);
+      moneyActionViewModel.onOpenMoneyAction(action);
+    },
+    [moneyActionViewModel],
   );
 
   const onCloseDetail = useCallback(() => {
@@ -112,6 +153,7 @@ export const useOrdersCoordinatorViewModel = (
     () => ({
       isLoading: listViewModel.isLoading,
       errorMessage: listViewModel.errorMessage,
+      successMessage,
       canManage: params.canManage,
 
       searchQuery: listViewModel.searchQuery,
@@ -144,9 +186,9 @@ export const useOrdersCoordinatorViewModel = (
       moneyForm: moneyActionViewModel.moneyForm,
 
       onRefresh: listViewModel.loadAll,
-      onOpenCreate: editorViewModel.onOpenCreate,
-      onOpenEdit: editorViewModel.onOpenEdit,
-      onOpenDetail: detailsViewModel.onOpenDetail,
+      onOpenCreate,
+      onOpenEdit,
+      onOpenDetail,
       onCloseEditor: editorViewModel.onCloseEditor,
       onCloseDetail,
 
@@ -158,7 +200,7 @@ export const useOrdersCoordinatorViewModel = (
 
       onDelete,
 
-      onOpenStatusModal: moneyActionViewModel.onOpenStatusModal,
+      onOpenStatusModal,
       onCloseStatusModal: moneyActionViewModel.onCloseStatusModal,
       onStatusDraftChange: moneyActionViewModel.onStatusDraftChange,
       onSubmitStatus: moneyActionViewModel.onSubmitStatus,
@@ -166,7 +208,7 @@ export const useOrdersCoordinatorViewModel = (
       onCancelOrder: moneyActionViewModel.onCancelOrder,
       onReturnOrder: moneyActionViewModel.onReturnOrder,
 
-      onOpenMoneyAction: moneyActionViewModel.onOpenMoneyAction,
+      onOpenMoneyAction,
       onCloseMoneyAction: moneyActionViewModel.onCloseMoneyAction,
       onMoneyFormChange: moneyActionViewModel.onMoneyFormChange,
       onSubmitMoneyAction: moneyActionViewModel.onSubmitMoneyAction,
@@ -178,7 +220,13 @@ export const useOrdersCoordinatorViewModel = (
       moneyActionViewModel,
       onCloseDetail,
       onDelete,
+      onOpenCreate,
+      onOpenDetail,
+      onOpenEdit,
+      onOpenMoneyAction,
+      onOpenStatusModal,
       params.canManage,
+      successMessage,
     ],
   );
 };

@@ -8,6 +8,7 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
@@ -33,6 +34,11 @@ const FILTER_OPTIONS = [
 ] as const;
 
 export function BudgetScreen({ viewModel }: BudgetScreenProps) {
+  useToastMessage({
+    message: viewModel.successMessage,
+    type: "success",
+  });
+
   const summaryById = React.useMemo(
     () => new Map(viewModel.summaryCards.map((summaryCard) => [summaryCard.id, summaryCard])),
     [viewModel.summaryCards],

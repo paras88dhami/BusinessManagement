@@ -13,7 +13,7 @@ import {
   AccountType,
   AccountTypeValue,
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
-import { GetContactHistoryReadModelUseCase } from "@/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase";
+import { GetContactHistoryReadModelUseCase } from "@/shared/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase";
 import { useCallback, useMemo } from "react";
 import { useContactDetailsViewModel } from "./contactDetails.viewModel.impl";
 import { ContactsViewModel } from "./contacts.viewModel";
@@ -244,3 +244,4 @@ export const useContactsViewModel = ({
     ],
   );
 };
+

@@ -1,5 +1,6 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
@@ -141,6 +142,11 @@ export function SecurityModal({
   onToggleBiometricLogin,
   onToggleTwoFactorAuth,
 }: SecurityModalProps) {
+  useToastMessage({
+    message: visible ? successMessage : null,
+    type: "success",
+  });
+
   const theme = useAppTheme();
   const styles = React.useMemo(
     () =>
@@ -214,12 +220,6 @@ export function SecurityModal({
         },
         errorText: {
           color: theme.colors.destructive,
-          fontSize: theme.scaleText(12),
-          lineHeight: theme.scaleLineHeight(17),
-          fontFamily: "InterSemiBold",
-        },
-        successText: {
-          color: theme.colors.success,
           fontSize: theme.scaleText(12),
           lineHeight: theme.scaleLineHeight(17),
           fontFamily: "InterSemiBold",
@@ -340,7 +340,6 @@ export function SecurityModal({
       </Card>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
       {isSavingPreference ? (
         <Text style={styles.infoText}>Saving security preference...</Text>
       ) : null}

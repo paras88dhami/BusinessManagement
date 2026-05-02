@@ -13,7 +13,6 @@ type RateELekhaModalProps = {
   review: string;
   isSubmitting: boolean;
   errorMessage: string | null;
-  successMessage: string | null;
   onClose: () => void;
   onSelectRating: (value: number) => void;
   onReviewChange: (value: string) => void;
@@ -26,7 +25,6 @@ export function RateELekhaModal({
   review,
   isSubmitting,
   errorMessage,
-  successMessage,
   onClose,
   onSelectRating,
   onReviewChange,
@@ -75,7 +73,6 @@ export function RateELekhaModal({
       />
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
       <AppButton
         label={isSubmitting ? "Submitting Rating..." : "Submit Rating"}
@@ -124,12 +121,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: "InterSemiBold",
-  },
-  successText: {
-    color: colors.success,
     fontSize: 12,
     lineHeight: 17,
     fontFamily: "InterSemiBold",

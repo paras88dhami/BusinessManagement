@@ -5,6 +5,7 @@ import {
 import { TransactionEditorViewModel } from "@/feature/transactions/viewModel/transactionEditor.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
+import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
@@ -238,12 +239,11 @@ export function TransactionEditorModal({
         editable={!state.isSaving}
       />
 
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="Date"
         value={state.happenedAt}
         onChangeText={viewModel.onChangeHappenedAt}
         placeholder="YYYY-MM-DD"
-        autoCapitalize="none"
         editable={!state.isSaving}
         errorText={state.fieldErrors.happenedAt}
       />

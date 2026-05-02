@@ -38,6 +38,7 @@ export type MoneyAccountAdjustmentFormState = {
 export interface MoneyAccountsViewModel {
   isLoading: boolean;
   errorMessage: string | null;
+  successMessage: string | null;
   canManage: boolean;
   currencyCode: string;
   countryCode: string | null;

@@ -1,8 +1,8 @@
-import { createGetContactHistoryReadModelUseCase } from "@/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase.impl";
+import { createGetContactHistoryReadModelUseCase } from "@/shared/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase.impl";
 import {
   ContactHistoryAmountTone,
   ContactHistoryEventType,
-} from "@/readModel/contactHistory/types/contactHistory.readModel.types";
+} from "@/shared/readModel/contactHistory/types/contactHistory.readModel.types";
 import { describe, expect, it, vi } from "vitest";
 
 const buildReadModel = (overrides: Record<string, unknown> = {}) => ({
@@ -142,3 +142,4 @@ describe("getContactHistoryReadModel.useCase", () => {
     });
   });
 });
+

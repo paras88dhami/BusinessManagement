@@ -1,5 +1,6 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { colors } from "@/shared/components/theme/colors";
@@ -17,6 +18,11 @@ type BusinessDetailsScreenProps = {
 export function BusinessDetailsScreen({
   viewModel,
 }: BusinessDetailsScreenProps) {
+  useToastMessage({
+    message: viewModel.successMessage,
+    type: "success",
+  });
+
   const isBusinessAccount =
     resolveActiveAccountType(
       viewModel.activeAccountTypeLabel,
@@ -52,10 +58,6 @@ export function BusinessDetailsScreen({
 
       {viewModel.loadError ? (
         <Text style={styles.errorText}>{viewModel.loadError}</Text>
-      ) : null}
-
-      {viewModel.successMessage ? (
-        <Text style={styles.successText}>{viewModel.successMessage}</Text>
       ) : null}
 
       {!viewModel.isLoading && isBusinessAccount ? (
@@ -117,11 +119,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-  successText: {
-    color: colors.success,
     fontSize: 13,
     fontFamily: "InterSemiBold",
   },

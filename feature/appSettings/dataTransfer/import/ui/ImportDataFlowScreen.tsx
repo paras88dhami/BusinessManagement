@@ -1,4 +1,5 @@
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import React from "react";
@@ -17,6 +18,11 @@ export function ImportDataFlowScreen({
   visible,
   viewModel,
 }: ImportDataFlowScreenProps) {
+  useToastMessage({
+    message: visible ? viewModel.infoMessage : null,
+    type: "success",
+  });
+
   const theme = useAppTheme();
   const styles = React.useMemo(
     () =>
@@ -83,7 +89,6 @@ export function ImportDataFlowScreen({
           isPickingFile={viewModel.isPickingFile}
           isPreviewing={viewModel.isPreviewing}
           errorMessage={viewModel.errorMessage}
-          infoMessage={viewModel.infoMessage}
           onPickFile={viewModel.onPickFile}
           onPreview={viewModel.onPreview}
           onDownloadTemplate={viewModel.onDownloadTemplate}

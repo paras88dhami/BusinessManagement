@@ -1,14 +1,14 @@
-import { ContactHistoryDatasource } from "@/readModel/contactHistory/data/dataSource/contactHistory.datasource";
-import { ContactHistoryRepository } from "@/readModel/contactHistory/data/repository/contactHistory.repository";
-import { buildContactHistoryReadModel } from "@/readModel/contactHistory/data/repository/mapper/contactHistory.mapper";
+import { ContactHistoryDatasource } from "@/shared/readModel/contactHistory/data/dataSource/contactHistory.datasource";
+import { ContactHistoryRepository } from "@/shared/readModel/contactHistory/data/repository/contactHistory.repository";
+import { buildContactHistoryReadModel } from "@/shared/readModel/contactHistory/data/repository/mapper/contactHistory.mapper";
 import {
   ContactHistoryDatabaseError,
   ContactHistoryNotFoundError,
   ContactHistoryUnknownError,
   ContactHistoryValidationError,
-} from "@/readModel/contactHistory/types/contactHistory.error.types";
-import { ContactHistoryQuery } from "@/readModel/contactHistory/types/contactHistory.query.types";
-import { ContactHistoryReadModel } from "@/readModel/contactHistory/types/contactHistory.readModel.types";
+} from "@/shared/readModel/contactHistory/types/contactHistory.error.types";
+import { ContactHistoryQuery } from "@/shared/readModel/contactHistory/types/contactHistory.query.types";
+import { ContactHistoryReadModel } from "@/shared/readModel/contactHistory/types/contactHistory.readModel.types";
 import { Result } from "@/shared/types/result.types";
 
 const mapDatasourceError = (error: Error) => {
@@ -43,7 +43,7 @@ export const createContactHistoryRepository = (
   ): Promise<
     Result<
       ContactHistoryReadModel,
-      import("@/readModel/contactHistory/types/contactHistory.error.types").ContactHistoryError
+      import("@/shared/readModel/contactHistory/types/contactHistory.error.types").ContactHistoryError
     >
   > {
     const result = await datasource.getDataset(query);
@@ -70,3 +70,4 @@ export const createContactHistoryRepository = (
     };
   },
 });
+

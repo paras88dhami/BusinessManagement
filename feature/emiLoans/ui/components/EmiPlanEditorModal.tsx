@@ -2,6 +2,7 @@ import { EmiPlanEditorViewModel } from "@/feature/emiLoans/viewModel/emiPlanEdit
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ChipSelectorField } from "@/shared/components/reusable/Form/ChipSelectorField";
+import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
@@ -119,7 +120,7 @@ export function EmiPlanEditorModal({
         errorText={state.fieldErrors.installmentCount}
       />
 
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="First Due *"
         value={state.firstDueAt}
         onChangeText={viewModel.onChangeFirstDueAt}

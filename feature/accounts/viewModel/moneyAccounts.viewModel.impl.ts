@@ -138,6 +138,7 @@ export const useMoneyAccountsViewModel = ({
 }: UseMoneyAccountsViewModelParams): MoneyAccountsViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
@@ -178,6 +179,8 @@ export const useMoneyAccountsViewModel = ({
   }, [loadMoneyAccounts]);
 
   const onOpenCreate = useCallback(() => {
+    setSuccessMessage(null);
+
     if (!canManage) {
       setErrorMessage("You do not have permission to manage money accounts.");
       return;
@@ -192,6 +195,8 @@ export const useMoneyAccountsViewModel = ({
 
   const onOpenEdit = useCallback(
     (account: MoneyAccount) => {
+      setSuccessMessage(null);
+
       if (!canManage) {
         setErrorMessage("You do not have permission to manage money accounts.");
         return;
@@ -210,12 +215,14 @@ export const useMoneyAccountsViewModel = ({
     setIsEditorVisible(false);
     setForm(createEmptyForm());
     setErrorMessage(null);
+    setSuccessMessage(null);
     setDeleteErrorMessage(null);
   }, []);
 
   const onFormChange = useCallback(
     (field: keyof Omit<MoneyAccountFormState, "fieldErrors">, value: string) => {
       setErrorMessage(null);
+      setSuccessMessage(null);
 
       setForm((current) => {
         if (field === "balance" && editorMode === "edit") {
@@ -355,6 +362,11 @@ export const useMoneyAccountsViewModel = ({
       ),
     );
     setErrorMessage(null);
+    setSuccessMessage(
+      editorMode === "create"
+        ? "Money account created."
+        : "Money account updated.",
+    );
     setIsEditorVisible(false);
     setForm(createEmptyForm());
     void loadMoneyAccounts();
@@ -388,6 +400,8 @@ export const useMoneyAccountsViewModel = ({
   }, [accounts, editorMode, form.remoteId, onOpenAccountHistory]);
 
   const onOpenAdjustmentForCurrent = useCallback(() => {
+    setSuccessMessage(null);
+
     if (!canManage) {
       setErrorMessage("You do not have permission to manage money accounts.");
       return;
@@ -444,6 +458,7 @@ export const useMoneyAccountsViewModel = ({
       field: keyof Pick<MoneyAccountAdjustmentFormState, "targetBalance" | "reason">,
       value: string,
     ) => {
+      setSuccessMessage(null);
       setAdjustmentForm((current) => {
         const nextFieldErrors =
           field === "targetBalance"
@@ -557,6 +572,7 @@ export const useMoneyAccountsViewModel = ({
     setIsAdjustmentModalVisible(false);
     setAdjustmentForm(createEmptyAdjustmentForm());
     setErrorMessage(null);
+    setSuccessMessage("Money account balance corrected.");
     void loadMoneyAccounts();
   }, [
     activeUserRemoteId,
@@ -590,6 +606,8 @@ export const useMoneyAccountsViewModel = ({
   }, [accounts, editorMode, form.remoteId]);
 
   const onRequestDeleteCurrent = useCallback((): void => {
+    setSuccessMessage(null);
+
     if (!canManage) {
       setErrorMessage("You do not have permission to manage money accounts.");
       return;
@@ -628,6 +646,8 @@ export const useMoneyAccountsViewModel = ({
   }, [isDeleting]);
 
   const onConfirmDelete = useCallback(async (): Promise<void> => {
+    setSuccessMessage(null);
+
     if (!canManage) {
       setDeleteErrorMessage("You do not have permission to manage money accounts.");
       return;
@@ -659,6 +679,7 @@ export const useMoneyAccountsViewModel = ({
     setPendingDeleteRemoteId(null);
     setDeleteErrorMessage(null);
     setErrorMessage(null);
+    setSuccessMessage("Money account deleted.");
     setIsEditorVisible(false);
     setForm(createEmptyForm());
     void loadMoneyAccounts();
@@ -683,6 +704,7 @@ export const useMoneyAccountsViewModel = ({
     () => ({
       isLoading,
       errorMessage,
+      successMessage,
       canManage,
       currencyCode,
       countryCode: activeAccountCountryCode,
@@ -728,6 +750,7 @@ export const useMoneyAccountsViewModel = ({
       deleteErrorMessage,
       editorMode,
       errorMessage,
+      successMessage,
       form,
       isAdjustmentModalVisible,
       isDeleting,

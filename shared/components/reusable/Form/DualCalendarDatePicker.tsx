@@ -297,7 +297,7 @@ export function DualCalendarDatePicker({
               <View style={styles.modalTitleWrap}>
                 <Text style={styles.modalTitle}>Select {label}</Text>
                 <Text style={styles.modalSubtitle}>
-                  Ledger stores dates as English AD YYYY-MM-DD.
+                  Pick in English AD or Nepali BS. Saved as English AD YYYY-MM-DD.
                 </Text>
               </View>
               <Pressable

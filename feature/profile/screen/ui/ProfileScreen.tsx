@@ -1,5 +1,6 @@
 import { AccountType } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
@@ -21,6 +22,12 @@ type ProfileScreenProps = {
 export function ProfileScreen({ viewModel }: ProfileScreenProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+
+  useToastMessage({
+    message: viewModel.successMessage,
+    type: "success",
+  });
+
   const isBusinessAccount =
     resolveActiveAccountType(
       viewModel.activeAccountTypeLabel,
@@ -54,10 +61,6 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
 
       {viewModel.loadError ? (
         <Text style={styles.errorText}>{viewModel.loadError}</Text>
-      ) : null}
-
-      {viewModel.successMessage ? (
-        <Text style={styles.successText}>{viewModel.successMessage}</Text>
       ) : null}
 
       {!viewModel.isLoading ? (
@@ -176,11 +179,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.creat
   },
   errorText: {
     color: theme.colors.destructive,
-    fontSize: theme.scaleText(13),
-    fontWeight: "600",
-  },
-  successText: {
-    color: theme.colors.success,
     fontSize: theme.scaleText(13),
     fontWeight: "600",
   },

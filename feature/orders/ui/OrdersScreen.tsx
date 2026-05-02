@@ -5,6 +5,7 @@ import {
 } from "@/feature/orders/types/order.types";
 import { OrdersViewModel } from "@/feature/orders/viewModel/orders.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { Pill } from "@/shared/components/reusable/List/Pill";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
@@ -69,6 +70,11 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const filteredOrders = Array.isArray(viewModel.orders) ? viewModel.orders : [];
+
+  useToastMessage({
+    message: viewModel.successMessage,
+    type: "success",
+  });
 
   const showDataToolsHint = useCallback(() => {
     Alert.alert(

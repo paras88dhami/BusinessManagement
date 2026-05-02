@@ -20,6 +20,7 @@ export type OrderMoneyActionViewModelParams = {
   detail: OrderDetailView | null;
   moneyAccountOptions: DropdownOption[];
   setErrorMessage: (message: string | null) => void;
+  setSuccessMessage: (message: string | null) => void;
   loadAll: () => Promise<void>;
   refreshDetail: (remoteId: string) => Promise<void>;
   changeOrderStatusUseCase: ChangeOrderStatusUseCase;

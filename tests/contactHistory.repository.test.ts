@@ -5,8 +5,8 @@ import {
   TransactionDirection,
   TransactionPostingStatus,
 } from "@/feature/transactions/types/transaction.entity.types";
-import { createContactHistoryRepository } from "@/readModel/contactHistory/data/repository/contactHistory.repository.impl";
-import { ContactHistoryDatasource } from "@/readModel/contactHistory/data/dataSource/contactHistory.datasource";
+import { createContactHistoryRepository } from "@/shared/readModel/contactHistory/data/repository/contactHistory.repository.impl";
+import { ContactHistoryDatasource } from "@/shared/readModel/contactHistory/data/dataSource/contactHistory.datasource";
 import { describe, expect, it, vi } from "vitest";
 
 const createDatasource = (
@@ -225,3 +225,4 @@ describe("contactHistory.repository", () => {
     }
   });
 });
+

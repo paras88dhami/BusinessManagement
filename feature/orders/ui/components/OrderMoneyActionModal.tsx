@@ -7,6 +7,7 @@ import {
   Dropdown,
   DropdownOption,
 } from "@/shared/components/reusable/DropDown/Dropdown";
+import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledTextInput } from "@/shared/components/reusable/Form/LabeledTextInput";
 import { spacing } from "@/shared/components/theme/spacing";
@@ -55,7 +56,7 @@ export function OrderMoneyActionModal({
         placeholder="Enter amount"
         errorText={form.fieldErrors.amount}
       />
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="Date *"
         value={form.happenedAt}
         onChangeText={(value) => onChange("happenedAt", value)}

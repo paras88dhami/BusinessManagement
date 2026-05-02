@@ -16,6 +16,7 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
@@ -59,6 +60,11 @@ export function MoneyAccountsScreen({
 }: MoneyAccountsScreenProps): React.ReactElement {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+
+  useToastMessage({
+    message: viewModel.successMessage,
+    type: "success",
+  });
 
   return (
     <DashboardTabScaffold

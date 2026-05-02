@@ -9,8 +9,8 @@ import {
   ContactHistoryEventType,
   ContactHistoryEventTypeValue,
   ContactHistoryTimelineItem,
-} from "@/readModel/contactHistory/types/contactHistory.readModel.types";
-import { GetContactHistoryReadModelUseCase } from "@/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase";
+} from "@/shared/readModel/contactHistory/types/contactHistory.readModel.types";
+import { GetContactHistoryReadModelUseCase } from "@/shared/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ContactDetailsViewModel } from "./contactDetails.viewModel";
@@ -302,3 +302,4 @@ export const useContactDetailsViewModel = ({
     ],
   );
 };
+

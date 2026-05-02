@@ -67,6 +67,7 @@ export const useOrderEditorViewModel = ({
   loadAll,
   refreshDetail,
   setErrorMessage,
+  setSuccessMessage,
 }: OrderEditorViewModelParams): OrderEditorViewModelState => {
   const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
@@ -111,8 +112,9 @@ export const useOrderEditorViewModel = ({
       fieldErrors: {},
     });
     setErrorMessage(null);
+    setSuccessMessage(null);
     setIsEditorVisible(true);
-  }, [canManage, orders, setErrorMessage]);
+  }, [canManage, orders, setErrorMessage, setSuccessMessage]);
 
   const onOpenEdit = useCallback(
     async (remoteId: string) => {
@@ -158,6 +160,7 @@ export const useOrderEditorViewModel = ({
       setEditorMode("edit");
       setForm(mapOrderToForm(orderResult.value));
       setErrorMessage(null);
+      setSuccessMessage(null);
       setIsEditorVisible(true);
     },
     [
@@ -167,6 +170,7 @@ export const useOrderEditorViewModel = ({
       getOrderSettlementSnapshotsUseCase,
       ownerUserRemoteId,
       setErrorMessage,
+      setSuccessMessage,
     ],
   );
 
@@ -174,18 +178,20 @@ export const useOrderEditorViewModel = ({
     setIsEditorVisible(false);
     setForm(EMPTY_FORM);
     setErrorMessage(null);
-  }, [setErrorMessage]);
+    setSuccessMessage(null);
+  }, [setErrorMessage, setSuccessMessage]);
 
   const onFormChange = useCallback(
     (field: keyof Omit<OrderFormState, "items" | "fieldErrors">, value: string) => {
       setErrorMessage(null);
+      setSuccessMessage(null);
       setForm((current) => ({
         ...current,
         [field]: value,
         fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
       }));
     },
-    [setErrorMessage],
+    [setErrorMessage, setSuccessMessage],
   );
 
   const onLineItemChange = useCallback(
@@ -195,6 +201,7 @@ export const useOrderEditorViewModel = ({
       value: string,
     ) => {
       setErrorMessage(null);
+      setSuccessMessage(null);
       setForm((current) => ({
         ...current,
         fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
@@ -214,21 +221,23 @@ export const useOrderEditorViewModel = ({
         ),
       }));
     },
-    [setErrorMessage],
+    [setErrorMessage, setSuccessMessage],
   );
 
   const onAddLineItem = useCallback(() => {
     setErrorMessage(null);
+    setSuccessMessage(null);
     setForm((current) => ({
       ...current,
       fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
       items: [...(Array.isArray(current.items) ? current.items : []), createEmptyLineItem()],
     }));
-  }, [setErrorMessage]);
+  }, [setErrorMessage, setSuccessMessage]);
 
   const onRemoveLineItem = useCallback(
     (remoteId: string) => {
       setErrorMessage(null);
+      setSuccessMessage(null);
       setForm((current) => ({
         ...current,
         fieldErrors: clearFormFieldError(current.fieldErrors, "items"),
@@ -242,7 +251,7 @@ export const useOrderEditorViewModel = ({
               : [createEmptyLineItem()],
       }));
     },
-    [setErrorMessage],
+    [setErrorMessage, setSuccessMessage],
   );
 
   const onSubmit = useCallback(async () => {
@@ -331,6 +340,7 @@ export const useOrderEditorViewModel = ({
     setForm(EMPTY_FORM);
     await loadAll();
     await refreshDetail(result.value.remoteId);
+    setSuccessMessage(form.remoteId ? "Order updated." : "Order created.");
   }, [
     accountRemoteId,
     canManage,
@@ -342,6 +352,7 @@ export const useOrderEditorViewModel = ({
     ownerUserRemoteId,
     refreshDetail,
     setErrorMessage,
+    setSuccessMessage,
     taxRatePercent,
     updateOrderUseCase,
   ]);

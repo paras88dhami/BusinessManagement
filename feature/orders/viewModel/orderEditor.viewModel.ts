@@ -29,6 +29,7 @@ export type OrderEditorViewModelParams = {
   loadAll: () => Promise<void>;
   refreshDetail: (remoteId: string) => Promise<void>;
   setErrorMessage: (message: string | null) => void;
+  setSuccessMessage: (message: string | null) => void;
 };
 
 export type OrderEditorViewModelState = {

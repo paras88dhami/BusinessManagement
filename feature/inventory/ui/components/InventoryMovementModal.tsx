@@ -5,6 +5,7 @@ import {
 } from "@/feature/inventory/types/inventory.types";
 import { InventoryMovementFormState } from "@/feature/inventory/viewModel/inventory.viewModel";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
+import { DualCalendarDatePicker } from "@/shared/components/reusable/Form/DualCalendarDatePicker";
 import { FormModalActionFooter } from "@/shared/components/reusable/Form/FormModalActionFooter";
 import { FormSheetModal } from "@/shared/components/reusable/Form/FormSheetModal";
 import { LabeledDropdownField } from "@/shared/components/reusable/Form/LabeledDropdownField";
@@ -109,7 +110,7 @@ export function InventoryMovementModal({
         />
       ) : null}
 
-      <LabeledTextInput
+      <DualCalendarDatePicker
         label="Movement Date"
         value={form.movementDate}
         placeholder="YYYY-MM-DD"

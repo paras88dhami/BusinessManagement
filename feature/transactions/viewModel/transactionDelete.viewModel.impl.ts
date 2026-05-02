@@ -4,7 +4,7 @@ import { TransactionDeleteViewModel } from "./transactionDelete.viewModel";
 
 export const useTransactionDeleteViewModel = (
   deleteTransactionUseCase: DeleteTransactionUseCase,
-  onDeleted: () => void,
+  onDeleted: (message: string) => void,
 ): TransactionDeleteViewModel => {
   const [pendingDeleteRemoteId, setPendingDeleteRemoteId] = useState<string | null>(
     null,
@@ -38,7 +38,7 @@ export const useTransactionDeleteViewModel = (
     }
 
     closeDelete();
-    onDeleted();
+    onDeleted("Transaction voided.");
   }, [closeDelete, deleteTransactionUseCase, onDeleted, pendingDeleteRemoteId]);
 
   return useMemo(

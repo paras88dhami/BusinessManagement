@@ -1,4 +1,5 @@
 import { AppearanceModal } from "@/feature/appSettings/appearance/ui/components/AppearanceModal";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { Card } from "@/shared/components/reusable/Cards/Card";
@@ -80,6 +81,14 @@ export function SettingsScreen({
   onBack,
   importDataFlow,
 }: SettingsScreenProps) {
+  useToastMessage({
+    message:
+      viewModel.activeModal === SettingsModal.None
+        ? viewModel.successMessage
+        : null,
+    type: "success",
+  });
+
   const theme = useAppTheme();
   const styles = React.useMemo(
     () =>
@@ -156,12 +165,6 @@ export function SettingsScreen({
         },
         errorText: {
           color: theme.colors.destructive,
-          fontSize: theme.scaleText(13),
-          lineHeight: theme.scaleLineHeight(18),
-          fontFamily: "InterSemiBold",
-        },
-        successText: {
-          color: theme.colors.success,
           fontSize: theme.scaleText(13),
           lineHeight: theme.scaleLineHeight(18),
           fontFamily: "InterSemiBold",
@@ -272,11 +275,6 @@ export function SettingsScreen({
         {viewModel.errorMessage && viewModel.activeModal === SettingsModal.None ? (
           <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
         ) : null}
-
-        {viewModel.successMessage &&
-        viewModel.activeModal === SettingsModal.None ? (
-          <Text style={styles.successText}>{viewModel.successMessage}</Text>
-        ) : null}
       </ScreenContainer>
 
       <AppearanceModal
@@ -285,6 +283,7 @@ export function SettingsScreen({
         title={viewModel.appearanceModalTitle}
         subtitle={viewModel.appearanceModalSubtitle}
         errorMessage={viewModel.errorMessage}
+        successMessage={viewModel.successMessage}
         selectedThemePreference={viewModel.selectedThemePreference}
         selectedTextSizePreference={viewModel.selectedTextSizePreference}
         compactModeEnabled={viewModel.compactModeEnabled}
@@ -354,7 +353,6 @@ export function SettingsScreen({
         form={viewModel.changePasswordForm}
         isSubmitting={viewModel.isChangingPassword}
         errorMessage={viewModel.errorMessage}
-        successMessage={viewModel.successMessage}
         onClose={viewModel.onCloseModal}
         onChange={viewModel.onChangePasswordField}
         onSubmit={viewModel.onSubmitPasswordChange}
@@ -380,7 +378,6 @@ export function SettingsScreen({
         review={viewModel.ratingReview}
         isSubmitting={viewModel.isSubmittingRating}
         errorMessage={viewModel.errorMessage}
-        successMessage={viewModel.successMessage}
         onClose={viewModel.onCloseModal}
         onSelectRating={viewModel.onSelectRating}
         onReviewChange={viewModel.onRatingReviewChange}
@@ -394,7 +391,6 @@ export function SettingsScreen({
         appVersionLabel={viewModel.appVersionLabel}
         isSubmitting={viewModel.isSubmittingBugReport}
         errorMessage={viewModel.errorMessage}
-        successMessage={viewModel.successMessage}
         onClose={viewModel.onCloseModal}
         onChange={viewModel.onReportBugFieldChange}
         onSubmit={viewModel.onSubmitBugReport}

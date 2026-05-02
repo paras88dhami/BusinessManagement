@@ -21,6 +21,7 @@ export type OrdersScreenSummaryState = {
 export interface OrdersViewModel {
   isLoading: boolean;
   errorMessage: string | null;
+  successMessage: string | null;
   canManage: boolean;
 
   searchQuery: string;

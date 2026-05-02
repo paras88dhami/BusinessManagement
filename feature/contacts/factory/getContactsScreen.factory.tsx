@@ -22,9 +22,9 @@ import { createUserManagementRepository } from "@/feature/userManagement/data/re
 import { createLocalAuthUserDatasource } from "@/feature/session/data/dataSource/local.authUser.datasource.impl";
 import { createAuthUserRepository } from "@/feature/session/data/repository/authUser.repository.impl";
 import appDatabase from "@/shared/database/appDatabase";
-import { createLocalContactHistoryDatasource } from "@/readModel/contactHistory/data/dataSource/local.contactHistory.datasource.impl";
-import { createContactHistoryRepository } from "@/readModel/contactHistory/data/repository/contactHistory.repository.impl";
-import { createGetContactHistoryReadModelUseCase } from "@/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase.impl";
+import { createLocalContactHistoryDatasource } from "@/shared/readModel/contactHistory/data/dataSource/local.contactHistory.datasource.impl";
+import { createContactHistoryRepository } from "@/shared/readModel/contactHistory/data/repository/contactHistory.repository.impl";
+import { createGetContactHistoryReadModelUseCase } from "@/shared/readModel/contactHistory/useCase/getContactHistoryReadModel.useCase.impl";
 
 type GetContactsScreenFactoryProps = {
   activeUserRemoteId: string | null;
@@ -178,3 +178,4 @@ export function GetContactsScreenFactory({
 
   return <ContactsScreen viewModel={viewModel} />;
 }
+

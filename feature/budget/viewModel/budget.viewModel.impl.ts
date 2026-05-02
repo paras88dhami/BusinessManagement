@@ -204,6 +204,7 @@ export const useBudgetViewModel = ({
 }: UseBudgetViewModelParams): BudgetViewModel => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [budgetPlans, setBudgetPlans] = useState<BudgetPlan[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -410,6 +411,8 @@ export const useBudgetViewModel = ({
   );
 
   const onOpenCreate = useCallback(() => {
+    setSuccessMessage(null);
+
     if (!ownerUserRemoteId || !accountRemoteId) {
       setErrorMessage("A personal account is required to manage budgets.");
       return;
@@ -429,6 +432,8 @@ export const useBudgetViewModel = ({
   }, [accountRemoteId, categoryOptions, ownerUserRemoteId]);
 
   const onOpenDetail = useCallback(async (remoteId: string) => {
+    setSuccessMessage(null);
+
     const result = await getBudgetPlanByRemoteIdUseCase.execute(remoteId);
 
     if (!result.success) {
@@ -448,6 +453,8 @@ export const useBudgetViewModel = ({
   }, [countryCode, getBudgetPlanByRemoteIdUseCase, resolvedCurrencyCode, spentLookup]);
 
   const onOpenEdit = useCallback(async (remoteId: string) => {
+    setSuccessMessage(null);
+
     const result = await getBudgetPlanByRemoteIdUseCase.execute(remoteId);
 
     if (!result.success) {
@@ -461,6 +468,7 @@ export const useBudgetViewModel = ({
 
   const onCloseEditor = useCallback(() => {
     setEditorState(EMPTY_EDITOR_STATE);
+    setSuccessMessage(null);
   }, []);
 
   const onEditorFieldChange = useCallback(
@@ -468,6 +476,7 @@ export const useBudgetViewModel = ({
       field: "budgetMonth" | "categoryRemoteId" | "plannedAmount" | "note",
       value: string,
     ) => {
+      setSuccessMessage(null);
       setEditorState((currentState) => ({
         ...currentState,
         [field]: value,
@@ -534,6 +543,9 @@ export const useBudgetViewModel = ({
 
     setEditorState(EMPTY_EDITOR_STATE);
     await loadBudgetData();
+    setSuccessMessage(
+      editorState.mode === "create" ? "Budget created." : "Budget updated.",
+    );
   }, [
     accountRemoteId,
     createBudgetPlanUseCase,
@@ -553,9 +565,12 @@ export const useBudgetViewModel = ({
   const onCloseDetail = useCallback(() => {
     setDetailState(null);
     setActiveDetailRemoteId(null);
+    setSuccessMessage(null);
   }, []);
 
   const onDeleteActiveBudget = useCallback(async () => {
+    setSuccessMessage(null);
+
     if (!activeDetailRemoteId) {
       return;
     }
@@ -569,6 +584,7 @@ export const useBudgetViewModel = ({
 
     onCloseDetail();
     await loadBudgetData();
+    setSuccessMessage("Budget deleted.");
   }, [activeDetailRemoteId, deleteBudgetPlanUseCase, loadBudgetData, onCloseDetail]);
 
   const onEditFromDetail = useCallback(async () => {
@@ -584,6 +600,7 @@ export const useBudgetViewModel = ({
     () => ({
       isLoading,
       errorMessage,
+      successMessage,
       monthLabel,
       summaryCards,
       budgetItems,
@@ -616,6 +633,7 @@ export const useBudgetViewModel = ({
       editorState,
       emptyStateMessage,
       errorMessage,
+      successMessage,
       isLoading,
       loadBudgetData,
       monthLabel,
