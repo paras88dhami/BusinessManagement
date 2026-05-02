@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { spacing } from "@/shared/components/theme/spacing";
 
 type DashboardTabScaffoldProps = {
@@ -25,6 +25,8 @@ export function DashboardTabScaffold({
   contentContainerStyle,
   showDivider,
 }: DashboardTabScaffoldProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <ScreenContainer
       showDivider={showDivider}
@@ -46,6 +48,8 @@ export function DashboardInfoCard({
   title,
   description,
 }: DashboardInfoCardProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Card style={styles.infoCard}>
       <Text style={styles.infoCardTitle}>{title}</Text>
@@ -54,25 +58,33 @@ export function DashboardInfoCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: {
+  colors: {
+    cardForeground: string;
+    mutedForeground: string;
+  };
+  scaleLineHeight: (value: number) => number;
+  scaleSpace: (value: number) => number;
+  scaleText: (value: number) => number;
+}) => StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.sm,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
+    paddingTop: theme.scaleSpace(spacing.lg),
+    gap: theme.scaleSpace(spacing.sm),
   },
   infoCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   infoCardTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
-    marginBottom: 4,
+    marginBottom: theme.scaleSpace(4),
   },
   infoCardDescription: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    lineHeight: 19,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
+    lineHeight: theme.scaleLineHeight(19),
   },
 });

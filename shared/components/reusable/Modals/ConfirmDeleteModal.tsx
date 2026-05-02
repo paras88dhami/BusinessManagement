@@ -1,8 +1,9 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type ConfirmDeleteModalProps = {
   visible: boolean;
@@ -27,6 +28,9 @@ export function ConfirmDeleteModal({
   onCancel,
   onConfirm,
 }: ConfirmDeleteModalProps): React.ReactElement {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Modal
       visible={visible}
@@ -67,53 +71,53 @@ export function ConfirmDeleteModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
   },
   dismissArea: {
     ...StyleSheet.absoluteFillObject,
   },
   card: {
-    backgroundColor: colors.card,
+    backgroundColor: theme.colors.card,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
+    borderColor: theme.colors.border,
+    padding: theme.scaleSpace(spacing.lg),
     zIndex: 1,
   },
   title: {
-    color: colors.cardForeground,
-    fontSize: 18,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(18),
     fontFamily: "InterBold",
   },
   message: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    marginTop: spacing.xs,
-    lineHeight: 20,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
+    marginTop: theme.scaleSpace(spacing.xs),
+    lineHeight: theme.scaleLineHeight(20),
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    marginTop: spacing.sm,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
+    marginTop: theme.scaleSpace(spacing.sm),
     fontFamily: "InterMedium",
   },
   actionRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.lg,
+    gap: theme.scaleSpace(spacing.sm),
+    marginTop: theme.scaleSpace(spacing.lg),
   },
   actionButton: {
     flex: 1,
   },
   deleteButton: {
-    backgroundColor: colors.destructive,
+    backgroundColor: theme.colors.destructive,
   },
   deleteLabel: {
-    color: colors.destructiveForeground,
+    color: theme.colors.destructiveForeground,
   },
 });

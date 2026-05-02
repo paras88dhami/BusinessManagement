@@ -4,11 +4,12 @@ import {
 } from "@/feature/auth/accountSelection/types/accountSelection.types";
 import { ProfileAccountOption } from "@/feature/profile/screen/types/profileScreen.types";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Building2, Check, ChevronDown, User } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type AccountSwitchSectionProps = {
   activeAccountTypeLabel: string;
@@ -20,12 +21,15 @@ type AccountSwitchSectionProps = {
   onSelectAccount: (accountRemoteId: string) => Promise<void>;
 };
 
-const renderAccountTypeIcon = (accountType: AccountTypeValue) => {
+const renderAccountTypeIcon = (
+  theme: ReturnType<typeof useAppTheme>,
+  accountType: AccountTypeValue,
+) => {
   if (accountType === AccountType.Business) {
-    return <Building2 size={16} color={colors.primary} />;
+    return <Building2 size={16} color={theme.colors.primary} />;
   }
 
-  return <User size={16} color={colors.primary} />;
+  return <User size={16} color={theme.colors.primary} />;
 };
 
 const getActiveAccountType = (
@@ -60,6 +64,9 @@ export function AccountSwitchSection({
   onToggleSwitchExpanded,
   onSelectAccount,
 }: AccountSwitchSectionProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.accountSwitchWrap}>
       <CardPressable
@@ -69,6 +76,7 @@ export function AccountSwitchSection({
         <View style={styles.accountSwitchLeft}>
           <View style={styles.accountIconWrap}>
             {renderAccountTypeIcon(
+              theme,
               getActiveAccountType(
                 activeAccountTypeLabel,
                 accountOptions,
@@ -89,7 +97,7 @@ export function AccountSwitchSection({
 
         <ChevronDown
           size={16}
-          color={colors.mutedForeground}
+          color={theme.colors.mutedForeground}
           style={isSwitchExpanded ? styles.chevronOpen : undefined}
         />
       </CardPressable>
@@ -108,7 +116,7 @@ export function AccountSwitchSection({
                 }}
                 accessibilityRole="button"
               >
-                {renderAccountTypeIcon(accountOption.accountType)}
+                {renderAccountTypeIcon(theme, accountOption.accountType)}
 
                 <View style={styles.accountOptionBody}>
                   <Text style={styles.accountOptionTitle}>
@@ -122,7 +130,7 @@ export function AccountSwitchSection({
                   </Text>
                 </View>
 
-                {isActive ? <Check size={14} color={colors.success} /> : null}
+                {isActive ? <Check size={14} color={theme.colors.success} /> : null}
               </Pressable>
             );
           })}
@@ -132,13 +140,13 @@ export function AccountSwitchSection({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   accountSwitchWrap: {
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   accountSwitchButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -146,25 +154,25 @@ const styles = StyleSheet.create({
   accountSwitchLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   accountIconWrap: {
-    width: 36,
-    height: 36,
+    width: theme.scaleSpace(36),
+    height: theme.scaleSpace(36),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   accountTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   accountSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 2,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    marginTop: theme.scaleSpace(2),
   },
   chevronOpen: {
     transform: [{ rotate: "180deg" }],
@@ -175,23 +183,23 @@ const styles = StyleSheet.create({
   accountOptionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   accountOptionBody: {
     flex: 1,
   },
   accountOptionTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
-    marginBottom: 2,
+    marginBottom: theme.scaleSpace(2),
   },
   accountOptionSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
 });

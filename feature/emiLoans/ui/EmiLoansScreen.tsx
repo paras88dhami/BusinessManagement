@@ -19,8 +19,9 @@ import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import {
   EmiListFilter,
   EmiPlanListItemState,
@@ -81,12 +82,15 @@ const isZeroLike = (value: string): boolean => {
   return numericValue === 0;
 };
 
-const buildPlanIcon = (plan: EmiPlanListItemState) => {
+const buildPlanIcon = (
+  plan: EmiPlanListItemState,
+  theme: ReturnType<typeof useAppTheme>,
+) => {
   if (plan.tone === "collect") {
-    return <HandCoins size={18} color={colors.success} />;
+    return <HandCoins size={18} color={theme.colors.success} />;
   }
 
-  return <Wallet size={18} color={colors.primary} />;
+  return <Wallet size={18} color={theme.colors.primary} />;
 };
 
 export function EmiLoansScreen({
@@ -94,6 +98,8 @@ export function EmiLoansScreen({
   editorViewModel,
   detailViewModel,
 }: EmiLoansScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const filterOptions =
     listViewModel.planMode === "business"
       ? [
@@ -146,7 +152,9 @@ export function EmiLoansScreen({
               variant="primary"
               size="lg"
               style={styles.primaryActionButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={listViewModel.onOpenCreate}
             />
           </BottomTabAwareFooter>
@@ -154,7 +162,7 @@ export function EmiLoansScreen({
       >
         {shouldShowDueBanner ? (
           <View style={styles.alertCard}>
-            <CircleAlert size={20} color={colors.destructive} />
+            <CircleAlert size={20} color={theme.colors.destructive} />
             <View style={styles.alertTextWrap}>
               <Text style={styles.alertTitle}>Upcoming Dues</Text>
               <Text style={styles.alertSubtitle}>{dueBannerLabel} due soon</Text>
@@ -210,7 +218,7 @@ export function EmiLoansScreen({
 
         {listViewModel.isLoading ? (
           <View style={styles.centerState}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : listViewModel.errorMessage ? (
           <View style={styles.centerState}>
@@ -242,7 +250,7 @@ export function EmiLoansScreen({
                           : styles.payIconWrap,
                       ]}
                     >
-                      {buildPlanIcon(planItem)}
+                      {buildPlanIcon(planItem, theme)}
                     </View>
 
                     <View style={styles.planTextWrap}>
@@ -283,7 +291,14 @@ export function EmiLoansScreen({
                   {!planItem.isClosed ? (
                     <View style={styles.nextDueRow}>
                       <View style={styles.nextDueTextWrap}>
-                        <CalendarClock size={12} color={colors.mutedForeground} />
+                        <CalendarClock
+                          size={12}
+                          color={
+                            theme.isDarkMode
+                              ? theme.colors.accentForeground
+                              : theme.colors.mutedForeground
+                          }
+                        />
                         <Text style={styles.nextDueLabel}>Next: {nextDueLabel}</Text>
                       </View>
                       <Text style={styles.nextDueAmount}>{planItem.amountLabel}</Text>
@@ -302,193 +317,211 @@ export function EmiLoansScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  primaryActionButton: {
-    width: "100%",
-  },
-  alertCard: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: "rgba(228, 71, 71, 0.24)",
-    backgroundColor: "rgba(228, 71, 71, 0.1)",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  alertTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  alertTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  alertSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    color: colors.cardForeground,
-    fontSize: 19,
-    fontFamily: "InterBold",
-  },
-  summaryValueAccent: {
-    color: colors.primary,
-    fontSize: 19,
-    fontFamily: "InterBold",
-  },
-  searchInput: {
-    color: colors.foreground,
-    fontSize: 14,
-    paddingVertical: 12,
-  },
-  centerState: {
-    paddingVertical: spacing.xxl,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterMedium",
-    textAlign: "center",
-  },
-  emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  planListWrap: {
-    gap: spacing.sm,
-  },
-  planCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  planTopRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  planIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  collectIconWrap: {
-    backgroundColor: colors.accent,
-  },
-  payIconWrap: {
-    backgroundColor: colors.secondary,
-  },
-  planTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  planTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  planSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  planStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-  },
-  planStatusActive: {
-    backgroundColor: "rgba(31, 99, 64, 0.16)",
-  },
-  planStatusClosed: {
-    backgroundColor: "rgba(46, 139, 87, 0.16)",
-  },
-  planStatusText: {
-    fontSize: 10,
-    fontFamily: "InterBold",
-  },
-  planStatusTextActive: {
-    color: colors.primary,
-  },
-  planStatusTextClosed: {
-    color: colors.success,
-  },
-  progressMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  progressMeta: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.muted,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-  },
-  nextDueRow: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  nextDueTextWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  nextDueLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-  },
-  nextDueAmount: {
-    color: colors.cardForeground,
-    fontSize: 13,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
+  const secondaryTextColor = theme.isDarkMode
+    ? theme.colors.accentForeground
+    : theme.colors.mutedForeground;
+
+  return StyleSheet.create({
+    content: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    primaryActionButton: {
+      width: "100%",
+    },
+    alertCard: {
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: theme.isDarkMode
+        ? "rgba(255, 107, 107, 0.28)"
+        : "rgba(228, 71, 71, 0.24)",
+      backgroundColor: theme.isDarkMode
+        ? "rgba(255, 107, 107, 0.12)"
+        : "rgba(228, 71, 71, 0.1)",
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    alertTextWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    alertTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    alertSubtitle: {
+      color: secondaryTextColor,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+    },
+    summaryGrid: {
+      flexDirection: "row",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    summaryCard: {
+      flex: 1,
+      backgroundColor: theme.colors.card,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+    },
+    summaryLabel: {
+      color: secondaryTextColor,
+      fontSize: theme.scaleText(12),
+      marginBottom: theme.scaleSpace(4),
+    },
+    summaryValue: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(19),
+      fontFamily: "InterBold",
+    },
+    summaryValueAccent: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(19),
+      fontFamily: "InterBold",
+    },
+    searchInput: {
+      color: theme.colors.foreground,
+      fontSize: theme.scaleText(14),
+      paddingVertical: theme.scaleSpace(12),
+    },
+    centerState: {
+      paddingVertical: theme.scaleSpace(spacing.xxl),
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    errorText: {
+      color: theme.colors.destructive,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterMedium",
+      textAlign: "center",
+    },
+    emptyText: {
+      color: secondaryTextColor,
+      fontSize: theme.scaleText(14),
+      lineHeight: theme.scaleLineHeight(20),
+      textAlign: "center",
+    },
+    planListWrap: {
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    planCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.md),
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    planTopRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    planIconWrap: {
+      width: theme.scaleSpace(40),
+      height: theme.scaleSpace(40),
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    collectIconWrap: {
+      backgroundColor: theme.colors.accent,
+    },
+    payIconWrap: {
+      backgroundColor: theme.colors.secondary,
+    },
+    planTextWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    planTitle: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    planSubtitle: {
+      color: secondaryTextColor,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(17),
+    },
+    planStatusBadge: {
+      paddingHorizontal: theme.scaleSpace(8),
+      paddingVertical: theme.scaleSpace(4),
+      borderRadius: radius.sm,
+    },
+    planStatusActive: {
+      backgroundColor: theme.isDarkMode
+        ? "rgba(47, 143, 91, 0.18)"
+        : "rgba(31, 99, 64, 0.16)",
+    },
+    planStatusClosed: {
+      backgroundColor: theme.isDarkMode
+        ? "rgba(99, 211, 148, 0.18)"
+        : "rgba(46, 139, 87, 0.16)",
+    },
+    planStatusText: {
+      fontSize: theme.scaleText(10),
+      fontFamily: "InterBold",
+    },
+    planStatusTextActive: {
+      color: theme.colors.primary,
+    },
+    planStatusTextClosed: {
+      color: theme.colors.success,
+    },
+    progressMetaRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    progressMeta: {
+      color: secondaryTextColor,
+      fontSize: theme.scaleText(11),
+      lineHeight: theme.scaleLineHeight(15),
+    },
+    progressTrack: {
+      height: theme.scaleSpace(8),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.muted,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.primary,
+    },
+    nextDueRow: {
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: theme.scaleSpace(spacing.sm),
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.scaleSpace(spacing.sm),
+    },
+    nextDueTextWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.scaleSpace(6),
+    },
+    nextDueLabel: {
+      color: secondaryTextColor,
+      fontSize: theme.scaleText(12),
+      lineHeight: theme.scaleLineHeight(16),
+    },
+    nextDueAmount: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(13),
+      fontFamily: "InterBold",
+    },
+  });
+};

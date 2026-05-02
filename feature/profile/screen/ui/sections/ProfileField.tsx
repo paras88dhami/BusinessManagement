@@ -1,7 +1,8 @@
 import React, { ReactNode } from "react";
 import { StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type ProfileFieldProps = {
   label: string;
@@ -36,6 +37,9 @@ export function ProfileField({
   isLast,
   errorText,
 }: ProfileFieldProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={[styles.row, !isLast ? styles.rowDivider : null]}>
       {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
@@ -53,7 +57,7 @@ export function ProfileField({
             numberOfLines={numberOfLines}
             autoComplete={autoComplete ?? undefined}
             textContentType={textContentType ?? undefined}
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.mutedForeground}
             style={[styles.input, multiline ? styles.inputMultiline : null]}
             textAlignVertical={multiline ? "top" : "center"}
           />
@@ -66,57 +70,57 @@ export function ProfileField({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    backgroundColor: colors.card,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(12),
+    backgroundColor: theme.colors.card,
   },
   rowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   iconWrap: {
-    marginTop: 3,
-    width: 20,
+    marginTop: theme.scaleSpace(3),
+    width: theme.scaleSpace(20),
     alignItems: "center",
   },
   contentWrap: {
     flex: 1,
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   label: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   value: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    lineHeight: 20,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
+    lineHeight: theme.scaleLineHeight(20),
     fontFamily: "InterSemiBold",
   },
   input: {
     marginTop: -1,
-    color: colors.cardForeground,
-    fontSize: 14,
-    lineHeight: 20,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
+    lineHeight: theme.scaleLineHeight(20),
     fontFamily: "InterSemiBold",
     paddingVertical: 0,
     paddingHorizontal: 0,
   },
   inputMultiline: {
-    minHeight: 68,
-    paddingTop: 2,
+    minHeight: theme.scaleSpace(68),
+    paddingTop: theme.scaleSpace(2),
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 12,
-    lineHeight: 16,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
+    lineHeight: theme.scaleLineHeight(16),
     fontFamily: "InterMedium",
-    marginTop: 2,
+    marginTop: theme.scaleSpace(2),
   },
 });

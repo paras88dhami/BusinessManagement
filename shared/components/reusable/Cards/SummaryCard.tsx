@@ -1,8 +1,9 @@
 import React from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { AppThemeContextValue } from "@/shared/components/theme/AppThemeProvider";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 interface SummaryCardProps {
   icon: React.ReactNode;
@@ -24,6 +25,7 @@ export function SummaryCard({
   style,
 }: SummaryCardProps) {
   const isDashboardSize = size === "dashboard";
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Card
@@ -50,39 +52,40 @@ export function SummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    minHeight: 126,
-  },
-  cardDashboard: {
-    minHeight: 0,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-  },
-  iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  iconCircleDashboard: {
-    marginBottom: 4,
-  },
-  title: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  titleDashboard: {
-    marginBottom: 2,
-    fontFamily: "InterMedium",
-  },
-  value: {
-    fontSize: 20,
-    fontFamily: "InterBold",
-  },
-});
+const createStyles = (theme: AppThemeContextValue) =>
+  StyleSheet.create({
+    card: {
+      flex: 1,
+      minHeight: theme.scaleSpace(126),
+    },
+    cardDashboard: {
+      minHeight: 0,
+      paddingHorizontal: theme.scaleSpace(spacing.md),
+      paddingVertical: theme.scaleSpace(spacing.sm + 2),
+    },
+    iconCircle: {
+      width: theme.scaleSpace(34),
+      height: theme.scaleSpace(34),
+      borderRadius: radius.pill,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: theme.scaleSpace(14),
+    },
+    iconCircleDashboard: {
+      marginBottom: theme.scaleSpace(4),
+    },
+    title: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginBottom: theme.scaleSpace(4),
+    },
+    titleDashboard: {
+      marginBottom: theme.scaleSpace(2),
+      fontFamily: "InterMedium",
+    },
+    value: {
+      fontSize: theme.scaleText(20),
+      fontFamily: "InterBold",
+    },
+  });
 

@@ -11,8 +11,9 @@ import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGro
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { Box, Plus } from "lucide-react-native";
 import React, { useCallback } from "react";
@@ -56,6 +57,9 @@ const buildProductSubtitle = (product: Product): string => {
 };
 
 export function ProductsScreen({ viewModel }: ProductsScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   const handleClearFilters = useCallback((): void => {
     viewModel.onSearchChange("");
     viewModel.onKindFilterChange("all");
@@ -98,7 +102,9 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
               label="Add Product"
               size="lg"
               style={styles.primaryActionButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={viewModel.onOpenCreate}
               disabled={!viewModel.canManage}
             />
@@ -123,7 +129,7 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
             icon={<Text style={styles.statIcon}>!</Text>}
             value={String(viewModel.summary.lowStockCount)}
             label="Low Stock"
-            valueColor={colors.warning}
+            valueColor={theme.colors.warning}
           />
         </View>
 
@@ -148,7 +154,7 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
 
         {viewModel.isLoading ? (
           <View style={styles.centerState}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : viewModel.errorMessage ? (
           <View style={styles.centerState}>
@@ -175,7 +181,7 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
                 disabled={!viewModel.canManage}
               >
                 <View style={styles.productIconWrap}>
-                  <Box size={18} color={colors.primary} />
+                  <Box size={18} color={theme.colors.primary} />
                 </View>
 
                 <View style={styles.productBody}>
@@ -234,99 +240,99 @@ export function ProductsScreen({ viewModel }: ProductsScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   content: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   primaryActionButton: {
     width: "100%",
   },
   summaryRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   statIcon: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontFamily: "InterBold",
-    fontSize: 18,
+    fontSize: theme.scaleText(18),
   },
   searchInput: {
-    color: colors.cardForeground,
+    color: theme.colors.cardForeground,
   },
   tableContainer: {
-    backgroundColor: colors.card,
+    backgroundColor: theme.colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     overflow: "hidden",
   },
   productRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 13,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(13),
   },
   productRowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   productIconWrap: {
-    width: 40,
-    height: 40,
+    width: theme.scaleSpace(40),
+    height: theme.scaleSpace(40),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   productBody: {
     flex: 1,
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   productTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   productSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   priceWrap: {
     alignItems: "flex-end",
-    gap: 2,
-    maxWidth: 150,
+    gap: theme.scaleSpace(2),
+    maxWidth: theme.scaleSpace(150),
   },
   salePrice: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   costPrice: {
-    color: colors.mutedForeground,
-    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
   },
   deleteText: {
-    color: colors.destructive,
-    fontSize: 11,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterBold",
-    marginTop: 2,
+    marginTop: theme.scaleSpace(2),
   },
   centerState: {
-    minHeight: 180,
+    minHeight: theme.scaleSpace(180),
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 13,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
   },
   emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: theme.scaleLineHeight(20),
   },
 });

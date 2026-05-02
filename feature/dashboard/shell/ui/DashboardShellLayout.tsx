@@ -2,7 +2,8 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomTabBar } from "@/shared/components/reusable/ScreenLayouts/BottomTabBar";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { DashboardShellViewModel } from "@/feature/dashboard/shell/types/dashboardShell.types";
 
 type DashboardShellLayoutProps = {
@@ -14,6 +15,9 @@ export function DashboardShellLayout({
   viewModel,
   children,
 }: DashboardShellLayoutProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   if (viewModel.isLoading) {
     return null;
   }
@@ -52,14 +56,14 @@ export function DashboardShellLayout({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
   },
   divider: {
-    height: 4,
-    backgroundColor: colors.destructive,
+    height: theme.scaleSpace(4),
+    backgroundColor: theme.colors.destructive,
   },
   content: {
     flex: 1,

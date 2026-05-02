@@ -5,7 +5,7 @@ import {
 } from "@/feature/reports/types/report.entity.types";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ListRow } from "@/shared/components/reusable/List/ListRow";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import {
     BarChart3,
@@ -20,21 +20,25 @@ import {
 } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 export function ReportsSummaryRow({
   cards,
 }: {
   cards: readonly ReportSummaryCard[];
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.summaryRow}>
       {cards.map((card) => {
         const valueColor =
           card.tone === "positive"
-            ? colors.success
+            ? theme.colors.success
             : card.tone === "negative"
-              ? colors.destructive
-              : colors.cardForeground;
+              ? theme.colors.destructive
+              : theme.colors.cardForeground;
         return (
           <Card key={card.id} style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{card.label}</Text>
@@ -55,6 +59,9 @@ export function ReportMenuSections({
   sections: readonly ReportMenuSection[];
   onOpen: (id: ReportMenuSection["items"][number]["id"]) => void;
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.sectionsWrap}>
       {sections.map((section) => (
@@ -65,7 +72,7 @@ export function ReportMenuSections({
               key={item.id}
               title={item.title}
               subtitle={item.subtitle}
-              icon={resolveIcon(item.id)}
+              icon={resolveIcon(item.id, theme)}
               onPress={() => onOpen(item.id)}
             />
           ))}
@@ -80,15 +87,18 @@ export function ReportListItems({
 }: {
   items: readonly ReportListItem[];
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.listWrap}>
       {items.map((item) => {
         const valueColor =
           item.tone === "positive"
-            ? colors.success
+            ? theme.colors.success
             : item.tone === "negative"
-              ? colors.destructive
-              : colors.cardForeground;
+              ? theme.colors.destructive
+              : theme.colors.cardForeground;
         return (
           <Card key={item.id} style={styles.listCard}>
             <View style={styles.listTopRow}>
@@ -120,6 +130,8 @@ export function ReportListItems({
 }
 
 export function ExportPreviewCard({ csvPreview }: { csvPreview: string }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Card style={styles.exportCard}>
       <Text style={styles.exportLabel}>CSV Preview</Text>
@@ -128,114 +140,114 @@ export function ExportPreviewCard({ csvPreview }: { csvPreview: string }) {
   );
 }
 
-const resolveIcon = (reportId: string) => {
+const resolveIcon = (reportId: string, theme: ReturnType<typeof useAppTheme>) => {
   switch (reportId) {
     case "sales_report":
-      return <BarChart3 size={20} color={colors.primary} />;
+      return <BarChart3 size={20} color={theme.colors.primary} />;
     case "party_balances":
-      return <Users size={20} color={colors.primary} />;
+      return <Users size={20} color={theme.colors.primary} />;
     case "collection_report":
-      return <CircleDollarSign size={20} color={colors.primary} />;
+      return <CircleDollarSign size={20} color={theme.colors.primary} />;
     case "payment_report":
-      return <Receipt size={20} color={colors.primary} />;
+      return <Receipt size={20} color={theme.colors.primary} />;
     case "category_summary":
-      return <PieChart size={20} color={colors.primary} />;
+      return <PieChart size={20} color={theme.colors.primary} />;
     case "account_statement":
-      return <FileBarChart size={20} color={colors.primary} />;
+      return <FileBarChart size={20} color={theme.colors.primary} />;
     case "emi_loan_report":
-      return <CreditCard size={20} color={colors.primary} />;
+      return <CreditCard size={20} color={theme.colors.primary} />;
     case "stock_report":
-      return <Boxes size={20} color={colors.primary} />;
+      return <Boxes size={20} color={theme.colors.primary} />;
     case "export_data":
-      return <Download size={20} color={colors.primary} />;
+      return <Download size={20} color={theme.colors.primary} />;
     default:
-      return <BarChart3 size={20} color={colors.primary} />;
+      return <BarChart3 size={20} color={theme.colors.primary} />;
   }
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    marginBottom: theme.scaleSpace(spacing.md),
   },
   summaryCard: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   summaryValue: {
-    marginTop: 6,
-    fontSize: 18,
+    marginTop: theme.scaleSpace(6),
+    fontSize: theme.scaleText(18),
     fontFamily: "InterBold",
   },
   sectionsWrap: {
-    gap: spacing.lg,
+    gap: theme.scaleSpace(spacing.lg),
   },
   sectionBlock: {
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 17,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(17),
     fontFamily: "InterBold",
-    marginBottom: spacing.xs,
+    marginBottom: theme.scaleSpace(spacing.xs),
   },
   listWrap: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   listCard: {
-    paddingVertical: spacing.md,
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   listTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   listBody: {
     flex: 1,
   },
   listTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   listSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 2,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    marginTop: theme.scaleSpace(2),
   },
   listValue: {
-    fontSize: 13,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   progressTrack: {
-    marginTop: spacing.sm,
-    height: 8,
+    marginTop: theme.scaleSpace(spacing.sm),
+    height: theme.scaleSpace(8),
     borderRadius: 999,
-    backgroundColor: colors.muted,
+    backgroundColor: theme.colors.muted,
     overflow: "hidden",
   },
   progressFill: {
-    height: 8,
+    height: theme.scaleSpace(8),
     borderRadius: 999,
-    backgroundColor: colors.success,
+    backgroundColor: theme.colors.success,
   },
   exportCard: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   exportLabel: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   exportBody: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 18,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    lineHeight: theme.scaleLineHeight(18),
     fontFamily: "InterMedium",
   },
 });

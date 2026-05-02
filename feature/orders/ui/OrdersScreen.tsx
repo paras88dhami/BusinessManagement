@@ -8,7 +8,7 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
 import { Pill } from "@/shared/components/reusable/List/Pill";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Download, Plus, Search, Upload } from "lucide-react-native";
 import React, { useCallback } from "react";
@@ -25,6 +25,7 @@ import { OrderDetailModal } from "./components/OrderDetailModal";
 import { OrderEditorModal } from "./components/OrderEditorModal";
 import { OrderMoneyActionModal } from "./components/OrderMoneyActionModal";
 import { OrderStatusModal } from "./components/OrderStatusModal";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type StatusFilterValue = "all" | OrderStatusValue;
 
@@ -65,6 +66,8 @@ const getStatusPillTone = (
 };
 
 export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const filteredOrders = Array.isArray(viewModel.orders) ? viewModel.orders : [];
 
   const showDataToolsHint = useCallback(() => {
@@ -84,7 +87,9 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
               variant="primary"
               size="lg"
               style={styles.primaryActionButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={viewModel.onOpenCreate}
               disabled={!viewModel.canManage}
             />
@@ -96,12 +101,12 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
       >
         <View style={styles.searchRow}>
           <View style={styles.searchInputWrap}>
-            <Search size={17} color={colors.mutedForeground} />
+            <Search size={17} color={theme.colors.mutedForeground} />
             <TextInput
               value={viewModel.searchQuery}
               onChangeText={viewModel.onSearchQueryChange}
               placeholder="Search orders..."
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.mutedForeground}
               style={styles.searchInput}
             />
           </View>
@@ -110,14 +115,14 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
             onPress={showDataToolsHint}
             accessibilityRole="button"
           >
-            <Download size={16} color={colors.mutedForeground} />
+            <Download size={16} color={theme.colors.mutedForeground} />
           </Pressable>
           <Pressable
             style={styles.quickActionIconButton}
             onPress={showDataToolsHint}
             accessibilityRole="button"
           >
-            <Upload size={16} color={colors.mutedForeground} />
+            <Upload size={16} color={theme.colors.mutedForeground} />
           </Pressable>
         </View>
 
@@ -158,7 +163,7 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
 
         {viewModel.isLoading ? (
           <View style={styles.centerState}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : filteredOrders.length === 0 ? (
           <View style={styles.centerState}>
@@ -285,181 +290,181 @@ export function OrdersScreen({ viewModel }: { viewModel: OrdersViewModel }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   content: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   searchInputWrap: {
     flex: 1,
-    minHeight: 42,
+    minHeight: theme.scaleSpace(42),
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     borderRadius: radius.pill,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.md,
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: theme.scaleSpace(8),
   },
   searchInput: {
     flex: 1,
-    color: colors.cardForeground,
-    fontSize: 16,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(16),
     fontFamily: "InterMedium",
     paddingVertical: 0,
   },
   quickActionIconButton: {
-    width: 42,
-    height: 42,
+    width: theme.scaleSpace(42),
+    height: theme.scaleSpace(42),
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
   },
   filterRow: {
-    marginTop: 2,
+    marginTop: theme.scaleSpace(2),
   },
   filterRowContent: {
-    gap: spacing.xs,
-    paddingRight: spacing.md,
+    gap: theme.scaleSpace(spacing.xs),
+    paddingRight: theme.scaleSpace(spacing.md),
   },
   summaryGrid: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   summaryCard: {
     flex: 1,
-    minHeight: 72,
+    minHeight: theme.scaleSpace(72),
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     borderRadius: radius.lg,
-    backgroundColor: colors.card,
+    backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: theme.scaleSpace(4),
   },
   activeSummaryValue: {
-    color: colors.primary,
-    fontSize: 34,
-    lineHeight: 38,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(34),
+    lineHeight: theme.scaleLineHeight(38),
     fontFamily: "InterBold",
   },
   deliveredSummaryValue: {
-    color: colors.success,
-    fontSize: 34,
-    lineHeight: 38,
+    color: theme.colors.success,
+    fontSize: theme.scaleText(34),
+    lineHeight: theme.scaleLineHeight(38),
     fontFamily: "InterBold",
   },
   cancelledSummaryValue: {
-    color: colors.destructive,
-    fontSize: 34,
-    lineHeight: 38,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(34),
+    lineHeight: theme.scaleLineHeight(38),
     fontFamily: "InterBold",
   },
   summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   listHeaderText: {
-    marginTop: spacing.xs,
-    color: colors.cardForeground,
-    fontSize: 24,
-    lineHeight: 30,
+    marginTop: theme.scaleSpace(spacing.xs),
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(24),
+    lineHeight: theme.scaleLineHeight(30),
     fontFamily: "InterBold",
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 13,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterMedium",
   },
   centerState: {
-    minHeight: 180,
+    minHeight: theme.scaleSpace(180),
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
   },
   emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
     fontFamily: "InterMedium",
   },
   listWrap: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   orderCard: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     borderRadius: radius.lg,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
+    gap: theme.scaleSpace(spacing.sm),
   },
   orderHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   orderHeaderTextWrap: {
     flex: 1,
-    gap: 3,
+    gap: theme.scaleSpace(3),
   },
   titleWithStatusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
     flexWrap: "wrap",
   },
   orderTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    lineHeight: 22,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(18),
+    lineHeight: theme.scaleLineHeight(22),
     fontFamily: "InterBold",
   },
   orderSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 16,
-    lineHeight: 20,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(16),
+    lineHeight: theme.scaleLineHeight(20),
     fontFamily: "InterMedium",
   },
   orderAmountWrap: {
     alignItems: "flex-end",
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   orderTotalLabel: {
-    color: colors.cardForeground,
-    fontSize: 30,
-    lineHeight: 34,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(30),
+    lineHeight: theme.scaleLineHeight(34),
     fontFamily: "InterBold",
   },
   orderDateLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   orderMetaRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   orderMetaText: {
-    color: colors.mutedForeground,
-    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterMedium",
   },
   balanceDueText: {
-    color: colors.warning,
-    fontSize: 14,
+    color: theme.colors.warning,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterSemiBold",
   },
   primaryActionButton: {

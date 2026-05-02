@@ -21,6 +21,77 @@ vi.mock("react-native", async () => {
   };
 });
 
+vi.mock("@/shared/components/theme/AppThemeProvider", () => ({
+  useAppTheme: () => ({
+    colorMode: "light",
+    colors: {
+      background: "#FFFFFF",
+      foreground: "#172033",
+      card: "#FFFFFF",
+      cardForeground: "#172033",
+      primary: "#1F6340",
+      primaryForeground: "#FFFFFF",
+      secondary: "#F5F7FB",
+      muted: "#EEF2F8",
+      mutedForeground: "#667085",
+      accent: "#E6F4EA",
+      border: "#D7DEEA",
+      destructive: "#E44747",
+      destructiveForeground: "#FFFFFF",
+      success: "#2E8B57",
+      warning: "#F59E0B",
+      header: "#1F6340",
+    },
+    preferences: {
+      themePreference: "light",
+      textSizePreference: "medium",
+      compactModeEnabled: false,
+      updatedAt: 0,
+    },
+    compactModeEnabled: false,
+    isDarkMode: false,
+    scaleText: (value: number) => value,
+    scaleLineHeight: (value: number) => value,
+    scaleSpace: (value: number) => value,
+  }),
+}));
+
+vi.mock("@/shared/components/theme/useThemedStyles", () => ({
+  useThemedStyles: (createStyles: (theme: Record<string, unknown>) => unknown) =>
+    createStyles({
+      colorMode: "light",
+      colors: {
+        background: "#FFFFFF",
+        foreground: "#172033",
+        card: "#FFFFFF",
+        cardForeground: "#172033",
+        primary: "#1F6340",
+        primaryForeground: "#FFFFFF",
+        secondary: "#F5F7FB",
+        muted: "#EEF2F8",
+        mutedForeground: "#667085",
+        accent: "#E6F4EA",
+        border: "#D7DEEA",
+        destructive: "#E44747",
+        destructiveForeground: "#FFFFFF",
+        success: "#2E8B57",
+        warning: "#F59E0B",
+        header: "#1F6340",
+      },
+      preferences: {
+        themePreference: "light",
+        textSizePreference: "medium",
+        compactModeEnabled: false,
+        updatedAt: 0,
+      },
+      compactModeEnabled: false,
+      isDarkMode: false,
+      scaleText: (value: number) => value,
+      scaleLineHeight: (value: number) => value,
+      scaleSpace: (value: number) => value,
+    }),
+}));
+
 vi.mock("@/shared/components/reusable/Buttons/AppButton", async () => {
   const ReactModule = await import("react");
   return {

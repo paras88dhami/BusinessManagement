@@ -1,8 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { colors } from "../../theme/colors";
 import { radius } from "../../theme/spacing";
+import { useAppTheme } from "../../theme/AppThemeProvider";
+import { useThemedStyles } from "../../theme/useThemedStyles";
 
 interface ListRowProps {
   title: string;
@@ -13,6 +14,9 @@ interface ListRowProps {
 }
 
 export function ListRow({ title, subtitle, value, icon, onPress }: ListRowProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Pressable onPress={onPress} style={styles.row}>
       {icon ? <View style={styles.iconWrap}>{icon}</View> : null}
@@ -21,50 +25,51 @@ export function ListRow({ title, subtitle, value, icon, onPress }: ListRowProps)
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
       {value ? <Text style={styles.value}>{value}</Text> : null}
-      <ChevronRight size={18} color={colors.mutedForeground} />
+      <ChevronRight size={18} color={theme.colors.mutedForeground} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
-  },
-  iconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  textWrap: {
-    flex: 1,
-  },
-  title: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    fontFamily: "InterBold",
-  },
-  subtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  value: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterBold",
-    marginRight: 6,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
+  StyleSheet.create({
+    row: {
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: radius.lg,
+      paddingHorizontal: theme.scaleSpace(14),
+      paddingVertical: theme.scaleSpace(14),
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.scaleSpace(12),
+      marginBottom: theme.scaleSpace(10),
+    },
+    iconWrap: {
+      width: theme.scaleSpace(42),
+      height: theme.scaleSpace(42),
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    textWrap: {
+      flex: 1,
+    },
+    title: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(14),
+      fontFamily: "InterBold",
+    },
+    subtitle: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(12),
+      marginTop: theme.scaleSpace(2),
+    },
+    value: {
+      color: theme.colors.primary,
+      fontSize: theme.scaleText(12),
+      fontFamily: "InterBold",
+      marginRight: theme.scaleSpace(6),
+    },
+  });
 

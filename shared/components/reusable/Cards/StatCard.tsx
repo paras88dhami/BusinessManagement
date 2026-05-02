@@ -1,8 +1,9 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Card } from './Card';
-import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { AppThemeContextValue } from '../../theme/AppThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 
 interface StatCardProps {
@@ -23,6 +24,7 @@ export function StatCard({
   style,
 }: StatCardProps) {
   const isDashboardSize = size === "dashboard";
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Card
@@ -51,43 +53,44 @@ export function StatCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 16,
-    minHeight: 104,
-  },
-  cardDashboard: {
-    minHeight: 0,
-    justifyContent: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: 4,
-  },
-  iconWrap: {
-    marginBottom: 6,
-  },
-  iconWrapDashboard: {
-    marginBottom: 4,
-  },
-  value: {
-    color: colors.cardForeground,
-    fontSize: 18,
-    fontFamily: "InterBold",
-    marginBottom: 2,
-  },
-  valueDashboard: {
-    marginBottom: 0,
-    fontSize: 13,
-  },
-  label: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    textAlign: 'center',
-  },
-  labelDashboard: {
-    marginTop: 2,
-    fontSize: 10,
-  },
-});
+const createStyles = (theme: AppThemeContextValue) =>
+  StyleSheet.create({
+    card: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: theme.scaleSpace(16),
+      minHeight: theme.scaleSpace(104),
+    },
+    cardDashboard: {
+      minHeight: 0,
+      justifyContent: "center",
+      paddingVertical: theme.scaleSpace(spacing.sm),
+      paddingHorizontal: theme.scaleSpace(4),
+    },
+    iconWrap: {
+      marginBottom: theme.scaleSpace(6),
+    },
+    iconWrapDashboard: {
+      marginBottom: theme.scaleSpace(4),
+    },
+    value: {
+      color: theme.colors.cardForeground,
+      fontSize: theme.scaleText(18),
+      fontFamily: "InterBold",
+      marginBottom: theme.scaleSpace(2),
+    },
+    valueDashboard: {
+      marginBottom: 0,
+      fontSize: theme.scaleText(13),
+    },
+    label: {
+      color: theme.colors.mutedForeground,
+      fontSize: theme.scaleText(11),
+      textAlign: 'center',
+    },
+    labelDashboard: {
+      marginTop: theme.scaleSpace(2),
+      fontSize: theme.scaleText(10),
+    },
+  });
 

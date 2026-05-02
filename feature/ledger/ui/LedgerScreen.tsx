@@ -25,7 +25,7 @@ import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { LedgerEntryType } from "@/feature/ledger/types/ledger.entity.types";
 import { LedgerListFilter } from "@/feature/ledger/types/ledger.state.types";
@@ -36,6 +36,7 @@ import { LedgerPartyDetailViewModel } from "@/feature/ledger/viewModel/ledgerPar
 import { LedgerDeleteModal } from "./components/LedgerDeleteModal";
 import { LedgerEntryEditorModal } from "./components/LedgerEntryEditorModal";
 import { LedgerPartyDetailModal } from "./components/LedgerPartyDetailModal";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type LedgerScreenProps = {
   listViewModel: LedgerListViewModel;
@@ -58,6 +59,8 @@ export function LedgerScreen({
   deleteViewModel,
   partyDetailViewModel,
 }: LedgerScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const primarySummaryCards = listViewModel.summaryCards.slice(0, 2);
   const secondarySummaryCards = listViewModel.summaryCards.slice(2, 4);
 
@@ -85,7 +88,9 @@ export function LedgerScreen({
               variant="primary"
               size="lg"
               style={styles.primaryActionButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={() => listViewModel.onOpenCreate(LedgerEntryType.Sale)}
             />
           </BottomTabAwareFooter>
@@ -101,14 +106,19 @@ export function LedgerScreen({
                 size="dashboard"
                 icon={
                   isReceive ? (
-                    <ArrowDownCircle size={16} color={colors.success} />
+                    <ArrowDownCircle size={16} color={theme.colors.success} />
                   ) : (
-                    <ArrowUpCircle size={16} color={colors.destructive} />
+                    <ArrowUpCircle
+                      size={16}
+                      color={theme.colors.destructive}
+                    />
                   )
                 }
                 title={summaryCard.label}
                 value={summaryCard.value}
-                valueColor={isReceive ? colors.success : colors.destructive}
+                valueColor={
+                  isReceive ? theme.colors.success : theme.colors.destructive
+                }
                 iconBg={
                   isReceive
                     ? "rgba(46, 139, 87, 0.14)"
@@ -125,11 +135,11 @@ export function LedgerScreen({
             const isDueToday = miniStat.id === "due-today";
 
             const icon = isOverdue ? (
-              <ArrowUpCircle size={16} color={colors.destructive} />
+              <ArrowUpCircle size={16} color={theme.colors.destructive} />
             ) : isDueToday ? (
-              <CalendarClock size={16} color={colors.warning} />
+              <CalendarClock size={16} color={theme.colors.warning} />
             ) : (
-              <RotateCcw size={16} color={colors.success} />
+              <RotateCcw size={16} color={theme.colors.success} />
             );
 
             return (
@@ -155,7 +165,7 @@ export function LedgerScreen({
               }
               expanded={listViewModel.isReceivableAgingExpanded}
               onPress={listViewModel.onToggleReceivableAging}
-              leadingIcon={<CalendarClock size={16} color={colors.primary} />}
+              leadingIcon={<CalendarClock size={16} color={theme.colors.primary} />}
             />
 
             {listViewModel.isReceivableAgingExpanded ? (
@@ -185,7 +195,7 @@ export function LedgerScreen({
         <InlineSectionHeader title="Collection Queue" />
         {listViewModel.collectionQueue.length === 0 ? (
           <View style={styles.queueEmptyState}>
-            <Clock3 size={16} color={colors.mutedForeground} />
+            <Clock3 size={16} color={theme.colors.mutedForeground} />
             <Text style={styles.queueEmptyText}>No overdue collection action right now.</Text>
           </View>
         ) : (
@@ -214,7 +224,10 @@ export function LedgerScreen({
                       {queueItem.partyName}
                     </Text>
                     {queueItem.priority === "critical" ? (
-                      <AlertTriangle size={14} color={colors.destructive} />
+                      <AlertTriangle
+                        size={14}
+                        color={theme.colors.destructive}
+                      />
                     ) : null}
                   </View>
                   <Text style={styles.collectionQueueMeta}>{queueItem.metaLabel}</Text>
@@ -256,7 +269,7 @@ export function LedgerScreen({
 
         {listViewModel.isLoading ? (
           <View style={styles.centerState}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : listViewModel.errorMessage ? (
           <View style={styles.centerState}>
@@ -285,7 +298,7 @@ export function LedgerScreen({
                 }
               >
                 <View style={styles.partyAvatar}>
-                  <User size={18} color={colors.primary} />
+                  <User size={18} color={theme.colors.primary} />
                 </View>
 
                 <View style={styles.partyTextWrap}>
@@ -326,205 +339,181 @@ export function LedgerScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    gap: spacing.sm,
-  },
-  primaryActionButton: {
-    width: "100%",
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  miniStatGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  agingSection: {
-    gap: spacing.sm,
-  },
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
+  content: { gap: theme.scaleSpace(spacing.sm) },
+  primaryActionButton: { width: "100%" },
+  summaryGrid: { flexDirection: "row", gap: theme.scaleSpace(spacing.sm) },
+  miniStatGrid: { flexDirection: "row", gap: theme.scaleSpace(spacing.sm) },
+  agingSection: { gap: theme.scaleSpace(spacing.sm) },
   agingGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   agingCard: {
     width: "31%",
-    minHeight: 82,
+    minHeight: theme.scaleSpace(82),
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    gap: 4,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(spacing.xs),
+    gap: theme.scaleSpace(4),
   },
   agingCardWarning: {
-    borderColor: colors.warning,
+    borderColor: theme.colors.warning,
     backgroundColor: "rgba(245, 158, 11, 0.07)",
   },
   agingCardCritical: {
-    borderColor: colors.destructive,
+    borderColor: theme.colors.destructive,
     backgroundColor: "rgba(228, 71, 71, 0.08)",
   },
   agingLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterSemiBold",
   },
   agingAmount: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   agingCount: {
-    color: colors.mutedForeground,
-    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterMedium",
   },
   collectionQueueContainer: {
-    backgroundColor: colors.card,
+    backgroundColor: theme.colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     overflow: "hidden",
   },
   collectionQueueRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm),
   },
-  collectionQueueInfo: {
-    flex: 1,
-    gap: 2,
-  },
+  collectionQueueInfo: { flex: 1, gap: theme.scaleSpace(2) },
   queueTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: theme.scaleSpace(6),
   },
   collectionQueuePartyName: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   collectionQueueMeta: {
-    color: colors.mutedForeground,
-    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
   },
   collectionQueueAmount: {
-    color: colors.destructive,
-    fontSize: 13,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   queueEmptyState: {
-    minHeight: 56,
+    minHeight: theme.scaleSpace(56),
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   queueEmptyText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
-  searchInput: {
-    color: colors.cardForeground,
-  },
+  searchInput: { color: theme.colors.cardForeground },
   partyListContainer: {
-    backgroundColor: colors.card,
+    backgroundColor: theme.colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     overflow: "hidden",
   },
   partyRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 13,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(13),
   },
   partyRowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   partyAvatar: {
-    width: 40,
-    height: 40,
+    width: theme.scaleSpace(40),
+    height: theme.scaleSpace(40),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  partyTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
+  partyTextWrap: { flex: 1, gap: theme.scaleSpace(2) },
   partyName: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   partySubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   partyAmountWrap: {
     alignItems: "flex-end",
-    gap: 2,
-    maxWidth: 138,
+    gap: theme.scaleSpace(2),
+    maxWidth: theme.scaleSpace(138),
   },
   partyAmount: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
-  receiveValue: {
-    color: colors.success,
-  },
-  payValue: {
-    color: colors.destructive,
-  },
+  receiveValue: { color: theme.colors.success },
+  payValue: { color: theme.colors.destructive },
   partyToneLabel: {
-    color: colors.mutedForeground,
-    fontSize: 10,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(10),
   },
   badgeWrap: {
-    marginTop: 3,
+    marginTop: theme.scaleSpace(3),
     borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.scaleSpace(8),
+    paddingVertical: theme.scaleSpace(4),
   },
   badgeText: {
-    color: colors.primary,
-    fontSize: 10,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(10),
     fontFamily: "InterMedium",
   },
   centerState: {
-    minHeight: 180,
+    minHeight: theme.scaleSpace(180),
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 13,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
   },
   emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: theme.scaleLineHeight(20),
   },
 });

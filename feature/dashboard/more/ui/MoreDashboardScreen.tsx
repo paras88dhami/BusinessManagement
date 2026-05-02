@@ -23,17 +23,21 @@ import {
   Users,
 } from "lucide-react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { DashboardTabScaffold } from "@/feature/dashboard/shared/ui/DashboardTabScaffold";
 import { MoreDashboardViewModel } from "../viewModel/moreDashboard.viewModel";
 import { MoreDashboardMenuItemId } from "../types/moreDashboard.types";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type MoreDashboardScreenProps = {
   viewModel: MoreDashboardViewModel;
 };
 
 export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <DashboardTabScaffold
       footer={null}
@@ -52,7 +56,7 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
                 onPress={() => viewModel.onMenuItemPress(item.id)}
                 accessibilityRole="button"
               >
-                <View style={styles.iconWrap}>{getItemIcon(item.id)}</View>
+                <View style={styles.iconWrap}>{getItemIcon(item.id, theme)}</View>
 
                 <View style={styles.rowBody}>
                   <Text
@@ -65,7 +69,7 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
                   <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
                 </View>
 
-                <ChevronRight size={16} color={colors.mutedForeground} />
+                <ChevronRight size={16} color={theme.colors.mutedForeground} />
               </Pressable>
             ))}
           </Card>
@@ -75,60 +79,63 @@ export function MoreDashboardScreen({ viewModel }: MoreDashboardScreenProps) {
   );
 }
 
-const getItemIcon = (itemId: MoreDashboardMenuItemId) => {
+const getItemIcon = (
+  itemId: MoreDashboardMenuItemId,
+  theme: ReturnType<typeof useAppTheme>,
+) => {
   switch (itemId) {
     case "profile":
-      return <User size={18} color={colors.primary} />;
+      return <User size={18} color={theme.colors.primary} />;
     case "ledger":
-      return <BookOpen size={18} color={colors.primary} />;
+      return <BookOpen size={18} color={theme.colors.primary} />;
     case "pos":
-      return <ShoppingCart size={18} color={colors.primary} />;
+      return <ShoppingCart size={18} color={theme.colors.primary} />;
     case "orders":
-      return <ReceiptText size={18} color={colors.primary} />;
+      return <ReceiptText size={18} color={theme.colors.primary} />;
     case "reports":
-      return <PieChart size={18} color={colors.primary} />;
+      return <PieChart size={18} color={theme.colors.primary} />;
     case "products":
-      return <Box size={18} color={colors.primary} />;
+      return <Box size={18} color={theme.colors.primary} />;
     case "categories":
-      return <Tags size={18} color={colors.primary} />;
+      return <Tags size={18} color={theme.colors.primary} />;
     case "inventory":
-      return <Boxes size={18} color={colors.primary} />;
+      return <Boxes size={18} color={theme.colors.primary} />;
     case "moneyAccounts":
-      return <WalletCards size={18} color={colors.primary} />;
+      return <WalletCards size={18} color={theme.colors.primary} />;
     case "contacts":
-      return <Users size={18} color={colors.primary} />;
+      return <Users size={18} color={theme.colors.primary} />;
     case "billing":
-      return <ReceiptText size={18} color={colors.primary} />;
+      return <ReceiptText size={18} color={theme.colors.primary} />;
     case "taxCalculator":
-      return <Calculator size={18} color={colors.primary} />;
+      return <Calculator size={18} color={theme.colors.primary} />;
     case "notes":
-      return <StickyNote size={18} color={colors.primary} />;
+      return <StickyNote size={18} color={theme.colors.primary} />;
     case "emi":
-      return <CreditCard size={18} color={colors.primary} />;
+      return <CreditCard size={18} color={theme.colors.primary} />;
     case "transactions":
-      return <ArrowLeftRight size={18} color={colors.primary} />;
+      return <ArrowLeftRight size={18} color={theme.colors.primary} />;
     case "budget":
-      return <PiggyBank size={18} color={colors.primary} />;
+      return <PiggyBank size={18} color={theme.colors.primary} />;
     case "userManagement":
-      return <ShieldCheck size={18} color={colors.primary} />;
+      return <ShieldCheck size={18} color={theme.colors.primary} />;
     case "settings":
-      return <Settings2 size={18} color={colors.primary} />;
+      return <Settings2 size={18} color={theme.colors.primary} />;
     case "notifications":
-      return <Bell size={18} color={colors.primary} />;
+      return <Bell size={18} color={theme.colors.primary} />;
     case "logout":
-      return <LogOut size={18} color={colors.destructive} />;
+      return <LogOut size={18} color={theme.colors.destructive} />;
     default:
-      return <User size={18} color={colors.primary} />;
+      return <User size={18} color={theme.colors.primary} />;
   }
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   sectionWrap: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   sectionTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterBold",
     letterSpacing: 0.7,
     textTransform: "uppercase",
@@ -137,40 +144,40 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   row: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   iconWrap: {
-    width: 34,
-    height: 34,
+    width: theme.scaleSpace(34),
+    height: theme.scaleSpace(34),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   rowBody: {
     flex: 1,
   },
   rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
-    marginBottom: 2,
+    marginBottom: theme.scaleSpace(2),
   },
   logoutTitle: {
-    color: colors.destructive,
-    fontSize: 14,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
-    marginBottom: 2,
+    marginBottom: theme.scaleSpace(2),
   },
   rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    lineHeight: theme.scaleLineHeight(17),
   },
 });

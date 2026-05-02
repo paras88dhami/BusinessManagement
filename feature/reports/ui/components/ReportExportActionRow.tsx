@@ -1,6 +1,6 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import {
   ReportExportAction,
@@ -9,6 +9,7 @@ import {
 import { FileText, Printer, Share2 } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type ReportExportActionRowProps = {
   canShareCsv: boolean;
@@ -27,6 +28,9 @@ export function ReportExportActionRow({
   onSharePdf,
   onPrint,
 }: ReportExportActionRowProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Card style={styles.container}>
       <View style={styles.headerRow}>
@@ -41,7 +45,7 @@ export function ReportExportActionRow({
           size="sm"
           style={styles.actionButton}
           labelStyle={styles.actionButtonLabel}
-          leadingIcon={<Share2 size={14} color={colors.primary} />}
+          leadingIcon={<Share2 size={14} color={theme.colors.primary} />}
           disabled={isExporting || !canShareCsv}
           isLoading={activeExportAction === ReportExportAction.ShareCsv}
           onPress={onShareCsv}
@@ -53,7 +57,7 @@ export function ReportExportActionRow({
           size="sm"
           style={styles.actionButton}
           labelStyle={styles.actionButtonLabel}
-          leadingIcon={<FileText size={14} color={colors.primary} />}
+          leadingIcon={<FileText size={14} color={theme.colors.primary} />}
           disabled={isExporting}
           isLoading={activeExportAction === ReportExportAction.SharePdf}
           onPress={onSharePdf}
@@ -65,7 +69,7 @@ export function ReportExportActionRow({
           size="sm"
           style={styles.actionButton}
           labelStyle={styles.actionButtonLabel}
-          leadingIcon={<Printer size={14} color={colors.primary} />}
+          leadingIcon={<Printer size={14} color={theme.colors.primary} />}
           disabled={isExporting}
           isLoading={activeExportAction === ReportExportAction.Print}
           onPress={onPrint}
@@ -75,34 +79,34 @@ export function ReportExportActionRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: {
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   headerRow: {
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   title: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   subtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 16,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    lineHeight: theme.scaleLineHeight(16),
   },
   actionsRow: {
     flexDirection: "row",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   actionButton: {
     flex: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: theme.scaleSpace(8),
   },
   actionButtonLabel: {
-    color: colors.primary,
-    fontSize: 12,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(12),
   },
 });

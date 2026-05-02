@@ -1,8 +1,9 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Card } from "@/shared/components/reusable/Cards/Card";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 export type TransactionTableRow = {
   id: string;
@@ -20,16 +21,17 @@ type TransactionTableProps = {
 
 const resolveAmountToneColor = (
   tone: TransactionTableRow["tone"],
+  theme: ReturnType<typeof useAppTheme>,
 ): string => {
   if (tone === "positive") {
-    return colors.success;
+    return theme.colors.success;
   }
 
   if (tone === "negative") {
-    return colors.destructive;
+    return theme.colors.destructive;
   }
 
-  return colors.cardForeground;
+  return theme.colors.cardForeground;
 };
 
 export function TransactionTable({
@@ -37,6 +39,9 @@ export function TransactionTable({
   emptyStateText,
   amountHeaderLabel = "Amount",
 }: TransactionTableProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Card style={styles.card}>
       <View style={styles.headerRow}>
@@ -65,7 +70,7 @@ export function TransactionTable({
             <Text
               style={[
                 styles.rowAmount,
-                { color: resolveAmountToneColor(row.tone) },
+                { color: resolveAmountToneColor(row.tone, theme) },
               ]}
             >
               {row.amount}
@@ -77,7 +82,7 @@ export function TransactionTable({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   card: {
     padding: 0,
     overflow: "hidden",
@@ -86,57 +91,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.muted,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm),
+    backgroundColor: theme.colors.muted,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
   },
   headerLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterBold",
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
   emptyStateRow: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md + 2,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md + 2),
   },
   emptyStateText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   dataRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm + 2),
   },
   rowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   rowBody: {
     flex: 1,
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   rowAmount: {
-    fontSize: 13,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
-    maxWidth: 130,
+    maxWidth: theme.scaleSpace(130),
     textAlign: "right",
   },
 });

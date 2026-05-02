@@ -12,9 +12,10 @@ import {
 import { EditablePersonalProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { ProfileField } from "./ProfileField";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type PersonalProfileSectionProps = {
   personalProfileForm: EditablePersonalProfile;
@@ -38,6 +39,8 @@ export function PersonalProfileSection({
   onUpdatePersonalProfileField,
   onSavePersonalProfile,
 }: PersonalProfileSectionProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [isPickingImage, setIsPickingImage] = React.useState(false);
   const profileImageUrl = personalProfileForm.profileImageUrl.trim();
 
@@ -75,7 +78,7 @@ export function PersonalProfileSection({
             style={styles.editTrigger}
             accessibilityRole="button"
           >
-            <PencilLine size={14} color={colors.primary} />
+            <PencilLine size={14} color={theme.colors.primary} />
             <Text style={styles.editLabel}>Edit</Text>
           </Pressable>
         ) : (
@@ -85,7 +88,7 @@ export function PersonalProfileSection({
               style={styles.actionTrigger}
               accessibilityRole="button"
             >
-              <X size={14} color={colors.destructive} />
+              <X size={14} color={theme.colors.destructive} />
               <Text style={styles.cancelLabel}>Cancel</Text>
             </Pressable>
             <Pressable
@@ -95,7 +98,7 @@ export function PersonalProfileSection({
               style={styles.actionTrigger}
               accessibilityRole="button"
             >
-              <Save size={14} color={colors.success} />
+              <Save size={14} color={theme.colors.success} />
               <Text style={styles.saveLabel}>Save</Text>
             </Pressable>
           </View>
@@ -113,7 +116,7 @@ export function PersonalProfileSection({
                 resizeMode="cover"
               />
             ) : (
-              <UserRound size={24} color={colors.mutedForeground} />
+              <UserRound size={24} color={theme.colors.mutedForeground} />
             )}
           </View>
 
@@ -129,7 +132,7 @@ export function PersonalProfileSection({
               accessibilityRole="button"
               disabled={!isPersonalEditing || isPickingImage}
             >
-              <Camera size={14} color={colors.primary} />
+              <Camera size={14} color={theme.colors.primary} />
               <Text style={styles.profileImageButtonLabel}>
                 {isPickingImage ? "Selecting..." : "Choose photo"}
               </Text>
@@ -161,7 +164,7 @@ export function PersonalProfileSection({
           numberOfLines={1}
           autoComplete={null}
           textContentType={null}
-          icon={<UserRound size={16} color={colors.mutedForeground} />}
+          icon={<UserRound size={16} color={theme.colors.mutedForeground} />}
           isLast={false}
         />
 
@@ -179,7 +182,7 @@ export function PersonalProfileSection({
           numberOfLines={1}
           autoComplete={null}
           textContentType={null}
-          icon={<Phone size={16} color={colors.mutedForeground} />}
+          icon={<Phone size={16} color={theme.colors.mutedForeground} />}
           isLast={false}
         />
 
@@ -197,7 +200,7 @@ export function PersonalProfileSection({
           numberOfLines={1}
           autoComplete="email"
           textContentType="emailAddress"
-          icon={<Mail size={16} color={colors.mutedForeground} />}
+          icon={<Mail size={16} color={theme.colors.mutedForeground} />}
           isLast={true}
         />
       </Card>
@@ -209,20 +212,20 @@ export function PersonalProfileSection({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   sectionWrap: {
-    marginTop: spacing.xs,
-    gap: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.xs),
+    gap: theme.scaleSpace(spacing.sm),
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   sectionTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     letterSpacing: 0.7,
     textTransform: "uppercase",
     fontFamily: "InterBold",
@@ -230,31 +233,31 @@ const styles = StyleSheet.create({
   editTrigger: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   editLabel: {
-    color: colors.primary,
-    fontSize: 12,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
   editingActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   actionTrigger: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   cancelLabel: {
-    color: colors.destructive,
-    fontSize: 12,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
   saveLabel: {
-    color: colors.success,
-    fontSize: 12,
+    color: theme.colors.success,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
   sectionCard: {
@@ -263,19 +266,19 @@ const styles = StyleSheet.create({
   profileImageRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   profileImagePreview: {
-    width: 52,
-    height: 52,
+    width: theme.scaleSpace(52),
+    height: theme.scaleSpace(52),
     borderRadius: radius.pill,
-    backgroundColor: colors.secondary,
+    backgroundColor: theme.colors.secondary,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -288,37 +291,37 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   profileImageButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(spacing.xs),
     borderRadius: radius.md,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   profileImageButtonDisabled: {
     opacity: 0.55,
   },
   profileImageButtonLabel: {
-    color: colors.primary,
-    fontSize: 12,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
   clearImageButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
+    paddingHorizontal: theme.scaleSpace(spacing.xs),
+    paddingVertical: theme.scaleSpace(4),
   },
   clearImageButtonLabel: {
-    color: colors.destructive,
-    fontSize: 12,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
   pendingText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
 });

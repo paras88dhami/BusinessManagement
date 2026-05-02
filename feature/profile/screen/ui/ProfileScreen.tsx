@@ -2,7 +2,7 @@ import { AccountType } from "@/feature/auth/accountSelection/types/accountSelect
 import { ProfileScreenViewModel } from "@/feature/profile/screen/viewModel/profileScreen.viewModel";
 import { PrimaryHeader } from "@/shared/components/reusable/ScreenLayouts/PrimaryHeader";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Building2, UserRound } from "lucide-react-native";
 import React from "react";
@@ -12,12 +12,15 @@ import { AccountSwitchSection } from "./sections/AccountSwitchSection";
 import { BusinessProfileSection } from "./sections/BusinessProfileSection";
 import { CreateBusinessProfileSection } from "./sections/CreateBusinessProfileSection";
 import { PersonalProfileSection } from "./sections/PersonalProfileSection";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type ProfileScreenProps = {
   viewModel: ProfileScreenViewModel;
 };
 
 export function ProfileScreen({ viewModel }: ProfileScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const isBusinessAccount =
     resolveActiveAccountType(
       viewModel.activeAccountTypeLabel,
@@ -44,7 +47,7 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
     >
       {viewModel.isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       ) : null}
@@ -76,9 +79,9 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
           ) : null}
           <View style={styles.heroAccountChip}>
             {isBusinessAccount ? (
-              <Building2 size={13} color={colors.primary} />
+              <Building2 size={13} color={theme.colors.primary} />
             ) : (
-              <UserRound size={13} color={colors.primary} />
+              <UserRound size={13} color={theme.colors.primary} />
             )}
             <Text style={styles.heroAccountChipText}>
               {isBusinessAccount
@@ -154,51 +157,51 @@ export function ProfileScreen({ viewModel }: ProfileScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
+    paddingTop: theme.scaleSpace(spacing.lg),
+    gap: theme.scaleSpace(spacing.md),
   },
   loadingWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(spacing.sm),
   },
   loadingText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     fontWeight: "500",
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 13,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
     fontWeight: "600",
   },
   successText: {
-    color: colors.success,
-    fontSize: 13,
+    color: theme.colors.success,
+    fontSize: theme.scaleText(13),
     fontWeight: "600",
   },
   heroWrap: {
     alignItems: "center",
-    gap: 4,
-    paddingVertical: spacing.sm,
+    gap: theme.scaleSpace(4),
+    paddingVertical: theme.scaleSpace(spacing.sm),
   },
   avatarCircle: {
-    width: 78,
-    height: 78,
+    width: theme.scaleSpace(78),
+    height: theme.scaleSpace(78),
     borderRadius: radius.pill,
     borderWidth: 2,
-    borderColor: "#A8CBB7",
-    backgroundColor: colors.accent,
+    borderColor: theme.isDarkMode ? "rgba(99, 211, 148, 0.32)" : "#A8CBB7",
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarLabel: {
-    color: colors.primary,
-    fontSize: 16,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(16),
     fontFamily: "InterBold",
   },
   avatarImage: {
@@ -207,29 +210,29 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   heroName: {
-    marginTop: spacing.xs,
-    color: colors.cardForeground,
-    fontSize: 14,
+    marginTop: theme.scaleSpace(spacing.xs),
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   heroEmail: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterMedium",
   },
   heroAccountChip: {
-    marginTop: spacing.xs,
+    marginTop: theme.scaleSpace(spacing.xs),
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    gap: theme.scaleSpace(6),
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(4),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   heroAccountChipText: {
-    color: colors.primary,
-    fontSize: 11,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterSemiBold",
   },
 });

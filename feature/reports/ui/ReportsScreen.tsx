@@ -4,7 +4,7 @@ import { REPORT_PERIOD_OPTIONS } from "@/feature/reports/types/report.state.type
 import { ReportsViewModel } from "@/feature/reports/viewModel/reports.viewModel";
 import { Card } from "@/shared/components/reusable/Cards/Card";
 import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGroup";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { spacing } from "@/shared/components/theme/spacing";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
 import { ArrowLeft } from "lucide-react-native";
@@ -14,6 +14,7 @@ import { isReportPeriodFilterable } from "../utils/reportPeriod.shared";
 import { ExportPreviewCard, ReportListItems, ReportMenuSections, ReportsSummaryRow } from "./components/ReportCards";
 import { DualLineChart, GroupedBarChart, LineAreaChart, SemiDonutChart, SingleBarChart } from "./components/ReportCharts";
 import { ReportExportActionRow } from "./components/ReportExportActionRow";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 const HOME_TAB_OPTIONS = [
   { value: ReportHomeTab.Overview, label: "Overview" },
@@ -27,6 +28,8 @@ type Props = {
 };
 
 export function ReportsScreen({ viewModel }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <DashboardTabScaffold
       footer={null}
@@ -44,6 +47,9 @@ export function ReportsScreen({ viewModel }: Props) {
 }
 
 function ReportsHomeView({ viewModel }: Props) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   const topSummary = viewModel.dashboard?.topSummary ?? {
     totalIncome: 0,
     totalExpense: 0,
@@ -83,11 +89,17 @@ function ReportsHomeView({ viewModel }: Props) {
         <View style={styles.heroMetricsRow}>
           <View style={styles.heroMetricBlock}>
             <Text style={styles.heroMetricLabel}>Total Income</Text>
-            <Text style={[styles.heroMetricValue, { color: colors.success }]}>{formattedTotalIncome}</Text>
+            <Text style={[styles.heroMetricValue, { color: theme.colors.success }]}>
+              {formattedTotalIncome}
+            </Text>
           </View>
           <View style={styles.heroMetricBlock}>
             <Text style={styles.heroMetricLabel}>Total Expense</Text>
-            <Text style={[styles.heroMetricValue, { color: colors.destructive }]}>{formattedTotalExpense}</Text>
+            <Text
+              style={[styles.heroMetricValue, { color: theme.colors.destructive }]}
+            >
+              {formattedTotalExpense}
+            </Text>
           </View>
         </View>
         <View style={styles.heroDivider} />
@@ -99,8 +111,8 @@ function ReportsHomeView({ viewModel }: Props) {
               {
                 color:
                   topSummary.netCashFlow >= 0
-                    ? colors.success
-                    : colors.destructive,
+                    ? theme.colors.success
+                    : theme.colors.destructive,
               },
             ]}
           >
@@ -174,6 +186,8 @@ function ReportsHomeView({ viewModel }: Props) {
 }
 
 function ReportDetailView({ viewModel }: Props) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const detail = viewModel.detail;
   if (!detail) {
     return null;
@@ -184,7 +198,7 @@ function ReportDetailView({ viewModel }: Props) {
   return (
     <View style={styles.screenGap}>
       <Pressable style={styles.backRow} onPress={viewModel.onBackToReports}>
-        <ArrowLeft size={18} color={colors.primary} />
+        <ArrowLeft size={18} color={theme.colors.primary} />
         <Text style={styles.backText}>Back to Reports</Text>
       </Pressable>
 
@@ -231,7 +245,11 @@ function ReportDetailView({ viewModel }: Props) {
         {detail.chartKind === "bars" && detail.barSeries ? (
           <SingleBarChart
             data={detail.barSeries}
-            color={detail.reportId === "payment_report" ? colors.destructive : colors.success}
+            color={
+              detail.reportId === "payment_report"
+                ? theme.colors.destructive
+                : theme.colors.success
+            }
           />
         ) : null}
         {detail.chartKind === "dual-line" && detail.dualSeries ? <DualLineChart data={detail.dualSeries} /> : null}
@@ -247,6 +265,8 @@ function ReportDetailView({ viewModel }: Props) {
 }
 
 function ErrorCard({ message }: { message: string }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Card style={styles.errorCard}>
       <Text style={styles.errorTitle}>Unable to load report</Text>
@@ -255,16 +275,16 @@ function ErrorCard({ message }: { message: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   contentContainer: {
-    gap: spacing.md,
+    gap: theme.scaleSpace(spacing.md),
   },
   screenGap: {
-    gap: spacing.md,
+    gap: theme.scaleSpace(spacing.md),
   },
   heroCard: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingVertical: theme.scaleSpace(spacing.md),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
   },
   heroHeaderRow: {
     flexDirection: "row",
@@ -272,91 +292,91 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroTitle: {
-    color: colors.cardForeground,
-    fontSize: 17,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(17),
     fontFamily: "InterBold",
   },
   heroDate: {
-    color: colors.primary,
-    fontSize: 14,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   heroMetricsRow: {
-    marginTop: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.sm),
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   heroMetricBlock: {
     flex: 1,
   },
   heroMetricLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   heroMetricValue: {
-    marginTop: 8,
-    fontSize: 18,
+    marginTop: theme.scaleSpace(8),
+    fontSize: theme.scaleText(18),
     fontFamily: "InterBold",
   },
   heroDivider: {
-    marginTop: spacing.md,
+    marginTop: theme.scaleSpace(spacing.md),
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: theme.colors.border,
   },
   netRow: {
-    marginTop: spacing.md,
+    marginTop: theme.scaleSpace(spacing.md),
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   netLabel: {
-    color: colors.mutedForeground,
-    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(14),
   },
   netValue: {
-    fontSize: 18,
+    fontSize: theme.scaleText(18),
     fontFamily: "InterBold",
   },
   chartCard: {
-    paddingVertical: spacing.md,
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   chartTitle: {
-    color: colors.cardForeground,
-    fontSize: 17,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(17),
     fontFamily: "InterBold",
-    marginBottom: 4,
+    marginBottom: theme.scaleSpace(4),
   },
   chartSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: spacing.sm,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    marginBottom: theme.scaleSpace(spacing.sm),
   },
   backRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   backText: {
-    color: colors.primary,
-    fontSize: 15,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
   },
   permissionHint: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   errorCard: {
-    backgroundColor: "#FFF6F6",
-    borderColor: "#F4D0D0",
+    backgroundColor: theme.isDarkMode ? "rgba(228, 71, 71, 0.12)" : "#FFF6F6",
+    borderColor: theme.isDarkMode ? "rgba(228, 71, 71, 0.25)" : "#F4D0D0",
   },
   errorTitle: {
-    color: colors.destructive,
-    fontSize: 14,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   errorMessage: {
-    marginTop: 6,
-    color: colors.mutedForeground,
-    fontSize: 12,
+    marginTop: theme.scaleSpace(6),
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
 });

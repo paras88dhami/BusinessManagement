@@ -14,10 +14,11 @@ import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
 import { InlineSectionHeader } from "@/shared/components/reusable/ScreenLayouts/InlineSectionHeader";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { InventoryMovementModal } from "./components/InventoryMovementModal";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type InventoryScreenProps = {
   viewModel: InventoryViewModel;
@@ -69,6 +70,8 @@ const formatMovementTypeLabel = (movementType: string, reason: string | null): s
 };
 
 export function InventoryScreen({ viewModel }: InventoryScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const lowStockItems = viewModel.stockItems.filter((item) => item.isLowStock);
 
   return (
@@ -82,7 +85,12 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                 variant="primary"
                 size="lg"
                 style={styles.footerActionButton}
-                leadingIcon={<ArrowDownLeft size={18} color={colors.primaryForeground} />}
+                leadingIcon={
+                  <ArrowDownLeft
+                    size={18}
+                    color={theme.colors.primaryForeground}
+                  />
+                }
                 onPress={viewModel.onOpenStockIn}
                 disabled={!viewModel.canManage}
               />
@@ -91,7 +99,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                 variant="secondary"
                 size="lg"
                 style={styles.footerActionButton}
-                leadingIcon={<ArrowUpRight size={18} color={colors.primary} />}
+                leadingIcon={<ArrowUpRight size={18} color={theme.colors.primary} />}
                 onPress={viewModel.onOpenAdjustment}
                 disabled={!viewModel.canManage}
               />
@@ -104,18 +112,18 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
       >
         <View style={styles.summaryRow}>
           <StatCard
-            icon={<Package size={18} color={colors.primary} />}
+            icon={<Package size={18} color={theme.colors.primary} />}
             value={String(viewModel.summary.totalProducts)}
             label="Products"
           />
           <StatCard
-            icon={<AlertTriangle size={18} color={colors.warning} />}
+            icon={<AlertTriangle size={18} color={theme.colors.warning} />}
             value={String(viewModel.summary.lowStockCount)}
             label="Low Stock"
-            valueColor={colors.warning}
+            valueColor={theme.colors.warning}
           />
           <StatCard
-            icon={<Boxes size={18} color={colors.primary} />}
+            icon={<Boxes size={18} color={theme.colors.primary} />}
             value={formatCurrencyAmount({
               amount: viewModel.summary.stockValue,
               currencyCode: viewModel.currencyCode,
@@ -128,7 +136,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
         {lowStockItems.length > 0 ? (
           <View style={styles.bannerCard}>
             <View style={styles.bannerIconWrap}>
-              <AlertTriangle size={18} color={colors.warning} />
+              <AlertTriangle size={18} color={theme.colors.warning} />
             </View>
             <View style={styles.bannerBody}>
               <Text style={styles.bannerTitle}>{`${lowStockItems.length} items low on stock`}</Text>
@@ -139,7 +147,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
 
         {viewModel.isLoading ? (
           <View style={styles.centerState}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={theme.colors.primary} />
           </View>
         ) : viewModel.errorMessage ? (
           <View style={styles.centerState}>
@@ -164,7 +172,7 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                     ]}
                   >
                     <View style={styles.itemIconWrap}>
-                      <Boxes size={18} color={colors.primary} />
+                      <Boxes size={18} color={theme.colors.primary} />
                     </View>
 
                     <View style={styles.stockBody}>
@@ -219,9 +227,12 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
                         ]}
                       >
                         {isPositiveMovement ? (
-                          <ArrowDownLeft size={18} color={colors.success} />
+                          <ArrowDownLeft size={18} color={theme.colors.success} />
                         ) : (
-                          <ArrowUpRight size={18} color={colors.destructive} />
+                          <ArrowUpRight
+                            size={18}
+                            color={theme.colors.destructive}
+                          />
                         )}
                       </View>
 
@@ -270,156 +281,156 @@ export function InventoryScreen({ viewModel }: InventoryScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   content: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   summaryRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   bannerCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: "#F7F0E1",
-    borderColor: "#E8D6A7",
+    gap: theme.scaleSpace(spacing.sm),
+    backgroundColor: theme.isDarkMode ? "rgba(245, 158, 11, 0.12)" : "#F7F0E1",
+    borderColor: theme.isDarkMode ? "rgba(245, 158, 11, 0.25)" : "#E8D6A7",
     borderWidth: 1,
     borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   bannerIconWrap: {
-    width: 34,
-    height: 34,
+    width: theme.scaleSpace(34),
+    height: theme.scaleSpace(34),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF6DA",
+    backgroundColor: theme.isDarkMode ? "rgba(245, 158, 11, 0.18)" : "#FFF6DA",
   },
   bannerBody: {
     flex: 1,
   },
   bannerTitle: {
-    color: colors.cardForeground,
+    color: theme.colors.cardForeground,
     fontFamily: "InterBold",
-    fontSize: 15,
-    marginBottom: 2,
+    fontSize: theme.scaleText(15),
+    marginBottom: theme.scaleSpace(2),
   },
   bannerSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
   },
   tableContainer: {
-    backgroundColor: colors.card,
+    backgroundColor: theme.colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     overflow: "hidden",
   },
   stockRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 13,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(13),
   },
   stockRowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   itemIconWrap: {
-    width: 40,
-    height: 40,
+    width: theme.scaleSpace(40),
+    height: theme.scaleSpace(40),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   positiveIcon: {
-    backgroundColor: "#E7F6EC",
+    backgroundColor: theme.isDarkMode ? "rgba(99, 211, 148, 0.16)" : "#E7F6EC",
   },
   negativeIcon: {
-    backgroundColor: "#FBE9E9",
+    backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.16)" : "#FBE9E9",
   },
   stockBody: {
     flex: 1,
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   itemTitle: {
-    color: colors.cardForeground,
+    color: theme.colors.cardForeground,
     fontFamily: "InterBold",
-    fontSize: 14,
+    fontSize: theme.scaleText(14),
   },
   itemSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   stockValueWrap: {
     alignItems: "flex-end",
-    gap: 4,
-    maxWidth: 140,
+    gap: theme.scaleSpace(4),
+    maxWidth: theme.scaleSpace(140),
   },
   valueText: {
-    color: colors.cardForeground,
+    color: theme.colors.cardForeground,
     fontFamily: "InterBold",
-    fontSize: 13,
+    fontSize: theme.scaleText(13),
   },
   lowStockBadge: {
     borderRadius: radius.pill,
-    backgroundColor: "#FBEDEB",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.16)" : "#FBEDEB",
+    paddingHorizontal: theme.scaleSpace(8),
+    paddingVertical: theme.scaleSpace(3),
   },
   lowStockBadgeText: {
-    color: colors.destructive,
-    fontSize: 10,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(10),
     fontFamily: "InterMedium",
   },
   movementRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 13,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(13),
   },
   movementRowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   deltaText: {
     fontFamily: "InterBold",
-    fontSize: 13,
+    fontSize: theme.scaleText(13),
   },
   deltaPositive: {
-    color: colors.success,
+    color: theme.colors.success,
   },
   deltaNegative: {
-    color: colors.destructive,
+    color: theme.colors.destructive,
   },
   footerActionRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   footerActionButton: {
     flex: 1,
   },
   centerState: {
-    minHeight: 180,
+    minHeight: theme.scaleSpace(180),
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 13,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
   },
   emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: theme.scaleLineHeight(20),
   },
 });
 

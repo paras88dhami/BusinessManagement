@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Briefcase, ChevronRight, Sparkles, User } from "lucide-react-native";
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { CardPressable } from "@/shared/components/reusable/Cards/Card";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { AccountType } from "../types/accountSelection.types";
@@ -32,6 +33,15 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
     onConfirmSelection,
     onBackToLogin,
   } = viewModel;
+
+  useToastMessage({
+    message: submitError,
+    type: "error",
+  });
+  useToastMessage({
+    message: successMessage,
+    type: "success",
+  });
 
   const canSubmit = useMemo(() => {
     return (
@@ -111,11 +121,6 @@ export function AccountSelectionScreen({ viewModel }: AccountSelectionScreenProp
           <Text style={styles.emptyStateText}>
             No accounts available for this profile. Please sign in again.
           </Text>
-        ) : null}
-
-        {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
-        {successMessage ? (
-          <Text style={styles.successText}>{successMessage}</Text>
         ) : null}
 
         <AppButton
@@ -254,16 +259,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: spacing.md,
-  },
-  errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
-  },
-  successText: {
-    color: colors.success,
-    fontSize: 13,
-    fontFamily: "InterSemiBold",
   },
   primaryButton: {
     marginTop: spacing.md,

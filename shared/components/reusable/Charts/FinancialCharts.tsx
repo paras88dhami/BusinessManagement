@@ -7,8 +7,9 @@ import Svg, {
   Rect,
   Text as SvgText,
 } from "react-native-svg";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 export type ChartSeriesPoint = {
   label: string;
@@ -121,6 +122,8 @@ const normalizePoints = (
 };
 
 function EmptyChartState({ label }: { label: string }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.emptyChartState}>
       <Text style={styles.emptyChartStateText}>{label}</Text>
@@ -135,6 +138,8 @@ export function LineAreaChart({
   data: readonly ChartSeriesPoint[];
   currencyPrefix?: string;
 }) {
+  const theme = useAppTheme();
+
   if (data.length === 0) {
     return <EmptyChartState label="No chart data available." />;
   }
@@ -163,10 +168,15 @@ export function LineAreaChart({
                 y1={y}
                 x2={CHART_WIDTH - PADDING_X}
                 y2={y}
-                stroke={colors.border}
+                stroke={theme.colors.border}
                 strokeDasharray="4 4"
               />
-              <SvgText x={10} y={y + 4} fontSize={10} fill={colors.mutedForeground}>
+              <SvgText
+                x={10}
+                y={y + 4}
+                fontSize={10}
+                fill={theme.colors.mutedForeground}
+              >
                 {formatCompactValue(label, currencyPrefix)}
               </SvgText>
             </React.Fragment>
@@ -177,7 +187,7 @@ export function LineAreaChart({
           y1={baselineY}
           x2={CHART_WIDTH - PADDING_X}
           y2={baselineY}
-          stroke={colors.mutedForeground}
+          stroke={theme.colors.mutedForeground}
           strokeWidth={1}
         />
         {normalized.map((point, index) => (
@@ -186,21 +196,29 @@ export function LineAreaChart({
             x={point.x - 8}
             y={CHART_HEIGHT - 2}
             fontSize={10}
-            fill={colors.mutedForeground}
+            fill={theme.colors.mutedForeground}
           >
             {data[index]?.label}
           </SvgText>
         ))}
-        <Path d={buildAreaPath(normalized, baselineY)} fill="rgba(31, 99, 64, 0.14)" />
-        <Path d={buildLinePath(normalized)} stroke={colors.success} strokeWidth={3} fill="none" />
+        <Path
+          d={buildAreaPath(normalized, baselineY)}
+          fill={theme.isDarkMode ? "rgba(99, 211, 148, 0.18)" : "rgba(31, 99, 64, 0.14)"}
+        />
+        <Path
+          d={buildLinePath(normalized)}
+          stroke={theme.colors.success}
+          strokeWidth={3}
+          fill="none"
+        />
         {normalized.map((point, index) => (
           <Circle
             key={data[index]?.label ?? `point-${index}`}
             cx={point.x}
             cy={point.y}
             r={4}
-            fill={colors.success}
-            stroke={colors.card}
+            fill={theme.colors.success}
+            stroke={theme.colors.card}
             strokeWidth={2}
           />
         ))}
@@ -214,6 +232,9 @@ export function GroupedBarChart({
 }: {
   data: readonly ChartDualSeriesPoint[];
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   if (data.length === 0) {
     return <EmptyChartState label="No chart data available." />;
   }
@@ -242,7 +263,7 @@ export function GroupedBarChart({
               y1={y}
               x2={CHART_WIDTH - PADDING_X}
               y2={y}
-              stroke={colors.border}
+              stroke={theme.colors.border}
               strokeDasharray="4 4"
             />
           );
@@ -259,7 +280,7 @@ export function GroupedBarChart({
                 width={barWidth}
                 height={primaryHeight}
                 rx={6}
-                fill={colors.success}
+                fill={theme.colors.success}
               />
               <Rect
                 x={groupX + groupWidth * 0.56}
@@ -267,13 +288,13 @@ export function GroupedBarChart({
                 width={barWidth}
                 height={secondaryHeight}
                 rx={6}
-                fill={colors.destructive}
+                fill={theme.colors.destructive}
               />
               <SvgText
                 x={groupX + groupWidth * 0.3}
                 y={CHART_HEIGHT - 2}
                 fontSize={10}
-                fill={colors.mutedForeground}
+                fill={theme.colors.mutedForeground}
               >
                 {point.label}
               </SvgText>
@@ -283,12 +304,17 @@ export function GroupedBarChart({
       </Svg>
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: theme.colors.success }]}
+          />
           <Text style={styles.legendText}>Income</Text>
         </View>
         <View style={styles.legendItem}>
           <View
-            style={[styles.legendDot, { backgroundColor: colors.destructive }]}
+            style={[
+              styles.legendDot,
+              { backgroundColor: theme.colors.destructive },
+            ]}
           />
           <Text style={styles.legendText}>Expense</Text>
         </View>
@@ -302,6 +328,9 @@ export function DualLineChart({
 }: {
   data: readonly ChartDualSeriesPoint[];
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   if (data.length === 0) {
     return <EmptyChartState label="No chart data available." />;
   }
@@ -345,7 +374,7 @@ export function DualLineChart({
               y1={y}
               x2={CHART_WIDTH - PADDING_X}
               y2={y}
-              stroke={colors.border}
+              stroke={theme.colors.border}
               strokeDasharray="4 4"
             />
           );
@@ -356,27 +385,37 @@ export function DualLineChart({
             x={primary[index].x - 8}
             y={CHART_HEIGHT - 2}
             fontSize={10}
-            fill={colors.mutedForeground}
+            fill={theme.colors.mutedForeground}
           >
             {point.label}
           </SvgText>
         ))}
-        <Path d={buildLinePath(primary)} stroke={colors.success} strokeWidth={3} fill="none" />
+        <Path
+          d={buildLinePath(primary)}
+          stroke={theme.colors.success}
+          strokeWidth={3}
+          fill="none"
+        />
         <Path
           d={buildLinePath(secondary)}
-          stroke={colors.destructive}
+          stroke={theme.colors.destructive}
           strokeWidth={3}
           fill="none"
         />
       </Svg>
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: theme.colors.success }]}
+          />
           <Text style={styles.legendText}>Inflow</Text>
         </View>
         <View style={styles.legendItem}>
           <View
-            style={[styles.legendDot, { backgroundColor: colors.destructive }]}
+            style={[
+              styles.legendDot,
+              { backgroundColor: theme.colors.destructive },
+            ]}
           />
           <Text style={styles.legendText}>Outflow</Text>
         </View>
@@ -392,6 +431,8 @@ export function SingleBarChart({
   data: readonly ChartSeriesPoint[];
   color: string;
 }) {
+  const theme = useAppTheme();
+
   if (data.length === 0) {
     return <EmptyChartState label="No chart data available." />;
   }
@@ -417,7 +458,7 @@ export function SingleBarChart({
               y1={y}
               x2={CHART_WIDTH - PADDING_X}
               y2={y}
-              stroke={colors.border}
+              stroke={theme.colors.border}
               strokeDasharray="4 4"
             />
           );
@@ -439,7 +480,7 @@ export function SingleBarChart({
                 x={groupX + groupWidth * 0.33}
                 y={CHART_HEIGHT - 2}
                 fontSize={10}
-                fill={colors.mutedForeground}
+                fill={theme.colors.mutedForeground}
               >
                 {point.label}
               </SvgText>
@@ -458,6 +499,9 @@ export function SemiDonutChart({
   segments: readonly ChartSegment[];
   currencyPrefix?: string;
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   if (segments.length === 0) {
     return <EmptyChartState label="No chart data available." />;
   }
@@ -483,7 +527,7 @@ export function SemiDonutChart({
             startAngle: Math.PI,
             endAngle: 2 * Math.PI,
           })}
-          stroke={colors.border}
+          stroke={theme.colors.border}
           strokeWidth={18}
           fill="none"
           strokeLinecap="round"
@@ -520,55 +564,55 @@ export function SemiDonutChart({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   emptyChartState: {
-    minHeight: 120,
+    minHeight: theme.scaleSpace(120),
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
   },
   emptyChartStateText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     textAlign: "center",
   },
   legendRow: {
-    marginTop: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.sm),
     flexDirection: "row",
     justifyContent: "center",
-    gap: spacing.md,
+    gap: theme.scaleSpace(spacing.md),
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   legendDot: {
-    width: 10,
-    height: 10,
+    width: theme.scaleSpace(10),
+    height: theme.scaleSpace(10),
     borderRadius: radius.pill,
   },
   legendText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   segmentList: {
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   segmentItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   segmentLabel: {
     flex: 1,
-    color: colors.cardForeground,
-    fontSize: 12,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   segmentValue: {
-    color: colors.cardForeground,
-    fontSize: 12,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterBold",
   },
 });

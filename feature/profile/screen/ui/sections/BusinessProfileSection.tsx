@@ -18,9 +18,10 @@ import { Card } from "@/shared/components/reusable/Cards/Card";
 import { Dropdown, DropdownOption } from "@/shared/components/reusable/DropDown/Dropdown";
 import { EditableBusinessProfile } from "@/feature/profile/screen/types/profileScreen.types";
 import { ProfileField } from "./ProfileField";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { pickImageFromLibrary } from "@/shared/utils/media/pickImage";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type BusinessProfileSectionProps = {
   activeBusinessProfileForm: EditableBusinessProfile;
@@ -52,6 +53,8 @@ export function BusinessProfileSection({
   onUpdateBusinessProfileField,
   onSaveBusinessProfile,
 }: BusinessProfileSectionProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPickingLogo, setIsPickingLogo] = useState(false);
   const businessLogoUrl = activeBusinessProfileForm.businessLogoUrl.trim();
@@ -111,7 +114,7 @@ export function BusinessProfileSection({
             style={styles.editTrigger}
             accessibilityRole="button"
           >
-            <PencilLine size={14} color={colors.primary} />
+            <PencilLine size={14} color={theme.colors.primary} />
             <Text style={styles.editLabel}>
               {hasActiveBusinessProfile ? "Edit" : "Set up"}
             </Text>
@@ -123,7 +126,7 @@ export function BusinessProfileSection({
               style={styles.actionTrigger}
               accessibilityRole="button"
             >
-              <X size={14} color={colors.destructive} />
+              <X size={14} color={theme.colors.destructive} />
               <Text style={styles.cancelLabel}>Cancel</Text>
             </Pressable>
             <Pressable
@@ -133,7 +136,7 @@ export function BusinessProfileSection({
               style={styles.actionTrigger}
               accessibilityRole="button"
             >
-              <Save size={14} color={colors.success} />
+              <Save size={14} color={theme.colors.success} />
               <Text style={styles.saveLabel}>Save</Text>
             </Pressable>
           </View>
@@ -152,7 +155,7 @@ export function BusinessProfileSection({
                 resizeMode="cover"
               />
             ) : (
-              <Building2 size={22} color={colors.mutedForeground} />
+              <Building2 size={22} color={theme.colors.mutedForeground} />
             )}
           </View>
 
@@ -168,7 +171,7 @@ export function BusinessProfileSection({
               accessibilityRole="button"
               disabled={!isBusinessEditing || isPickingLogo}
             >
-              <Camera size={14} color={colors.primary} />
+              <Camera size={14} color={theme.colors.primary} />
               <Text style={styles.logoButtonText}>
                 {isPickingLogo ? "Selecting..." : "Choose logo"}
               </Text>
@@ -200,7 +203,7 @@ export function BusinessProfileSection({
           numberOfLines={1}
           autoComplete={null}
           textContentType={null}
-          icon={<Building2 size={16} color={colors.mutedForeground} />}
+          icon={<Building2 size={16} color={theme.colors.mutedForeground} />}
           isLast={false}
         />
 
@@ -218,7 +221,7 @@ export function BusinessProfileSection({
           numberOfLines={1}
           autoComplete={null}
           textContentType={null}
-          icon={<Phone size={16} color={colors.mutedForeground} />}
+          icon={<Phone size={16} color={theme.colors.mutedForeground} />}
           isLast={false}
         />
 
@@ -236,7 +239,7 @@ export function BusinessProfileSection({
           numberOfLines={1}
           autoComplete="email"
           textContentType="emailAddress"
-          icon={<Mail size={16} color={colors.mutedForeground} />}
+          icon={<Mail size={16} color={theme.colors.mutedForeground} />}
           isLast={false}
         />
 
@@ -254,7 +257,7 @@ export function BusinessProfileSection({
           numberOfLines={1}
           autoComplete={null}
           textContentType={null}
-          icon={<MapPin size={16} color={colors.mutedForeground} />}
+          icon={<MapPin size={16} color={theme.colors.mutedForeground} />}
           isLast={!isExpanded}
         />
 
@@ -273,7 +276,7 @@ export function BusinessProfileSection({
             numberOfLines={2}
             autoComplete={null}
             textContentType={null}
-            icon={<MapPin size={16} color={colors.mutedForeground} />}
+            icon={<MapPin size={16} color={theme.colors.mutedForeground} />}
             isLast={false}
           />
         ) : null}
@@ -293,7 +296,7 @@ export function BusinessProfileSection({
             numberOfLines={1}
             autoComplete={null}
             textContentType={null}
-            icon={<Shield size={16} color={colors.mutedForeground} />}
+            icon={<Shield size={16} color={theme.colors.mutedForeground} />}
             isLast={true}
           />
         ) : null}
@@ -301,7 +304,7 @@ export function BusinessProfileSection({
         {isExpanded ? (
           <View style={styles.businessTypeRow}>
             <View style={styles.rowIconWrap}>
-              <Store size={16} color={colors.mutedForeground} />
+              <Store size={16} color={theme.colors.mutedForeground} />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowLabel}>Business Type</Text>
@@ -330,7 +333,7 @@ export function BusinessProfileSection({
         {isExpanded ? (
           <View style={[styles.businessTypeRow, styles.lastRow]}>
             <View style={styles.rowIconWrap}>
-              <CalendarDays size={16} color={colors.mutedForeground} />
+              <CalendarDays size={16} color={theme.colors.mutedForeground} />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowLabel}>Established</Text>
@@ -354,7 +357,7 @@ export function BusinessProfileSection({
         </Text>
         <ChevronDown
           size={14}
-          color={colors.primary}
+          color={theme.colors.primary}
           style={isExpanded ? styles.seeMoreChevronOpen : undefined}
         />
       </Pressable>
@@ -366,171 +369,109 @@ export function BusinessProfileSection({
   );
 }
 
-const styles = StyleSheet.create({
-  sectionWrap: {
-    marginTop: spacing.xs,
-    gap: spacing.sm,
-  },
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
+  sectionWrap: { marginTop: theme.scaleSpace(spacing.xs), gap: theme.scaleSpace(spacing.sm) },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   sectionTitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     letterSpacing: 0.7,
     textTransform: "uppercase",
     fontFamily: "InterBold",
   },
-  editTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  editLabel: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  editingActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  actionTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  cancelLabel: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  saveLabel: {
-    color: colors.success,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
+  editTrigger: { flexDirection: "row", alignItems: "center", gap: theme.scaleSpace(spacing.xs) },
+  editLabel: { color: theme.colors.primary, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
+  editingActions: { flexDirection: "row", alignItems: "center", gap: theme.scaleSpace(spacing.sm) },
+  actionTrigger: { flexDirection: "row", alignItems: "center", gap: theme.scaleSpace(spacing.xs) },
+  cancelLabel: { color: theme.colors.destructive, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
+  saveLabel: { color: theme.colors.success, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
   readOnlyBadge: {
-    color: colors.mutedForeground,
-    fontSize: 11,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterSemiBold",
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
-  sectionCard: {
-    padding: 0,
-  },
+  sectionCard: { padding: 0 },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   logoPreview: {
-    width: 52,
-    height: 52,
+    width: theme.scaleSpace(52),
+    height: theme.scaleSpace(52),
     borderRadius: radius.md,
-    backgroundColor: colors.secondary,
+    backgroundColor: theme.colors.secondary,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  logoImage: {
-    width: "100%",
-    height: "100%",
-  },
+  logoImage: { width: "100%", height: "100%" },
   logoActions: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   logoButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(spacing.xs),
     borderRadius: radius.md,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
-  logoButtonDisabled: {
-    opacity: 0.55,
-  },
-  logoButtonText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  logoClearButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
-  },
-  logoClearText: {
-    color: colors.destructive,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
+  logoButtonDisabled: { opacity: 0.55 },
+  logoButtonText: { color: theme.colors.primary, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
+  logoClearButton: { paddingHorizontal: theme.scaleSpace(spacing.xs), paddingVertical: theme.scaleSpace(4) },
+  logoClearText: { color: theme.colors.destructive, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
   seeMoreButton: {
     alignSelf: "flex-start",
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
+    marginTop: theme.scaleSpace(spacing.xs),
+    marginLeft: theme.scaleSpace(spacing.xs),
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
+    gap: theme.scaleSpace(4),
+    paddingHorizontal: theme.scaleSpace(spacing.xs),
+    paddingVertical: theme.scaleSpace(4),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
-  seeMoreText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
-  seeMoreChevronOpen: {
-    transform: [{ rotate: "180deg" }],
-  },
+  seeMoreText: { color: theme.colors.primary, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
+  seeMoreChevronOpen: { transform: [{ rotate: "180deg" }] },
   businessTypeRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(12),
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
-  rowIconWrap: {
-    marginTop: 3,
-    width: 20,
-    alignItems: "center",
-  },
-  rowContent: {
-    flex: 1,
-    gap: 2,
-  },
-  rowLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterMedium",
-  },
+  rowIconWrap: { marginTop: theme.scaleSpace(3), width: theme.scaleSpace(20), alignItems: "center" },
+  rowContent: { flex: 1, gap: theme.scaleSpace(2) },
+  rowLabel: { color: theme.colors.mutedForeground, fontSize: theme.scaleText(12), fontFamily: "InterMedium" },
   rowValue: {
-    color: colors.cardForeground,
-    fontSize: 14,
-    lineHeight: 20,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
+    lineHeight: theme.scaleLineHeight(20),
     fontFamily: "InterSemiBold",
   },
   dropdownTrigger: {
-    minHeight: 34,
+    minHeight: theme.scaleSpace(34),
     borderWidth: 0,
     borderRadius: radius.sm,
     backgroundColor: "transparent",
@@ -538,16 +479,10 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   dropdownTriggerText: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterSemiBold",
   },
-  lastRow: {
-    borderBottomWidth: 0,
-  },
-  pendingText: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: "InterSemiBold",
-  },
+  lastRow: { borderBottomWidth: 0 },
+  pendingText: { color: theme.colors.mutedForeground, fontSize: theme.scaleText(12), fontFamily: "InterSemiBold" },
 });

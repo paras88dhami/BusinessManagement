@@ -1,8 +1,9 @@
 import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { AppIconButton } from "@/shared/components/reusable/Buttons/AppIconButton";
 import { Card } from "@/shared/components/reusable/Cards/Card";
+import { useToastMessage } from "@/shared/components/reusable/Feedback/useToastMessage";
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
     History,
@@ -15,7 +16,6 @@ import {
     WalletCards,
 } from "lucide-react-native";
 import React from "react";
-import Toast from "react-native-toast-message";
 import {
     Platform,
     Pressable,
@@ -25,6 +25,7 @@ import {
     TextInput,
     View,
 } from "react-native";
+import { Status } from "@/shared/types/status.types";
 import { PosProduct } from "../types/pos.entity.types";
 import type { PosScreenCoordinatorViewModel } from "../viewModel/posScreenCoordinator.viewModel";
 import { PosCustomerCreateModal } from "./components/PosCustomerCreateModal";
@@ -36,12 +37,15 @@ import { PosReceiptModal } from "./PosReceiptModal";
 import { PosSaleHistory } from "./PosSaleHistory";
 import { formatCurrency } from "./posScreen.shared";
 import { PosSplitBillModal } from "./PosSplitBillModal";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type PosScreenProps = {
   viewModel: PosScreenCoordinatorViewModel;
 };
 
 export function PosScreen({ viewModel }: PosScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const catalog = viewModel.catalog;
   const cart = viewModel.cart;
   const customer = viewModel.customer;
@@ -50,47 +54,14 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   const receipt = viewModel.receipt;
   const saleHistory = viewModel.saleHistory;
 
-  const lastToastMessageRef = React.useRef<string | null>(null);
-
-  React.useEffect(() => {
-    if (!viewModel.infoMessage && !viewModel.errorMessage) {
-      lastToastMessageRef.current = null;
-    }
-  }, [viewModel.infoMessage, viewModel.errorMessage]);
-
-  React.useEffect(() => {
-    if (!viewModel.infoMessage) {
-      return;
-    }
-
-    if (lastToastMessageRef.current === viewModel.infoMessage) {
-      return;
-    }
-
-    lastToastMessageRef.current = viewModel.infoMessage;
-
-    Toast.show({
-      type: "success",
-      text1: viewModel.infoMessage,
-    });
-  }, [viewModel.infoMessage]);
-
-  React.useEffect(() => {
-    if (!viewModel.errorMessage) {
-      return;
-    }
-
-    if (lastToastMessageRef.current === viewModel.errorMessage) {
-      return;
-    }
-
-    lastToastMessageRef.current = viewModel.errorMessage;
-
-    Toast.show({
-      type: "error",
-      text1: viewModel.errorMessage,
-    });
-  }, [viewModel.errorMessage]);
+  useToastMessage({
+    message: viewModel.infoMessage,
+    type: "success",
+  });
+  useToastMessage({
+    message: viewModel.status === Status.Failure ? null : viewModel.errorMessage,
+    type: "error",
+  });
 
   return (
     <>
@@ -98,6 +69,10 @@ export function PosScreen({ viewModel }: PosScreenProps) {
         showDivider={false}
         contentContainerStyle={styles.contentContainer}
       >
+        {viewModel.status === Status.Failure && viewModel.errorMessage ? (
+          <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
+        ) : null}
+
         <Card style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderLeft}>
@@ -114,11 +89,11 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                   }}
                   accessibilityLabel="View sale history"
                 >
-                  <History size={20} color={colors.mutedForeground} />
+                  <History size={20} color={theme.colors.mutedForeground} />
                 </AppIconButton>
               ) : null}
               <AppIconButton onPress={catalog.onOpenCreateProductModal}>
-                <PlusCircle size={20} color={colors.primary} />
+                <PlusCircle size={20} color={theme.colors.primary} />
               </AppIconButton>
             </View>
           </View>
@@ -130,7 +105,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                 void catalog.onProductSearchChange(value)
               }
               placeholder="Search products..."
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.mutedForeground}
               style={styles.searchInput}
             />
           </View>
@@ -206,7 +181,10 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                       )}
                     </Text>
                     <View style={styles.productAddButton}>
-                      <Plus size={16} color={colors.primary} />
+                      <Plus
+                        size={16}
+                        color={theme.colors.primaryForeground}
+                      />
                     </View>
                   </Pressable>
                 ))}
@@ -259,7 +237,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                       void cart.onDecreaseQuantity(cartLine.lineId);
                     }}
                   >
-                    <Minus size={14} color={colors.mutedForeground} />
+                    <Minus size={14} color={theme.colors.mutedForeground} />
                   </AppIconButton>
                   <Text style={styles.cartLineQty}>{cartLine.quantity}</Text>
                   <AppIconButton
@@ -267,7 +245,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                       void cart.onIncreaseQuantity(cartLine.lineId);
                     }}
                   >
-                    <Plus size={14} color={colors.mutedForeground} />
+                    <Plus size={14} color={theme.colors.mutedForeground} />
                   </AppIconButton>
                 </View>
                 <Text style={styles.cartLineAmount}>
@@ -283,7 +261,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
                     void cart.onRemoveCartLine(cartLine.lineId);
                   }}
                 >
-                  <Trash2 size={16} color={colors.destructive} />
+                  <Trash2 size={16} color={theme.colors.destructive} />
                 </Pressable>
               </View>
             ))
@@ -367,7 +345,10 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               size="lg"
               style={styles.actionButtonPrimary}
               leadingIcon={
-                <WalletCards size={18} color={colors.primaryForeground} />
+                <WalletCards
+                  size={18}
+                  color={theme.colors.primaryForeground}
+                />
               }
               onPress={checkout.onOpenPaymentModal}
             />
@@ -377,7 +358,7 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               variant="secondary"
               style={styles.actionButtonDanger}
               labelStyle={styles.clearButtonLabel}
-              leadingIcon={<Trash2 size={18} color={colors.destructive} />}
+              leadingIcon={<Trash2 size={18} color={theme.colors.destructive} />}
               onPress={() => {
                 void cart.onClearCart();
               }}
@@ -396,7 +377,9 @@ export function PosScreen({ viewModel }: PosScreenProps) {
               label="% Discount"
               variant="secondary"
               style={styles.secondaryActionButton}
-              leadingIcon={<Percent size={16} color={colors.mutedForeground} />}
+              leadingIcon={
+                <Percent size={16} color={theme.colors.mutedForeground} />
+              }
               onPress={cart.onOpenDiscountModal}
             />
             <AppButton
@@ -417,18 +400,14 @@ export function PosScreen({ viewModel }: PosScreenProps) {
           size="lg"
           style={styles.bottomPayButton}
           leadingIcon={
-            <ShoppingCart size={18} color={colors.primaryForeground} />
+            <ShoppingCart
+              size={18}
+              color={theme.colors.primaryForeground}
+            />
           }
           onPress={checkout.onOpenPaymentModal}
           disabled={viewModel.isCheckoutSubmitting}
         />
-
-        {viewModel.infoMessage ? (
-          <Text style={styles.infoText}>{viewModel.infoMessage}</Text>
-        ) : null}
-        {viewModel.errorMessage ? (
-          <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
-        ) : null}
       </ScreenContainer>
 
       <PosQuickProductModal
@@ -562,127 +541,126 @@ export function PosScreen({ viewModel }: PosScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   contentContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
+    paddingTop: theme.scaleSpace(spacing.lg),
+    gap: theme.scaleSpace(spacing.md),
   },
-
   cartBadge: {
     position: "absolute",
     top: -2,
     right: -2,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 4,
+    minWidth: theme.scaleSpace(20),
+    height: theme.scaleSpace(20),
+    paddingHorizontal: theme.scaleSpace(4),
     borderRadius: radius.pill,
-    backgroundColor: colors.destructive,
+    backgroundColor: theme.colors.destructive,
     alignItems: "center",
     justifyContent: "center",
   },
   cartBadgeText: {
-    color: colors.destructiveForeground,
-    fontSize: 10,
+    color: theme.colors.destructiveForeground,
+    fontSize: theme.scaleText(10),
     fontFamily: "InterBold",
   },
   sectionCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.xs),
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    marginBottom: theme.scaleSpace(spacing.xs),
   },
   sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   sectionSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 10,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(10),
     fontFamily: "InterMedium",
   },
   cartHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    marginBottom: theme.scaleSpace(spacing.xs),
   },
   cartTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   itemsPill: {
-    backgroundColor: colors.accent,
-    paddingHorizontal: spacing.sm,
-    minHeight: 28,
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
+    minHeight: theme.scaleSpace(28),
     borderRadius: radius.pill,
     justifyContent: "center",
   },
   itemsPillText: {
-    color: colors.primary,
-    fontSize: 12,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
   },
   emptyCartText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: spacing.sm,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
+    lineHeight: theme.scaleLineHeight(19),
+    marginBottom: theme.scaleSpace(spacing.sm),
   },
   cartLineRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingVertical: theme.scaleSpace(spacing.sm),
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
   },
   cartLineBody: {
     flex: 1,
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   cartLineTitle: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   cartLineMeta: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
   },
   cartLineActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   cartLineQty: {
-    color: colors.cardForeground,
-    minWidth: 16,
+    color: theme.colors.cardForeground,
+    minWidth: theme.scaleSpace(16),
     textAlign: "center",
-    fontSize: 14,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterSemiBold",
   },
   cartLineAmount: {
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
-    minWidth: 72,
+    minWidth: theme.scaleSpace(72),
     textAlign: "right",
   },
   cartDeleteButton: {
-    width: 26,
+    width: theme.scaleSpace(26),
     alignItems: "center",
     justifyContent: "center",
   },
   totalsWrap: {
-    paddingTop: spacing.sm,
-    gap: 6,
+    paddingTop: theme.scaleSpace(spacing.sm),
+    gap: theme.scaleSpace(6),
   },
   totalRow: {
     flexDirection: "row",
@@ -690,61 +668,61 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   totalLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterMedium",
   },
   totalValue: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterSemiBold",
   },
   grandTotalRow: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.sm),
+    paddingTop: theme.scaleSpace(spacing.sm),
     borderTopWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   grandTotalLabel: {
-    color: colors.cardForeground,
-    fontSize: 16,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(16),
     fontFamily: "InterBold",
   },
   grandTotalValue: {
-    color: colors.primary,
-    fontSize: 20,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(20),
     fontFamily: "InterBold",
   },
   customerCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   actionCard: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
+    gap: theme.scaleSpace(spacing.sm),
   },
   actionRowPrimary: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   actionRowSecondary: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   actionButtonPrimary: {
     flex: 1,
   },
   actionButtonDanger: {
     flex: 1,
-    borderColor: "#F2C7C7",
-    backgroundColor: "#FDF1F1",
+    borderColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.3)" : "#F2C7C7",
+    backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.12)" : "#FDF1F1",
   },
   clearButtonLabel: {
-    color: colors.destructive,
+    color: theme.colors.destructive,
   },
   actionButtonAccent: {
     flex: 1,
@@ -753,21 +731,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomPayButton: {
-    marginBottom: spacing.sm,
-  },
-  infoText: {
-    color: colors.primary,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "InterMedium",
-    paddingBottom: spacing.xs,
+    marginBottom: theme.scaleSpace(spacing.sm),
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 13,
-    lineHeight: 18,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(13),
+    lineHeight: theme.scaleLineHeight(18),
     fontFamily: "InterMedium",
-    paddingBottom: spacing.xs,
+    paddingBottom: theme.scaleSpace(spacing.xs),
   },
   sectionHeaderLeft: {
     flex: 1,
@@ -775,117 +746,117 @@ const styles = StyleSheet.create({
   productHeaderActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   searchWrap: {
-    minHeight: 50,
+    minHeight: theme.scaleSpace(50),
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    marginBottom: theme.scaleSpace(spacing.md),
   },
   searchInput: {
     flex: 1,
-    color: colors.cardForeground,
-    fontSize: 14,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(14),
   },
   quickProductsSection: {
-    marginBottom: spacing.md,
+    marginBottom: theme.scaleSpace(spacing.md),
   },
   quickProductsTitle: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterSemiBold",
-    marginBottom: spacing.sm,
+    marginBottom: theme.scaleSpace(spacing.sm),
   },
   quickProductsScroll: {
     flexGrow: 0,
   },
   quickProductsContent: {
-    gap: spacing.sm,
-    paddingRight: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingRight: theme.scaleSpace(spacing.sm),
   },
   quickProductChip: {
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#B8D7C0",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minWidth: 120,
+    borderColor: theme.isDarkMode ? "rgba(99, 211, 148, 0.3)" : "#B8D7C0",
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm),
+    minWidth: theme.scaleSpace(120),
     alignItems: "center",
   },
   quickProductChipText: {
-    color: colors.primary,
-    fontSize: 12,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterSemiBold",
     textAlign: "center",
   },
   quickProductChipPrice: {
-    color: colors.primary,
-    fontSize: 11,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterBold",
-    marginTop: 2,
+    marginTop: theme.scaleSpace(2),
   },
   productsList: {
-    maxHeight: 280,
+    maxHeight: theme.scaleSpace(280),
   },
   productsContent: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   productRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    gap: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
     borderRadius: radius.lg,
-    backgroundColor: colors.secondary,
+    backgroundColor: theme.colors.secondary,
   },
   productAvatarWrap: {
-    width: 48,
-    height: 48,
+    width: theme.scaleSpace(48),
+    height: theme.scaleSpace(48),
     borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   productAvatarText: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontFamily: "InterBold",
-    fontSize: 22,
+    fontSize: theme.scaleText(22),
   },
   productBody: {
     flex: 1,
-    gap: 4,
+    gap: theme.scaleSpace(4),
   },
   productTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
   },
   productMeta: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   productPrice: {
-    color: colors.primary,
-    fontSize: 15,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
-    minWidth: 80,
+    minWidth: theme.scaleSpace(80),
     textAlign: "right",
   },
   productAddButton: {
-    width: 32,
-    height: 32,
+    width: theme.scaleSpace(32),
+    height: theme.scaleSpace(32),
     borderRadius: radius.md,
-    backgroundColor: colors.primary,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -893,21 +864,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: spacing.xl,
-    gap: spacing.md,
+    paddingVertical: theme.scaleSpace(spacing.xl),
+    gap: theme.scaleSpace(spacing.md),
   },
   emptySearchTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(18),
     fontFamily: "InterSemiBold",
     textAlign: "center",
   },
   emptySearchSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterMedium",
     textAlign: "center",
-    maxWidth: 280,
-    lineHeight: 20,
+    maxWidth: theme.scaleSpace(280),
+    lineHeight: theme.scaleLineHeight(20),
   },
 });

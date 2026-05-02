@@ -12,13 +12,14 @@ import { FilterChipGroup } from "@/shared/components/reusable/Form/FilterChipGro
 import { SearchInputRow } from "@/shared/components/reusable/Form/SearchInputRow";
 import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { Plus } from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { ContactDetailsModal } from "./components/ContactDetailsModal";
 import { ContactEditorModal } from "./components/ContactEditorModal";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 const formatAmount = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -33,6 +34,9 @@ type ContactsScreenProps = {
 export function ContactsScreen({
   viewModel,
 }: ContactsScreenProps): React.ReactElement {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <>
       <DashboardTabScaffold
@@ -41,7 +45,9 @@ export function ContactsScreen({
             <AppButton
               label="Add Contact"
               size="lg"
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={viewModel.onOpenCreate}
               disabled={!viewModel.canManage}
             />
@@ -61,13 +67,13 @@ export function ContactsScreen({
             icon={<Text style={styles.statIcon}>+</Text>}
             value={viewModel.summary.receiveAmountLabel}
             label="Receivable"
-            valueColor={colors.success}
+            valueColor={theme.colors.success}
           />
           <StatCard
             icon={<Text style={styles.statIcon}>-</Text>}
             value={viewModel.summary.payAmountLabel}
             label="Payable"
-            valueColor={colors.destructive}
+            valueColor={theme.colors.destructive}
           />
         </View>
 
@@ -86,7 +92,7 @@ export function ContactsScreen({
         {viewModel.errorMessage ? (
           <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
         ) : null}
-        {viewModel.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
+        {viewModel.isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
 
         <Card style={styles.listCard}>
           {viewModel.filteredContacts.length === 0 ? (
@@ -199,15 +205,15 @@ export function ContactsScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   statIcon: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontFamily: "InterBold",
-    fontSize: 18,
+    fontSize: theme.scaleText(18),
   },
   listCard: {
     paddingVertical: 0,
@@ -216,71 +222,71 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    gap: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   rowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   avatarWrap: {
-    width: 48,
-    height: 48,
+    width: theme.scaleSpace(48),
+    height: theme.scaleSpace(48),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    color: colors.primary,
-    fontSize: 20,
+    color: theme.colors.primary,
+    fontSize: theme.scaleText(20),
     fontFamily: "InterBold",
   },
   textWrap: {
     flex: 1,
-    gap: 4,
+    gap: theme.scaleSpace(4),
   },
   rowTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
   },
   rowSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterMedium",
   },
   amountWrap: {
     alignItems: "flex-end",
-    minWidth: 84,
+    minWidth: theme.scaleSpace(84),
   },
   amountText: {
-    fontSize: 14,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterBold",
   },
   amountCaption: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
-    marginTop: 2,
+    marginTop: theme.scaleSpace(2),
   },
   receiveValue: {
-    color: colors.success,
+    color: theme.colors.success,
   },
   payValue: {
-    color: colors.destructive,
+    color: theme.colors.destructive,
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 12,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   emptyText: {
-    color: colors.mutedForeground,
-    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(14),
     fontFamily: "InterMedium",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.lg),
   },
 });

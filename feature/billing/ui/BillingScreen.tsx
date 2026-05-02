@@ -8,7 +8,7 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { StatCard } from "@/shared/components/reusable/Cards/StatCard";
 import { Pill } from "@/shared/components/reusable/List/Pill";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import {
   Camera,
@@ -29,6 +29,7 @@ import {
 } from "react-native";
 import { BillingDocumentEditorModal } from "./components/BillingDocumentEditorModal";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 const formatDate = (value: number): string => {
   return new Date(value).toISOString().slice(0, 10);
@@ -60,6 +61,9 @@ type BillingScreenProps = {
 };
 
 export function BillingScreen({ viewModel }: BillingScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <DashboardTabScaffold
       footer={null}
@@ -81,7 +85,7 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
               countryCode: viewModel.countryCode,
             })}
             label="Pending"
-            valueColor={colors.warning}
+            valueColor={theme.colors.warning}
           />
           <StatCard
             icon={<Text style={styles.summaryIcon}>!</Text>}
@@ -91,7 +95,7 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
               countryCode: viewModel.countryCode,
             })}
             label="Overdue"
-            valueColor={colors.destructive}
+            valueColor={theme.colors.destructive}
           />
       </View>
 
@@ -122,7 +126,9 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
           <AppButton
             label="Upload Bill Photo"
             size="lg"
-            leadingIcon={<Camera size={18} color={colors.primaryForeground} />}
+            leadingIcon={
+              <Camera size={18} color={theme.colors.primaryForeground} />
+            }
             onPress={() => void viewModel.onUploadBillPhoto()}
             disabled={!viewModel.canManage}
           />
@@ -130,7 +136,7 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
           <Card style={styles.billPhotoCard}>
             {viewModel.billPhotos.length === 0 ? (
               <View style={styles.emptyStateWrap}>
-                <ImageIcon size={36} color={colors.mutedForeground} />
+                <ImageIcon size={36} color={theme.colors.mutedForeground} />
                 <Text style={styles.emptyStateTitle}>No bill photos yet</Text>
                 <Text style={styles.emptyStateDescription}>
                   Upload photos of your bills and receipts for records
@@ -161,7 +167,9 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
               label={viewModel.activeTab === "receipts" ? "New Receipt" : "New Invoice"}
               size="lg"
               style={styles.flexButton}
-              leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+              leadingIcon={
+                <Plus size={18} color={theme.colors.primaryForeground} />
+              }
               onPress={viewModel.onOpenCreate}
               disabled={!viewModel.canManage}
             />
@@ -171,7 +179,7 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
             Recent {viewModel.activeTab === "receipts" ? "Receipts" : "Invoices"}
           </Text>
 
-          {viewModel.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
+          {viewModel.isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
           {viewModel.errorMessage ? (
             <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
           ) : null}
@@ -190,9 +198,9 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
                 >
                   <View style={styles.iconWrap}>
                     {document.documentType === "receipt" ? (
-                      <Receipt size={20} color={colors.primary} />
+                      <Receipt size={20} color={theme.colors.primary} />
                     ) : (
-                      <FileText size={20} color={colors.primary} />
+                      <FileText size={20} color={theme.colors.primary} />
                     )}
                   </View>
 
@@ -275,78 +283,127 @@ export function BillingScreen({ viewModel }: BillingScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  summaryRow: { flexDirection: "row", gap: spacing.sm },
-  summaryIcon: { color: colors.primary, fontFamily: "InterBold", fontSize: 18 },
-  tabRow: { flexDirection: "row", gap: spacing.sm },
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
+  summaryRow: { flexDirection: "row", gap: theme.scaleSpace(spacing.sm) },
+  summaryIcon: {
+    color: theme.colors.primary,
+    fontFamily: "InterBold",
+    fontSize: theme.scaleText(18),
+  },
+  tabRow: { flexDirection: "row", gap: theme.scaleSpace(spacing.sm) },
   tabButton: {
     flex: 1,
-    minHeight: 44,
+    minHeight: theme.scaleSpace(44),
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabButtonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  tabButtonText: { color: colors.cardForeground, fontFamily: "InterBold", fontSize: 14 },
-  tabButtonTextActive: { color: colors.primaryForeground },
-  actionRow: { flexDirection: "row", gap: spacing.sm },
+  tabButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  tabButtonText: {
+    color: theme.colors.cardForeground,
+    fontFamily: "InterBold",
+    fontSize: theme.scaleText(14),
+  },
+  tabButtonTextActive: { color: theme.colors.primaryForeground },
+  actionRow: { flexDirection: "row", gap: theme.scaleSpace(spacing.sm) },
   flexButton: { flex: 1 },
   sectionTitle: {
-    color: colors.cardForeground,
+    color: theme.colors.cardForeground,
     fontFamily: "InterBold",
-    fontSize: 18,
-    marginTop: spacing.xs,
+    fontSize: theme.scaleText(18),
+    marginTop: theme.scaleSpace(spacing.xs),
   },
-  errorText: { color: colors.destructive, fontFamily: "InterMedium", fontSize: 12 },
-  listWrap: { gap: spacing.sm },
-  listCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  errorText: {
+    color: theme.colors.destructive,
+    fontFamily: "InterMedium",
+    fontSize: theme.scaleText(12),
+  },
+  listWrap: { gap: theme.scaleSpace(spacing.sm) },
+  listCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.scaleSpace(spacing.sm),
+  },
   iconWrap: {
-    width: 50,
-    height: 50,
+    width: theme.scaleSpace(50),
+    height: theme.scaleSpace(50),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   listBody: { flex: 1 },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
-    marginBottom: 4,
+    gap: theme.scaleSpace(spacing.xs),
+    marginBottom: theme.scaleSpace(4),
     flexWrap: "wrap",
   },
-  documentTitle: { color: colors.cardForeground, fontFamily: "InterBold", fontSize: 16 },
-  documentSubtitle: { color: colors.mutedForeground, fontSize: 12 },
-  amountWrap: { alignItems: "flex-end", gap: 4 },
-  amountText: { color: colors.cardForeground, fontFamily: "InterBold", fontSize: 15 },
-  deleteText: { color: colors.destructive, fontFamily: "InterBold", fontSize: 12 },
-  emptyText: { color: colors.mutedForeground, fontSize: 13 },
-  billPhotoCard: { minHeight: 220 },
+  documentTitle: {
+    color: theme.colors.cardForeground,
+    fontFamily: "InterBold",
+    fontSize: theme.scaleText(16),
+  },
+  documentSubtitle: {
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+  },
+  amountWrap: { alignItems: "flex-end", gap: theme.scaleSpace(4) },
+  amountText: {
+    color: theme.colors.cardForeground,
+    fontFamily: "InterBold",
+    fontSize: theme.scaleText(15),
+  },
+  deleteText: {
+    color: theme.colors.destructive,
+    fontFamily: "InterBold",
+    fontSize: theme.scaleText(12),
+  },
+  emptyText: {
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
+  },
+  billPhotoCard: { minHeight: theme.scaleSpace(220) },
   emptyStateWrap: {
     flex: 1,
-    minHeight: 180,
+    minHeight: theme.scaleSpace(180),
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
-  emptyStateTitle: { color: colors.cardForeground, fontFamily: "InterBold", fontSize: 22 },
+  emptyStateTitle: {
+    color: theme.colors.cardForeground,
+    fontFamily: "InterBold",
+    fontSize: theme.scaleText(22),
+  },
   emptyStateDescription: {
-    color: colors.mutedForeground,
-    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(14),
     textAlign: "center",
-    maxWidth: 260,
+    maxWidth: theme.scaleSpace(260),
   },
-  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  photoItem: { width: "48%", gap: 6 },
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.scaleSpace(spacing.sm),
+  },
+  photoItem: { width: "48%", gap: theme.scaleSpace(6) },
   photoImage: {
     width: "100%",
     aspectRatio: 1.2,
     borderRadius: radius.lg,
-    backgroundColor: colors.secondary,
+    backgroundColor: theme.colors.secondary,
   },
-  photoName: { color: colors.cardForeground, fontSize: 12, fontFamily: "InterMedium" },
+  photoName: {
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(12),
+    fontFamily: "InterMedium",
+  },
 });

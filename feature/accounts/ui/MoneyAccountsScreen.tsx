@@ -16,8 +16,9 @@ import { AppButton } from "@/shared/components/reusable/Buttons/AppButton";
 import { Card, CardPressable } from "@/shared/components/reusable/Cards/Card";
 import { ConfirmDeleteModal } from "@/shared/components/reusable/Modals/ConfirmDeleteModal";
 import { BottomTabAwareFooter } from "@/shared/components/reusable/ScreenLayouts/BottomTabAwareFooter";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { MoneyAccountAdjustmentModal } from "./components/MoneyAccountAdjustmentModal";
 import { MoneyAccountEditorModal } from "./components/MoneyAccountEditorModal";
 import { formatCurrencyAmount } from "@/shared/utils/currency/accountCurrency";
@@ -34,15 +35,18 @@ const resolveAccountTypeLabel = (account: MoneyAccount): string => {
   }
 };
 
-const resolveAccountIcon = (account: MoneyAccount): React.ReactElement => {
+const resolveAccountIcon = (
+  theme: ReturnType<typeof useAppTheme>,
+  account: MoneyAccount,
+): React.ReactElement => {
   switch (account.type) {
     case MoneyAccountType.Bank:
-      return <Landmark size={20} color={colors.primary} />;
+      return <Landmark size={20} color={theme.colors.primary} />;
     case MoneyAccountType.Wallet:
-      return <Smartphone size={20} color={colors.primary} />;
+      return <Smartphone size={20} color={theme.colors.primary} />;
     case MoneyAccountType.Cash:
     default:
-      return <Wallet size={20} color={colors.primary} />;
+      return <Wallet size={20} color={theme.colors.primary} />;
   }
 };
 
@@ -53,6 +57,9 @@ type MoneyAccountsScreenProps = {
 export function MoneyAccountsScreen({
   viewModel,
 }: MoneyAccountsScreenProps): React.ReactElement {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <DashboardTabScaffold
       footer={
@@ -62,7 +69,9 @@ export function MoneyAccountsScreen({
             variant="primary"
             size="lg"
             style={styles.primaryActionButton}
-            leadingIcon={<Plus size={18} color={colors.primaryForeground} />}
+            leadingIcon={
+              <Plus size={18} color={theme.colors.primaryForeground} />
+            }
             onPress={viewModel.onOpenCreate}
             disabled={!viewModel.canManage}
           />
@@ -89,7 +98,7 @@ export function MoneyAccountsScreen({
 
       {viewModel.isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading accounts...</Text>
         </View>
       ) : null}
@@ -119,7 +128,7 @@ export function MoneyAccountsScreen({
                 disabled={!viewModel.canManage}
               >
                 <View style={styles.iconWrap}>
-                  {resolveAccountIcon(account)}
+                  {resolveAccountIcon(theme, account)}
                 </View>
 
                 <View style={styles.accountBody}>
@@ -171,38 +180,38 @@ export function MoneyAccountsScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   content: {
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   primaryActionButton: {
     width: "100%",
   },
   totalBalanceCard: {
-    minHeight: 104,
+    minHeight: theme.scaleSpace(104),
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   totalBalanceLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterMedium",
   },
   totalBalanceValue: {
-    color: colors.cardForeground,
-    fontSize: 26,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(26),
     fontFamily: "InterBold",
   },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.sm),
   },
   sectionTitle: {
-    color: colors.cardForeground,
-    fontSize: 18,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(18),
     fontFamily: "InterBold",
   },
   listCard: {
@@ -212,93 +221,93 @@ const styles = StyleSheet.create({
   accountRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
     borderWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.md),
     borderRadius: 0,
   },
   accountRowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.colors.border,
   },
   iconWrap: {
-    width: 50,
-    height: 50,
+    width: theme.scaleSpace(50),
+    height: theme.scaleSpace(50),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   accountBody: {
     flex: 1,
-    gap: 3,
+    gap: theme.scaleSpace(3),
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
     flexWrap: "wrap",
   },
   accountName: {
-    color: colors.cardForeground,
-    fontSize: 15,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
   },
   accountTypeLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   accountBalance: {
-    color: colors.cardForeground,
-    fontSize: 15,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
   },
   primaryBadge: {
-    minHeight: 22,
+    minHeight: theme.scaleSpace(22),
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: theme.scaleSpace(spacing.sm),
   },
   primaryBadgeText: {
-    color: colors.primaryForeground,
-    fontSize: 11,
+    color: theme.colors.primaryForeground,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterBold",
   },
   errorText: {
-    color: colors.destructive,
-    fontSize: 12,
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   loadingWrap: {
-    minHeight: 56,
+    minHeight: theme.scaleSpace(56),
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   loadingText: {
-    color: colors.mutedForeground,
-    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterMedium",
   },
   emptyCard: {
-    gap: 4,
+    gap: theme.scaleSpace(4),
   },
   emptyTitle: {
-    color: colors.cardForeground,
-    fontSize: 15,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(15),
     fontFamily: "InterBold",
   },
   emptySubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    lineHeight: 18,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(13),
+    lineHeight: theme.scaleLineHeight(18),
     fontFamily: "InterMedium",
   },
 });

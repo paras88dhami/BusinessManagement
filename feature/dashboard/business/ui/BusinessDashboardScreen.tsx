@@ -13,8 +13,9 @@ import { DirectionArrowIcon } from "@/shared/components/reusable/Icons/Direction
 import { ScreenContainer } from "@/shared/components/reusable/ScreenLayouts/ScreenContainer";
 import { LineAreaChart } from "@/shared/components/reusable/Charts/FinancialCharts";
 import { TransactionTable } from "@/shared/components/reusable/Tables/TransactionTable";
-import { colors } from "@/shared/components/theme/colors";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
 import { radius, spacing } from "@/shared/components/theme/spacing";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 import { BusinessDashboardViewModel } from "../viewModel/businessDashboard.viewModel";
 
 type BusinessDashboardScreenProps = {
@@ -24,6 +25,9 @@ type BusinessDashboardScreenProps = {
 export function BusinessDashboardScreen({
   viewModel,
 }: BusinessDashboardScreenProps) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <ScreenContainer
       showDivider={false}
@@ -32,7 +36,9 @@ export function BusinessDashboardScreen({
       <View style={styles.summaryRow}>
         {viewModel.summaryCards.map((summaryCard) => {
           const isReceive = summaryCard.tone === "receive";
-          const toneColor = isReceive ? colors.success : colors.destructive;
+          const toneColor = isReceive
+            ? theme.colors.success
+            : theme.colors.destructive;
 
           return (
             <Card key={summaryCard.id} style={styles.summaryCard}>
@@ -48,14 +54,14 @@ export function BusinessDashboardScreen({
                   <DirectionArrowIcon
                     variant="trend-receive"
                     size={14}
-                    color={colors.success}
+                    color={theme.colors.success}
                     strokeWidth={2.2}
                   />
                 ) : (
                   <DirectionArrowIcon
                     variant="trend-pay"
                     size={14}
-                    color={colors.destructive}
+                    color={theme.colors.destructive}
                     strokeWidth={2.2}
                   />
                 )}
@@ -74,7 +80,7 @@ export function BusinessDashboardScreen({
           <DirectionArrowIcon
             variant="corner-receive"
             size={16}
-            color={colors.success}
+            color={theme.colors.success}
           />
           <Text style={styles.statValue}>{viewModel.todayInValue}</Text>
           <Text style={styles.statLabel}>Today In</Text>
@@ -83,20 +89,20 @@ export function BusinessDashboardScreen({
           <DirectionArrowIcon
             variant="corner-pay"
             size={16}
-            color={colors.destructive}
+            color={theme.colors.destructive}
           />
           <Text style={styles.statValue}>{viewModel.todayOutValue}</Text>
           <Text style={styles.statLabel}>Today Out</Text>
         </Card>
         <Card style={styles.statCard}>
-          <AlertCircle size={16} color={colors.warning} />
+          <AlertCircle size={16} color={theme.colors.warning} />
           <Text style={styles.statValue}>{viewModel.overdueCountLabel}</Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </Card>
       </View>
 
       {viewModel.isLoading ? (
-        <ActivityIndicator style={styles.infoBlock} color={colors.primary} />
+        <ActivityIndicator style={styles.infoBlock} color={theme.colors.primary} />
       ) : null}
       {viewModel.errorMessage ? (
         <Text style={styles.errorText}>{viewModel.errorMessage}</Text>
@@ -107,15 +113,15 @@ export function BusinessDashboardScreen({
         {viewModel.quickActions.map((quickAction) => {
           const icon =
             quickAction.id === "orders" ? (
-              <ClipboardList size={20} color={colors.primary} />
+              <ClipboardList size={20} color={theme.colors.primary} />
             ) : quickAction.id === "products" ? (
-              <Package size={20} color={colors.primary} />
+              <Package size={20} color={theme.colors.primary} />
             ) : quickAction.id === "billing" ? (
-              <ReceiptText size={20} color={colors.primary} />
+              <ReceiptText size={20} color={theme.colors.primary} />
             ) : quickAction.id === "contacts" ? (
-              <Users size={20} color={colors.primary} />
+              <Users size={20} color={theme.colors.primary} />
             ) : (
-              <ArrowLeftRight size={20} color={colors.primary} />
+              <ArrowLeftRight size={20} color={theme.colors.primary} />
             );
 
           return (
@@ -157,125 +163,125 @@ export function BusinessDashboardScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingHorizontal: theme.scaleSpace(spacing.lg),
+    paddingTop: theme.scaleSpace(spacing.lg),
   },
   summaryRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   summaryCard: {
     flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm + 2),
   },
   summaryIconWrap: {
-    width: 34,
-    height: 34,
+    width: theme.scaleSpace(34),
+    height: theme.scaleSpace(34),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    marginBottom: theme.scaleSpace(4),
   },
   summaryIconWrapReceive: {
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   summaryIconWrapPay: {
-    backgroundColor: "#FDEAEA",
+    backgroundColor: theme.isDarkMode ? "rgba(255, 107, 107, 0.16)" : "#FDEAEA",
   },
   summaryLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
-    marginBottom: 2,
+    marginBottom: theme.scaleSpace(2),
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: theme.scaleText(20),
     fontFamily: "InterBold",
   },
   statRow: {
-    marginTop: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.sm),
     flexDirection: "row",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
   },
   statCard: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: 4,
+    paddingVertical: theme.scaleSpace(spacing.sm),
+    paddingHorizontal: theme.scaleSpace(4),
   },
   statValue: {
-    marginTop: 4,
-    color: colors.cardForeground,
-    fontSize: 13,
+    marginTop: theme.scaleSpace(4),
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   statLabel: {
-    marginTop: 2,
-    color: colors.mutedForeground,
-    fontSize: 10,
+    marginTop: theme.scaleSpace(2),
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(10),
   },
   sectionTitle: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-    color: colors.foreground,
-    fontSize: 17,
+    marginTop: theme.scaleSpace(spacing.lg),
+    marginBottom: theme.scaleSpace(spacing.sm),
+    color: theme.colors.foreground,
+    fontSize: theme.scaleText(17),
     fontFamily: "InterBold",
   },
   infoBlock: {
-    marginTop: spacing.sm,
+    marginTop: theme.scaleSpace(spacing.sm),
   },
   errorText: {
-    marginTop: spacing.xs,
-    color: colors.destructive,
-    fontSize: 12,
+    marginTop: theme.scaleSpace(spacing.xs),
+    color: theme.colors.destructive,
+    fontSize: theme.scaleText(12),
     fontFamily: "InterMedium",
   },
   quickActionRow: {
     flexDirection: "row",
     flexWrap: "nowrap",
-    gap: spacing.xs,
+    gap: theme.scaleSpace(spacing.xs),
     alignItems: "stretch",
   },
   quickActionCard: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: 4,
+    paddingVertical: theme.scaleSpace(spacing.sm + 2),
+    paddingHorizontal: theme.scaleSpace(4),
     alignItems: "center",
     justifyContent: "center",
   },
   quickActionIconWrap: {
-    width: 36,
-    height: 36,
+    width: theme.scaleSpace(36),
+    height: theme.scaleSpace(36),
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.accent,
-    marginBottom: spacing.xs,
+    backgroundColor: theme.colors.accent,
+    marginBottom: theme.scaleSpace(spacing.xs),
   },
   quickActionLabel: {
-    color: colors.cardForeground,
-    fontSize: 11,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(11),
     fontFamily: "InterBold",
     textAlign: "center",
   },
   chartCard: {
-    paddingVertical: spacing.md,
+    paddingVertical: theme.scaleSpace(spacing.md),
   },
   chartTitle: {
-    color: colors.cardForeground,
-    fontSize: 17,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(17),
     fontFamily: "InterBold",
-    marginBottom: 4,
+    marginBottom: theme.scaleSpace(4),
   },
   chartSubtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: spacing.sm,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(12),
+    marginBottom: theme.scaleSpace(spacing.sm),
   },
 });
 

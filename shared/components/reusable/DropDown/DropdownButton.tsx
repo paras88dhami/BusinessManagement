@@ -1,4 +1,3 @@
-import { colors } from "@/shared/components/theme/colors";
 import { radius, spacing } from "@/shared/components/theme/spacing";
 import { ChevronDown } from "lucide-react-native";
 import React from "react";
@@ -12,6 +11,8 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { useAppTheme } from "@/shared/components/theme/AppThemeProvider";
+import { useThemedStyles } from "@/shared/components/theme/useThemedStyles";
 
 type DropdownButtonProps = Omit<PressableProps, "children" | "style"> & {
   label: string;
@@ -37,6 +38,8 @@ export function DropdownButton({
   ...props
 }: DropdownButtonProps) {
   const isDisabled = disabled === true;
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Pressable
@@ -67,26 +70,26 @@ export function DropdownButton({
 
       <ChevronDown
         size={18}
-        color={colors.mutedForeground}
+        color={theme.colors.mutedForeground}
         style={expanded ? styles.chevronExpanded : undefined}
       />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   button: {
-    minHeight: 54,
+    minHeight: theme.scaleSpace(54),
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.colors.border,
     borderRadius: radius.lg,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.scaleSpace(spacing.md),
+    paddingVertical: theme.scaleSpace(spacing.sm),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   disabled: {
     opacity: 0.6,
@@ -98,29 +101,29 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: theme.scaleSpace(spacing.sm),
   },
   iconWrap: {
-    width: 32,
-    height: 32,
+    width: theme.scaleSpace(32),
+    height: theme.scaleSpace(32),
     borderRadius: radius.pill,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   textWrap: {
     flex: 1,
-    gap: 2,
+    gap: theme.scaleSpace(2),
   },
   label: {
-    color: colors.cardForeground,
-    fontSize: 13,
+    color: theme.colors.cardForeground,
+    fontSize: theme.scaleText(13),
     fontFamily: "InterBold",
   },
   subtitle: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    lineHeight: 15,
+    color: theme.colors.mutedForeground,
+    fontSize: theme.scaleText(11),
+    lineHeight: theme.scaleLineHeight(15),
     fontFamily: "InterMedium",
   },
   chevronExpanded: {
