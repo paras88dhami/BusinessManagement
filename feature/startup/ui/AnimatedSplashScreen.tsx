@@ -9,6 +9,7 @@ import {
 import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
 
 type AnimatedSplashScreenProps = {
+  isActive: boolean;
   onFinish: () => void;
 };
 
@@ -234,7 +235,10 @@ const buildStrokePath = (points: Point[], maxCount: number): string => {
   return d;
 };
 
-export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
+export function AnimatedSplashScreen({
+  isActive,
+  onFinish,
+}: AnimatedSplashScreenProps) {
   const { width, height } = useWindowDimensions();
   const geometry = useMemo(() => buildGeometry(width, height), [height, width]);
 
@@ -244,6 +248,10 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
   const hasFinishedRef = useRef(false);
 
   useEffect(() => {
+    if (!isActive) {
+      return () => undefined;
+    }
+
     const frame = (timestamp: number) => {
       if (startedAtRef.current === null) {
         startedAtRef.current = timestamp;
@@ -266,7 +274,7 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
       animationFrameRef.current = null;
       startedAtRef.current = null;
     };
-  }, [height, width]);
+  }, [height, isActive, width]);
 
   useEffect(() => {
     if (hasFinishedRef.current || elapsedMs < FINISH_MS + 120) {

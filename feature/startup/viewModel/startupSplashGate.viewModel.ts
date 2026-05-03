@@ -7,6 +7,7 @@ export type UseStartupSplashGateViewModelParams = {
 };
 
 export interface StartupSplashGateViewModel {
-  shouldShowAnimatedSplash: boolean;
+  shouldRenderAnimatedSplash: boolean;
+  shouldAnimateSplash: boolean;
   onAnimatedSplashFinish: () => void;
 }

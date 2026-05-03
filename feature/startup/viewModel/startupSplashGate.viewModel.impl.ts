@@ -49,15 +49,20 @@ export const useStartupSplashGateViewModel = ({
     setHasAnimatedSplashFinished(true);
   }, []);
 
-  const shouldShowAnimatedSplash = useMemo(() => {
-    return isStartupReady && hasNativeSplashHidden && !hasAnimatedSplashFinished;
-  }, [hasAnimatedSplashFinished, hasNativeSplashHidden, isStartupReady]);
+  const shouldRenderAnimatedSplash = useMemo(() => {
+    return isStartupReady && !hasAnimatedSplashFinished;
+  }, [hasAnimatedSplashFinished, isStartupReady]);
+
+  const shouldAnimateSplash = useMemo(() => {
+    return shouldRenderAnimatedSplash && hasNativeSplashHidden;
+  }, [hasNativeSplashHidden, shouldRenderAnimatedSplash]);
 
   return useMemo(
     () => ({
-      shouldShowAnimatedSplash,
+      shouldRenderAnimatedSplash,
+      shouldAnimateSplash,
       onAnimatedSplashFinish,
     }),
-    [onAnimatedSplashFinish, shouldShowAnimatedSplash],
+    [onAnimatedSplashFinish, shouldAnimateSplash, shouldRenderAnimatedSplash],
   );
 };

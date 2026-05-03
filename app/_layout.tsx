@@ -56,13 +56,14 @@ function SessionStartupOverlayController({
     isSessionLoading: isLoading,
   });
 
-  if (!splashGateViewModel.shouldShowAnimatedSplash) {
+  if (!splashGateViewModel.shouldRenderAnimatedSplash) {
     return null;
   }
 
   return (
     <View style={styles.startupOverlay} pointerEvents="auto">
       <AnimatedSplashScreen
+        isActive={splashGateViewModel.shouldAnimateSplash}
         onFinish={splashGateViewModel.onAnimatedSplashFinish}
       />
     </View>
